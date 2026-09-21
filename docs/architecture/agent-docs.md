@@ -208,7 +208,7 @@ git config --get user.email      # verificar antes del primer commit
 ```
 
 El registro de handles y correos está en [`../WORKSTREAMS.md`](../WORKSTREAMS.md) §3.
-Los que dicen `POR LLENAR` los completa cada persona: **nadie inventa un handle ni un correo
+Usá exactamente esos valores: **nadie inventa un handle ni un correo
 ajeno**, porque un commit mal atribuido es peor que uno sin atribuir — le asigna trabajo a
 quien no lo hizo justo en el semestre en que se evalúa la contribución individual.
 

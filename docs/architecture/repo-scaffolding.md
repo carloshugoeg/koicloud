@@ -369,10 +369,9 @@ Reglas que sostienen esa tabla:
   workstream: así se revisa cada dependencia nueva sin bloquear el trabajo.
 - Las tools MCP son de W4 solo en sus archivos de lectura; el montaje, el gate y las tools
   mutantes son de W1, y por eso `apps/api/app/mcp/**` lleva doble dueño.
-- En el archivo, los handles de W2, W3 y W4 están como `@POR-LLENAR-W2`, `@POR-LLENAR-W3` y
-  `@POR-LLENAR-W4`. **Se reemplazan por los handles reales antes de activar la protección de
-  `main`**: GitHub ignora en silencio una línea con un handle inexistente, y esa ruta queda
-  sin dueño sin que nadie se entere. El registro de handles vive en
+- Los handles de W2, W3 y W4 son `@Jasgu097`, `@Josh-JM` y `@diegojoachin07`. GitHub
+  ignora en silencio una línea con un handle inexistente, y esa ruta queda sin dueño sin
+  que nadie se entere. El registro de handles vive en
   [`../WORKSTREAMS.md`](../WORKSTREAMS.md) §1.
 
 ---

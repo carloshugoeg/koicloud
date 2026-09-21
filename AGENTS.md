@@ -169,8 +169,8 @@ git config user.email "tu-correo-de-github"   # el mismo que verifica tu cuenta
 git config --get user.email                   # verifica antes de commitear
 ```
 
-El handle y el correo de cada quien están en `docs/WORKSTREAMS.md`. Si el tuyo todavía dice
-`POR LLENAR`, para y pídeselo a esa persona: **no inventes un handle ni un correo**.
+El handle y el correo de cada quien están en `docs/WORKSTREAMS.md`. Usá exactamente esos
+valores: **no inventes un handle ni un correo**.
 
 **Prohibido en todo mensaje de commit y de PR:**
 

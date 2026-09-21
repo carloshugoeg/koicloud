@@ -62,8 +62,8 @@ Cada commit va con la **cuenta de GitHub real** de la persona que hizo el trabaj
 git config user.name "Tu Nombre" && git config user.email "tu-correo-de-github"
 ```
 
-Handles y correos en `docs/WORKSTREAMS.md`; si el tuyo dice `POR LLENAR`, pídelo — no lo
-inventes. **Nunca** añadas `Co-authored-by: Antigravity/Gemini/Cursor/Claude`, «Generated
+Handles y correos en `docs/WORKSTREAMS.md`; usá los de esa tabla — no los inventes.
+**Nunca** añadas `Co-authored-by: Antigravity/Gemini/Cursor/Claude`, «Generated
 with…» ni firmas de agente; si tu herramienta los agrega, quítalos antes de commitear.
 «Equipo KoiCloud» es el nombre público del equipo, **no** una identidad de git.
 

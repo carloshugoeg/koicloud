@@ -1,8 +1,7 @@
 # CODEOWNERS — KoiCloud
 #
-# Reemplazá @POR-LLENAR-W2 / @POR-LLENAR-W3 / @POR-LLENAR-W4 por los handles reales de
-# Jason, Jousé y Diego antes de activar la protección de `main`. Sin handles reales, GitHub
-# ignora la línea y el archivo queda sin dueño.
+# Handles reales (docs/WORKSTREAMS.md): W2 @Jasgu097, W3 @Josh-JM, W4 @diegojoachin07.
+# GitHub ignora en silencio un handle inexistente y esa ruta queda sin dueño.
 #
 # Cualquier archivo no listado pertenece a W1.
 
@@ -46,26 +45,26 @@ docs/visual-guidelines.md                  @carloshugoeg
 docs/tickets/**                            @carloshugoeg
 
 # ── W2 · Jason — la SPA ──────────────────────────────────────────────────────────
-apps/web/**                                @POR-LLENAR-W2
+apps/web/**                                @Jasgu097
 # Manifiestos de dependencias: su dueño los edita, W1 los aprueba.
-apps/web/package.json                      @POR-LLENAR-W2 @carloshugoeg
-apps/web/pnpm-lock.yaml                    @POR-LLENAR-W2 @carloshugoeg
+apps/web/package.json                      @Jasgu097 @carloshugoeg
+apps/web/pnpm-lock.yaml                    @Jasgu097 @carloshugoeg
 
 # ── W3 · Jousé — cuentas y dinero ────────────────────────────────────────────────
-apps/api/app/modules/auth/**               @POR-LLENAR-W3
-apps/api/app/modules/users/**              @POR-LLENAR-W3
-apps/api/app/modules/billing/**            @POR-LLENAR-W3
-apps/api/app/modules/notifications/**      @POR-LLENAR-W3
-apps/api/app/modules/admin/**              @POR-LLENAR-W3
+apps/api/app/modules/auth/**               @Josh-JM
+apps/api/app/modules/users/**              @Josh-JM
+apps/api/app/modules/billing/**            @Josh-JM
+apps/api/app/modules/notifications/**      @Josh-JM
+apps/api/app/modules/admin/**              @Josh-JM
 
 # ── W4 · Diego — superficies y operación ─────────────────────────────────────────
-apps/api/app/modules/sql_console/**        @POR-LLENAR-W4
-apps/api/app/mcp/**                        @POR-LLENAR-W4 @carloshugoeg
-apps/cli/**                                @POR-LLENAR-W4
-apps/cli/pyproject.toml                    @POR-LLENAR-W4 @carloshugoeg
-infra/**                                   @POR-LLENAR-W4 @carloshugoeg
-load/**                                    @POR-LLENAR-W4
-.github/workflows/deploy.yml               @POR-LLENAR-W4 @carloshugoeg
-docs/manual-usuario/**                     @POR-LLENAR-W4
-docs/manual-tecnico.md                     @POR-LLENAR-W4
-docs/reporte-carga.md                      @POR-LLENAR-W4
+apps/api/app/modules/sql_console/**        @diegojoachin07
+apps/api/app/mcp/**                        @diegojoachin07 @carloshugoeg
+apps/cli/**                                @diegojoachin07
+apps/cli/pyproject.toml                    @diegojoachin07 @carloshugoeg
+infra/**                                   @diegojoachin07 @carloshugoeg
+load/**                                    @diegojoachin07
+.github/workflows/deploy.yml               @diegojoachin07 @carloshugoeg
+docs/manual-usuario/**                     @diegojoachin07
+docs/manual-tecnico.md                     @diegojoachin07
+docs/reporte-carga.md                      @diegojoachin07

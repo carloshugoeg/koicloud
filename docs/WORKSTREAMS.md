@@ -15,12 +15,12 @@ que un agente lee para saber de quién es cada archivo.
 | Workstream | Persona | GitHub | Superficie | Rama | Tickets |
 |---|---|---|---|---|---|
 | **W1** — Núcleo y data plane | Carlos Hugo Escobar | `@carloshugoeg` | API, modelo de datos, cola de jobs, node-agent, contratos, infraestructura | `w1-…` | `docs/tickets/w1/` |
-| **W2** — Web | Jason Gutiérrez | `@POR-LLENAR` | La SPA completa: todas las pantallas que el usuario ve | `w2-…` | `docs/tickets/w2/` |
-| **W3** — Cuentas y dinero | Jousé Menendez | `@POR-LLENAR` | Registro, sesión, perfil, planes, contratación, facturas, correos, administración | `w3-…` | `docs/tickets/w3/` |
-| **W4** — Superficies y operación | Diego Joachin | `@POR-LLENAR` | CLI, consola SQL, tools MCP de lectura, pruebas de carga, manuales, despliegue | `w4-…` | `docs/tickets/w4/` |
+| **W2** — Web | Jason Gutiérrez | `@Jasgu097` | La SPA completa: todas las pantallas que el usuario ve | `w2-…` | `docs/tickets/w2/` |
+| **W3** — Cuentas y dinero | Jousé Menendez | `@Josh-JM` | Registro, sesión, perfil, planes, contratación, facturas, correos, administración | `w3-…` | `docs/tickets/w3/` |
+| **W4** — Superficies y operación | Diego Joachin | `@diegojoachin07` | CLI, consola SQL, tools MCP de lectura, pruebas de carga, manuales, despliegue | `w4-…` | `docs/tickets/w4/` |
 
-Los `@POR-LLENAR` los completa cada quien con su handle real de GitHub en el primer PR de
-la Fase 0. Sin handle real no se puede configurar `CODEOWNERS` ni atribuir los commits.
+Los handles de la tabla son los de GitHub, verificados con `gh api users/<login>`.
+`CODEOWNERS` usa los mismos: `@Jasgu097`, `@Josh-JM` y `@diegojoachin07`.
 
 ---
 
@@ -58,9 +58,9 @@ git config --get user.email    # verificá antes del primer commit
 | Persona | `user.name` | `user.email` |
 |---|---|---|
 | Carlos Hugo Escobar | Carlos Hugo Escobar | `hescobar06cvo@gmail.com` (o su noreply de GitHub) |
-| Jason Gutiérrez | POR LLENAR | POR LLENAR |
-| Jousé Menendez | POR LLENAR | POR LLENAR |
-| Diego Joachin | POR LLENAR | POR LLENAR |
+| Jason Gutiérrez | Jason Gutiérrez | `124702997+Jasgu097@users.noreply.github.com` |
+| Jousé Menendez | Jousé Menendez | `175631417+Josh-JM@users.noreply.github.com` |
+| Diego Joachin | Diego Joachin | `175631462+diegojoachin07@users.noreply.github.com` |
 
 Si preferís no publicar tu correo, usá el `noreply` de GitHub
 (`ID+handle@users.noreply.github.com`, visible en *Settings → Emails*): cuenta igual para la
