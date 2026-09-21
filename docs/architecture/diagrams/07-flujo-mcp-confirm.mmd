@@ -1,0 +1,27 @@
+sequenceDiagram
+    autonumber
+    actor Chat as Claude/Cursor chat
+    participant MCP as FastMCP (/mcp)
+    participant API as API FastAPI
+    participant CONF as commands.propose_action
+    participant CMD as commands.create_pond
+    participant DB as PostgreSQL interno
+
+    Chat->>MCP: prompt: "dame un pond nuevo llamado inventario-demo"
+    Note over Chat,MCP: el gate URL+password ya validó la sesión MCP
+    Chat->>MCP: tool_call create_pond {name: "inventario-demo"}
+    MCP->>API: internal call: commands.propose_action(actor=user via agent, action=create_pond, payload={name})
+    API->>CONF: propose(...)
+    CONF->>DB: INSERT pending_confirmations
+    CONF-->>API: {token, summary}
+    API-->>MCP: {status:"confirmation_required", token, summary}
+    MCP-->>Chat: respuesta: "Voy a crear el pond inventario-demo (plan micro). Necesito que confirmes con confirm_action(token=…)"
+
+    Chat->>MCP: tool_call confirm_action {token}
+    MCP->>API: internal call: commands.confirm(token)
+    API->>CONF: consume(token) → payload
+    CONF->>CMD: create_pond(ctx, payload)
+    CMD->>DB: INSERT ponds + status + jobs
+    CMD-->>API: {pond_id, job_id, status=provisioning}
+    API-->>MCP: {status:"queued", pond:{id, status:"provisioning"}}
+    MCP-->>Chat: respuesta: "OK, encolado. Pod id abc123. Chequea con get_pond({name:'inventario-demo'})"

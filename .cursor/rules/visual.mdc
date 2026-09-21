@@ -1,0 +1,208 @@
+---
+description: Piel visual de KoiCloud (obligatoria en apps/web)
+globs: apps/web/**
+alwaysApply: true
+---
+
+# PIEL VISUAL DE KOICLOUD — REGLAS OBLIGATORIAS
+
+Trabajas en `apps/web` (React + TypeScript + Vite + Tailwind + shadcn/ui) de KoiCloud,
+un DBaaS académico de PostgreSQL. Cada instancia de base de datos se llama "pond".
+Estas reglas mandan sobre cualquier valor por defecto de shadcn, de Tailwind o tuyo.
+
+## NORTE
+"Un reporte anual de 1983 que resulta ser un panel de control."
+Tres adjetivos que resuelven dudas: IMPRESO, DENSO, SERENO.
+Papel hueso en vez de blanco. Hairlines en vez de sombras. Retícula dura.
+Cifras grandes con orgullo. Color escaso y con significado.
+Única concesión emocional: un estanque de koi en pixel art.
+
+## TEMA
+TEMA CLARO ÚNICO. No existe modo oscuro. Nunca escribas clases `dark:`,
+ni la clase `.dark`, ni un toggle de tema. Si un requisito viejo pide dark mode,
+está anulado.
+
+## TOKENS — va en `src/index.css`. NUNCA un hex literal en un componente.
+
+:root {
+  /* papel */
+  --bone:#F2ECDC; --bone-raised:#FBF7EC; --bone-sunk:#E8E0CC; --paper:#FFFCF4;
+  /* tinta */
+  --ink:#14211F; --ink-muted:#4C5B58; --ink-faint:#6B7A74;
+  /* líneas */
+  --line:#D8CFB8; --line-control:#8C8778;
+  /* turquesa */
+  --turquoise-100:#C6E9E4; --turquoise-300:#79CFC6; --turquoise-500:#0E9C8E;
+  --turquoise-700:#0A6D64; --turquoise-900:#06413C;
+  /* verde */
+  --green-100:#DDEAC9; --green-500:#5B9A45; --green-700:#376B2C; --green-900:#1F4420;
+  /* acentos */
+  --koi:#E2552B; --koi-soft:#F3A183; --marigold:#E3A72C; --lagoon:#5C6FB1;
+  /* estado */
+  --ok:#376B2C; --warn:#8A5A0A; --danger:#A81F2B;
+  /* espacio base 4, ritmo 8 */
+  --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px;
+  --space-5:24px; --space-6:32px; --space-7:48px; --space-8:64px;
+  /* radios casi rectos */
+  --radius-xs:0px; --radius-sm:2px; --radius-md:4px; --radius-lg:6px;
+  /* elevación: offset duro de imprenta, jamás blur suave */
+  --shadow-print:3px 3px 0 rgba(20,33,31,.10);
+  --shadow-dialog:6px 6px 0 rgba(20,33,31,.14);
+  --shadow-focus:0 0 0 2px var(--bone), 0 0 0 4px var(--turquoise-700);
+  /* movimiento */
+  --dur-instant:80ms; --dur-fast:140ms; --dur-slow:240ms;
+  --ease:cubic-bezier(.2,0,.1,1); --ease-out:cubic-bezier(0,0,.2,1);
+  /* shell */
+  --sidebar-w:264px; --header-h:56px; --content-max:1280px; --row-h:40px;
+}
+
+Puente shadcn (mapea, no reemplaces):
+  --background:var(--bone);        --foreground:var(--ink);
+  --card:var(--bone-raised);       --popover:var(--bone-raised);
+  --primary:var(--turquoise-700);  --primary-foreground:var(--bone-raised);
+  --secondary:var(--bone-sunk);    --muted:var(--bone-sunk);
+  --muted-foreground:var(--ink-muted);
+  --accent:var(--turquoise-100);   --accent-foreground:var(--turquoise-900);
+  --destructive:var(--danger);     --destructive-foreground:var(--bone-raised);
+  --border:var(--line);            --input:var(--line-control);
+  --ring:var(--turquoise-700);     --radius:var(--radius-sm);
+  --chart-1:var(--turquoise-700);  --chart-2:var(--koi);  --chart-3:var(--green-500);
+  --chart-4:var(--marigold);       --chart-5:var(--lagoon);
+
+## CONTRASTE — reglas duras, ya medidas
+
+TEXTO PERMITIDO SOBRE HUESO:
+  ink (14.05) · ink-muted (6.05) · turquoise-700 (5.26) · green-700 (5.39)
+  warn (5.02) · danger (6.15)
+NO SON COLOR DE TEXTO DE PÁRRAFO — solo relleno, trazo, icono o ≥24 px:
+  turquoise-500 (2.89) · koi (3.20) · ink-faint (3.82) · lagoon (4.08)
+Botón primario = texto `bone-raised` sobre `turquoise-700` (5.80). Correcto, úsalo.
+Badges: texto `ink` sobre turquoise-100 / green-100 / koi-soft / marigold (≥7.7). Correcto.
+`line` (1.32) es decorativa: jamás como borde de control ni anillo de foco.
+`line-control` (3.04) es el borde de inputs y checkboxes.
+Foco: siempre `--shadow-focus`. Nunca `outline:none` sin reemplazo.
+Nunca comuniques un estado solo con color: texto + glifo (● en línea, ◐ en proceso,
+▲ atención, ✕ falla).
+
+## TIPOGRAFÍA — tres familias, Fontsource, autohospedadas
+
+pnpm add @fontsource-variable/fraunces @fontsource/instrument-sans @fontsource/ibm-plex-mono
+
+  --font-display:"Fraunces","Source Serif 4",Georgia,serif;
+  --font-sans:"Instrument Sans","Helvetica Neue",system-ui,sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,monospace;
+
+PROHIBIDO Inter, Roboto, Arial y Helvetica como fuente de UI. La UI es Instrument Sans.
+Fraunces NUNCA por debajo de 20 px; ajústala con
+  font-variation-settings:"SOFT" 0,"WONK" 0,"opsz" 48; letter-spacing:-.02em;
+(tono reporte, no tono boda). Un título de tarjeta chico usa Instrument Sans 600.
+
+Escala (tamaño/interlínea · familia · peso):
+  display-xl 56/60 Fraunces 600 — hero de landing, solo ahí
+  display-l  40/44 Fraunces 600 — cifra KPI grande
+  display-m  28/34 Fraunces 600 — título de página
+  display-s  20/26 Fraunces 600 — título de tarjeta y de diálogo
+  body-l     16/24 Instrument 400
+  body-m     14/20 Instrument 400 — DEFECTO DE LA APP
+  body-s     13/18 Instrument 400 — ayudas y metadatos
+  label      12/16 Instrument 500 — etiqueta de campo, encabezado de columna
+  overline   11/14 Instrument 600, +.08em, VERSALITAS — grupo de lateral, banda
+  mono-m     13/20 IBM Plex Mono — SQL, URI, resultados
+  mono-s     12/18 IBM Plex Mono — IDs, tokens, timestamps
+
+Toda cifra en tabla, KPI, precio o métrica: `font-variant-numeric:tabular-nums`
+y alineada a la derecha. Párrafos largos a `max-width:64ch`.
+
+## LAYOUT
+
+Shell: lateral 264 px (`bone-sunk`, borde derecho 1 px `line`) + header 56 px
+(`bone`, borde inferior 1 px `line`) + contenido con padding 32 px, máx. 1280 px,
+grid de 12 columnas y gutter de 24 px.
+Ítem de lateral: 36 px de alto, radio 2. ACTIVO = fondo `turquoise-100`,
+texto `turquoise-900`, barra izquierda de 3 px `turquoise-700`. HOVER = fondo `bone`.
+Grupos de lateral con encabezado `overline`. Contadores a la derecha.
+<1024 px la lateral colapsa a 72 px de iconos; <768 px pasa a `Sheet`.
+Usable a 360 px sin scroll horizontal.
+
+Tarjeta: `bone-raised`, borde 1 px `line`, radio 4, padding 20 px, SIN SOMBRA.
+Tarjeta KPI: etiqueta `label` arriba → cifra `display-l` Fraunces tabular → delta
+con glifo (▲ green-700 / ▼ danger / — ink-muted). Rejilla 4 / 2 / 1.
+
+Banda de sección (el gesto del reporte anual): regla superior de 3 px + `overline`
+debajo. Rota el color entre secciones: turquoise-700 → green-700 → marigold → lagoon.
+
+Tabla: fila 40 px, padding 12 px, `body-m`, radio 0. Encabezado `bone-sunk` con
+`label` `ink-muted` y borde inferior 1 px `line-control`. Divisores 1 px `line`.
+SIN ZEBRA. Hover de fila `bone-raised`. Números a la derecha, tabulares.
+Micro-barra inline: 4 px, fondo `bone-sunk`, relleno `turquoise-500`;
+`marigold` >80 %, `danger` >95 %.
+
+Formulario: etiqueta arriba, ayuda debajo, error en `danger` con glifo.
+Input 36 px, fondo `paper`, borde 1 px `line-control`, radio 2.
+Foco: `--shadow-focus` y borde `turquoise-700`. Máx. 560 px de ancho.
+
+## BOTONES
+
+  primario           fondo turquoise-700, texto bone-raised, sin borde
+  secundario         fondo bone-raised, texto ink, borde 1 px line-control
+  fantasma           transparente, texto turquoise-700
+  destructivo        fondo danger, texto bone-raised
+  destructivo suave  fondo bone-raised, texto danger, borde 1 px danger
+
+Alto 36 px (sm 30, lg 44), radio 2, padding 16 px, peso 500.
+UNA sola acción primaria por región. Cargando = spinner 14 px + gerundio ("Creando…").
+EL KOI NO ES COLOR DE BOTÓN. Nunca un CTA naranja.
+
+## ESTADOS DEL POND (badge: radio 2, padding 2/8, `label`, glifo + texto, texto `ink`)
+
+  pending       "En cola"            fondo bone-sunk      ◌
+  provisioning  "Aprovisionando…"    fondo turquoise-100  ◐   (aquí nada el koi)
+  running       "En línea"           fondo green-100      ●
+  restoring     "Restaurando…"       fondo turquoise-100  ◐   (aquí nada el koi)
+  stopped       "Detenido"           fondo bone-sunk      ■
+  deleting      "Eliminando…"        fondo koi-soft       ◐
+  deleted       "Eliminado"          fondo bone-sunk      ✕   (fila atenuada)
+  failed        "Con fallas"         fondo #F6D9D9        ✕   (texto danger)
+
+La suspensión es de la CUENTA, no del pond: banner global `danger` en `/app`.
+
+## CÓDIGO, CONEXIÓN Y SQL
+
+Bloque de código: fondo `paper`, borde 1 px `line`, radio 4, IBM Plex Mono 13/20,
+padding 16 px.
+Cadena de conexión: contraseña enmascarada (••••••••) con botón "Mostrar"; no la
+pongas en el DOM antes de que el usuario pulse. Copiar por campo; al copiar, el icono
+cambia a ✓ `green-700` por 1.2 s.
+CodeMirror SQL: keyword turquoise-700 500 · string green-700 · number lagoon ·
+comment ink-faint cursiva · function ink 500. Fondo `paper`, gutter `bone-sunk`,
+línea activa `bone`, selección `turquoise-100`.
+MODO ESCRITURA: borde del editor 2 px `koi` + banda superior `koi-soft` con texto
+`ink`: "Modo escritura: las sentencias modifican datos reales." Es el ÚNICO lugar
+donde el koi rodea una región completa.
+Resultados: tabla densa sobre `paper`, `NULL` en `ink-faint` cursiva, truncado
+avisado en `warn`, duración y filas en mono-s.
+
+## GRÁFICOS (Recharts)
+
+Tendencia → MATRIZ DE PUNTOS (punto de 3 px cada 4 px), no área sólida.
+Serie principal turquoise-700; superpuesta koi.
+Barras apiladas: turquoise-900 → 700 → 500 → 300 de abajo arriba, rectas, gap 2 px.
+Rejilla del estanque: una celda cuadrada de 14 px por pond, coloreada por estado.
+Ejes: línea `line`, etiquetas `ink-faint` 11 px, sin rejilla vertical, rejilla
+horizontal punteada. Tooltip `bone-raised` + borde `line-control` + `--shadow-print`.
+Toda serie con etiqueta directa o leyenda con glifo, nunca solo color.
+
+## DIÁLOGOS Y ESTADOS DE DATOS
+
+Diálogo: `bone-raised`, borde 1 px `line-control`, radio 4, `--shadow-dialog`,
+velo rgba(20,33,31,.32). Destructivo: exige escribir el nombre del recurso.
+Diálogo propose→confirm (lo más importante de la demo): banda `marigold`, el
+`summary` del backend en `body-l`, token en mono-s, expiración como cuenta regresiva
+mm:ss en `warn`.
+Toast (sonner): `bone-raised`, borde izquierdo 3 px del color semántico,
+`--shadow-print`, radio 2.
+TODO listado necesita sus tres estados: skeleton `bone-sunk` con barrido de 1.2 s ·
+vacío con estanque + título + un CTA · error con banda `danger` 3 px, mensaje
+traducido, botón Reintentar y el `code` crudo en mono-s.
+
+El estanque, el movimiento y la lista de verificación siguen en la regla `visual-koi`. El bloque completo no cabe en una sola regla: Antigravity corta a 12 000 caracteres.

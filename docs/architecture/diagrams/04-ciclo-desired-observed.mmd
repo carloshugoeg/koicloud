@@ -1,0 +1,10 @@
+flowchart LR
+    U((Usuario)) -->|POST /ponds| API["FastAPI"]
+    API -->|commands.create_pond| DB[("ponds.desired=running<br/>pond_status.observed=pending<br/>jobs(create_pond, queued)")]
+    NA["node-agent"] -->|POST /internal/jobs/claim| API
+    API -->|"SELECT … FOR UPDATE SKIP LOCKED<br/>UPDATE jobs SET status=running"| DB
+    API -->|payload create_pond| NA
+    NA -->|docker run + pg_isready| NA
+    NA -->|POST /internal/jobs/{id}/complete| API
+    API -->|UPDATE jobs succeeded<br/>UPDATE pond_status.observed=running| DB
+    W["worker (30 s)"] -->|reconciler mínimo:<br/>reencola job si desired≠observed<br/>y no hay job activo| DB

@@ -1,0 +1,43 @@
+flowchart TB
+    subgraph Superficies["Superficies — thin clients (sin reglas propias)"]
+        direction LR
+        WEB["Web SPA<br/>React + Vite + TS"]
+        CLI["CLI koicloud<br/>Typer + httpx"]
+        MCP["Servidor MCP<br/>FastMCP tools"]
+    end
+
+    subgraph CP["Control plane — apps/api (FastAPI)"]
+        direction TB
+        API["Routers /api/v1<br/>auth · billing · ponds<br/>backups · usage · sql · admin"]
+        MOUNT["Montaje /mcp<br/>(FastMCP dentro de FastAPI)"]
+        CONF["Confirmaciones<br/>propose · consume"]
+        CMD["Capa de comandos<br/>app/commands/*"]
+        MODS["Módulos con dominio<br/>auth · users · billing<br/>ponds · jobs · nodes<br/>backups · metering<br/>sql_console · admin<br/>agent_access · notifications"]
+        INT["API interna /internal/v1<br/>(loopback, X-Node-Token)"]
+        WRK["Worker<br/>scheduler diario · reconciler mínimo"]
+    end
+
+    DB[("PostgreSQL 16 interno<br/>desired · observed<br/>jobs · billing · confirmations<br/>agent_access · audit")]
+
+    subgraph DP["Data plane — apps/node-agent (un solo VPS)"]
+        direction LR
+        NA["node-agent<br/>driver: docker | mock"]
+        P1[("koi-pond-a1b2 · postgres:16")]
+        P2[("koi-pond-… · postgres:16")]
+    end
+
+    WEB -->|HTTPS JSON<br/>JWT| API
+    CLI -->|HTTPS JSON<br/>JWT| API
+    MCP --> MOUNT
+    MOUNT --> CONF
+    API --> CONF
+    CONF --> CMD
+    API --> CMD
+    CMD --> MODS
+    MODS --> DB
+    WRK --> MODS
+    INT --> MODS
+    NA -->|"heartbeat · claim · complete<br/>(loopback, X-Node-Token)"| INT
+    NA --> P1
+    NA --> P2
+    CMD -.->|"consola SQL → puerto público del pond<br/>(asyncpg, read-only por defecto)"| P1

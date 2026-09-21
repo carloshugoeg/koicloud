@@ -1,0 +1,24 @@
+sequenceDiagram
+    autonumber
+    participant W as Worker (scheduler)
+    participant DB as PostgreSQL interno
+    participant NA as node-agent
+    participant D as Docker
+    participant CMD as commands.*
+
+    Note over CMD: alguien insertó un job (queued)
+    NA->>API: POST /internal/v1/jobs/claim<br/>X-Node-Token
+    API->>DB: SELECT … FROM jobs<br/>WHERE status='queued' AND node_id in (mine, null)<br/>ORDER BY created_at LIMIT 1<br/>FOR UPDATE SKIP LOCKED
+    API->>DB: UPDATE jobs SET status='running', claimed_at=now()
+    API-->>NA: payload job
+    NA->>D: handler.execute(payload)
+    alt éxito
+        NA->>API: POST /internal/v1/jobs/{id}/complete {succeeded, result}
+        API->>DB: UPDATE jobs succeeded · UPDATE pond_status observed_state
+    else fallo
+        NA->>API: POST /internal/v1/jobs/{id}/complete {failed, error}
+        API->>DB: UPDATE jobs failed · attempts+=1<br/>pond_status.last_error=<msg>
+        API->>DB: (worker/reconciler) reencola si desired ≠ observed<br/>y attempts < 3
+    end
+
+    W->>DB: cada 30 s: SELECT jobs con status='running' AND claimed_at < now()-2m<br/>→ marca 'lost' → attempts+=1 → reencola

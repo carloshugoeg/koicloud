@@ -1,0 +1,39 @@
+flowchart LR
+    subgraph Public["Zona pública (Internet)"]
+        BROW["Navegador humano"]
+        AGENT["IDE MCP (Claude / Cursor)"]
+        LTERM["Terminal con koicloud CLI"]
+    end
+    subgraph EdgeTLS["Perímetro TLS (Caddy)"]
+        SPA["SPA estática"]
+        APIP["/api/v1/*"]
+        MCPP["/mcp"]
+        DOCS["/docs · /openapi.json"]
+    end
+    subgraph AppRuntime["Runtime aplicación (loopback)"]
+        RUN["FastAPI + FastMCP<br/>Worker"]
+        INT["/internal/v1/*"]
+    end
+    subgraph Data["Datos"]
+        DBB[("PostgreSQL interno")]
+        DUMPS[("/var/lib/koicloud/backups")]
+        DOCK[("/var/run/docker.sock")]
+    end
+    subgraph NodeAgent["Node-agent (systemd)"]
+        NAP["node-agent"]
+    end
+
+    BROW -- HTTPS + JWT --> SPA
+    BROW -- HTTPS + JWT --> APIP
+    AGENT -- HTTPS + URL secreta + password --> MCPP
+    LTERM -- HTTPS + JWT --> APIP
+
+    APIP --> RUN
+    MCPP --> RUN
+    RUN --> DBB
+    RUN --> DUMPS
+
+    NAP -- loopback + X-Node-Token --> INT
+    INT --> RUN
+    NAP --> DOCK
+    NAP --> DUMPS

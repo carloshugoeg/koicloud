@@ -1,0 +1,25 @@
+sequenceDiagram
+    autonumber
+    actor L as Usuario CLI
+    participant CLI as koicloud CLI
+    participant API as API FastAPI
+    participant CONF as commands.propose_action
+    participant CMD as commands.delete_pond
+    participant DB as PostgreSQL interno
+
+    L->>CLI: koicloud pond delete inventario-mvp
+    CLI->>API: DELETE /api/v1/ponds/by-name/inventario-mvp<br/>Authorization: Bearer JWT<br/>X-KOI-Surface: cli
+    API->>CONF: propose(actor=user, action=delete_pond, target=pond_id)
+    CONF->>DB: INSERT pending_confirmations<br/>(token_hash, action, payload, expires_at=+5m, user_id)
+    CONF-->>API: {confirmation_token, summary}
+    API-->>CLI: 409 confirmation_required<br/>{token, summary, expires_at}
+    CLI-->>L: imprime resumen humano<br/>"Se eliminará inventario-mvp (respaldo previo). Confirmá con:<br/>  koicloud confirm <token>"
+
+    L->>CLI: koicloud confirm <token>
+    CLI->>API: POST /api/v1/confirm/{token}
+    API->>CONF: consume(token) → payload
+    CONF->>CMD: delete_pond(ctx=user, pond_id)
+    CMD->>DB: UPDATE ponds SET desired_state='deleted'<br/>INSERT jobs(backup_pond kind=pre_delete)<br/>INSERT jobs(delete_pond) depende del anterior
+    CMD-->>API: {pond_id, status=deleting, jobs=[…]}
+    API-->>CLI: 202 Accepted
+    CLI-->>L: "Eliminación encolada"

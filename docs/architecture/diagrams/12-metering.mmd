@@ -1,0 +1,18 @@
+sequenceDiagram
+    autonumber
+    participant NA as node-agent (sampler)
+    participant API as API FastAPI
+    participant DB as PostgreSQL interno
+    participant SCH as Worker (nocturno)
+    actor U as Cliente
+
+    loop cada 5 min por pond
+        NA->>API: POST /internal/v1/samples<br/>{pond_id, size_bytes, container_state}
+        API->>DB: INSERT pond_samples
+    end
+
+    Note over SCH,DB: 00:15 local
+    SCH->>DB: agrega pond_samples del día por pond<br/>→ INSERT usage_daily (instance_hours, storage_gb_hours)
+
+    U->>API: GET /api/v1/usage?month=YYYY-MM
+    API-->>U: resumen: por pond y total

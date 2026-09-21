@@ -1,0 +1,108 @@
+erDiagram
+    users ||--o{ email_tokens : tiene
+    users ||--o{ refresh_tokens : tiene
+    users ||--o{ subscriptions : contrata
+    users ||--o{ ponds : posee
+    users ||--o{ invoices : recibe
+    users ||--o{ payments : realiza
+    users ||--o| agent_access : gate_demo
+    users ||--o{ pending_confirmations : propone
+    plans ||--o{ subscriptions : define
+    plans ||--o{ ponds : dimensiona
+    subscriptions ||--o{ invoices : factura
+    invoices ||--o{ invoice_lines : contiene
+    invoices ||--o{ payments : liquida
+    nodes ||--o{ ponds : hospeda
+    nodes ||--o{ jobs : ejecuta
+    ponds ||--|| pond_status : observado_como
+    ponds ||--o{ jobs : objetivo
+    ponds ||--o{ backups : tiene
+    ponds ||--o{ pond_samples : medido_por
+    ponds ||--o{ usage_daily : agregado
+    ponds ||--o{ sql_history : consultado
+
+    users {
+        uuid id PK
+        citext email UK
+        text password_hash
+        text full_name
+        user_role role
+        text nit
+        timestamptz email_verified_at
+    }
+    plans {
+        text id PK
+        text name
+        numeric price_monthly_usd
+        int max_ponds
+        int max_storage_gb
+        text validity
+    }
+    subscriptions {
+        uuid id PK
+        uuid user_id FK
+        text plan_id FK
+        subscription_status status
+        timestamptz current_period_end
+    }
+    ponds {
+        uuid id PK
+        uuid user_id FK
+        text name
+        text plan_id FK
+        text node_id FK
+        pond_desired_state desired_state
+        int host_port
+        text db_password_encrypted
+    }
+    pond_status {
+        uuid pond_id PK
+        pond_observed_state observed_state
+        boolean healthy
+        text last_error
+    }
+    jobs {
+        uuid id PK
+        job_type type
+        uuid pond_id FK
+        text node_id FK
+        job_status status
+        jsonb payload
+    }
+    nodes {
+        text id PK
+        text public_host
+        node_status status
+        int capacity_mb
+    }
+    backups {
+        uuid id PK
+        uuid pond_id FK
+        backup_kind kind
+        backup_status status
+        text storage_path
+    }
+    invoices {
+        uuid id PK
+        text number UK
+        uuid user_id FK
+        numeric total_usd
+        numeric iva_usd
+        invoice_status status
+    }
+    agent_access {
+        uuid id PK
+        uuid user_id FK
+        text access_slug UK
+        text password_hash
+        boolean enabled
+        timestamptz rotated_at
+    }
+    pending_confirmations {
+        uuid id PK
+        uuid user_id FK
+        text token_hash UK
+        text action
+        jsonb payload
+        timestamptz expires_at
+    }

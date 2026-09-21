@@ -1,0 +1,28 @@
+sequenceDiagram
+    autonumber
+    participant SCH as Worker (scheduler diario 02:00 local)
+    participant DB as PostgreSQL interno
+    participant NA as node-agent
+    participant PG as PostgreSQL del pond
+    participant FS as /var/lib/koicloud/backups
+    actor U as Cliente (opcional)
+    participant CMD as commands.restore_backup
+
+    loop por cada pond activo
+        SCH->>DB: INSERT jobs(backup_pond kind=daily, pond_id)
+    end
+
+    NA->>API: claim → payload backup_pond
+    NA->>PG: pg_dump -Fc -f <tmp>
+    NA->>FS: mv <tmp> /backups/<pond>/YYYYMMDD.dump
+    NA->>API: complete succeeded {path, size}
+    API->>DB: INSERT backups (pond_id, kind=daily, path, size, sha256)
+
+    Note over U,CMD: Restore bajo demanda
+    U->>API: POST /api/v1/ponds/{id}/restore {backup_id}<br/>(Web: modal · CLI/MCP: propose+confirm)
+    API->>CMD: restore_backup(ctx, backup_id)
+    CMD->>DB: INSERT jobs(restore_pond kind=on_demand, backup_id)
+    NA->>API: claim → payload restore_pond
+    NA->>PG: DROP SCHEMA app CASCADE;<br/>pg_restore -c -d app <backup.dump>
+    NA->>API: complete succeeded
+    API->>DB: UPDATE ponds.last_restore_at

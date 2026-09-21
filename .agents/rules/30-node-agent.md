@@ -1,0 +1,20 @@
+---
+trigger: glob
+globs: apps/node-agent/**
+description: Convenciones del node-agent (apps/node-agent)
+---
+
+Zona de W1. Si tu rama no es `w1-…`, no deberías estar editando aquí: `BLOQUEADO`.
+
+- **Toda operación Docker pasa por `drivers/base.py`.** Ningún handler llama al SDK de
+  Docker directo, ningún `subprocess` a `docker`.
+- **`mock_driver` soporta exactamente lo mismo que `docker_driver`.** Si una capacidad nueva
+  no cabe en el mock, detente y abre CCR: rompería CI, que corre siempre con `AGENT_MODE=mock`.
+- **Un handler por tipo de job** en `handlers/`, idempotente: reclamar dos veces el mismo job
+  no puede duplicar el efecto.
+- **Sin estado global** entre iteraciones del loop. El estado vive en la API, no en el agente.
+- **Fallos inyectables:** el mock respeta `MOCK_FAIL_NEXT=<action>`; toda prueba de error lo
+  usa en vez de simular excepciones a mano.
+- **Pruebas:** cada handler nuevo con prueba contra `mock_driver`. Si tocas `docker_driver`,
+  documenta en el PR la prueba manual con la salida real de `docker ps`.
+- Antes del PR: `make check-agent`.

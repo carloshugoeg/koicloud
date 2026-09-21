@@ -1,0 +1,21 @@
+flowchart TB
+    subgraph VPS["VPS Linux · un solo nodo · Docker"]
+        subgraph compose["docker compose -f infra/docker-compose.prod.yml"]
+            CADDY["caddy :80/:443<br/>SPA · /api/* · /mcp · /docs"]
+            APIC["api (uvicorn + FastMCP) — 127.0.0.1:8000"]
+            WRKC["worker (mismo código)"]
+            DBC[("db · postgres:16")]
+        end
+        NAG["node-agent (systemd, fuera de compose)<br/>habla con /var/run/docker.sock"]
+        PONDS["koi-pond-* :15000–15999<br/>red koi-net · datos en /var/lib/koicloud/ponds/&lt;id&gt;/data"]
+        BAK[("/var/lib/koicloud/backups/&lt;pond&gt;/YYYYMMDD.dump")]
+    end
+    NET((Internet)) -->|443 · /api · /mcp · /docs · /| CADDY
+    NET -->|TCP 15000–15999| PONDS
+    CLI((CLI / IDE MCP)) -.->|HTTPS · JWT o gate password| CADDY
+    CADDY --> APIC
+    APIC --> DBC
+    WRKC --> DBC
+    NAG -->|loopback · /internal/v1 · X-Node-Token| APIC
+    NAG --> PONDS
+    NAG -->|pg_dump| BAK

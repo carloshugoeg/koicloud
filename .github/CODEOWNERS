@@ -1,0 +1,71 @@
+# CODEOWNERS — KoiCloud
+#
+# Reemplazá @POR-LLENAR-W2 / @POR-LLENAR-W3 / @POR-LLENAR-W4 por los handles reales de
+# Jason, Jousé y Diego antes de activar la protección de `main`. Sin handles reales, GitHub
+# ignora la línea y el archivo queda sin dueño.
+#
+# Cualquier archivo no listado pertenece a W1.
+
+# ── W1 · Carlos — núcleo, contratos, migraciones, harness de agentes ─────────────
+apps/api/app/core/**                       @carloshugoeg
+apps/api/app/commands/**                   @carloshugoeg
+apps/api/app/internal_api/**               @carloshugoeg
+apps/api/app/workers/**                    @carloshugoeg
+apps/api/app/tooling/**                    @carloshugoeg
+apps/api/app/main.py                       @carloshugoeg
+apps/api/alembic/**                        @carloshugoeg
+apps/api/pyproject.toml                    @carloshugoeg
+apps/api/uv.lock                           @carloshugoeg
+apps/api/app/modules/ponds/**              @carloshugoeg
+apps/api/app/modules/jobs/**               @carloshugoeg
+apps/api/app/modules/nodes/**              @carloshugoeg
+apps/api/app/modules/backups/**            @carloshugoeg
+apps/api/app/modules/metering/**           @carloshugoeg
+apps/api/app/modules/agent_access/**       @carloshugoeg
+apps/node-agent/**                         @carloshugoeg
+packages/contracts/**                      @carloshugoeg
+docker-compose.yml                         @carloshugoeg
+Makefile                                   @carloshugoeg
+.env.example                               @carloshugoeg
+scripts/**                                 @carloshugoeg
+AGENTS.md                                  @carloshugoeg
+GEMINI.md                                  @carloshugoeg
+CLAUDE.md                                  @carloshugoeg
+CONTRIBUTING.md                            @carloshugoeg
+.cursor/**                                 @carloshugoeg
+.agents/**                                 @carloshugoeg
+.github/CODEOWNERS                         @carloshugoeg
+.github/workflows/ci.yml                   @carloshugoeg
+.github/workflows/ai-review.yml            @carloshugoeg
+.github/scripts/**                         @carloshugoeg
+docs/architecture/**                       @carloshugoeg
+docs/adr/**                                @carloshugoeg
+docs/runbooks/**                           @carloshugoeg
+docs/WORKSTREAMS.md                        @carloshugoeg
+docs/visual-guidelines.md                  @carloshugoeg
+docs/tickets/**                            @carloshugoeg
+
+# ── W2 · Jason — la SPA ──────────────────────────────────────────────────────────
+apps/web/**                                @POR-LLENAR-W2
+# Manifiestos de dependencias: su dueño los edita, W1 los aprueba.
+apps/web/package.json                      @POR-LLENAR-W2 @carloshugoeg
+apps/web/pnpm-lock.yaml                    @POR-LLENAR-W2 @carloshugoeg
+
+# ── W3 · Jousé — cuentas y dinero ────────────────────────────────────────────────
+apps/api/app/modules/auth/**               @POR-LLENAR-W3
+apps/api/app/modules/users/**              @POR-LLENAR-W3
+apps/api/app/modules/billing/**            @POR-LLENAR-W3
+apps/api/app/modules/notifications/**      @POR-LLENAR-W3
+apps/api/app/modules/admin/**              @POR-LLENAR-W3
+
+# ── W4 · Diego — superficies y operación ─────────────────────────────────────────
+apps/api/app/modules/sql_console/**        @POR-LLENAR-W4
+apps/api/app/mcp/**                        @POR-LLENAR-W4 @carloshugoeg
+apps/cli/**                                @POR-LLENAR-W4
+apps/cli/pyproject.toml                    @POR-LLENAR-W4 @carloshugoeg
+infra/**                                   @POR-LLENAR-W4 @carloshugoeg
+load/**                                    @POR-LLENAR-W4
+.github/workflows/deploy.yml               @POR-LLENAR-W4 @carloshugoeg
+docs/manual-usuario/**                     @POR-LLENAR-W4
+docs/manual-tecnico.md                     @POR-LLENAR-W4
+docs/reporte-carga.md                      @POR-LLENAR-W4

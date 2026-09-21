@@ -1,0 +1,33 @@
+sequenceDiagram
+    autonumber
+    actor U as Cliente (Web)
+    participant SPA as SPA React
+    participant API as API FastAPI
+    participant CMD as commands.create_pond
+    participant DB as PostgreSQL interno
+    participant NA as node-agent
+    participant D as Docker
+
+    U->>SPA: llena "Crear pond" (name)
+    SPA->>API: POST /api/v1/ponds {name}<br/>Authorization: Bearer JWT<br/>Idempotency-Key: <ui-uuid>
+    API->>CMD: create_pond(ctx=user, name)
+    CMD->>DB: SELECT suscripción activa · cuota del plan
+    CMD->>DB: SELECT nodes.next_free_port()
+    CMD->>DB: INSERT ponds(desired=running)<br/>INSERT pond_status(observed=pending)<br/>INSERT jobs(create_pond, queued)
+    CMD-->>API: {pond_id, job_id, status=provisioning}
+    API-->>SPA: 202 Accepted · body con pond
+    SPA-->>U: muestra "Aprovisionando…" y refresca cada 3 s
+
+    NA->>API: POST /internal/v1/jobs/claim<br/>X-Node-Token
+    API->>DB: SELECT … FOR UPDATE SKIP LOCKED<br/>UPDATE jobs SET status=running
+    API-->>NA: payload create_pond {pond_id, port, mem, cpu, password}
+    NA->>D: docker run postgres:16-alpine<br/>-p host_port:5432 --memory --cpus<br/>--name koi-pond-<short> --restart=no<br/>-e POSTGRES_PASSWORD=<random>
+    D-->>NA: contenedor arriba
+    NA->>NA: espera pg_isready (≤ 60 s)
+    NA->>API: POST /internal/v1/jobs/{id}/complete {succeeded, host, port}
+    API->>DB: UPDATE jobs succeeded<br/>UPDATE pond_status.observed=running · last_seen_at=now()
+
+    U->>SPA: click "Ver conexión"
+    SPA->>API: GET /api/v1/ponds/{id}/connection
+    API-->>SPA: {host, port, user=koi, password, uri}
+    SPA-->>U: muestra URI copiable

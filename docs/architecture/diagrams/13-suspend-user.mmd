@@ -1,0 +1,18 @@
+sequenceDiagram
+    autonumber
+    actor A as Administrador
+    participant SPA as Web /admin
+    participant API as API FastAPI
+    participant CMD as commands.suspend_user
+    participant DB as PostgreSQL interno
+
+    A->>SPA: click "Suspender" en un usuario
+    SPA->>SPA: modal "escribe SUSPENDER para confirmar"
+    SPA->>API: POST /api/v1/admin/users/{id}/suspend<br/>Authorization: Bearer JWT (rol admin)
+    API->>CMD: suspend_user(ctx=admin, user_id, reason)
+    CMD->>DB: UPDATE users SET status='suspended'
+    CMD->>DB: DELETE FROM refresh_tokens WHERE user_id=…
+    CMD->>DB: INSERT audit_events (actor=admin, target=user, action=suspend)
+    CMD-->>API: {user_id, status:'suspended'}
+    API-->>SPA: 200 OK
+    SPA-->>A: notifica "Usuario suspendido"

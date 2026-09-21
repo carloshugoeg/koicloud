@@ -1,0 +1,14 @@
+stateDiagram-v2
+    [*] --> pending
+    pending --> provisioning: job create_pond claimed
+    provisioning --> running: job succeeded
+    provisioning --> failed: job failed (attempts=3)
+    running --> stopped: user stop (fuera de MVP)
+    running --> restoring: restore_pond claimed
+    restoring --> running: restore succeeded
+    restoring --> failed: restore failed
+    running --> deleting: desired=deleted + backup_pond succeeded
+    deleting --> deleted: delete_pond succeeded
+    failed --> pending: user retry
+    stopped --> pending: user start
+    deleted --> [*]

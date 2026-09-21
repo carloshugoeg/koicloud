@@ -1,0 +1,35 @@
+---
+description: Convenciones de la SPA React (apps/web)
+globs: apps/web/**
+alwaysApply: false
+---
+
+La **apariencia** no está aquí: la fija la regla `visual` y `docs/visual-guidelines.md`, y manda
+sobre cualquier valor por defecto de shadcn o Tailwind. Esta regla es la estructura.
+
+- **Datos** solo por `src/api/client.ts` (openapi-fetch) y hooks de TanStack Query en
+  `src/api/hooks/<feature>.ts`. Nada de `fetch` ni `axios` en componentes, nada de
+  `useEffect` para cargar datos.
+- **Tipos** desde `src/api/schema.d.ts` (generado; no editar). Si el tipo que necesitas no
+  existe, el contrato no lo contempla: `BLOQUEADO` y CCR, no lo declares a mano.
+- **Estructura:** `features/<feature>/{pages,components}`; páginas ≤ 250 líneas (si crece,
+  pártela en componentes); base en `components/ui` (shadcn, no editar salvo tema);
+  `components/*` compartido solo si se usa en ≥ 2 features.
+- **Estado:** servidor → TanStack Query · auth → `lib/auth-store.ts` (Zustand) ·
+  formularios → react-hook-form + zod contra el schema generado.
+- **Errores de API:** `problemToMessage(problem)` de `lib/errors.ts`, que mapea `code` →
+  mensaje en español. Nunca muestres `detail` crudo (excepción: errores de SQL en la consola).
+- **Sin cálculos de negocio en el navegador** (costos, prorrateos, cuotas, estado del pond):
+  vienen de la API.
+- **Arquitectura de información** de cada pantalla: los mockups de
+  `docs/entrega-2/mockups/pantallas-principales.html` (qué campos, qué tablas, qué pasos).
+  Su tema oscuro **no** se copia.
+- **Mocks MSW** en `src/mocks/handlers/<feature>.ts`, construidos desde los `example` del
+  OpenAPI. Cada endpoint que uses necesita handler.
+- **Textos en español**, tuteo, «el pond». Fechas en `America/Guatemala`.
+- **Pruebas:** Vitest + Testing Library + MSW. Por página: render del caso feliz,
+  interacción principal y estado de error. Sin snapshots.
+- Prohibido `any`, `console.log`, `eslint-disable` sin justificación, estilos inline salvo
+  valores dinámicos.
+- Antes del PR: `make check-web`, la lista de `docs/visual-guidelines.md` §11.2 marcada y
+  captura del estado feliz adjunta.

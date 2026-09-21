@@ -1,0 +1,9 @@
+stateDiagram-v2
+    [*] --> active
+    active --> canceled: user cancels + fin de período
+    active --> past_due: pago simulado falla
+    past_due --> active: pago exitoso
+    past_due --> expired: 3 días sin pago
+    active --> expired: fin de período sin renovación
+    canceled --> [*]
+    expired --> [*]

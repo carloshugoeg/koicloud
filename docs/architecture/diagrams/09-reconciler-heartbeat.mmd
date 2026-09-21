@@ -1,0 +1,22 @@
+sequenceDiagram
+    autonumber
+    participant NA as node-agent
+    participant API as API FastAPI
+    participant DB as PostgreSQL interno
+    participant W as Worker (reconciler)
+
+    loop cada 15 s
+        NA->>API: POST /internal/v1/heartbeat<br/>{containers: [{name, state, uptime}], samples:[…]}
+        API->>DB: UPDATE nodes SET last_seen_at=now()
+        API->>DB: UPDATE pond_status SET observed_state=..., last_seen_at=now() por cada koi-pond-*
+    end
+
+    loop cada 30 s
+        W->>DB: SELECT ponds.desired_state, pond_status.observed_state<br/>WHERE desired ≠ observed AND no hay job activo
+        alt caso remediable
+            W->>DB: INSERT jobs(<corrección>)
+        else
+            W->>DB: no-op
+        end
+        W->>DB: mata jobs zombis (running > 2 min sin claim reciente)
+    end

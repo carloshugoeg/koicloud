@@ -1,0 +1,9 @@
+stateDiagram-v2
+    [*] --> queued
+    queued --> running: claim
+    running --> succeeded: complete ok
+    running --> failed: complete err o attempts=3
+    running --> lost: sin claim > 2 min
+    lost --> queued: reconciler re-enqueue
+    failed --> queued: user retry
+    succeeded --> [*]

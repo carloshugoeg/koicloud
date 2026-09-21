@@ -1,0 +1,26 @@
+---
+description: Núcleo de KoiCloud — lee AGENTS.md, identifica tu workstream, respeta lo congelado
+alwaysApply: true
+---
+
+Cursor lee `AGENTS.md` completo por su cuenta. Esta regla solo evita que se pierda el
+contexto en conversaciones largas.
+
+- **Antes de cualquier cambio, abre `AGENTS.md` en la raíz.** Es la fuente única.
+- **Arranque «Soy {nombre}. ¿Qué me toca y ejecútalo?»** → protocolo en `AGENTS.md` §1:
+  nombre → workstream → ticket de número más bajo con `estado: abierto` en
+  `docs/tickets/<wN>/` → valida las seis secciones del ticket → rama `wN-<slug>` →
+  plan de 5–15 líneas → esperar «dale» → implementar → `make check-<área>` → PR.
+  Atajo para encontrar el ticket: `bash scripts/what-do-i-do.sh <nombre>`.
+- **Propiedad:** trabaja solo dentro de las rutas del workstream de la rama actual.
+  Rama `w1-…` puede tocar todo; `w2-`, `w3-`, `w4-` no. Todo lo no listado es de W1.
+- **Congelado:** OpenAPI, firmas de `app/commands/*`, tablas, columnas y enums solo cambian
+  con CCR aprobado. `openapi.json` y `schema.d.ts` son generados; no se editan a mano.
+- **Si falta algo, no lo inventes:** responde `BLOQUEADO: requiere <CCR | ticket para Wn>
+  porque <razón>` y detente.
+- **Ramas:** `wN-<slug>` en kebab-case (`w2-detalle-pond`). Sin prefijo `cursor/`, sin sufijo
+  aleatorio. Al abrir el PR desde un agente de Cursor, usa el override de prefijo de rama
+  (`skip_branch_prefix_check: true`) con ese nombre exacto.
+- **Commits:** con la cuenta de GitHub real de la persona (`AGENTS.md` §7). **Nunca** añadas
+  `Co-authored-by: Cursor`, «Generated with Cursor» ni ningún trailer de herramienta.
+- **GitHub:** solo `gh` CLI. Nunca herramientas de GitHub MCP.

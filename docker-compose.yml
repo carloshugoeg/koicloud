@@ -1,0 +1,5 @@
+# Local development stack — not implemented.
+# Intended services: db, api, worker, node-agent (AGENT_MODE=mock), web.
+name: koicloud
+
+services: {}

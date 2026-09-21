@@ -1,0 +1,24 @@
+sequenceDiagram
+    autonumber
+    actor U as Usuario (Web/CLI/MCP)
+    participant CLIENT as Adaptador (SPA / CLI / tool MCP)
+    participant API as API FastAPI
+    participant CMD as commands.run_sql
+    participant PG as PostgreSQL del pond
+    participant DB as PostgreSQL interno
+
+    U->>CLIENT: escribe SELECT o UPDATE
+    alt lectura
+        CLIENT->>API: POST /api/v1/ponds/{id}/sql {query, mode:"read"}
+    else escritura
+        CLIENT->>API: POST /api/v1/ponds/{id}/sql {query, mode:"write"}<br/>(desde CLI/MCP → primero propose → confirm)
+    end
+    API->>CMD: run_sql(ctx, pond_id, query, mode)
+    CMD->>DB: SELECT connection info (uri desencriptada)
+    CMD->>PG: BEGIN;<br/>SET statement_timeout=10s;<br/>alt mode==read: SET TRANSACTION READ ONLY end;<br/>execute(query)
+    PG-->>CMD: filas / row_count
+    CMD->>PG: COMMIT o ROLLBACK
+    CMD->>DB: INSERT sql_history (user, pond, query truncada, duration, rows, mode)
+    CMD-->>API: {columns, rows[≤1000], row_count, duration_ms}
+    API-->>CLIENT: respuesta
+    CLIENT-->>U: tabla + duración

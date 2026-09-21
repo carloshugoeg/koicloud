@@ -1,0 +1,19 @@
+sequenceDiagram
+    autonumber
+    participant GH as GitHub Actions (deploy.yml)
+    participant VPS as VPS Linux
+    participant COMP as docker compose
+    participant SYS as systemd
+    participant API as api container
+
+    Note over GH: push a main con cambios en apps/**, packages/contracts/**, infra/**
+    GH->>VPS: ssh + infra/scripts/deploy.sh
+    VPS->>VPS: git fetch --ff-only origin main
+    VPS->>COMP: docker compose -f infra/docker-compose.prod.yml pull
+    VPS->>COMP: docker compose up -d --build api worker caddy
+    VPS->>API: alembic upgrade head
+    VPS->>VPS: rsync dist/ /srv/koicloud/web/
+    alt cambió apps/node-agent
+        VPS->>SYS: systemctl restart koicloud-agent
+    end
+    GH->>API: curl https://.../health hasta 200 (60 s)
