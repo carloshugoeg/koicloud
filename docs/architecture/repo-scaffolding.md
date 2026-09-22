@@ -33,7 +33,7 @@ Justificación de **no** usar herramientas de monorepo (Turborepo/Nx/Rush):
 | Rama de release | ninguna: `main` es la fuente; despliegue con `deploy.yml` |
 | Merge | **squash** obligatorio; rama borrada al fusionar |
 | Commits | Conventional Commits en inglés con scope de módulo: `feat(billing): issue invoice`, `fix(reconciler): ignore active job` |
-| Autor commits | **La cuenta de GitHub real de quien hizo el trabajo** (`git config user.name` / `user.email` por repositorio; registro en [`../WORKSTREAMS.md`](../WORKSTREAMS.md) §3). No hay identidad compartida: «Equipo KoiCloud» es el nombre público del equipo, no un autor de git. `Co-authored-by:` solo cuando otro humano participó de verdad; **nunca** trailers de Cursor, Antigravity, Gemini o Claude |
+| Autor commits | **La cuenta de GitHub real de quien hizo el trabajo** (`git config user.name` / `user.email` por repositorio; registro en [`../workstreams.md`](../workstreams.md) §3). No hay identidad compartida: «Equipo KoiCloud» es el nombre público del equipo, no un autor de git. `Co-authored-by:` solo cuando otro humano participó de verdad; **nunca** trailers de Cursor, Antigravity, Gemini o Claude |
 | Tamaño de PR | ≤ 500 líneas netas (sin generados / lockfiles / fixtures) |
 | Un PR = un ticket | Sin “mientras estaba ahí…” |
 
@@ -372,7 +372,7 @@ Reglas que sostienen esa tabla:
 - Los handles de W2, W3 y W4 son `@Jasgu097`, `@Josh-JM` y `@diegojoachin07`. GitHub
   ignora en silencio una línea con un handle inexistente, y esa ruta queda sin dueño sin
   que nadie se entere. El registro de handles vive en
-  [`../WORKSTREAMS.md`](../WORKSTREAMS.md) §1.
+  [`../workstreams.md`](../workstreams.md) §1.
 
 ---
 
@@ -384,7 +384,7 @@ La lista operativa completa, con verificaciones y criterios de «hecho», está 
 `internal/dual-agent-infra-handoff.md` del store. Resumen:
 
 1. Crear el repo público `carloshugoeg/koicloud` desde `gh` (credenciales en `docs/github-publish.md` del store).
-2. **Fijar la identidad de git antes del primer commit:** `git config user.name` / `user.email` con la cuenta real de quien bootstrapea (`../WORKSTREAMS.md` §3). Nada de identidad de equipo compartida, ningún trailer de herramienta.
+2. **Fijar la identidad de git antes del primer commit:** `git config user.name` / `user.email` con la cuenta real de quien bootstrapea (`../workstreams.md` §3). Nada de identidad de equipo compartida, ningún trailer de herramienta.
 3. Copiar el pack de [`../repo-bootstrap/`](../repo-bootstrap/README.md) a la raíz —`AGENTS.md`, `GEMINI.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `.cursor/rules/`, `.agents/rules/`, `.github/`, `docs/tickets/`, `scripts/`— y hacer el primer commit `chore: initial scaffold`.
 4. Copiar/enlazar `docs/architecture/` desde este store como fuente única de arquitectura, `docs/workstreams.md` como `docs/WORKSTREAMS.md`, y `docs/visual-guidelines.md` + `docs/visual-guidelines-agent-prompt.md` como fuente única de apariencia (el segundo se instala además como `.cursor/rules/visual.mdc`, y se replica con `make sync-rules`).
 5. Editar `.github/CODEOWNERS` y `docs/WORKSTREAMS.md` con los handles y correos reales de los cuatro. Sin esto, las rutas de W2/W3/W4 quedan sin dueño.

@@ -1,5 +1,38 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "koicloud-node-agent"
-version = "0.0.0"
-description = "KoiCloud node-agent — not implemented"
+version = "0.1.0"
+description = "Phase 0 KoiCloud node-agent scaffold."
 requires-python = ">=3.12"
+dependencies = [
+  "docker",
+  "httpx",
+  "pydantic",
+  "pydantic-settings",
+]
+
+[project.scripts]
+koicloud-node-agent = "agent.main:main"
+
+[dependency-groups]
+dev = [
+  "pytest",
+  "ruff",
+]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.hatch.build.targets.wheel]
+packages = ["agent"]

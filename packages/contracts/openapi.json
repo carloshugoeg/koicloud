@@ -1,9 +1,6925 @@
 {
-  "openapi": "3.1.0",
-  "info": {
-    "title": "KoiCloud",
-    "version": "0.0.0",
-    "description": "Not implemented."
+  "components": {
+    "schemas": {
+      "ActorKind": {
+        "enum": [
+          "user",
+          "admin",
+          "node",
+          "system",
+          "mcp"
+        ],
+        "title": "ActorKind",
+        "type": "string"
+      },
+      "AdminPondListResponse": {
+        "additionalProperties": false,
+        "example": {
+          "ponds": [
+            {
+              "created_at": "2026-09-22T20:00:00Z",
+              "desired_state": "running",
+              "host_port": 15007,
+              "id": "66666666-6666-6666-6666-666666666666",
+              "name": "inventario-demo",
+              "node_id": "node-sv-01",
+              "observed_state": "running",
+              "owner_email": "carlos@koicloud.dev",
+              "plan_id": "micro"
+            }
+          ]
+        },
+        "properties": {
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "ponds": {
+            "items": {
+              "$ref": "#/components/schemas/AdminPondOut"
+            },
+            "title": "Ponds",
+            "type": "array"
+          }
+        },
+        "required": [
+          "ponds"
+        ],
+        "title": "AdminPondListResponse",
+        "type": "object"
+      },
+      "AdminPondOut": {
+        "additionalProperties": false,
+        "example": {
+          "created_at": "2026-09-22T20:00:00Z",
+          "desired_state": "running",
+          "host_port": 15007,
+          "id": "66666666-6666-6666-6666-666666666666",
+          "name": "inventario-demo",
+          "node_id": "node-sv-01",
+          "observed_state": "running",
+          "owner_email": "carlos@koicloud.dev",
+          "plan_id": "micro"
+        },
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "desired_state": {
+            "$ref": "#/components/schemas/PondDesiredState"
+          },
+          "host_port": {
+            "title": "Host Port",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "node_id": {
+            "title": "Node Id",
+            "type": "string"
+          },
+          "observed_state": {
+            "$ref": "#/components/schemas/PondObservedState"
+          },
+          "owner_email": {
+            "title": "Owner Email",
+            "type": "string"
+          },
+          "plan_id": {
+            "title": "Plan Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "owner_email",
+          "name",
+          "plan_id",
+          "node_id",
+          "desired_state",
+          "observed_state",
+          "host_port",
+          "created_at"
+        ],
+        "title": "AdminPondOut",
+        "type": "object"
+      },
+      "AdminUserListResponse": {
+        "additionalProperties": false,
+        "example": {
+          "users": [
+            {
+              "active_subscription_plan": "micro",
+              "created_at": "2026-09-22T20:00:00Z",
+              "email": "carlos@koicloud.dev",
+              "email_verified": true,
+              "full_name": "Carlos Hugo Escobar",
+              "id": "11111111-1111-1111-1111-111111111111",
+              "role": "client",
+              "status": "active"
+            }
+          ]
+        },
+        "properties": {
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "users": {
+            "items": {
+              "$ref": "#/components/schemas/AdminUserOut"
+            },
+            "title": "Users",
+            "type": "array"
+          }
+        },
+        "required": [
+          "users"
+        ],
+        "title": "AdminUserListResponse",
+        "type": "object"
+      },
+      "AdminUserOut": {
+        "additionalProperties": false,
+        "example": {
+          "active_subscription_plan": "micro",
+          "created_at": "2026-09-22T20:00:00Z",
+          "email": "carlos@koicloud.dev",
+          "email_verified": true,
+          "full_name": "Carlos Hugo Escobar",
+          "id": "11111111-1111-1111-1111-111111111111",
+          "role": "client",
+          "status": "active"
+        },
+        "properties": {
+          "active_subscription_plan": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Subscription Plan"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "email_verified": {
+            "title": "Email Verified",
+            "type": "boolean"
+          },
+          "full_name": {
+            "title": "Full Name",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/UserRole"
+          },
+          "status": {
+            "$ref": "#/components/schemas/UserStatus"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "full_name",
+          "role",
+          "status",
+          "email_verified",
+          "created_at"
+        ],
+        "title": "AdminUserOut",
+        "type": "object"
+      },
+      "AdminUserResponse": {
+        "additionalProperties": false,
+        "example": {
+          "user": {
+            "active_subscription_plan": "micro",
+            "created_at": "2026-09-22T20:00:00Z",
+            "email": "carlos@koicloud.dev",
+            "email_verified": true,
+            "full_name": "Carlos Hugo Escobar",
+            "id": "11111111-1111-1111-1111-111111111111",
+            "role": "client",
+            "status": "active"
+          }
+        },
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/AdminUserOut"
+          }
+        },
+        "required": [
+          "user"
+        ],
+        "title": "AdminUserResponse",
+        "type": "object"
+      },
+      "AgentAccessOut": {
+        "additionalProperties": false,
+        "example": {
+          "enabled": true,
+          "rotated_at": "2026-09-22T20:00:00Z",
+          "slug": "demo-agent",
+          "url": "https://koicloud.local/mcp"
+        },
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "rotated_at": {
+            "format": "date-time",
+            "title": "Rotated At",
+            "type": "string"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug",
+          "url",
+          "enabled",
+          "rotated_at"
+        ],
+        "title": "AgentAccessOut",
+        "type": "object"
+      },
+      "AgentAccessSecretOut": {
+        "additionalProperties": false,
+        "example": {
+          "password": "koicloud-demo",
+          "slug": "demo-agent",
+          "url": "https://koicloud.local/mcp"
+        },
+        "properties": {
+          "password": {
+            "title": "Password",
+            "type": "string"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug",
+          "url",
+          "password"
+        ],
+        "title": "AgentAccessSecretOut",
+        "type": "object"
+      },
+      "AuditEventListResponse": {
+        "additionalProperties": false,
+        "example": {
+          "events": [
+            {
+              "action": "delete_pond",
+              "actor_kind": "admin",
+              "actor_user_id": "11111111-1111-1111-1111-111111111111",
+              "at": "2026-09-22T20:00:00Z",
+              "id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+              "metadata": {
+                "source": "cli"
+              },
+              "target_id": "66666666-6666-6666-6666-666666666666",
+              "target_kind": "pond"
+            }
+          ]
+        },
+        "properties": {
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/AuditEventOut"
+            },
+            "title": "Events",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "events"
+        ],
+        "title": "AuditEventListResponse",
+        "type": "object"
+      },
+      "AuditEventOut": {
+        "additionalProperties": false,
+        "example": {
+          "action": "delete_pond",
+          "actor_kind": "admin",
+          "actor_user_id": "11111111-1111-1111-1111-111111111111",
+          "at": "2026-09-22T20:00:00Z",
+          "id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+          "metadata": {
+            "source": "cli"
+          },
+          "target_id": "66666666-6666-6666-6666-666666666666",
+          "target_kind": "pond"
+        },
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "actor_kind": {
+            "$ref": "#/components/schemas/ActorKind"
+          },
+          "actor_user_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor User Id"
+          },
+          "at": {
+            "format": "date-time",
+            "title": "At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "title": "Metadata",
+            "type": "object"
+          },
+          "target_id": {
+            "title": "Target Id",
+            "type": "string"
+          },
+          "target_kind": {
+            "title": "Target Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "actor_kind",
+          "target_kind",
+          "target_id",
+          "action",
+          "metadata",
+          "at"
+        ],
+        "title": "AuditEventOut",
+        "type": "object"
+      },
+      "BackupKind": {
+        "enum": [
+          "daily",
+          "on_demand",
+          "pre_delete"
+        ],
+        "title": "BackupKind",
+        "type": "string"
+      },
+      "BackupListResponse": {
+        "additionalProperties": false,
+        "example": {
+          "backups": [
+            {
+              "completed_at": "2026-09-22T20:00:00Z",
+              "created_at": "2026-09-22T20:00:00Z",
+              "id": "88888888-8888-8888-8888-888888888888",
+              "kind": "daily",
+              "pond_id": "66666666-6666-6666-6666-666666666666",
+              "sha256": "1f3e7d3ab148b8be24af9b97a10d1655db8c613de0dc02f88f752230ec7776d0",
+              "size_bytes": 124901,
+              "status": "succeeded",
+              "storage_path": "/var/lib/koicloud/backups/inventario-demo/20260922.dump"
+            }
+          ]
+        },
+        "properties": {
+          "backups": {
+            "items": {
+              "$ref": "#/components/schemas/BackupOut"
+            },
+            "title": "Backups",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "backups"
+        ],
+        "title": "BackupListResponse",
+        "type": "object"
+      },
+      "BackupOut": {
+        "additionalProperties": false,
+        "example": {
+          "completed_at": "2026-09-22T20:00:00Z",
+          "created_at": "2026-09-22T20:00:00Z",
+          "id": "88888888-8888-8888-8888-888888888888",
+          "kind": "daily",
+          "pond_id": "66666666-6666-6666-6666-666666666666",
+          "sha256": "1f3e7d3ab148b8be24af9b97a10d1655db8c613de0dc02f88f752230ec7776d0",
+          "size_bytes": 124901,
+          "status": "succeeded",
+          "storage_path": "/var/lib/koicloud/backups/inventario-demo/20260922.dump"
+        },
+        "properties": {
+          "completed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/BackupKind"
+          },
+          "pond_id": {
+            "format": "uuid",
+            "title": "Pond Id",
+            "type": "string"
+          },
+          "sha256": {
+            "title": "Sha256",
+            "type": "string"
+          },
+          "size_bytes": {
+            "title": "Size Bytes",
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/BackupStatus"
+          },
+          "storage_path": {
+            "title": "Storage Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "pond_id",
+          "kind",
+          "status",
+          "storage_path",
+          "size_bytes",
+          "sha256",
+          "created_at"
+        ],
+        "title": "BackupOut",
+        "type": "object"
+      },
+      "BackupStatus": {
+        "enum": [
+          "queued",
+          "running",
+          "succeeded",
+          "failed"
+        ],
+        "title": "BackupStatus",
+        "type": "string"
+      },
+      "CancelSubscriptionResponse": {
+        "additionalProperties": false,
+        "example": {
+          "subscription": {
+            "cancel_at_period_end": false,
+            "current_period_end": "2026-10-22T20:00:00Z",
+            "current_period_start": "2026-09-22T20:00:00Z",
+            "id": "22222222-2222-2222-2222-222222222222",
+            "plan_id": "micro",
+            "status": "active",
+            "user_id": "11111111-1111-1111-1111-111111111111"
+          }
+        },
+        "properties": {
+          "subscription": {
+            "$ref": "#/components/schemas/SubscriptionOut"
+          }
+        },
+        "required": [
+          "subscription"
+        ],
+        "title": "CancelSubscriptionResponse",
+        "type": "object"
+      },
+      "ClaimJobRequest": {
+        "additionalProperties": false,
+        "example": {
+          "max_types": [
+            "create_pond",
+            "backup_pond"
+          ]
+        },
+        "properties": {
+          "max_types": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/JobType"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Types"
+          }
+        },
+        "title": "ClaimJobRequest",
+        "type": "object"
+      },
+      "ClaimJobResponse": {
+        "additionalProperties": false,
+        "example": {
+          "job": {
+            "id": "77777777-7777-7777-7777-777777777777",
+            "payload": {
+              "cpus": 0.5,
+              "db_password_plain": "p0nd-Temp!2026",
+              "host_port": 15007,
+              "image": "postgres:16-alpine",
+              "memory_mb": 512,
+              "name": "inventario-demo"
+            },
+            "pond_id": "66666666-6666-6666-6666-666666666666",
+            "type": "create_pond"
+          }
+        },
+        "properties": {
+          "job": {
+            "$ref": "#/components/schemas/ClaimedJob"
+          }
+        },
+        "required": [
+          "job"
+        ],
+        "title": "ClaimJobResponse",
+        "type": "object"
+      },
+      "ClaimedJob": {
+        "additionalProperties": false,
+        "example": {
+          "id": "77777777-7777-7777-7777-777777777777",
+          "payload": {
+            "cpus": 0.5,
+            "db_password_plain": "p0nd-Temp!2026",
+            "host_port": 15007,
+            "image": "postgres:16-alpine",
+            "memory_mb": 512,
+            "name": "inventario-demo"
+          },
+          "pond_id": "66666666-6666-6666-6666-666666666666",
+          "type": "create_pond"
+        },
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/ClaimedJobPayload"
+          },
+          "pond_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pond Id"
+          },
+          "type": {
+            "$ref": "#/components/schemas/JobType"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "payload"
+        ],
+        "title": "ClaimedJob",
+        "type": "object"
+      },
+      "ClaimedJobPayload": {
+        "additionalProperties": false,
+        "example": {
+          "cpus": 0.5,
+          "db_password_plain": "p0nd-Temp!2026",
+          "host_port": 15007,
+          "image": "postgres:16-alpine",
+          "memory_mb": 512,
+          "name": "inventario-demo"
+        },
+        "properties": {
+          "cpus": {
+            "title": "Cpus",
+            "type": "number"
+          },
+          "db_password_plain": {
+            "title": "Db Password Plain",
+            "type": "string"
+          },
+          "host_port": {
+            "title": "Host Port",
+            "type": "integer"
+          },
+          "image": {
+            "title": "Image",
+            "type": "string"
+          },
+          "memory_mb": {
+            "title": "Memory Mb",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "host_port",
+          "memory_mb",
+          "cpus",
+          "db_password_plain",
+          "image"
+        ],
+        "title": "ClaimedJobPayload",
+        "type": "object"
+      },
+      "CompleteJobRequest": {
+        "additionalProperties": false,
+        "example": {
+          "result": {
+            "observed_state": "running"
+          },
+          "status": "succeeded"
+        },
+        "properties": {
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result"
+          },
+          "status": {
+            "enum": [
+              "succeeded",
+              "failed"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "CompleteJobRequest",
+        "type": "object"
+      },
+      "ConfirmationNextStep": {
+        "additionalProperties": false,
+        "example": {
+          "cli_example": "koicloud confirm conf_create_pond_demo",
+          "confirm_url": "/api/v1/confirm/conf_create_pond_demo"
+        },
+        "properties": {
+          "cli_example": {
+            "title": "Cli Example",
+            "type": "string"
+          },
+          "confirm_url": {
+            "title": "Confirm Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "confirm_url",
+          "cli_example"
+        ],
+        "title": "ConfirmationNextStep",
+        "type": "object"
+      },
+      "ConfirmationRequiredResponse": {
+        "additionalProperties": false,
+        "example": {
+          "expires_at": "2026-09-22T20:05:00Z",
+          "next": {
+            "cli_example": "koicloud confirm conf_create_pond_demo",
+            "confirm_url": "/api/v1/confirm/conf_create_pond_demo"
+          },
+          "status": "confirmation_required",
+          "summary": "Se crear\u00e1 el pond 'inventario-demo'. Expira en 5 min.",
+          "token": "conf_create_pond_demo"
+        },
+        "properties": {
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "next": {
+            "$ref": "#/components/schemas/ConfirmationNextStep"
+          },
+          "status": {
+            "const": "confirmation_required",
+            "title": "Status",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "token": {
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "token",
+          "summary",
+          "expires_at",
+          "next"
+        ],
+        "title": "ConfirmationRequiredResponse",
+        "type": "object"
+      },
+      "ConnectionOut": {
+        "additionalProperties": false,
+        "example": {
+          "database": "inventario_demo",
+          "host": "db.koicloud.dev",
+          "password": "p0nd-Temp!2026",
+          "port": 15007,
+          "uri": "postgresql://koi_inventario:p0nd-Temp%212026@db.koicloud.dev:15007/inventario_demo",
+          "username": "koi_inventario"
+        },
+        "properties": {
+          "database": {
+            "title": "Database",
+            "type": "string"
+          },
+          "host": {
+            "title": "Host",
+            "type": "string"
+          },
+          "password": {
+            "title": "Password",
+            "type": "string"
+          },
+          "port": {
+            "title": "Port",
+            "type": "integer"
+          },
+          "uri": {
+            "title": "Uri",
+            "type": "string"
+          },
+          "username": {
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "host",
+          "port",
+          "database",
+          "username",
+          "password",
+          "uri"
+        ],
+        "title": "ConnectionOut",
+        "type": "object"
+      },
+      "ConnectionResponse": {
+        "additionalProperties": false,
+        "example": {
+          "connection": {
+            "database": "inventario_demo",
+            "host": "db.koicloud.dev",
+            "password": "p0nd-Temp!2026",
+            "port": 15007,
+            "uri": "postgresql://koi_inventario:p0nd-Temp%212026@db.koicloud.dev:15007/inventario_demo",
+            "username": "koi_inventario"
+          }
+        },
+        "properties": {
+          "connection": {
+            "$ref": "#/components/schemas/ConnectionOut"
+          }
+        },
+        "required": [
+          "connection"
+        ],
+        "title": "ConnectionResponse",
+        "type": "object"
+      },
+      "CreatePondRequest": {
+        "additionalProperties": false,
+        "example": {
+          "engine_version": "16",
+          "name": "inventario-demo"
+        },
+        "properties": {
+          "engine_version": {
+            "default": "16",
+            "title": "Engine Version",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "CreatePondRequest",
+        "type": "object"
+      },
+      "CreatePondResponse": {
+        "additionalProperties": false,
+        "example": {
+          "job": {
+            "attempts": 0,
+            "created_at": "2026-09-22T20:00:00Z",
+            "id": "77777777-7777-7777-7777-777777777777",
+            "node_id": "node-sv-01",
+            "pond_id": "66666666-6666-6666-6666-666666666666",
+            "status": "queued",
+            "type": "create_pond"
+          },
+          "pond": {
+            "created_at": "2026-09-22T20:00:00Z",
+            "desired_state": "running",
+            "engine_version": "16",
+            "healthy": true,
+            "host_port": 15007,
+            "id": "66666666-6666-6666-6666-666666666666",
+            "name": "inventario-demo",
+            "node_id": "node-sv-01",
+            "observed_state": "pending",
+            "plan_id": "micro",
+            "user_id": "11111111-1111-1111-1111-111111111111"
+          }
+        },
+        "properties": {
+          "job": {
+            "$ref": "#/components/schemas/JobOut"
+          },
+          "pond": {
+            "$ref": "#/components/schemas/PondOut"
+          }
+        },
+        "required": [
+          "pond",
+          "job"
+        ],
+        "title": "CreatePondResponse",
+        "type": "object"
+      },
+      "DeletePondResponse": {
+        "additionalProperties": false,
+        "example": {
+          "jobs": [
+            {
+              "attempts": 0,
+              "created_at": "2026-09-22T20:00:00Z",
+              "id": "77777777-7777-7777-7777-777777777778",
+              "node_id": "node-sv-01",
+              "pond_id": "66666666-6666-6666-6666-666666666666",
+              "status": "queued",
+              "type": "backup_pond"
+            },
+            {
+              "attempts": 0,
+              "created_at": "2026-09-22T20:00:00Z",
+              "id": "77777777-7777-7777-7777-777777777779",
+              "node_id": "node-sv-01",
+              "pond_id": "66666666-6666-6666-6666-666666666666",
+              "status": "queued",
+              "type": "delete_pond"
+            }
+          ],
+          "pond": {
+            "created_at": "2026-09-22T20:00:00Z",
+            "desired_state": "deleted",
+            "engine_version": "16",
+            "healthy": true,
+            "host_port": 15007,
+            "id": "66666666-6666-6666-6666-666666666666",
+            "name": "inventario-demo",
+            "node_id": "node-sv-01",
+            "observed_state": "deleting",
+            "plan_id": "micro",
+            "user_id": "11111111-1111-1111-1111-111111111111"
+          }
+        },
+        "properties": {
+          "jobs": {
+            "items": {
+              "$ref": "#/components/schemas/JobOut"
+            },
+            "title": "Jobs",
+            "type": "array"
+          },
+          "pond": {
+            "$ref": "#/components/schemas/PondOut"
+          }
+        },
+        "required": [
+          "pond",
+          "jobs"
+        ],
+        "title": "DeletePondResponse",
+        "type": "object"
+      },
+      "ErrorResponse": {
+        "additionalProperties": false,
+        "example": {
+          "code": "quota_exceeded",
+          "message": "Ya alcanzaste el m\u00e1ximo de ponds (1) de tu plan.",
+          "request_id": "req_01hf8mxv2xb8af3w0k9nvy7p9w"
+        },
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "request_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Request Id"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "ErrorResponse",
+        "type": "object"
+      },
+      "ForgotPasswordRequest": {
+        "additionalProperties": false,
+        "example": {
+          "email": "carlos@koicloud.dev"
+        },
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "title": "ForgotPasswordRequest",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "HealthResponse": {
+        "additionalProperties": false,
+        "example": {
+          "git_sha": "phase0-contract-freeze",
+          "ok": true
+        },
+        "properties": {
+          "git_sha": {
+            "title": "Git Sha",
+            "type": "string"
+          },
+          "ok": {
+            "default": true,
+            "title": "Ok",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "git_sha"
+        ],
+        "title": "HealthResponse",
+        "type": "object"
+      },
+      "HeartbeatContainer": {
+        "additionalProperties": false,
+        "example": {
+          "name": "pond-inventario-demo",
+          "state": "running",
+          "uptime": "2h"
+        },
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "uptime": {
+            "title": "Uptime",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "state",
+          "uptime"
+        ],
+        "title": "HeartbeatContainer",
+        "type": "object"
+      },
+      "HeartbeatRequest": {
+        "additionalProperties": false,
+        "example": {
+          "containers": [
+            {
+              "name": "pond-inventario-demo",
+              "state": "running",
+              "uptime": "2h"
+            }
+          ],
+          "samples": [
+            {
+              "container_state": "running",
+              "pond_name": "inventario-demo",
+              "size_bytes": 124901
+            }
+          ]
+        },
+        "properties": {
+          "containers": {
+            "items": {
+              "$ref": "#/components/schemas/HeartbeatContainer"
+            },
+            "title": "Containers",
+            "type": "array"
+          },
+          "samples": {
+            "items": {
+              "$ref": "#/components/schemas/HeartbeatSample"
+            },
+            "title": "Samples",
+            "type": "array"
+          }
+        },
+        "required": [
+          "containers",
+          "samples"
+        ],
+        "title": "HeartbeatRequest",
+        "type": "object"
+      },
+      "HeartbeatSample": {
+        "additionalProperties": false,
+        "example": {
+          "container_state": "running",
+          "pond_name": "inventario-demo",
+          "size_bytes": 124901
+        },
+        "properties": {
+          "container_state": {
+            "title": "Container State",
+            "type": "string"
+          },
+          "pond_name": {
+            "title": "Pond Name",
+            "type": "string"
+          },
+          "size_bytes": {
+            "title": "Size Bytes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "pond_name",
+          "size_bytes",
+          "container_state"
+        ],
+        "title": "HeartbeatSample",
+        "type": "object"
+      },
+      "InvoiceDetailResponse": {
+        "additionalProperties": false,
+        "example": {
+          "invoice": {
+            "id": "33333333-3333-3333-3333-333333333333",
+            "issued_at": "2026-09-22T20:00:00Z",
+            "iva_usd": 0.65,
+            "number": "KOI-202609-0001",
+            "pdf_path": "/var/lib/koicloud/invoices/KOI-202609-0001.pdf",
+            "status": "paid",
+            "subscription_id": "22222222-2222-2222-2222-222222222222",
+            "subtotal_usd": 5.0,
+            "total_usd": 5.65,
+            "user_id": "11111111-1111-1111-1111-111111111111"
+          },
+          "lines": [
+            {
+              "amount_usd": 5.0,
+              "description": "Plan Micro mensual",
+              "id": "44444444-4444-4444-4444-444444444444",
+              "invoice_id": "33333333-3333-3333-3333-333333333333"
+            }
+          ]
+        },
+        "properties": {
+          "invoice": {
+            "$ref": "#/components/schemas/InvoiceOut"
+          },
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/InvoiceLineOut"
+            },
+            "title": "Lines",
+            "type": "array"
+          }
+        },
+        "required": [
+          "invoice",
+          "lines"
+        ],
+        "title": "InvoiceDetailResponse",
+        "type": "object"
+      },
+      "InvoiceLineOut": {
+        "additionalProperties": false,
+        "example": {
+          "amount_usd": 5.0,
+          "description": "Plan Micro mensual",
+          "id": "44444444-4444-4444-4444-444444444444",
+          "invoice_id": "33333333-3333-3333-3333-333333333333"
+        },
+        "properties": {
+          "amount_usd": {
+            "title": "Amount Usd",
+            "type": "number"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "invoice_id": {
+            "format": "uuid",
+            "title": "Invoice Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "invoice_id",
+          "description",
+          "amount_usd"
+        ],
+        "title": "InvoiceLineOut",
+        "type": "object"
+      },
+      "InvoiceListResponse": {
+        "additionalProperties": false,
+        "example": {
+          "invoices": [
+            {
+              "id": "33333333-3333-3333-3333-333333333333",
+              "issued_at": "2026-09-22T20:00:00Z",
+              "iva_usd": 0.65,
+              "number": "KOI-202609-0001",
+              "pdf_path": "/var/lib/koicloud/invoices/KOI-202609-0001.pdf",
+              "status": "paid",
+              "subscription_id": "22222222-2222-2222-2222-222222222222",
+              "subtotal_usd": 5.0,
+              "total_usd": 5.65,
+              "user_id": "11111111-1111-1111-1111-111111111111"
+            }
+          ]
+        },
+        "properties": {
+          "invoices": {
+            "items": {
+              "$ref": "#/components/schemas/InvoiceOut"
+            },
+            "title": "Invoices",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "invoices"
+        ],
+        "title": "InvoiceListResponse",
+        "type": "object"
+      },
+      "InvoiceOut": {
+        "additionalProperties": false,
+        "example": {
+          "id": "33333333-3333-3333-3333-333333333333",
+          "issued_at": "2026-09-22T20:00:00Z",
+          "iva_usd": 0.65,
+          "number": "KOI-202609-0001",
+          "pdf_path": "/var/lib/koicloud/invoices/KOI-202609-0001.pdf",
+          "status": "paid",
+          "subscription_id": "22222222-2222-2222-2222-222222222222",
+          "subtotal_usd": 5.0,
+          "total_usd": 5.65,
+          "user_id": "11111111-1111-1111-1111-111111111111"
+        },
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "issued_at": {
+            "format": "date-time",
+            "title": "Issued At",
+            "type": "string"
+          },
+          "iva_usd": {
+            "title": "Iva Usd",
+            "type": "number"
+          },
+          "number": {
+            "title": "Number",
+            "type": "string"
+          },
+          "pdf_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pdf Path"
+          },
+          "status": {
+            "$ref": "#/components/schemas/InvoiceStatus"
+          },
+          "subscription_id": {
+            "format": "uuid",
+            "title": "Subscription Id",
+            "type": "string"
+          },
+          "subtotal_usd": {
+            "title": "Subtotal Usd",
+            "type": "number"
+          },
+          "total_usd": {
+            "title": "Total Usd",
+            "type": "number"
+          },
+          "user_id": {
+            "format": "uuid",
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "number",
+          "user_id",
+          "subscription_id",
+          "subtotal_usd",
+          "iva_usd",
+          "total_usd",
+          "status",
+          "issued_at"
+        ],
+        "title": "InvoiceOut",
+        "type": "object"
+      },
+      "InvoiceStatus": {
+        "enum": [
+          "issued",
+          "paid",
+          "void"
+        ],
+        "title": "InvoiceStatus",
+        "type": "string"
+      },
+      "JobOut": {
+        "additionalProperties": false,
+        "example": {
+          "attempts": 0,
+          "created_at": "2026-09-22T20:00:00Z",
+          "id": "77777777-7777-7777-7777-777777777777",
+          "node_id": "node-sv-01",
+          "pond_id": "66666666-6666-6666-6666-666666666666",
+          "status": "queued",
+          "type": "create_pond"
+        },
+        "properties": {
+          "attempts": {
+            "title": "Attempts",
+            "type": "integer"
+          },
+          "claimed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Claimed At"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "last_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Error"
+          },
+          "node_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Node Id"
+          },
+          "pond_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pond Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/JobStatus"
+          },
+          "type": {
+            "$ref": "#/components/schemas/JobType"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "status",
+          "attempts",
+          "created_at"
+        ],
+        "title": "JobOut",
+        "type": "object"
+      },
+      "JobResponse": {
+        "additionalProperties": false,
+        "example": {
+          "job": {
+            "attempts": 0,
+            "created_at": "2026-09-22T20:00:00Z",
+            "id": "77777777-7777-7777-7777-777777777777",
+            "node_id": "node-sv-01",
+            "pond_id": "66666666-6666-6666-6666-666666666666",
+            "status": "queued",
+            "type": "create_pond"
+          }
+        },
+        "properties": {
+          "job": {
+            "$ref": "#/components/schemas/JobOut"
+          }
+        },
+        "required": [
+          "job"
+        ],
+        "title": "JobResponse",
+        "type": "object"
+      },
+      "JobStatus": {
+        "enum": [
+          "queued",
+          "running",
+          "succeeded",
+          "failed",
+          "lost"
+        ],
+        "title": "JobStatus",
+        "type": "string"
+      },
+      "JobType": {
+        "enum": [
+          "create_pond",
+          "start_pond",
+          "stop_pond",
+          "delete_pond",
+          "backup_pond",
+          "restore_pond"
+        ],
+        "title": "JobType",
+        "type": "string"
+      },
+      "JsonRpcRequest": {
+        "additionalProperties": false,
+        "example": {
+          "id": "tool-1",
+          "jsonrpc": "2.0",
+          "method": "tools/call",
+          "params": {
+            "arguments": {},
+            "name": "list_ponds"
+          }
+        },
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "jsonrpc": {
+            "const": "2.0",
+            "title": "Jsonrpc",
+            "type": "string"
+          },
+          "method": {
+            "title": "Method",
+            "type": "string"
+          },
+          "params": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Params"
+          }
+        },
+        "required": [
+          "jsonrpc",
+          "method"
+        ],
+        "title": "JsonRpcRequest",
+        "type": "object"
+      },
+      "JsonRpcResponse": {
+        "additionalProperties": false,
+        "example": {
+          "id": "tool-1",
+          "jsonrpc": "2.0",
+          "result": {
+            "message": "MCP skeleton ready",
+            "status": "ok"
+          }
+        },
+        "properties": {
+          "error": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "jsonrpc": {
+            "const": "2.0",
+            "title": "Jsonrpc",
+            "type": "string"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result"
+          }
+        },
+        "required": [
+          "jsonrpc"
+        ],
+        "title": "JsonRpcResponse",
+        "type": "object"
+      },
+      "LoginRequest": {
+        "additionalProperties": false,
+        "example": {
+          "email": "carlos@koicloud.dev",
+          "password": "Sup3rSegura!2026"
+        },
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "password": {
+            "title": "Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ],
+        "title": "LoginRequest",
+        "type": "object"
+      },
+      "LoginResponse": {
+        "additionalProperties": false,
+        "example": {
+          "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.access",
+          "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.refresh",
+          "user": {
+            "created_at": "2026-09-22T20:00:00Z",
+            "email": "carlos@koicloud.dev",
+            "email_verified": true,
+            "full_name": "Carlos Hugo Escobar",
+            "id": "11111111-1111-1111-1111-111111111111",
+            "nit": "0614-220999-101-3",
+            "role": "client",
+            "status": "active"
+          }
+        },
+        "properties": {
+          "access_token": {
+            "title": "Access Token",
+            "type": "string"
+          },
+          "refresh_token": {
+            "title": "Refresh Token",
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserOut"
+          }
+        },
+        "required": [
+          "access_token",
+          "refresh_token",
+          "user"
+        ],
+        "title": "LoginResponse",
+        "type": "object"
+      },
+      "MCPInfoResponse": {
+        "additionalProperties": false,
+        "example": {
+          "enabled": true,
+          "endpoint": "/mcp",
+          "mutable_tools": [
+            "create_pond",
+            "delete_pond",
+            "restore_backup",
+            "run_sql",
+            "confirm_action",
+            "cancel_confirmation"
+          ],
+          "prompt_summary": "Las tools mutantes requieren explicaci\u00f3n previa y confirmaci\u00f3n expl\u00edcita.",
+          "read_only_tools": [
+            "whoami",
+            "list_ponds",
+            "get_pond",
+            "get_connection",
+            "list_subscriptions",
+            "list_backups",
+            "get_usage"
+          ]
+        },
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "endpoint": {
+            "title": "Endpoint",
+            "type": "string"
+          },
+          "mutable_tools": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Mutable Tools",
+            "type": "array"
+          },
+          "prompt_summary": {
+            "title": "Prompt Summary",
+            "type": "string"
+          },
+          "read_only_tools": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Read Only Tools",
+            "type": "array"
+          }
+        },
+        "required": [
+          "enabled",
+          "endpoint",
+          "read_only_tools",
+          "mutable_tools",
+          "prompt_summary"
+        ],
+        "title": "MCPInfoResponse",
+        "type": "object"
+      },
+      "MeResponse": {
+        "additionalProperties": false,
+        "example": {
+          "ponds_count": 1,
+          "subscription": {
+            "cancel_at_period_end": false,
+            "current_period_end": "2026-10-22T20:00:00Z",
+            "current_period_start": "2026-09-22T20:00:00Z",
+            "id": "22222222-2222-2222-2222-222222222222",
+            "plan_id": "micro",
+            "status": "active",
+            "user_id": "11111111-1111-1111-1111-111111111111"
+          },
+          "user": {
+            "created_at": "2026-09-22T20:00:00Z",
+            "email": "carlos@koicloud.dev",
+            "email_verified": true,
+            "full_name": "Carlos Hugo Escobar",
+            "id": "11111111-1111-1111-1111-111111111111",
+            "nit": "0614-220999-101-3",
+            "role": "client",
+            "status": "active"
+          }
+        },
+        "properties": {
+          "ponds_count": {
+            "title": "Ponds Count",
+            "type": "integer"
+          },
+          "subscription": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SubscriptionOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserOut"
+          }
+        },
+        "required": [
+          "user",
+          "ponds_count"
+        ],
+        "title": "MeResponse",
+        "type": "object"
+      },
+      "NodeSampleUpload": {
+        "additionalProperties": false,
+        "example": {
+          "container_state": "running",
+          "pond_id": "66666666-6666-6666-6666-666666666666",
+          "size_bytes": 124901
+        },
+        "properties": {
+          "container_state": {
+            "title": "Container State",
+            "type": "string"
+          },
+          "pond_id": {
+            "format": "uuid",
+            "title": "Pond Id",
+            "type": "string"
+          },
+          "size_bytes": {
+            "title": "Size Bytes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "pond_id",
+          "size_bytes",
+          "container_state"
+        ],
+        "title": "NodeSampleUpload",
+        "type": "object"
+      },
+      "OkResponse": {
+        "additionalProperties": false,
+        "example": {
+          "ok": true
+        },
+        "properties": {
+          "ok": {
+            "default": true,
+            "title": "Ok",
+            "type": "boolean"
+          }
+        },
+        "title": "OkResponse",
+        "type": "object"
+      },
+      "PaymentOut": {
+        "additionalProperties": false,
+        "example": {
+          "amount_usd": 5.65,
+          "id": "55555555-5555-5555-5555-555555555555",
+          "invoice_id": "33333333-3333-3333-3333-333333333333",
+          "method": "simulated",
+          "processed_at": "2026-09-22T20:00:00Z",
+          "status": "succeeded"
+        },
+        "properties": {
+          "amount_usd": {
+            "title": "Amount Usd",
+            "type": "number"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "invoice_id": {
+            "format": "uuid",
+            "title": "Invoice Id",
+            "type": "string"
+          },
+          "method": {
+            "title": "Method",
+            "type": "string"
+          },
+          "processed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Processed At"
+          },
+          "status": {
+            "$ref": "#/components/schemas/PaymentStatus"
+          }
+        },
+        "required": [
+          "id",
+          "invoice_id",
+          "amount_usd",
+          "status",
+          "method"
+        ],
+        "title": "PaymentOut",
+        "type": "object"
+      },
+      "PaymentStatus": {
+        "enum": [
+          "succeeded",
+          "failed",
+          "pending"
+        ],
+        "title": "PaymentStatus",
+        "type": "string"
+      },
+      "PlanListResponse": {
+        "additionalProperties": false,
+        "example": {
+          "plans": [
+            {
+              "active": true,
+              "description": "Pruebas internas (10 min)",
+              "id": "sandbox",
+              "max_ponds": 1,
+              "max_storage_gb": 1,
+              "name": "Sandbox",
+              "postpaid": false,
+              "price_monthly_usd": 0.0,
+              "validity_minutes": 10
+            },
+            {
+              "active": true,
+              "description": "1 pond, 1 GB, backups 7 d\u00edas",
+              "id": "micro",
+              "max_ponds": 1,
+              "max_storage_gb": 1,
+              "name": "Micro",
+              "postpaid": false,
+              "price_monthly_usd": 5.0,
+              "validity_minutes": 43200
+            },
+            {
+              "active": true,
+              "description": "Hasta 10 ponds, post-pago por uso",
+              "id": "pro",
+              "max_ponds": 10,
+              "max_storage_gb": 20,
+              "name": "Pro",
+              "postpaid": true,
+              "price_monthly_usd": 0.0,
+              "validity_minutes": 43200
+            }
+          ]
+        },
+        "properties": {
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "plans": {
+            "items": {
+              "$ref": "#/components/schemas/PlanOut"
+            },
+            "title": "Plans",
+            "type": "array"
+          }
+        },
+        "required": [
+          "plans"
+        ],
+        "title": "PlanListResponse",
+        "type": "object"
+      },
+      "PlanOut": {
+        "additionalProperties": false,
+        "example": {
+          "active": true,
+          "description": "1 pond, 1 GB, backups 7 d\u00edas",
+          "id": "micro",
+          "max_ponds": 1,
+          "max_storage_gb": 1,
+          "name": "Micro",
+          "postpaid": false,
+          "price_monthly_usd": 5.0,
+          "validity_minutes": 43200
+        },
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "max_ponds": {
+            "title": "Max Ponds",
+            "type": "integer"
+          },
+          "max_storage_gb": {
+            "title": "Max Storage Gb",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "postpaid": {
+            "title": "Postpaid",
+            "type": "boolean"
+          },
+          "price_monthly_usd": {
+            "title": "Price Monthly Usd",
+            "type": "number"
+          },
+          "validity_minutes": {
+            "title": "Validity Minutes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "price_monthly_usd",
+          "max_ponds",
+          "max_storage_gb",
+          "validity_minutes",
+          "postpaid",
+          "active"
+        ],
+        "title": "PlanOut",
+        "type": "object"
+      },
+      "PondDesiredState": {
+        "enum": [
+          "running",
+          "stopped",
+          "deleted"
+        ],
+        "title": "PondDesiredState",
+        "type": "string"
+      },
+      "PondListResponse": {
+        "additionalProperties": false,
+        "example": {
+          "ponds": [
+            {
+              "created_at": "2026-09-22T20:00:00Z",
+              "desired_state": "running",
+              "engine_version": "16",
+              "healthy": true,
+              "host_port": 15007,
+              "id": "66666666-6666-6666-6666-666666666666",
+              "name": "inventario-demo",
+              "node_id": "node-sv-01",
+              "observed_state": "running",
+              "plan_id": "micro",
+              "user_id": "11111111-1111-1111-1111-111111111111"
+            }
+          ]
+        },
+        "properties": {
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "ponds": {
+            "items": {
+              "$ref": "#/components/schemas/PondOut"
+            },
+            "title": "Ponds",
+            "type": "array"
+          }
+        },
+        "required": [
+          "ponds"
+        ],
+        "title": "PondListResponse",
+        "type": "object"
+      },
+      "PondObservedState": {
+        "enum": [
+          "pending",
+          "provisioning",
+          "running",
+          "stopped",
+          "restoring",
+          "deleting",
+          "deleted",
+          "failed"
+        ],
+        "title": "PondObservedState",
+        "type": "string"
+      },
+      "PondOut": {
+        "additionalProperties": false,
+        "example": {
+          "created_at": "2026-09-22T20:00:00Z",
+          "desired_state": "running",
+          "engine_version": "16",
+          "healthy": true,
+          "host_port": 15007,
+          "id": "66666666-6666-6666-6666-666666666666",
+          "name": "inventario-demo",
+          "node_id": "node-sv-01",
+          "observed_state": "running",
+          "plan_id": "micro",
+          "user_id": "11111111-1111-1111-1111-111111111111"
+        },
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "desired_state": {
+            "$ref": "#/components/schemas/PondDesiredState"
+          },
+          "engine_version": {
+            "title": "Engine Version",
+            "type": "string"
+          },
+          "healthy": {
+            "title": "Healthy",
+            "type": "boolean"
+          },
+          "host_port": {
+            "title": "Host Port",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "last_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Error"
+          },
+          "last_restore_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Restore At"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "node_id": {
+            "title": "Node Id",
+            "type": "string"
+          },
+          "observed_state": {
+            "$ref": "#/components/schemas/PondObservedState"
+          },
+          "plan_id": {
+            "title": "Plan Id",
+            "type": "string"
+          },
+          "user_id": {
+            "format": "uuid",
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "user_id",
+          "plan_id",
+          "node_id",
+          "name",
+          "engine_version",
+          "desired_state",
+          "observed_state",
+          "host_port",
+          "healthy",
+          "created_at"
+        ],
+        "title": "PondOut",
+        "type": "object"
+      },
+      "PondResponse": {
+        "additionalProperties": false,
+        "example": {
+          "pond": {
+            "created_at": "2026-09-22T20:00:00Z",
+            "desired_state": "running",
+            "engine_version": "16",
+            "healthy": true,
+            "host_port": 15007,
+            "id": "66666666-6666-6666-6666-666666666666",
+            "name": "inventario-demo",
+            "node_id": "node-sv-01",
+            "observed_state": "running",
+            "plan_id": "micro",
+            "user_id": "11111111-1111-1111-1111-111111111111"
+          }
+        },
+        "properties": {
+          "pond": {
+            "$ref": "#/components/schemas/PondOut"
+          }
+        },
+        "required": [
+          "pond"
+        ],
+        "title": "PondResponse",
+        "type": "object"
+      },
+      "ReadyResponse": {
+        "additionalProperties": false,
+        "example": {
+          "dependencies": {
+            "database": true,
+            "mcp": true
+          },
+          "ok": true
+        },
+        "properties": {
+          "dependencies": {
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "title": "Dependencies",
+            "type": "object"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ok",
+          "dependencies"
+        ],
+        "title": "ReadyResponse",
+        "type": "object"
+      },
+      "RefreshTokenRequest": {
+        "additionalProperties": false,
+        "example": {
+          "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        },
+        "properties": {
+          "refresh_token": {
+            "title": "Refresh Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "refresh_token"
+        ],
+        "title": "RefreshTokenRequest",
+        "type": "object"
+      },
+      "RegisterUserRequest": {
+        "additionalProperties": false,
+        "example": {
+          "email": "jason@koicloud.dev",
+          "full_name": "Jason Guti\u00e9rrez",
+          "nit": "0614-100199-102-4",
+          "password": "Sup3rSegura!2026"
+        },
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "full_name": {
+            "title": "Full Name",
+            "type": "string"
+          },
+          "nit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nit"
+          },
+          "password": {
+            "minLength": 8,
+            "title": "Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password",
+          "full_name"
+        ],
+        "title": "RegisterUserRequest",
+        "type": "object"
+      },
+      "RegisterUserResponse": {
+        "additionalProperties": false,
+        "example": {
+          "email_verified": false,
+          "user_id": "11111111-1111-1111-1111-111111111111"
+        },
+        "properties": {
+          "email_verified": {
+            "title": "Email Verified",
+            "type": "boolean"
+          },
+          "user_id": {
+            "format": "uuid",
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "email_verified"
+        ],
+        "title": "RegisterUserResponse",
+        "type": "object"
+      },
+      "ResetPasswordRequest": {
+        "additionalProperties": false,
+        "example": {
+          "new_password": "NuevaClave!2026",
+          "token": "reset_1u8v2m4cy1u3w8x4"
+        },
+        "properties": {
+          "new_password": {
+            "minLength": 8,
+            "title": "New Password",
+            "type": "string"
+          },
+          "token": {
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token",
+          "new_password"
+        ],
+        "title": "ResetPasswordRequest",
+        "type": "object"
+      },
+      "RestoreBackupRequest": {
+        "additionalProperties": false,
+        "example": {
+          "backup_id": "88888888-8888-8888-8888-888888888888"
+        },
+        "properties": {
+          "backup_id": {
+            "format": "uuid",
+            "title": "Backup Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "backup_id"
+        ],
+        "title": "RestoreBackupRequest",
+        "type": "object"
+      },
+      "RetryFailedJobResponse": {
+        "additionalProperties": false,
+        "example": {
+          "job": {
+            "attempts": 0,
+            "created_at": "2026-09-22T20:00:00Z",
+            "id": "77777777-7777-7777-7777-777777777777",
+            "node_id": "node-sv-01",
+            "pond_id": "66666666-6666-6666-6666-666666666666",
+            "status": "queued",
+            "type": "create_pond"
+          }
+        },
+        "properties": {
+          "job": {
+            "$ref": "#/components/schemas/JobOut"
+          }
+        },
+        "required": [
+          "job"
+        ],
+        "title": "RetryFailedJobResponse",
+        "type": "object"
+      },
+      "RunSQLRequest": {
+        "additionalProperties": false,
+        "example": {
+          "mode": "read",
+          "query": "SELECT 1"
+        },
+        "properties": {
+          "mode": {
+            "$ref": "#/components/schemas/SQLMode",
+            "default": "read"
+          },
+          "query": {
+            "title": "Query",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "title": "RunSQLRequest",
+        "type": "object"
+      },
+      "SQLHistoryItem": {
+        "additionalProperties": false,
+        "example": {
+          "duration_ms": 18,
+          "executed_at": "2026-09-22T20:00:00Z",
+          "id": "99999999-9999-9999-9999-999999999999",
+          "mode": "read",
+          "pond_id": "66666666-6666-6666-6666-666666666666",
+          "query_truncated": "SELECT * FROM invoices ORDER BY issued_at DESC LIMIT 10",
+          "row_count": 10
+        },
+        "properties": {
+          "duration_ms": {
+            "title": "Duration Ms",
+            "type": "integer"
+          },
+          "executed_at": {
+            "format": "date-time",
+            "title": "Executed At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/SQLMode"
+          },
+          "pond_id": {
+            "format": "uuid",
+            "title": "Pond Id",
+            "type": "string"
+          },
+          "query_truncated": {
+            "title": "Query Truncated",
+            "type": "string"
+          },
+          "row_count": {
+            "title": "Row Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "pond_id",
+          "query_truncated",
+          "mode",
+          "row_count",
+          "duration_ms",
+          "executed_at"
+        ],
+        "title": "SQLHistoryItem",
+        "type": "object"
+      },
+      "SQLHistoryResponse": {
+        "additionalProperties": false,
+        "example": {
+          "events": [
+            {
+              "duration_ms": 18,
+              "executed_at": "2026-09-22T20:00:00Z",
+              "id": "99999999-9999-9999-9999-999999999999",
+              "mode": "read",
+              "pond_id": "66666666-6666-6666-6666-666666666666",
+              "query_truncated": "SELECT * FROM invoices ORDER BY issued_at DESC LIMIT 10",
+              "row_count": 10
+            }
+          ]
+        },
+        "properties": {
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/SQLHistoryItem"
+            },
+            "title": "Events",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "events"
+        ],
+        "title": "SQLHistoryResponse",
+        "type": "object"
+      },
+      "SQLMode": {
+        "enum": [
+          "read",
+          "write"
+        ],
+        "title": "SQLMode",
+        "type": "string"
+      },
+      "SQLResultResponse": {
+        "additionalProperties": false,
+        "example": {
+          "columns": [
+            "?column?"
+          ],
+          "duration_ms": 4,
+          "row_count": 1,
+          "rows": [
+            [
+              1
+            ]
+          ],
+          "truncated": false
+        },
+        "properties": {
+          "columns": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Columns",
+            "type": "array"
+          },
+          "duration_ms": {
+            "title": "Duration Ms",
+            "type": "integer"
+          },
+          "row_count": {
+            "title": "Row Count",
+            "type": "integer"
+          },
+          "rows": {
+            "items": {
+              "items": {},
+              "type": "array"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "truncated": {
+            "title": "Truncated",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "columns",
+          "rows",
+          "row_count",
+          "duration_ms",
+          "truncated"
+        ],
+        "title": "SQLResultResponse",
+        "type": "object"
+      },
+      "SubscribeRequest": {
+        "additionalProperties": false,
+        "example": {
+          "plan_id": "micro"
+        },
+        "properties": {
+          "plan_id": {
+            "title": "Plan Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "plan_id"
+        ],
+        "title": "SubscribeRequest",
+        "type": "object"
+      },
+      "SubscribeResponse": {
+        "additionalProperties": false,
+        "example": {
+          "invoice": {
+            "id": "33333333-3333-3333-3333-333333333333",
+            "issued_at": "2026-09-22T20:00:00Z",
+            "iva_usd": 0.65,
+            "number": "KOI-202609-0001",
+            "pdf_path": "/var/lib/koicloud/invoices/KOI-202609-0001.pdf",
+            "status": "paid",
+            "subscription_id": "22222222-2222-2222-2222-222222222222",
+            "subtotal_usd": 5.0,
+            "total_usd": 5.65,
+            "user_id": "11111111-1111-1111-1111-111111111111"
+          },
+          "payment": {
+            "amount_usd": 5.65,
+            "id": "55555555-5555-5555-5555-555555555555",
+            "invoice_id": "33333333-3333-3333-3333-333333333333",
+            "method": "simulated",
+            "processed_at": "2026-09-22T20:00:00Z",
+            "status": "succeeded"
+          },
+          "subscription": {
+            "cancel_at_period_end": false,
+            "current_period_end": "2026-10-22T20:00:00Z",
+            "current_period_start": "2026-09-22T20:00:00Z",
+            "id": "22222222-2222-2222-2222-222222222222",
+            "plan_id": "micro",
+            "status": "active",
+            "user_id": "11111111-1111-1111-1111-111111111111"
+          }
+        },
+        "properties": {
+          "invoice": {
+            "$ref": "#/components/schemas/InvoiceOut"
+          },
+          "payment": {
+            "$ref": "#/components/schemas/PaymentOut"
+          },
+          "subscription": {
+            "$ref": "#/components/schemas/SubscriptionOut"
+          }
+        },
+        "required": [
+          "subscription",
+          "invoice",
+          "payment"
+        ],
+        "title": "SubscribeResponse",
+        "type": "object"
+      },
+      "SubscriptionListResponse": {
+        "additionalProperties": false,
+        "example": {
+          "subscriptions": [
+            {
+              "cancel_at_period_end": false,
+              "current_period_end": "2026-10-22T20:00:00Z",
+              "current_period_start": "2026-09-22T20:00:00Z",
+              "id": "22222222-2222-2222-2222-222222222222",
+              "plan_id": "micro",
+              "status": "active",
+              "user_id": "11111111-1111-1111-1111-111111111111"
+            }
+          ]
+        },
+        "properties": {
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "subscriptions": {
+            "items": {
+              "$ref": "#/components/schemas/SubscriptionOut"
+            },
+            "title": "Subscriptions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "subscriptions"
+        ],
+        "title": "SubscriptionListResponse",
+        "type": "object"
+      },
+      "SubscriptionOut": {
+        "additionalProperties": false,
+        "example": {
+          "cancel_at_period_end": false,
+          "current_period_end": "2026-10-22T20:00:00Z",
+          "current_period_start": "2026-09-22T20:00:00Z",
+          "id": "22222222-2222-2222-2222-222222222222",
+          "plan_id": "micro",
+          "status": "active",
+          "user_id": "11111111-1111-1111-1111-111111111111"
+        },
+        "properties": {
+          "cancel_at_period_end": {
+            "title": "Cancel At Period End",
+            "type": "boolean"
+          },
+          "current_period_end": {
+            "format": "date-time",
+            "title": "Current Period End",
+            "type": "string"
+          },
+          "current_period_start": {
+            "format": "date-time",
+            "title": "Current Period Start",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "plan_id": {
+            "title": "Plan Id",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SubscriptionStatus"
+          },
+          "user_id": {
+            "format": "uuid",
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "user_id",
+          "plan_id",
+          "status",
+          "current_period_start",
+          "current_period_end",
+          "cancel_at_period_end"
+        ],
+        "title": "SubscriptionOut",
+        "type": "object"
+      },
+      "SubscriptionStatus": {
+        "enum": [
+          "active",
+          "canceled",
+          "expired",
+          "past_due"
+        ],
+        "title": "SubscriptionStatus",
+        "type": "string"
+      },
+      "SuspendUserRequest": {
+        "additionalProperties": false,
+        "example": {
+          "confirm_text": "SUSPENDER"
+        },
+        "properties": {
+          "confirm_text": {
+            "title": "Confirm Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "confirm_text"
+        ],
+        "title": "SuspendUserRequest",
+        "type": "object"
+      },
+      "ToggleAgentAccessRequest": {
+        "additionalProperties": false,
+        "example": {
+          "enabled": false
+        },
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "title": "ToggleAgentAccessRequest",
+        "type": "object"
+      },
+      "ToggleAgentAccessResponse": {
+        "additionalProperties": false,
+        "example": {
+          "enabled": false
+        },
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "title": "ToggleAgentAccessResponse",
+        "type": "object"
+      },
+      "TokenPairResponse": {
+        "additionalProperties": false,
+        "example": {
+          "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.access",
+          "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.refresh"
+        },
+        "properties": {
+          "access_token": {
+            "title": "Access Token",
+            "type": "string"
+          },
+          "refresh_token": {
+            "title": "Refresh Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "access_token",
+          "refresh_token"
+        ],
+        "title": "TokenPairResponse",
+        "type": "object"
+      },
+      "TriggerBackupResponse": {
+        "additionalProperties": false,
+        "example": {
+          "backup": {
+            "created_at": "2026-09-22T20:00:00Z",
+            "id": "88888888-8888-8888-8888-888888888888",
+            "kind": "daily",
+            "pond_id": "66666666-6666-6666-6666-666666666666",
+            "sha256": "1f3e7d3ab148b8be24af9b97a10d1655db8c613de0dc02f88f752230ec7776d0",
+            "size_bytes": 124901,
+            "status": "queued",
+            "storage_path": "/var/lib/koicloud/backups/inventario-demo/20260922.dump"
+          },
+          "job": {
+            "attempts": 0,
+            "created_at": "2026-09-22T20:00:00Z",
+            "id": "77777777-7777-7777-7777-777777777777",
+            "node_id": "node-sv-01",
+            "pond_id": "66666666-6666-6666-6666-666666666666",
+            "status": "queued",
+            "type": "backup_pond"
+          }
+        },
+        "properties": {
+          "backup": {
+            "$ref": "#/components/schemas/BackupOut"
+          },
+          "job": {
+            "$ref": "#/components/schemas/JobOut"
+          }
+        },
+        "required": [
+          "backup",
+          "job"
+        ],
+        "title": "TriggerBackupResponse",
+        "type": "object"
+      },
+      "UpdateProfileRequest": {
+        "additionalProperties": false,
+        "example": {
+          "full_name": "Carlos H. Escobar",
+          "nit": "0614-220999-101-3"
+        },
+        "properties": {
+          "full_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Full Name"
+          },
+          "nit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nit"
+          }
+        },
+        "title": "UpdateProfileRequest",
+        "type": "object"
+      },
+      "UsagePondItem": {
+        "additionalProperties": false,
+        "example": {
+          "instance_hours": 124.5,
+          "pond_id": "66666666-6666-6666-6666-666666666666",
+          "pond_name": "inventario-demo",
+          "storage_gb_hours": 31.2
+        },
+        "properties": {
+          "instance_hours": {
+            "title": "Instance Hours",
+            "type": "number"
+          },
+          "pond_id": {
+            "format": "uuid",
+            "title": "Pond Id",
+            "type": "string"
+          },
+          "pond_name": {
+            "title": "Pond Name",
+            "type": "string"
+          },
+          "storage_gb_hours": {
+            "title": "Storage Gb Hours",
+            "type": "number"
+          }
+        },
+        "required": [
+          "pond_id",
+          "pond_name",
+          "instance_hours",
+          "storage_gb_hours"
+        ],
+        "title": "UsagePondItem",
+        "type": "object"
+      },
+      "UsageResponse": {
+        "additionalProperties": false,
+        "example": {
+          "month": "2026-09",
+          "ponds": [
+            {
+              "instance_hours": 124.5,
+              "pond_id": "66666666-6666-6666-6666-666666666666",
+              "pond_name": "inventario-demo",
+              "storage_gb_hours": 31.2
+            }
+          ],
+          "total_instance_hours": 124.5,
+          "total_storage_gb_hours": 31.2
+        },
+        "properties": {
+          "month": {
+            "title": "Month",
+            "type": "string"
+          },
+          "ponds": {
+            "items": {
+              "$ref": "#/components/schemas/UsagePondItem"
+            },
+            "title": "Ponds",
+            "type": "array"
+          },
+          "total_instance_hours": {
+            "title": "Total Instance Hours",
+            "type": "number"
+          },
+          "total_storage_gb_hours": {
+            "title": "Total Storage Gb Hours",
+            "type": "number"
+          }
+        },
+        "required": [
+          "month",
+          "total_instance_hours",
+          "total_storage_gb_hours",
+          "ponds"
+        ],
+        "title": "UsageResponse",
+        "type": "object"
+      },
+      "UserOut": {
+        "additionalProperties": false,
+        "example": {
+          "created_at": "2026-09-22T20:00:00Z",
+          "email": "carlos@koicloud.dev",
+          "email_verified": true,
+          "full_name": "Carlos Hugo Escobar",
+          "id": "11111111-1111-1111-1111-111111111111",
+          "nit": "0614-220999-101-3",
+          "role": "client",
+          "status": "active"
+        },
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "email_verified": {
+            "title": "Email Verified",
+            "type": "boolean"
+          },
+          "full_name": {
+            "title": "Full Name",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "nit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nit"
+          },
+          "role": {
+            "$ref": "#/components/schemas/UserRole"
+          },
+          "status": {
+            "$ref": "#/components/schemas/UserStatus"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "full_name",
+          "role",
+          "status",
+          "email_verified",
+          "created_at"
+        ],
+        "title": "UserOut",
+        "type": "object"
+      },
+      "UserResponse": {
+        "additionalProperties": false,
+        "example": {
+          "user": {
+            "created_at": "2026-09-22T20:00:00Z",
+            "email": "carlos@koicloud.dev",
+            "email_verified": true,
+            "full_name": "Carlos Hugo Escobar",
+            "id": "11111111-1111-1111-1111-111111111111",
+            "nit": "0614-220999-101-3",
+            "role": "client",
+            "status": "active"
+          }
+        },
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/UserOut"
+          }
+        },
+        "required": [
+          "user"
+        ],
+        "title": "UserResponse",
+        "type": "object"
+      },
+      "UserRole": {
+        "enum": [
+          "client",
+          "admin"
+        ],
+        "title": "UserRole",
+        "type": "string"
+      },
+      "UserStatus": {
+        "enum": [
+          "active",
+          "suspended"
+        ],
+        "title": "UserStatus",
+        "type": "string"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "VerifyEmailRequest": {
+        "additionalProperties": false,
+        "example": {
+          "token": "verify_1u8v2m4cy1u3w8x4"
+        },
+        "properties": {
+          "token": {
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
+        ],
+        "title": "VerifyEmailRequest",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
   },
-  "paths": {}
+  "info": {
+    "description": "KoiCloud Phase 0 backend contract freeze",
+    "title": "KoiCloud API",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/admin/audit": {
+      "get": {
+        "operationId": "admin_list_audit",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-KOI-Surface",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Surface"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditEventListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Admin List Audit",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/ponds": {
+      "get": {
+        "operationId": "admin_list_ponds",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-KOI-Surface",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Surface"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPondListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Admin List Ponds",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/users": {
+      "get": {
+        "operationId": "admin_list_users",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-KOI-Surface",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Surface"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Admin List Users",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/users/{user_id}/reactivate": {
+      "post": {
+        "operationId": "reactivate_user",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-KOI-Surface",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Surface"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Reactivate User",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/users/{user_id}/suspend": {
+      "post": {
+        "operationId": "suspend_user",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-KOI-Surface",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Surface"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SuspendUserRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Suspend User",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/agent-access": {
+      "get": {
+        "operationId": "get_agent_access",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-KOI-Surface",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Surface"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentAccessOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Agent Access",
+        "tags": [
+          "agent-access"
+        ]
+      }
+    },
+    "/api/v1/agent-access/rotate": {
+      "post": {
+        "operationId": "rotate_agent_password",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-KOI-Surface",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Surface"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-KOI-Confirm-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Confirm-Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentAccessSecretOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfirmationRequiredResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Rotate Agent Password",
+        "tags": [
+          "agent-access"
+        ]
+      }
+    },
+    "/api/v1/agent-access/toggle": {
+      "post": {
+        "operationId": "toggle_agent_access",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-KOI-Surface",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Surface"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-KOI-Confirm-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Confirm-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ToggleAgentAccessRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ToggleAgentAccessResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfirmationRequiredResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Toggle Agent Access",
+        "tags": [
+          "agent-access"
+        ]
+      }
+    },
+    "/api/v1/auth/forgot": {
+      "post": {
+        "operationId": "send_reset_token",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          }
+        },
+        "summary": "Send Reset Token",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "operationId": "issue_tokens",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          }
+        },
+        "summary": "Issue Tokens",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "operationId": "revoke_refresh",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          }
+        },
+        "summary": "Revoke Refresh",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "operationId": "rotate_refresh",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshTokenRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenPairResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Rotate Refresh",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/register": {
+      "post": {
+        "operationId": "register_user",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterUserRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterUserResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Register User",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/reset": {
+      "post": {
+        "operationId": "reset_password",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Reset Password",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/verify": {
+      "post": {
+        "operationId": "verify_email",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyEmailRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterUserResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Gone"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Verify Email",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/confirm/{token}": {
+      "delete": {
+        "operationId": "discard_pending_confirmation",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-KOI-Surface",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Surface"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Gone"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Discard Pending Confirmation",
+        "tags": [
+          "confirmations"
+        ]
+      },
+      "post": {
+        "operationId": "confirm_action",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-KOI-Surface",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Surface"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Confirm Action",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Gone"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Confirm Action",
+        "tags": [
+          "confirmations"
+        ]
+      }
+    },
+    "/api/v1/health": {
+      "get": {
+        "operationId": "health",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/api/v1/invoices": {
+      "get": {
+        "operationId": "list_invoices",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-KOI-Surface",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Surface"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Invoices",
+        "tags": [
+          "billing"
+        ]
+      }
+    },
+    "/api/v1/invoices/{invoice_id}": {
+      "get": {
+        "operationId": "get_invoice",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "invoice_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Invoice Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-KOI-Surface",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Surface"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Invoice",
+        "tags": [
+          "billing"
+        ]
+      }
+    },
+    "/api/v1/invoices/{invoice_id}/pdf": {
+      "get": {
+        "operationId": "get_invoice_pdf",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "invoice_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Invoice Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-KOI-Surface",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Surface"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              },
+              "application/pdf": {}
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Invoice Pdf",
+        "tags": [
+          "billing"
+        ]
+      }
+    },
+    "/api/v1/me": {
+      "get": {
+        "operationId": "get_me",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-KOI-Surface",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Surface"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Me",
+        "tags": [
+          "users"
+        ]
+      },
+      "patch": {
+        "operationId": "update_profile",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-KOI-Surface",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Surface"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProfileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Profile",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/v1/plans": {
+      "get": {
+        "operationId": "list_plans",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Plans",
+        "tags": [
+          "billing"
+        ]
+      }
+    },
+    "/api/v1/ponds": {
+      "get": {
+        "operationId": "list_ponds",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-KOI-Surface",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Surface"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PondListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Ponds",
+        "tags": [
+          "ponds"
+        ]
+      },
+      "post": {
+        "operationId": "create_pond",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-KOI-Surface",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Surface"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-KOI-Confirm-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Confirm-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePondRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatePondResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfirmationRequiredResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Pond",
+        "tags": [
+          "ponds"
+        ]
+      }
+    },
+    "/api/v1/ponds/by-name/{name}": {
+      "get": {
+        "operationId": "get_pond_by_name",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "title": "Name",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-KOI-Surface",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Surface"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PondResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Pond By Name",
+        "tags": [
+          "ponds"
+        ]
+      }
+    },
+    "/api/v1/ponds/{pond_id}": {
+      "delete": {
+        "operationId": "delete_pond",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pond_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Pond Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-KOI-Surface",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Surface"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-KOI-Confirm-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Confirm-Token"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletePondResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfirmationRequiredResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Pond",
+        "tags": [
+          "ponds"
+        ]
+      },
+      "get": {
+        "operationId": "get_pond",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pond_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Pond Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-KOI-Surface",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Surface"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PondResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Pond",
+        "tags": [
+          "ponds"
+        ]
+      }
+    },
+    "/api/v1/ponds/{pond_id}/backups": {
+      "get": {
+        "operationId": "list_backups",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pond_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Pond Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-KOI-Surface",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Surface"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Backups",
+        "tags": [
+          "backups"
+        ]
+      },
+      "post": {
+        "operationId": "trigger_backup",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pond_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Pond Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-KOI-Surface",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Surface"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-KOI-Confirm-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Confirm-Token"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TriggerBackupResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfirmationRequiredResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Trigger Backup",
+        "tags": [
+          "backups"
+        ]
+      }
+    },
+    "/api/v1/ponds/{pond_id}/connection": {
+      "get": {
+        "operationId": "get_connection",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pond_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Pond Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-KOI-Surface",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Surface"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Connection",
+        "tags": [
+          "ponds"
+        ]
+      }
+    },
+    "/api/v1/ponds/{pond_id}/restore": {
+      "post": {
+        "operationId": "restore_backup",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pond_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Pond Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-KOI-Surface",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Surface"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-KOI-Confirm-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Confirm-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RestoreBackupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfirmationRequiredResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Restore Backup",
+        "tags": [
+          "backups"
+        ]
+      }
+    },
+    "/api/v1/ponds/{pond_id}/retry": {
+      "post": {
+        "operationId": "retry_failed_job",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pond_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Pond Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-KOI-Surface",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Surface"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-KOI-Confirm-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Confirm-Token"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryFailedJobResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfirmationRequiredResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Retry Failed Job",
+        "tags": [
+          "ponds"
+        ]
+      }
+    },
+    "/api/v1/ponds/{pond_id}/sql": {
+      "post": {
+        "operationId": "run_sql",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pond_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Pond Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-KOI-Surface",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Surface"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-KOI-Confirm-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Confirm-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunSQLRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SQLResultResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfirmationRequiredResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Gateway Timeout"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Run Sql",
+        "tags": [
+          "sql"
+        ]
+      }
+    },
+    "/api/v1/ponds/{pond_id}/sql/history": {
+      "get": {
+        "operationId": "list_sql_history",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pond_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Pond Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-KOI-Surface",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Surface"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SQLHistoryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Sql History",
+        "tags": [
+          "sql"
+        ]
+      }
+    },
+    "/api/v1/ready": {
+      "get": {
+        "operationId": "ready",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadyResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Ready",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/api/v1/subscriptions": {
+      "get": {
+        "operationId": "list_my_subscriptions",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-KOI-Surface",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Surface"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Subscriptions",
+        "tags": [
+          "billing"
+        ]
+      },
+      "post": {
+        "operationId": "subscribe",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-KOI-Surface",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Surface"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-KOI-Confirm-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Confirm-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubscribeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscribeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfirmationRequiredResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Subscribe",
+        "tags": [
+          "billing"
+        ]
+      }
+    },
+    "/api/v1/subscriptions/{subscription_id}/cancel": {
+      "post": {
+        "operationId": "cancel_subscription",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "subscription_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Subscription Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-KOI-Surface",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Surface"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-KOI-Confirm-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Confirm-Token"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CancelSubscriptionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfirmationRequiredResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Cancel Subscription",
+        "tags": [
+          "billing"
+        ]
+      }
+    },
+    "/api/v1/usage": {
+      "get": {
+        "operationId": "get_usage",
+        "parameters": [
+          {
+            "description": "Mes en formato YYYY-MM",
+            "in": "query",
+            "name": "month",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Mes en formato YYYY-MM",
+              "title": "Month"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-KOI-Surface",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Surface"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Usage",
+        "tags": [
+          "usage"
+        ]
+      }
+    },
+    "/internal/v1/heartbeat": {
+      "post": {
+        "operationId": "internal_heartbeat",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Node-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Node-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HeartbeatRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Heartbeat",
+        "tags": [
+          "internal"
+        ]
+      }
+    },
+    "/internal/v1/jobs/claim": {
+      "post": {
+        "operationId": "internal_claim_job",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Node-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Node-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClaimJobRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClaimJobResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "204": {
+            "description": "No hay jobs disponibles"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Claim Job",
+        "tags": [
+          "internal"
+        ]
+      }
+    },
+    "/internal/v1/jobs/{job_id}/complete": {
+      "post": {
+        "operationId": "internal_complete_job",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Node-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Node-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteJobRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Complete Job",
+        "tags": [
+          "internal"
+        ]
+      }
+    },
+    "/internal/v1/samples": {
+      "post": {
+        "operationId": "internal_ingest_samples",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Node-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Node-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "examples": [
+                  {
+                    "container_state": "running",
+                    "pond_id": "66666666-6666-6666-6666-666666666666",
+                    "size_bytes": 124901
+                  }
+                ],
+                "items": {
+                  "$ref": "#/components/schemas/NodeSampleUpload"
+                },
+                "title": "Payload",
+                "type": "array"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ingest Samples",
+        "tags": [
+          "internal"
+        ]
+      }
+    },
+    "/mcp": {
+      "get": {
+        "operationId": "mcp_info",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-KOI-Agent-Password",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Agent-Password"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MCPInfoResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Mcp Info",
+        "tags": [
+          "mcp"
+        ]
+      },
+      "post": {
+        "operationId": "mcp_jsonrpc",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-KOI-Agent-Password",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Agent-Password"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JsonRpcRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonRpcResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Mcp Jsonrpc",
+        "tags": [
+          "mcp"
+        ]
+      }
+    }
+  }
 }

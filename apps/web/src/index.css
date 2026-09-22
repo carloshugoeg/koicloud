@@ -1,0 +1,169 @@
+@import "tailwindcss";
+
+:root {
+  /* ── Sustrato: papel ───────────────────────────────────────────── */
+  --bone: #f2ecdc;
+  --bone-raised: #fbf7ec;
+  --bone-sunk: #e8e0cc;
+  --paper: #fffcf4;
+
+  /* ── Tinta ─────────────────────────────────────────────────────── */
+  --ink: #14211f;
+  --ink-muted: #4c5b58;
+  --ink-faint: #6b7a74;
+
+  /* ── Líneas ────────────────────────────────────────────────────── */
+  --line: #d8cfb8;
+  --line-control: #8c8778;
+
+  /* ── Turquesa: estructura, marca, acción ───────────────────────── */
+  --turquoise-100: #c6e9e4;
+  --turquoise-300: #79cfc6;
+  --turquoise-500: #0e9c8e;
+  --turquoise-700: #0a6d64;
+  --turquoise-900: #06413c;
+
+  /* ── Verde: salud, crecimiento, positivo ───────────────────────── */
+  --green-100: #ddeac9;
+  --green-500: #5b9a45;
+  --green-700: #376b2c;
+  --green-900: #1f4420;
+
+  /* ── Acentos ───────────────────────────────────────────────────── */
+  --koi: #e2552b;
+  --koi-soft: #f3a183;
+  --marigold: #e3a72c;
+  --lagoon: #5c6fb1;
+
+  /* ── Semántica de estado ───────────────────────────────────────── */
+  --ok: #376b2c;
+  --warn: #8a5a0a;
+  --danger: #a81f2b;
+
+  /* ── Tipografía ────────────────────────────────────────────────── */
+  --font-display: "Fraunces Variable", "Fraunces", "Source Serif 4", Georgia,
+    serif;
+  --font-sans: "Instrument Sans", "Helvetica Neue", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
+
+  /* ── Espacio: base 4, ritmo 8 ──────────────────────────────────── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  /* ── Radios: casi rectos ───────────────────────────────────────── */
+  --radius-xs: 0px;
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+
+  /* ── Elevación: offset duro de imprenta, nunca blur suave ──────── */
+  --shadow-print: 3px 3px 0 rgba(20, 33, 31, 0.1);
+  --shadow-dialog: 6px 6px 0 rgba(20, 33, 31, 0.14);
+  --shadow-focus: 0 0 0 2px var(--bone), 0 0 0 4px var(--turquoise-700);
+
+  /* ── Movimiento ────────────────────────────────────────────────── */
+  --dur-instant: 80ms;
+  --dur-fast: 140ms;
+  --dur-slow: 240ms;
+  --ease: cubic-bezier(0.2, 0, 0.1, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+
+  /* ── Métrica del shell ─────────────────────────────────────────── */
+  --sidebar-w: 264px;
+  --sidebar-w-collapsed: 72px;
+  --header-h: 56px;
+  --content-max: 1280px;
+  --row-h: 40px;
+}
+
+:root {
+  --background: var(--bone);
+  --foreground: var(--ink);
+  --card: var(--bone-raised);
+  --card-foreground: var(--ink);
+  --popover: var(--bone-raised);
+  --popover-foreground: var(--ink);
+  --primary: var(--turquoise-700);
+  --primary-foreground: var(--bone-raised);
+  --secondary: var(--bone-sunk);
+  --secondary-foreground: var(--ink);
+  --muted: var(--bone-sunk);
+  --muted-foreground: var(--ink-muted);
+  --accent: var(--turquoise-100);
+  --accent-foreground: var(--turquoise-900);
+  --destructive: var(--danger);
+  --destructive-foreground: var(--bone-raised);
+  --border: var(--line);
+  --input: var(--line-control);
+  --ring: var(--turquoise-700);
+  --radius: var(--radius-sm);
+  --chart-1: var(--turquoise-700);
+  --chart-2: var(--koi);
+  --chart-3: var(--green-500);
+  --chart-4: var(--marigold);
+  --chart-5: var(--lagoon);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bone);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+
+body,
+button,
+input,
+textarea,
+select {
+  font-family: var(--font-sans);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+a {
+  color: var(--turquoise-700);
+  text-decoration-color: var(--turquoise-300);
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+::selection {
+  background: var(--turquoise-100);
+  color: var(--ink);
+}
+
+.font-display {
+  font-family: var(--font-display);
+  font-variation-settings: "SOFT" 0, "WONK" 0, "opsz" 48;
+  letter-spacing: -0.02em;
+}

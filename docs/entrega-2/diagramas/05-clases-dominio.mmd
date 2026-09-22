@@ -1,0 +1,103 @@
+classDiagram
+    class User {
+        +UUID id
+        +str email
+        +str password_hash
+        +str full_name
+        +UserRole role
+        +str nit
+        +datetime email_verified_at
+    }
+    class Plan {
+        +str id
+        +str name
+        +Decimal price_monthly_usd
+        +int max_ponds
+        +int max_storage_gb
+        +str validity
+    }
+    class Subscription {
+        +UUID id
+        +SubscriptionStatus status
+        +datetime current_period_start
+        +datetime current_period_end
+        +bool cancel_at_period_end
+    }
+    class Invoice {
+        +UUID id
+        +str number
+        +Decimal total_usd
+        +Decimal iva_usd
+        +InvoiceStatus status
+    }
+    class Payment {
+        +UUID id
+        +Decimal amount_usd
+        +PaymentStatus status
+        +str method
+    }
+    class Pond {
+        +UUID id
+        +str name
+        +str engine_version
+        +DesiredState desired_state
+        +int host_port
+        +str db_password_encrypted
+    }
+    class PondStatus {
+        +ObservedState observed_state
+        +bool healthy
+        +str last_error
+    }
+    class Job {
+        +UUID id
+        +JobType type
+        +JobStatus status
+        +dict payload
+    }
+    class Node {
+        +str id
+        +str public_host
+        +NodeStatus status
+    }
+    class Backup {
+        +UUID id
+        +BackupKind kind
+        +BackupStatus status
+        +str storage_path
+    }
+    class UsageDaily {
+        +date day
+        +Decimal instance_hours
+        +Decimal storage_gb_hours
+    }
+    class AgentAccess {
+        +UUID id
+        +str access_slug
+        +str password_hash
+        +bool enabled
+        +datetime rotated_at
+    }
+    class PendingConfirmation {
+        +UUID id
+        +str token_hash
+        +str action
+        +dict payload
+        +datetime expires_at
+    }
+
+    User "1" --> "*" Subscription : contrata
+    Plan "1" --> "*" Subscription
+    User "1" --> "*" Pond : posee
+    Plan "1" --> "*" Pond : dimensiona
+    User "1" --> "*" Invoice
+    Subscription "1" --> "*" Invoice
+    Invoice "1" --> "*" Payment
+    Node "1" --> "*" Pond : hospeda
+    Pond "1" --> "1" PondStatus
+    Pond "1" --> "*" Job
+    Pond "1" --> "*" Backup
+    Pond "1" --> "*" UsageDaily
+    Node "1" --> "*" Job
+    User "1" --> "0..1" AgentAccess : gate demo
+    User "1" --> "*" PendingConfirmation : propone

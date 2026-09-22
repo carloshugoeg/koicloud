@@ -1,0 +1,195 @@
+name: ci
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "22"
+
+jobs:
+  ownership:
+    name: ownership
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check changed files against workstream paths
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_REF: ${{ github.base_ref }}
+          LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+        run: |
+          python3 .github/scripts/check_ownership.py --branch "$HEAD_REF" --base "origin/$BASE_REF" --labels "$LABELS"
+
+  api:
+    name: api
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: koi
+          POSTGRES_PASSWORD: koi
+          POSTGRES_DB: koicloud_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U koi" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql+asyncpg://koi:koi@localhost:5432/koicloud_test
+      JWT_SECRET: ci-jwt-secret-not-for-production-0000000000000000
+      POND_PASSWORD_KEY: 7chvGNh8l4rbVgpH0wWJjCT2J8eQ6D8eW5DiKjR3owE=
+      NODE_TOKEN: ci-node-token
+      NODE_ID: node-ci
+      NODE_PUBLIC_HOST: localhost
+      INVOICE_DIR: /tmp/invoices
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install
+        run: uv sync --frozen --group dev
+      - name: Lint
+        run: uv run ruff check .
+      - name: Import smoke
+        run: uv run python -m compileall app
+      - name: Migrations from scratch
+        run: |
+          uv run alembic upgrade head
+          uv run alembic downgrade base
+          uv run alembic upgrade head
+      - name: OpenAPI drift
+        run: |
+          uv run python -m app.tooling.export_openapi
+          git diff --exit-code ../../packages/contracts/openapi.json
+      - name: Tests
+        run: uv run pytest -q
+
+  web:
+    name: web
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Generated client drift
+        run: |
+          pnpm gen:api
+          git diff --exit-code src/api/schema.d.ts
+      - name: Lint
+        run: pnpm lint
+      - name: Types
+        run: pnpm typecheck
+      - name: Tests
+        run: pnpm test
+      - name: Build
+        run: pnpm build
+
+  node-agent:
+    name: node-agent
+    runs-on: ubuntu-latest
+    env:
+      AGENT_MODE: mock
+      NODE_ID: node-ci
+      NODE_PUBLIC_HOST: localhost
+      CONTROL_PLANE_URL: http://localhost:8000
+      NODE_TOKEN: ci-node-token
+    defaults:
+      run:
+        working-directory: apps/node-agent
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: uv sync --frozen --group dev
+      - run: uv run ruff check .
+      - run: uv run pytest -q
+
+  cli:
+    name: cli
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/cli
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: uv sync --frozen --group dev
+      - run: uv run ruff check .
+      - run: uv run pytest -q
+
+  secrets:
+    name: secrets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  rules:
+    name: rules
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Sync Antigravity rules
+        run: |
+          python3 scripts/sync-rules.py
+          git diff --exit-code .agents/rules
+
+  authorship:
+    name: authorship
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Validate authorship and trailers
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if [ -n "$BASE_REF" ]; then
+            BASE="origin/$BASE_REF"
+          else
+            BASE="HEAD~1"
+          fi
+          python3 .github/scripts/check_authorship.py --base "$BASE"

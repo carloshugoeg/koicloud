@@ -40,38 +40,38 @@ Tres adjetivos que decidimos discusiones: **impreso, denso, sereno.**
 
 #### Ref 05 y 06 — Estanque de koi hi-bit (**norte del arte del estanque**)
 
-![Estanque en pixel art denso: agua azul profunda con rayas de onda, dos koi kohaku y nenúfares con flores blancas](../media/visual-refs/05-koi-pond-hibit-a.png)
+![Estanque en pixel art denso: agua azul profunda con rayas de onda, dos koi kohaku y nenúfares con flores blancas](/cursor/stores/bc-5a36cfa5-6bb5-4b3c-accc-c974d8337634/media/visual-refs/05-koi-pond-hibit-a.png)
 
-`../media/visual-refs/05-koi-pond-hibit-a.png` · segunda referencia de atmósfera: `06-koi-pond-hibit-b.png`
+`/cursor/stores/bc-5a36cfa5-6bb5-4b3c-accc-c974d8337634/media/visual-refs/05-koi-pond-hibit-a.png` · segunda referencia de atmósfera: `06-koi-pond-hibit-b.png`
 
 **Tomamos:** la retícula densa (el ref A vive en 91×91 píxeles nativos, no en 32×32), el agua **azul profunda** con rayas de onda horizontales de 2 a 8 px, los koi **kohaku** — cuerpo blanco con manchas rojo-naranja y aletas gris verdoso —, los nenúfares en cuatro verdes planos agrupados en racimos, las flores blancas sobre las hojas, la vista **desde arriba** y el borde duro sin antialias.
 **No tomamos:** el encuadre de ilustración completa. En el producto el estanque sigue siendo una *banda* o un *panel*, nunca un fondo bajo datos. Tampoco tomamos el ruido de compresión del ref: el arte se reconstruye en su retícula nativa y en paleta cerrada (§7.1).
 
-**Derogado:** el antiguo Ref 01 (`../media/visual-refs/01-koi-pixel-pond.png`, koi turquesa disperso tipo punto de cruz) y el stand-in de 32×32 de `internal/koi-standin-gen.py`. Ninguno de los dos es norte de nada: el primero era escaso y de otra paleta, el segundo era un cuadro generado a mano para marcar posición en las maquetas. No los uses como referencia de arte nuevo.
+**Derogado:** el antiguo Ref 01 (`media/visual-refs/01-koi-pixel-pond.png`, koi turquesa disperso tipo punto de cruz) y el stand-in de 32×32 de `internal/koi-standin-gen.py`. Ninguno de los dos es norte de nada: el primero era escaso y de otra paleta, el segundo era un cuadro generado a mano para marcar posición en las maquetas. No los uses como referencia de arte nuevo.
 
 #### Ref 02 — Panel SaaS denso (densidad de datos)
 
-![Panel SaaS con tarjetas KPI, gráfico de área en matriz de puntos y tabla de campañas](../media/visual-refs/02-saas-dashboard-dense.png)
+![Panel SaaS con tarjetas KPI, gráfico de área en matriz de puntos y tabla de campañas](/cursor/stores/bc-5a36cfa5-6bb5-4b3c-accc-c974d8337634/media/visual-refs/02-saas-dashboard-dense.png)
 
-`../media/visual-refs/02-saas-dashboard-dense.png` · preview: `../media/visual-refs/preview/02-saas-dashboard-dense.jpg`
+`/cursor/stores/bc-5a36cfa5-6bb5-4b3c-accc-c974d8337634/media/visual-refs/02-saas-dashboard-dense.png` · preview: `media/visual-refs/preview/02-saas-dashboard-dense.jpg`
 
 **Tomamos:** la rejilla de tarjetas KPI con cifra enorme + etiqueta chica + delta; el gráfico de área construido con **matriz de puntos** (traduce perfecto a nuestro pixel art); las tablas con micro-barras de progreso inline; la disciplina de “una acción primaria por región”.
 **No tomamos:** el gris-azul de aplicación, las esquinas redondeadas de 12 px, las sombras suaves, el azul corporativo.
 
 #### Ref 03 — Barra lateral limpia + mapa de celdas (navegación)
 
-![Barra lateral SaaS con grupos Essentials/Work/Measure/Account y mapa hexagonal](../media/visual-refs/03-saas-sidebar-honeycomb.png)
+![Barra lateral SaaS con grupos Essentials/Work/Measure/Account y mapa hexagonal](/cursor/stores/bc-5a36cfa5-6bb5-4b3c-accc-c974d8337634/media/visual-refs/03-saas-sidebar-honeycomb.png)
 
-`../media/visual-refs/03-saas-sidebar-honeycomb.png` · preview: `../media/visual-refs/preview/03-saas-sidebar-honeycomb.jpg`
+`/cursor/stores/bc-5a36cfa5-6bb5-4b3c-accc-c974d8337634/media/visual-refs/03-saas-sidebar-honeycomb.png` · preview: `media/visual-refs/preview/03-saas-sidebar-honeycomb.jpg`
 
 **Tomamos:** la lateral agrupada con encabezados de sección en minúscula pequeña; el ítem activo como bloque sólido con borde; los contadores alineados a la derecha; el bloque de onboarding al pie; y el **mapa de celdas** como idea — en KoiCloud se convierte en la *rejilla del estanque* (una celda por pond).
 **No tomamos:** los avatares circulares, los degradados, el multicolor del hexágono (nuestro mapa usa la escala turquesa/verde + koi para `failed`).
 
 #### Ref 04 — Reportes anuales de los 60–80 (alma)
 
-![Ocho portadas de reportes anuales: McDonald's 1965, Fathom Oceanology, Clarion Petroleums, ICG 1981](../media/visual-refs/04-80s-annual-reports.png)
+![Ocho portadas de reportes anuales: McDonald's 1965, Fathom Oceanology, Clarion Petroleums, ICG 1981](/cursor/stores/bc-5a36cfa5-6bb5-4b3c-accc-c974d8337634/media/visual-refs/04-80s-annual-reports.png)
 
-`../media/visual-refs/04-80s-annual-reports.png` · preview: `../media/visual-refs/preview/04-80s-annual-reports.jpg`
+`/cursor/stores/bc-5a36cfa5-6bb5-4b3c-accc-c974d8337634/media/visual-refs/04-80s-annual-reports.png` · preview: `media/visual-refs/preview/04-80s-annual-reports.jpg`
 
 **Tomamos:** el papel crema como sustrato (Clarion, ICG, “the canadian provider”); las bandas de color plano que separan secciones (ICG 1981 — literalmente nuestro separador de sección); el degradado de verdes por capas de Fathom Oceanology (nuestra escala de gráficos); el tipo grande apilado a la izquierda con mucho aire; la repetición tipográfica como textura.
 **No tomamos:** el grano de impresión, las texturas fotográficas, el marrón/ocre setentero, nada nostálgico-irónico. Buscamos el **rigor** de esas piezas, no su pátina.
@@ -506,13 +506,13 @@ peces nadan en agua abierta.
 
 Así se ve el arte producido (escena cuadrada de 96×96 nativos, aquí a ×4):
 
-![Estanque hi-bit generado: agua azul profunda con masas de profundidad y rayas de onda, dos koi kohaku, racimos de nenúfares con flores blancas](../media/koi/preview/pond-scene-square-x4.png)
+![Estanque hi-bit generado: agua azul profunda con masas de profundidad y rayas de onda, dos koi kohaku, racimos de nenúfares con flores blancas](/cursor/stores/bc-5a36cfa5-6bb5-4b3c-accc-c974d8337634/media/koi/preview/pond-scene-square-x4.png)
 
 `media/koi/pond-scene-square.png` · las otras dos ilustraciones completas son
 `pond-scene-wide.png` (320×80, banda) y `pond-scene-panel.png` (80×50). Sirven para
 documentos y presentaciones; el producto usa las planchas + la hoja de sprites.
 
-**Origen y regeneración.** Todo el arte sale de `../media/visual-refs/05-koi-pond-hibit-a.png`
+**Origen y regeneración.** Todo el arte sale de `media/visual-refs/05-koi-pond-hibit-a.png`
 mediante `internal/koi-hibit-gen.py`, que devuelve el ref a su retícula nativa (91×91),
 lo cuantiza a la paleta de §7.0, y de ahí teje el agua y recorta koi y flores. Es
 determinista: misma semilla, mismos PNG. Los assets viven en `media/koi/` (y su `preview/`
@@ -688,12 +688,12 @@ Pantallas del harness anterior que **no** se construyen (fuera del alcance sella
 
 | Ref | Ruta absoluta | Preview |
 |---|---|---|
-| **05 · Koi pond hi-bit A** (norte del estanque) | `../media/visual-refs/05-koi-pond-hibit-a.png` | — |
-| **06 · Koi pond hi-bit B** (atmósfera) | `../media/visual-refs/06-koi-pond-hibit-b.png` | — |
-| ~~01 · Koi pixel pond~~ · **derogado** por 05/06 | `../media/visual-refs/01-koi-pixel-pond.png` | `../media/visual-refs/preview/01-koi-pixel-pond.jpg` |
-| 02 · SaaS dashboard denso | `../media/visual-refs/02-saas-dashboard-dense.png` | `../media/visual-refs/preview/02-saas-dashboard-dense.jpg` |
-| 03 · Sidebar + honeycomb | `../media/visual-refs/03-saas-sidebar-honeycomb.png` | `../media/visual-refs/preview/03-saas-sidebar-honeycomb.jpg` |
-| 04 · Reportes anuales 80s | `../media/visual-refs/04-80s-annual-reports.png` | `../media/visual-refs/preview/04-80s-annual-reports.jpg` |
+| **05 · Koi pond hi-bit A** (norte del estanque) | `/cursor/stores/bc-5a36cfa5-6bb5-4b3c-accc-c974d8337634/media/visual-refs/05-koi-pond-hibit-a.png` | — |
+| **06 · Koi pond hi-bit B** (atmósfera) | `/cursor/stores/bc-5a36cfa5-6bb5-4b3c-accc-c974d8337634/media/visual-refs/06-koi-pond-hibit-b.png` | — |
+| ~~01 · Koi pixel pond~~ · **derogado** por 05/06 | `/cursor/stores/bc-5a36cfa5-6bb5-4b3c-accc-c974d8337634/media/visual-refs/01-koi-pixel-pond.png` | `media/visual-refs/preview/01-koi-pixel-pond.jpg` |
+| 02 · SaaS dashboard denso | `/cursor/stores/bc-5a36cfa5-6bb5-4b3c-accc-c974d8337634/media/visual-refs/02-saas-dashboard-dense.png` | `media/visual-refs/preview/02-saas-dashboard-dense.jpg` |
+| 03 · Sidebar + honeycomb | `/cursor/stores/bc-5a36cfa5-6bb5-4b3c-accc-c974d8337634/media/visual-refs/03-saas-sidebar-honeycomb.png` | `media/visual-refs/preview/03-saas-sidebar-honeycomb.jpg` |
+| 04 · Reportes anuales 80s | `/cursor/stores/bc-5a36cfa5-6bb5-4b3c-accc-c974d8337634/media/visual-refs/04-80s-annual-reports.png` | `media/visual-refs/preview/04-80s-annual-reports.jpg` |
 
 Arte del estanque ya producido a partir de 05: `media/koi/` (nativo + `preview/` a ×4), copia
 para maquetas en `docs/entrega-2/mockups/assets/`, generador en `internal/koi-hibit-gen.py`.

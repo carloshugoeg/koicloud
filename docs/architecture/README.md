@@ -30,12 +30,14 @@ Lee en este orden si nunca has visto el pack; luego usa cualquier documento como
 | 6 | [`repo-scaffolding.md`](./repo-scaffolding.md) | Estructura exacta del monorepo, convenciones de config y entornos, esqueleto de CI |
 | 7 | [`dependencies.md`](./dependencies.md) | Elecciones de stack con *por qué*, dependencias externas, qué **no** agregar |
 | 8 | [`feature-breakdown.md`](./feature-breakdown.md) | Lista completa de funcionalidades → épicas → slices, dependencias y orden sugerido de construcción (camino a MVP para la demo) |
-| 9 | [`agent-docs.md`](./agent-docs.md) | Reglas de trabajo con Cursor y otros agentes: quién posee qué, `AGENTS.md`, límites del harness, DoD por superficie, política de publicación (`gh`, sin GitHub MCP; cada quien firma con su cuenta) |
+| 9 | [`agent-docs.md`](./agent-docs.md) | Reglas de trabajo con Cursor y otros agentes: quién posee qué, `AGENTS.md`, límites del harness, DoD por superficie, política de publicación (`gh` + autoría Equipo KoiCloud, sin GitHub MCP) |
 | 10 | [`risks-and-demo-plan.md`](./risks-and-demo-plan.md) | Modos de falla, fallback si el LLM se cae en vivo, qué recortar si el semestre se atrasa |
 | — | [`diagrams/`](./diagrams/) | Fuentes Mermaid opcionales de los diagramas embebidos en los otros documentos |
 | — | [`../visual-guidelines.md`](../visual-guidelines.md) | **Piel del producto web**: color, tipografía, espaciado, movimiento, marca. Normativo para apariencia en `apps/web/**` |
 
 **Regla de dos fuentes para la Web:** **piel = [`visual-guidelines.md`](../visual-guidelines.md); IA de pantallas = [`entrega-2/mockups/pantallas-principales.html`](../entrega-2/mockups/pantallas-principales.html)** (qué campos, qué tablas, qué pasos) + [`feature-breakdown.md`](./feature-breakdown.md). El tema oscuro de esos mockups quedó superado como apariencia; su estructura sigue vigente. Bloque listo para pegar en un agente de Cursor: [`../visual-guidelines-agent-prompt.md`](../visual-guidelines-agent-prompt.md).
+
+Un [`internal/architecture-design-handoff.md`](../../internal/architecture-design-handoff.md) resume el pack en formato máquina para agentes que lleguen después.
 
 ---
 
@@ -78,7 +80,7 @@ En resumen: **el harness previo es fuente de inspiración de patrones, no fuente
 - **Documentación de estudiante:** español; identificadores en inglés (`create_pond`, `pending_confirmations`); UI en español.
 - **Apariencia de la Web:** la fija [`../visual-guidelines.md`](../visual-guidelines.md) — papel hueso, tinta casi negra, turquesa estructural, koi en pixel art como única ilustración, alma de reporte anual. Ningún documento de este pack redefine color ni tipografía.
 - **Sin adornos:** los diagramas explican; las tablas resumen. Ningún adjetivo comercial (“plataforma agéntica”, “auto-curación garantizada”).
-- **Sin GitHub MCP:** publicación con `gh` CLI. Cada commit lo firma la cuenta personal de quien lo hizo; «Equipo KoiCloud» no es una identidad de git.
+- **Sin GitHub MCP:** publicación con `gh` CLI y `GH_TOKEN` (ver `../github-publish.md`); autoría `Equipo KoiCloud`.
 
 ---
 

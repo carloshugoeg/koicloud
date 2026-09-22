@@ -1,0 +1,40 @@
+flowchart TB
+    subgraph Clientes["Superficies comprometidas — thin clients"]
+        WEB["Web SPA<br/>React + Vite + TypeScript"]
+        CLI["CLI koicloud<br/>Typer + httpx"]
+        MCP["Servidor MCP<br/>FastMCP tools"]
+    end
+
+    subgraph CP["Control plane — apps/api (FastAPI)"]
+        API["Routers /api/v1"]
+        MCPE["Montaje /mcp"]
+        CONF["Confirmaciones<br/>propose → token → confirm"]
+        CMD["Capa de comandos"]
+        MODS["Módulos<br/>auth · users · billing · ponds<br/>jobs · nodes · backups<br/>sql_console · metering · admin<br/>agent_access"]
+        INT["API interna /internal/v1"]
+        WRK["Worker<br/>scheduler de jobs y respaldos"]
+    end
+
+    DB[("PostgreSQL 16 interno<br/>specs · status · jobs · billing · agent_access")]
+
+    subgraph DP["Data plane — un nodo"]
+        NA["node-agent<br/>Docker SDK · driver mock|docker"]
+        P1["pond: postgres:16-alpine"]
+        P2["pond: …"]
+    end
+
+    WEB -->|HTTPS JSON| API
+    CLI -->|HTTPS JSON| API
+    MCP --> MCPE
+    MCPE --> CONF
+    API --> CONF
+    CONF --> CMD
+    API --> CMD
+    CMD --> MODS
+    MODS --> DB
+    WRK --> MODS
+    INT --> MODS
+    NA -->|"heartbeat · claim · complete"| INT
+    NA --> P1
+    NA --> P2
+    CMD -.->|"consola SQL → puerto público del pond"| P1

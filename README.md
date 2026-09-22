@@ -1,23 +1,28 @@
 # KoiCloud
 
-DBaaS académico de PostgreSQL. Cada instancia se llama *pond*.
+Monorepo de implementación de KoiCloud. Esta Fase 0 congela contratos, scaffolds y tickets antes del trabajo paralelo por workstream.
 
-Equipo KoiCloud — Ingeniería de Software, Universidad Rafael Landívar.
+## Estructura
 
-Este repositorio es el monorepo de implementación. Las aplicaciones todavía
-no tienen lógica: los puntos de entrada dicen «not implemented».
+- `apps/api` — FastAPI, contrato HTTP, migraciones y export OpenAPI
+- `apps/web` — SPA React + Vite con la piel sellada
+- `apps/cli` — CLI `koicloud`
+- `apps/node-agent` — node-agent con `mock_driver` y `docker_driver`
+- `packages/contracts/openapi.json` — contrato exportado del backend
+- `docs/architecture` — pack de arquitectura sellado
+- `docs/tickets` — tickets delegables por workstream
 
-## Documentación
+## Primeros comandos
 
-- Cómo arrancar: [`docs/agent-onboarding.md`](docs/agent-onboarding.md)
-- Dueños y rutas: [`docs/WORKSTREAMS.md`](docs/WORKSTREAMS.md)
-- Arquitectura: [`docs/architecture/README.md`](docs/architecture/README.md)
-- Alcance sellado: [`docs/entrega-2/alcance.md`](docs/entrega-2/alcance.md)
-- Piel de la web: [`docs/visual-guidelines.md`](docs/visual-guidelines.md)
-- Maquetas: [`docs/entrega-2/mockups/README.md`](docs/entrega-2/mockups/README.md)
-- Ramas: [`docs/branch-naming.md`](docs/branch-naming.md)
+```bash
+make sync-rules
+make contracts
+make check-api
+make check-web
+make check-cli
+make check-node-agent
+```
 
-## Estado
+## Autoría
 
-Scaffold. Sin lógica de negocio, sin migraciones y sin los tickets de las
-épicas. Hay índices y un ticket de ejemplo en `docs/tickets/`.
+Los commits se firman con la cuenta real de GitHub de quien hizo el trabajo. `Equipo KoiCloud` es voz pública de docs y UI, no identidad de git.

@@ -21,7 +21,7 @@ Todo lo que aquí dice “obligatorio” se aplica por CI, por CODEOWNERS o por 
 
 ## 2. Quién es dueño de qué (recordatorio)
 
-Detalle en [`repo-scaffolding.md`](./repo-scaffolding.md) §8 y en [`../WORKSTREAMS.md`](../WORKSTREAMS.md). Aquí solo la lectura para agentes:
+Detalle en [`repo-scaffolding.md`](./repo-scaffolding.md) §8 y en [`../workstreams.md`](../workstreams.md). Aquí solo la lectura para agentes:
 
 | Workstream | Persona | Herramienta | Prefijo de rama | Rutas que puede tocar |
 |------------|---------|-------------|------------------|-----------------------|
@@ -207,7 +207,7 @@ git config user.email "correo-de-su-cuenta-de-github"   # o su noreply de GitHub
 git config --get user.email      # verificar antes del primer commit
 ```
 
-El registro de handles y correos está en [`../WORKSTREAMS.md`](../WORKSTREAMS.md) §3.
+El registro de handles y correos está en [`../workstreams.md`](../workstreams.md) §3.
 Usá exactamente esos valores: **nadie inventa un handle ni un correo
 ajeno**, porque un commit mal atribuido es peor que uno sin atribuir — le asigna trabajo a
 quien no lo hizo justo en el semestre en que se evalúa la contribución individual.

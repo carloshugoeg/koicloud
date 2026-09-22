@@ -1,0 +1,18 @@
+flowchart TB
+    subgraph VPS["VPS Linux · un nodo · Docker"]
+        CADDY["Caddy :80/:443<br/>SPA · /api/* · /mcp"]
+        API["api · uvicorn + FastMCP"]
+        WRK["worker"]
+        DB[("db · postgres:16")]
+        NA["node-agent · systemd"]
+        PONDS["koi-pond-* :15000–15999"]
+    end
+
+    NET((Internet)) -->|"443 → / · /api/* · /mcp · /docs"| CADDY
+    NET -->|"TCP 15000–15999"| PONDS
+    CLI((CLI / IDE MCP)) -.->|"HTTPS + gate password"| CADDY
+    CADDY --> API
+    API --> DB
+    WRK --> DB
+    NA -->|loopback /internal/v1| API
+    NA --> PONDS

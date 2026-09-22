@@ -1,0 +1,25 @@
+sequenceDiagram
+    autonumber
+    actor Chat as Claude/Cursor chat
+    participant MCP as MCP tools
+    participant API as API FastAPI
+    participant CONF as confirmations
+    participant CMD as commands.delete_pond
+    participant DB as PostgreSQL interno
+
+    Chat->>MCP: "elimina el pond inventario-mvp"
+    MCP->>API: tool delete_pond(name)  [sin confirm]
+    API->>CONF: propose(delete_pond, pond_id)
+    CONF->>DB: INSERT pending_confirmations
+    CONF-->>API: confirmation_token + summary
+    API-->>MCP: confirmation_required
+    MCP-->>Chat: pide confirmar (muestra resumen)
+
+    Chat->>MCP: "confirma con el token …"
+    MCP->>API: tool confirm_action(token)
+    API->>CONF: consume(token)
+    CONF->>CMD: delete_pond(ctx, pond_id)
+    CMD->>DB: desired_state=deleted + job delete_pond
+    CMD-->>API: 202 AcceptedJob
+    API-->>MCP: pond status=deleting
+    MCP-->>Chat: "eliminación encolada"

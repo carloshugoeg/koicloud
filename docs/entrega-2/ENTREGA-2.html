@@ -1,0 +1,248 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>KoiCloud — Entrega 2</title>
+<style>
+@page { margin: 18mm; }
+body{font-family:Georgia,'Times New Roman',serif;max-width:900px;margin:0 auto;padding:1.5rem;line-height:1.45;color:#111;font-size:11.5pt}
+h1,h2,h3,h4{font-family:'Helvetica Neue',Arial,sans-serif;page-break-after:avoid}
+h1{font-size:1.6rem} h2{font-size:1.25rem;margin-top:1.6rem;border-bottom:1px solid #ddd;padding-bottom:.25rem}
+h3{font-size:1.05rem} code,pre{font-family:ui-monospace,Menlo,monospace;font-size:.88em}
+pre{background:#f6f6f6;padding:.75rem;overflow:auto;border-radius:6px}
+table{border-collapse:collapse;width:100%;margin:1rem 0;font-size:.92em;page-break-inside:avoid}
+th,td{border:1px solid #ccc;padding:.35rem .5rem;text-align:left;vertical-align:top} th{background:#f0f0f0}
+img{max-width:100%;height:auto;border:1px solid #ddd;margin:.75rem 0;page-break-inside:avoid}
+a{color:#0b57d0} hr{border:none;border-top:1px solid #ddd;margin:1.5rem 0}
+ul{margin:.5rem 0 1rem 1.2rem}
+</style></head><body>
+<h1>KoiCloud — Entrega 2: Requisitos y diseño preliminar</h1>
+<p><strong>Curso:</strong> Ingeniería de Software I · Universidad Rafael Landívar · 2026  </p>
+<p><strong>Categoría:</strong> Base de Datos como Servicio (DBaaS)  </p>
+<p><strong>Fecha del hito:</strong> 11 de septiembre de 2026  </p>
+<p><strong>Equipo KoiCloud:</strong> Hugo Escobar, Jason Gutiérrez, Jousé Menendez, Diego Joachin  </p>
+<p><strong>Documento:</strong> requisitos + diseño alineados al alcance sellado</p>
+<hr/>
+<h2>1. Introducción</h2>
+<p>KoiCloud es una plataforma DBaaS que permite a un desarrollador registrarse, contratar un plan con pago simulado y obtener una instancia PostgreSQL gestionada (un <em>pond</em>) sin operar el servidor. Las superficies comprometidas son <strong>Web</strong>, <strong>CLI</strong> y <strong>MCP</strong>, todas como clientes delgados de la misma API de control plane.</p>
+<p>Este documento responde al hito de <em>requisitos y diseño preliminar</em> del enunciado del curso: alcance, requisitos, casos de uso, arquitectura, diagramas UML, modelo entidad-relación y mockups con campos de salida.</p>
+<h3>1.1 Respuesta al feedback del catedrático</h3>
+<table>
+<tr><th>Observación</th><th>Decisión en este documento</th></tr>
+<tr><td>Duda sobre auto-curación</td><td>Queda <strong>fuera de alcance</strong> como garantía de producto / demo de caos.</td></tr>
+<tr><td>Duda sobre acceso por agentes / web+CLI+MCP</td><td>Se <strong>incluyen</strong> Web + CLI + MCP como <strong>adaptadores delgados</strong> sobre la misma API (no plataforma agéntica). Mutaciones CLI/MCP con <strong>doble confirmación</strong>. Auth de agente = gate mínima de aula; seguridad completa = <strong>V2</strong>.</td></tr>
+<tr><td>Catálogo y features aprobados</td><td>Se mantienen planes Sandbox/Micro/Pro y el flujo DBaaS (crear, estado, conexión).</td></tr>
+<tr><td>No dividir núcleo / deseable / ambicioso</td><td>Una sola lista de compromiso + sección explícita <em>Fuera de alcance</em>.</td></tr>
+<tr><td>Hipótesis de precio / pago local</td><td>Declaradas como hipótesis; no son objetivos verificables sin usuarios reales.</td></tr>
+<tr><td>Arquitectura acorde al conocimiento del equipo</td><td>Stack conocido: FastAPI, React, Docker, PostgreSQL; un nodo; sin brokers ni orquestadores.</td></tr>
+</table>
+<p>El detalle normativo del alcance está en <a href="./alcance.md"><code>alcance.md</code></a>.</p>
+<hr/>
+<h2>2. Alcance</h2>
+<h3>2.1 Compromiso (única lista)</h3>
+<p>1. Auth completa (registro, verificación, recuperación, JWT+refresh) con roles Cliente y Administrador.  </p>
+<p>2. Catálogo de planes, contratación con pago simulado, historial, renovación y cancelación.  </p>
+<p>3. Provisioning real de PostgreSQL 16 en Docker; consultar estado; entregar cadena de conexión; eliminar.  </p>
+<p>4. Consola SQL en el navegador (lectura por defecto).  </p>
+<p>5. Respaldos diarios y restauración bajo demanda.  </p>
+<p>6. Vista simple de uso (horas y almacenamiento).  </p>
+<p>7. Panel de administración de usuarios, suscripciones e instancias.  </p>
+<p>8. Arquitectura control plane / node-agent / cola en PostgreSQL, un solo VPS.  </p>
+<p>9. <strong>Web + CLI + MCP</strong> como fachadas delgadas sobre la misma API.  </p>
+<p>10. <strong>Doble confirmación</strong> (propose → confirm con token) en acciones mutantes/destructivas desde CLI y MCP.  </p>
+<p>11. <strong>Auth mínima de agente:</strong> URL + password / secreto compartido (demo de aula).  </p>
+<p>12. <strong>Demo MCP fiable:</strong> guion happy-path + fallback si el LLM en vivo falla.</p>
+<h3>2.2 Fuera de alcance</h3>
+<p>IaC declarativa (<code>cloud.yaml</code>/<code>apply</code>), seguridad completa de agentes (<strong>V2</strong>: OAuth, scopes, spend caps, auditoría, 2FA), auto-curación como producto, validación empírica de precio/NIT, otros motores, branching/réplicas/pooler, organizaciones, cobro real, HA/multi-nodo, roles Soporte/Operador, status page, sandbox público sin registro.</p>
+<h3>2.3 Problemas del semestre (verificables)</h3>
+<table>
+<tr><th>ID</th><th>Problema</th><th>Verificación</th></tr>
+<tr><td>P1</td><td>Crear Postgres gestionado sin ops</td><td>URI utilizable tras crear pond</td></tr>
+<tr><td>P2</td><td>Estado del servicio opaco</td><td>Panel / CLI / MCP muestran <code>status</code></td></tr>
+<tr><td>P3</td><td>Suscripción/pago académico</td><td>Flujo simulado + historial</td></tr>
+<tr><td>P4</td><td>Consultar sin cliente SQL</td><td>Consola web / tool MCP devuelve filas</td></tr>
+<tr><td>P5</td><td>Mutación segura desde agente/CLI</td><td>Propose → confirm token → efecto</td></tr>
+</table>
+<hr/>
+<h2>3. Requisitos funcionales</h2>
+<h3>3.1 Cuentas</h3>
+<table>
+<tr><th>ID</th><th>Requisito</th></tr>
+<tr><td>RF-01</td><td>Registro con correo y contraseña</td></tr>
+<tr><td>RF-02</td><td>Verificación de correo por enlace de un solo uso (24 h)</td></tr>
+<tr><td>RF-03</td><td>Recuperación de contraseña por token temporal</td></tr>
+<tr><td>RF-04</td><td>Autenticación con JWT de acceso + refresh token</td></tr>
+<tr><td>RF-05</td><td>Roles Cliente y Administrador con permisos distintos</td></tr>
+<tr><td>RF-06</td><td>Edición de perfil (nombre, NIT opcional)</td></tr>
+</table>
+<h3>3.2 Suscripciones y pagos</h3>
+<table>
+<tr><th>ID</th><th>Requisito</th></tr>
+<tr><td>RF-07</td><td>Catálogo público de planes con nombre, descripción, precio y vigencia</td></tr>
+<tr><td>RF-08</td><td>Contratación con pago simulado</td></tr>
+<tr><td>RF-09</td><td>Historial de pagos y descarga de factura PDF (IVA desglosado)</td></tr>
+<tr><td>RF-10</td><td>Renovación automática al cierre de período y cancelación por el usuario</td></tr>
+</table>
+<h3>3.3 Catálogo DBaaS</h3>
+<table>
+<tr><th>ID</th><th>Requisito</th></tr>
+<tr><td>RF-11</td><td>Crear pond PostgreSQL 16 indicando nombre (plan heredado de la suscripción)</td></tr>
+<tr><td>RF-12</td><td>Consultar estado derivado (provisioning, running, stopped, failed, …)</td></tr>
+<tr><td>RF-13</td><td>Obtener host, puerto, usuario, contraseña y URI</td></tr>
+<tr><td>RF-14</td><td>Eliminar pond con confirmación del nombre (web) / doble confirmación (CLI/MCP)</td></tr>
+<tr><td>RF-15</td><td>Respaldos diarios y restauración bajo demanda</td></tr>
+<tr><td>RF-16</td><td>Ejecutar SQL desde el navegador (read por defecto; write opcional)</td></tr>
+<tr><td>RF-17</td><td>Ver uso del mes: horas de instancia y almacenamiento</td></tr>
+</table>
+<h3>3.4 Administración</h3>
+<table>
+<tr><th>ID</th><th>Requisito</th></tr>
+<tr><td>RF-18</td><td>Administrador lista usuarios, suscripciones y ponds</td></tr>
+<tr><td>RF-19</td><td>Administrador puede suspender un usuario</td></tr>
+</table>
+<h3>3.5 Superficies CLI y MCP</h3>
+<table>
+<tr><th>ID</th><th>Requisito</th></tr>
+<tr><td>RF-20</td><td>CLI <code>koicloud</code>: login, list/create/get/delete ponds, connection, SQL read; llama solo a <code>/api/v1</code></td></tr>
+<tr><td>RF-21</td><td>Servidor MCP: tools equivalentes (list/create/delete ponds, SQL, …) delegando a la capa de comandos</td></tr>
+<tr><td>RF-22</td><td>Mutaciones CLI/MCP: primer paso devuelve <code>confirmation_token</code>; segundo paso lo consume y ejecuta</td></tr>
+<tr><td>RF-23</td><td>Gate de acceso agente: URL + password/secreto compartido revelable en el panel web</td></tr>
+<tr><td>RF-24</td><td>Guion de demo MCP documentado + modo fallback sin LLM en vivo</td></tr>
+</table>
+<hr/>
+<h2>4. Requisitos no funcionales (medibles y honestos)</h2>
+<table>
+<tr><th>ID</th><th>Requisito</th><th>Verificación</th></tr>
+<tr><td>RNF-01</td><td>API p95 &amp;lt; 500 ms con 20 usuarios concurrentes en el VPS de demo</td><td>k6 o equivalente</td></tr>
+<tr><td>RNF-02</td><td>Provisioning p95 &amp;lt; 90 s hasta URI utilizable</td><td>Instrumentación en control plane</td></tr>
+<tr><td>RNF-03</td><td>Contraseñas de usuario con argon2; secretos de pond cifrados en reposo</td><td>Revisión de código</td></tr>
+<tr><td>RNF-04</td><td>Cada pond con límites de CPU/memoria (cgroups)</td><td><code>docker inspect</code></td></tr>
+<tr><td>RNF-05</td><td>UI usable desde 360 px; Chrome y Firefox actuales</td><td>Prueba manual</td></tr>
+<tr><td>RNF-06</td><td>OpenAPI autogenerado en <code>/docs</code></td><td>Navegación</td></tr>
+<tr><td>RNF-07</td><td>CLI y MCP no duplican reglas de negocio (solo transportan)</td><td>Revisión: llaman commands/API</td></tr>
+<tr><td>RNF-08</td><td>Demo MCP reproducible vía guion/fallback en ≤ 10 min de preparación</td><td>Ensayo previo a exposición</td></tr>
+</table>
+<p><em>No se declara RNF de auto-curación ni de seguridad de agentes de nivel producción.</em></p>
+<hr/>
+<h2>5. Casos de uso</h2>
+<p>Actores: <strong>Visitante</strong>, <strong>Cliente</strong>, <strong>Administrador</strong>, <strong>Agente MCP</strong> (cliente técnico autenticado con gate mínima), <strong>Usuario CLI</strong> (mismo Cliente vía token).</p>
+<p>Diagrama fuente: <a href="./diagramas/03-casos-de-uso.mmd"><code>diagramas/03-casos-de-uso.mmd</code></a> · render: <a href="./renders/03-casos-de-uso.svg"><code>renders/03-casos-de-uso.svg</code></a></p>
+<h3>CU-01 Crear pond (resumen)</h3>
+<p>1. Cliente autenticado con suscripción activa elige “Crear pond” (web) o equivalente CLI/MCP.  </p>
+<p>2. Ingresa nombre; el sistema valida cuota del plan.  </p>
+<p>3. Control plane escribe estado deseado <code>running</code> y encola job <code>create_pond</code>.  </p>
+<p>4. Node-agent reclama el job, crea el contenedor y reporta <code>running</code>.  </p>
+<p>5. Cliente consulta conexión y recibe URI.</p>
+<p>Excepciones: sin suscripción → <code>plan_required</code>; cuota llena → <code>quota_exceeded</code>; sin nodo → <code>node_unavailable</code>.</p>
+<h3>CU-MCP Mutación con doble confirmación (resumen)</h3>
+<p>1. Agente MCP propone <code>delete_pond</code> (o create / SQL write).  </p>
+<p>2. API responde <code>confirmation_required</code> + <code>confirmation_token</code> + resumen de la acción.  </p>
+<p>3. Agente (o usuario en el chat) confirma enviando el token.  </p>
+<p>4. Solo entonces se ejecuta el comando y se encola el job si aplica.</p>
+<hr/>
+<h2>6. Arquitectura</h2>
+<h3>6.1 Decisión</h3>
+<p>Monolito modular FastAPI (<strong>control plane</strong>) que <strong>nunca ejecuta Docker</strong>. Un <strong>node-agent</strong> en el VPS reclama trabajos, opera contenedores y reporta estado. El estado vive en PostgreSQL (deseado, observado, cola). <strong>Web, CLI y MCP</strong> son fachadas: HTTP JSON / tools MCP → misma capa de comandos.</p>
+<p><strong>Por qué no microservicios:</strong> un ciclo de despliegue unificado y transacciones compartidas entre auth/billing/ponds.  </p>
+<p><strong>Por qué no Kubernetes:</strong> el curso evalúa entender el provisioning; K8s lo ocultaría y añadiría operación que no aporta al aprendizaje del hito.  </p>
+<p><strong>Por qué cola en PostgreSQL:</strong> evita un broker extra; <code>FOR UPDATE SKIP LOCKED</code> basta para decenas de jobs/minuto.  </p>
+<p><strong>Por qué CLI/MCP thin:</strong> una sola fuente de verdad de reglas; el “wow” de NL no requiere duplicar dominio.</p>
+<h3>6.2 Diagrama de componentes</h3>
+<p>Fuente: <a href="./diagramas/01-arquitectura-componentes.mmd"><code>diagramas/01-arquitectura-componentes.mmd</code></a></p>
+<p><img alt="Arquitectura de componentes" src="./renders/01-arquitectura-componentes.png"></p>
+<h3>6.3 Despliegue</h3>
+<p>Fuente: <a href="./diagramas/02-despliegue.mmd"><code>diagramas/02-despliegue.mmd</code></a></p>
+<p><img alt="Vista de despliegue" src="./renders/02-despliegue.png"></p>
+<p>Un dominio, Caddy como proxy (<code>/</code>, <code>/api/*</code>, <code>/mcp</code>), API/worker/db en Compose, node-agent con acceso al socket Docker, ponds en puertos 15000–15999.</p>
+<h3>6.4 Secuencia de provisioning</h3>
+<p>Fuente: <a href="./diagramas/04-secuencia-provisioning.mmd"><code>diagramas/04-secuencia-provisioning.mmd</code></a></p>
+<p><img alt="Secuencia provisioning" src="./renders/04-secuencia-provisioning.png"></p>
+<h3>6.5 Secuencia MCP — mutación con confirmación</h3>
+<p>Fuente: <a href="./diagramas/07-secuencia-mcp-confirm.mmd"><code>diagramas/07-secuencia-mcp-confirm.mmd</code></a></p>
+<p><img alt="Secuencia MCP confirm" src="./renders/07-secuencia-mcp-confirm.png"></p>
+<h3>6.6 Diagrama de clases (dominio)</h3>
+<p>Fuente: <a href="./diagramas/05-clases-dominio.mmd"><code>diagramas/05-clases-dominio.mmd</code></a></p>
+<p><img alt="Clases de dominio" src="./renders/05-clases-dominio.png"></p>
+<p>Incluye <code>AgentAccess</code> mínimo (gate de demo). Sin OAuth, scopes ni sistema de auditoría.</p>
+<hr/>
+<h2>7. Modelo entidad-relación y diseño de BD</h2>
+<p>Fuente: <a href="./diagramas/06-modelo-er.mmd"><code>diagramas/06-modelo-er.mmd</code></a></p>
+<p><img alt="Modelo ER" src="./renders/06-modelo-er.png"></p>
+<h3>Tablas principales</h3>
+<table>
+<tr><th>Área</th><th>Tablas</th></tr>
+<tr><td>Cuentas</td><td><code>users</code>, <code>email_tokens</code>, <code>refresh_tokens</code></td></tr>
+<tr><td>Dinero</td><td><code>plans</code>, <code>subscriptions</code>, <code>payments</code>, <code>invoices</code>, <code>invoice_lines</code></td></tr>
+<tr><td>Plataforma</td><td><code>nodes</code>, <code>ponds</code>, <code>pond_status</code>, <code>jobs</code>, <code>backups</code></td></tr>
+<tr><td>Medición / SQL</td><td><code>pond_samples</code>, <code>usage_daily</code>, <code>sql_history</code></td></tr>
+<tr><td>Agente (mínimo)</td><td><code>agent_access</code> (password/hash de gate + URL slug; opcional <code>pending_confirmations</code>)</td></tr>
+</table>
+<p>Separación clave: <code>ponds</code> = estado <strong>deseado</strong>; <code>pond_status</code> = estado <strong>observado</strong>. Los jobs se procesan con <code>SKIP LOCKED</code>.</p>
+<p>Planes semilla: <code>sandbox</code> (USD 0, vigencia 10 min), <code>micro</code> (USD 5/mes), <code>pro</code> (post-pago por hora).</p>
+<hr/>
+<h2>8. Stack tecnológico</h2>
+<table>
+<tr><th>Capa</th><th>Tecnología</th></tr>
+<tr><td>Frontend</td><td>React + Vite + TypeScript</td></tr>
+<tr><td>CLI</td><td>Typer + httpx (thin client)</td></tr>
+<tr><td>MCP</td><td>FastMCP montado en el proceso API</td></tr>
+<tr><td>Backend</td><td>Python 3.12 + FastAPI + SQLAlchemy + Alembic</td></tr>
+<tr><td>BD interna</td><td>PostgreSQL 16</td></tr>
+<tr><td>Data plane</td><td>Python + Docker SDK (modo <code>docker</code> \</td><td><code>mock</code>)</td></tr>
+<tr><td>Motor ofrecido</td><td><code>postgres:16-alpine</code></td></tr>
+<tr><td>Auth usuario</td><td>JWT + refresh; argon2</td></tr>
+<tr><td>Auth agente</td><td>Password / shared secret (gate)</td></tr>
+<tr><td>Proxy</td><td>Caddy</td></tr>
+<tr><td>CI</td><td>GitHub Actions (cuando el repo esté activo)</td></tr>
+</table>
+<hr/>
+<h2>9. Mockups</h2>
+<p>Mockups HTML editables (pantallas + <strong>campos de salida</strong>):  </p>
+<p><a href="./mockups/pantallas-principales.html"><code>mockups/pantallas-principales.html</code></a></p>
+<table>
+<tr><th>Pantalla</th><th>Salida destacada</th></tr>
+<tr><td>Registro</td><td><code>user.id</code>, <code>email_verified=false</code>, aviso de enlace</td></tr>
+<tr><td>Planes / contratar</td><td><code>subscription</code>, <code>payment</code>, <code>invoice.number</code></td></tr>
+<tr><td>Dashboard</td><td>lista <code>PondOut.status</code>, host:puerto</td></tr>
+<tr><td>Crear pond</td><td><code>202</code> + <code>job_id</code> + <code>status=provisioning</code></td></tr>
+<tr><td>Detalle</td><td><code>PondConnectionOut</code> (host, port, uri, …)</td></tr>
+<tr><td>Consola SQL</td><td><code>columns</code>, <code>rows</code>, <code>row_count</code>, <code>duration_ms</code></td></tr>
+<tr><td>Uso</td><td><code>instance_hours</code>, <code>storage_gb_month</code></td></tr>
+<tr><td>Admin</td><td><code>AdminUserOut</code></td></tr>
+<tr><td>Acceso agente</td><td>URL MCP + password revelable</td></tr>
+<tr><td>Confirmación mutación</td><td><code>confirmation_token</code>, resumen, segundo paso</td></tr>
+</table>
+<p>Capturas PNG de referencia (si se generaron): carpeta <a href="./renders/mockups/"><code>renders/mockups/</code></a>.</p>
+<hr/>
+<h2>10. Trazabilidad diagrama ↔ compromiso</h2>
+<table>
+<tr><th>Artefacto</th><th>Compromiso que cubre</th></tr>
+<tr><td>Arquitectura / despliegue</td><td>Ítems 8–9</td></tr>
+<tr><td>Casos de uso</td><td>Ítems 1–12</td></tr>
+<tr><td>Secuencia provisioning</td><td>Ítem 3</td></tr>
+<tr><td>Secuencia MCP confirm</td><td>Ítems 10–11</td></tr>
+<tr><td>Clases + ER</td><td>Persistencia de 1–11</td></tr>
+<tr><td>Mockups</td><td>UX de 1–11 + gate/confirm</td></tr>
+</table>
+<hr/>
+<h2>11. Decisiones de arquitectura (resumen defendible)</h2>
+<p>1. <strong>Control plane ≠ Docker</strong> — el request HTTP no bloquea creando contenedores.  </p>
+<p>2. <strong>Cola en PostgreSQL</strong> — una dependencia menos que Kafka/RabbitMQ.  </p>
+<p>3. <strong>Un solo nodo</strong> — suficiente para el semestre; multi-nodo explícitamente fuera.  </p>
+<p>4. <strong>Driver mock del agente</strong> — desarrollo y demo de respaldo sin VPS.  </p>
+<p>5. <strong>Tres fachadas, una API</strong> — Web/CLI/MCP sin duplicar reglas; doble confirmación en mutaciones remotas.  </p>
+<p>6. <strong>Auth de agente mínima</strong> — demo de aula; seguridad completa aplazada a V2.</p>
+<hr/>
+<h2>Anexo A — Cómo regenerar renders</h2>
+<pre>
+cd docs/entrega-2
+npx -y @mermaid-js/mermaid-cli@11 -i diagramas/01-arquitectura-componentes.mmd -o renders/01-arquitectura-componentes.svg
+# repetir para 02…07; también -e png
+</pre>
+<h2>Anexo B — Archivos del paquete</h2>
+<pre>
+docs/entrega-2/
+  README.md
+  alcance.md
+  ENTREGA-2.md          ← este documento
+  diagramas/*.mmd
+  mockups/pantallas-principales.html
+  renders/*.svg|*.png
+</pre>
+</body></html>

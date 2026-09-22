@@ -1,0 +1,83 @@
+flowchart LR
+    subgraph Actors
+        C((Cliente))
+        A((Administrador))
+        V((Visitante))
+        M((Agente MCP))
+        L((Usuario CLI))
+    end
+
+    subgraph UC_Auth["Cuentas"]
+        UC1[Registrarse]
+        UC2[Verificar correo]
+        UC3[Iniciar sesión]
+        UC4[Recuperar contraseña]
+        UC5[Editar perfil / NIT]
+    end
+
+    subgraph UC_Bill["Suscripciones"]
+        UC6[Ver catálogo de planes]
+        UC7[Contratar plan con pago simulado]
+        UC8[Ver historial e facturas]
+        UC9[Cancelar o renovar]
+    end
+
+    subgraph UC_Pond["DBaaS"]
+        UC10[Crear pond PostgreSQL]
+        UC11[Consultar estado del pond]
+        UC12[Obtener cadena de conexión]
+        UC13[Ejecutar SQL]
+        UC14[Crear / restaurar respaldo]
+        UC15[Eliminar pond]
+        UC16[Ver uso del mes]
+    end
+
+    subgraph UC_Agent["CLI / MCP"]
+        UC20[Revelar URL y password de agente]
+        UC21[Proponer mutación]
+        UC22[Confirmar con token]
+    end
+
+    subgraph UC_Admin["Administración"]
+        UC17[Listar usuarios y suscripciones]
+        UC18[Listar ponds del sistema]
+        UC19[Suspender usuario]
+    end
+
+    V --> UC1
+    V --> UC6
+    C --> UC2
+    C --> UC3
+    C --> UC4
+    C --> UC5
+    C --> UC6
+    C --> UC7
+    C --> UC8
+    C --> UC9
+    C --> UC10
+    C --> UC11
+    C --> UC12
+    C --> UC13
+    C --> UC14
+    C --> UC15
+    C --> UC16
+    C --> UC20
+    L --> UC3
+    L --> UC10
+    L --> UC11
+    L --> UC12
+    L --> UC13
+    L --> UC15
+    L --> UC21
+    L --> UC22
+    M --> UC10
+    M --> UC11
+    M --> UC12
+    M --> UC13
+    M --> UC15
+    M --> UC21
+    M --> UC22
+    A --> UC3
+    A --> UC17
+    A --> UC18
+    A --> UC19

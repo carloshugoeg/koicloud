@@ -1,5 +1,65 @@
-# Local development stack — not implemented.
-# Intended services: db, api, worker, node-agent (AGENT_MODE=mock), web.
-name: koicloud
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: koi
+      POSTGRES_PASSWORD: koi
+      POSTGRES_DB: koicloud
+    ports:
+      - "5432:5432"
+    volumes:
+      - koicloud_db:/var/lib/postgresql/data
 
-services: {}
+  api:
+    build: ./apps/api
+    working_dir: /app
+    command: sh -lc "uv sync --group dev && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    env_file:
+      - .env.example
+    volumes:
+      - ./apps/api:/app
+      - ./packages:/packages
+    depends_on:
+      - db
+    ports:
+      - "8000:8000"
+
+  worker:
+    build: ./apps/api
+    working_dir: /app
+    command: sh -lc "uv sync --group dev && uv run python -m app.main"
+    env_file:
+      - .env.example
+    volumes:
+      - ./apps/api:/app
+      - ./packages:/packages
+    depends_on:
+      - db
+
+  node-agent:
+    build: ./apps/node-agent
+    working_dir: /app
+    command: sh -lc "uv sync --group dev && uv run python -m agent.main"
+    env_file:
+      - .env.example
+    environment:
+      AGENT_MODE: mock
+    volumes:
+      - ./apps/node-agent:/app
+    depends_on:
+      - api
+
+  web:
+    image: node:22-alpine
+    working_dir: /app
+    command: sh -lc "corepack enable && pnpm install && pnpm dev --host 0.0.0.0"
+    volumes:
+      - ./apps/web:/app
+      - /app/node_modules
+    depends_on:
+      - api
+    ports:
+      - "5173:5173"
+
+volumes:
+  koicloud_db:

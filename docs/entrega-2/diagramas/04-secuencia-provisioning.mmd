@@ -1,0 +1,25 @@
+sequenceDiagram
+    autonumber
+    actor U as Cliente (Web)
+    participant API as API FastAPI
+    participant CMD as commands.create_pond
+    participant DB as PostgreSQL interno
+    participant NA as node-agent
+    participant D as Docker
+
+    U->>API: POST /api/v1/ponds {name}
+    API->>CMD: create_pond(ctx, inp)
+    CMD->>DB: verificar suscripción y cuota
+    CMD->>DB: INSERT ponds + pond_status + job create_pond
+    CMD-->>API: 202 AcceptedJob
+    API-->>U: pond status=provisioning
+
+    NA->>API: POST /internal/v1/jobs/claim
+    API-->>NA: payload create_pond
+    NA->>D: run postgres:16-alpine (puerto, límites, volumen)
+    D-->>NA: healthy (pg_isready)
+    NA->>API: jobs/{id}/complete succeeded
+    API->>DB: pond_status.observed=running
+
+    U->>API: GET /ponds/{id}/connection
+    API-->>U: uri postgresql://…@host:15xxx/app
