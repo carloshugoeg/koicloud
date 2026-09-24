@@ -1,124 +1,22 @@
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { PlaceholderPage } from "@/components/placeholder-page";
 
-interface AuthScaffoldProps {
-  title: string;
-  description: string;
-  route: string;
-  ticket: string;
-  actionLabel: string;
-}
-
-function AuthScaffoldPage({
-  title,
-  description,
-  route,
-  ticket,
-  actionLabel,
-}: AuthScaffoldProps) {
-  return (
-    <main className="mx-auto flex min-h-screen max-w-form items-center px-4 py-8">
-      <section className="w-full rounded-md border border-line bg-bone-raised p-6 shadow-print">
-        <div className="space-y-2 border-b border-line pb-4">
-          <p className="text-xs font-medium uppercase tracking-[0.18em] text-ink-muted">
-            {ticket}
-          </p>
-          <h1 className="font-display text-4xl text-ink">{title}</h1>
-          <p className="text-sm leading-6 text-ink-muted">{description}</p>
-        </div>
-
-        <form className="mt-5 space-y-4">
-          <label className="block space-y-2">
-            <span className="text-sm font-medium text-ink-muted">Correo</span>
-            <input
-              className="h-10 w-full rounded-sm border border-line-control bg-paper px-3 text-ink"
-              placeholder="demo@koicloud.dev"
-              type="email"
-            />
-          </label>
-
-          <label className="block space-y-2">
-            <span className="text-sm font-medium text-ink-muted">Contraseña</span>
-            <input
-              className="h-10 w-full rounded-sm border border-line-control bg-paper px-3 text-ink"
-              placeholder="••••••••"
-              type="password"
-            />
-          </label>
-
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-            <code className="rounded-sm border border-line bg-paper px-3 py-2 font-mono text-sm text-ink">
-              {route}
-            </code>
-            <button
-              className="rounded-sm bg-turquoise-700 px-4 py-2 text-sm font-medium text-bone-raised transition-colors duration-instant ease-brand-out hover:bg-turquoise-900"
-              type="button"
-            >
-              {actionLabel}
-            </button>
-          </div>
-        </form>
-
-        <div className="mt-5 flex flex-wrap gap-3 text-sm text-ink-muted">
-          <Link to="/forgot">Recuperar contraseña</Link>
-          <span>·</span>
-          <Link to="/register">Crear cuenta</Link>
-          <span>·</span>
-          <Link to="/">Volver al inicio</Link>
-        </div>
-      </section>
-    </main>
-  );
-}
+export { LoginPage } from "@/features/auth/login-page";
+export { RegisterPage } from "@/features/auth/register-page";
+export { VerifyPage } from "@/features/auth/verify-page";
 
 function usePondRouteLabel(suffix?: string) {
   const { pondId } = useParams();
   return pondId ? `/app/ponds/${pondId}${suffix ?? ""}` : "/app/ponds/:pondId";
 }
 
-export function LoginPage() {
-  return (
-    <AuthScaffoldPage
-      actionLabel="Entrar"
-      description="Skeleton de login listo para conectarse a /auth/login y al refresh automático."
-      route="/login"
-      ticket="W2-01"
-      title="Iniciar sesión"
-    />
-  );
-}
-
-export function RegisterPage() {
-  return (
-    <AuthScaffoldPage
-      actionLabel="Registrar cuenta"
-      description="Base visual para registro, verificación y cableado de errores por code."
-      route="/register"
-      ticket="W2-01"
-      title="Crear cuenta"
-    />
-  );
-}
-
 export function ForgotPage() {
   return (
-    <AuthScaffoldPage
-      actionLabel="Enviar enlace"
+    <PlaceholderPage
       description="Placeholder del flujo de recuperación de contraseña."
       route="/forgot"
       ticket="W2-02"
       title="Recuperar acceso"
-    />
-  );
-}
-
-export function VerifyPage() {
-  return (
-    <PlaceholderPage
-      description="Pantalla placeholder para verificación de correo y consumo del token de registro."
-      route="/verify"
-      ticket="W2-01"
-      title="Verificar correo"
     />
   );
 }

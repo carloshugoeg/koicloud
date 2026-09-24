@@ -167,3 +167,46 @@ button:disabled {
   font-variation-settings: "SOFT" 0, "WONK" 0, "opsz" 48;
   letter-spacing: -0.02em;
 }
+
+@keyframes koi-swim { to { background-position-x: -512px; } }
+@keyframes koi-swim-x2 { to { background-position-x: -1024px; } }
+@keyframes pond-pan-auth { to { background-position-x: -400px; } }
+@keyframes koi-drift {
+  0%, 100% { transform: translate(0, 0) scaleX(1); }
+  45% { transform: translate(48px, -16px) scaleX(1); }
+  50% { transform: translate(48px, -16px) scaleX(-1); }
+  95% { transform: translate(0, 0) scaleX(-1); }
+}
+
+.pond-water-auth {
+  background: url("/koi/pond-water-auth.png") 0 0 / 400px 520px repeat;
+  image-rendering: pixelated;
+  animation: pond-pan-auth 110s linear infinite;
+}
+.koi {
+  width: 64px; height: 64px;
+  background: url("/koi/koi-sheet.png") 0 0 / 768px 64px no-repeat;
+  image-rendering: pixelated;
+  animation: koi-swim 0.8s steps(8) infinite, koi-drift 30s var(--ease) infinite;
+}
+.koi--x2 {
+  width: 128px; height: 128px;
+  background: url("/koi/koi-sheet.png") 0 0 / 1536px 128px no-repeat;
+  image-rendering: pixelated;
+  animation: koi-swim-x2 0.8s steps(8) infinite, koi-drift 30s var(--ease) infinite;
+}
+.koi-mark-32 {
+  width: 32px; height: 32px;
+  background: url("/koi/koi-mark-32.png") 0 0 / 32px 32px no-repeat;
+  image-rendering: pixelated;
+}
+@media (prefers-reduced-motion: reduce) {
+  .koi, .koi--x2 { animation: none; background-position-x: 0; }
+  .pond-water-auth { animation: none; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+
