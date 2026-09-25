@@ -20,9 +20,9 @@ Dos endpoints de auth ya cerrados por contrato para que Web pueda registrar y ve
 - Endpoints: `POST /auth/register` -> `register_user` y `POST /auth/verify` -> `verify_email`.
 - Register responde `{user_id, email_verified:false}`.
 - Verify responde `{user_id, email_verified:true}`.
+- Verify recibe el token **solo** en body JSON `VerifyEmailRequest` `{token}` (OpenAPI / `api-surface.md`). No existe `POST /auth/verify?token=`. El enlace de correo puede aterrizar en Web con `?token=`; el router de W3 lee el body.
 - Errores: `email_taken`, `password_too_weak`, `token_invalid`, `token_expired`, `rate_limited`.
 - Las firmas de `register_user` y `verify_email` las deja W1; el router solo valida y transporta.
-- La documentación choca en el transporte del token de verify (`?token=` vs body JSON).
 
 ## Criterios de aceptación
 
@@ -44,7 +44,6 @@ Dos endpoints de auth ya cerrados por contrato para que Web pueda registrar y ve
 
 Respondé `BLOQUEADO: requiere <CCR | ticket para W1> porque <razón>` y pará.
 No inventes endpoints, schemas, queries, comandos ni códigos de error.
-- Antes de codear, W1 debe congelar si verify recibe el token por query (`POST /auth/verify?token=`) o por body; no abras dos variantes.
 
 ## Referencia
 

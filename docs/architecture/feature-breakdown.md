@@ -13,7 +13,7 @@ Cada funcionalidad tiene ID estable `E<épica>-<n>`. La columna “Superficie”
 | ID | Feature | Superficie | Notas |
 |----|---------|-----------|-------|
 | E1-01 | Registro con correo + contraseña + nombre + NIT opcional | Web | Argon2id; correo de bienvenida con enlace de verificación (24 h) |
-| E1-02 | Verificación de correo por token de un solo uso | Web | Endpoint `POST /auth/verify?token=…`; expira 24 h |
+| E1-02 | Verificación de correo por token de un solo uso | Web | Endpoint `POST /auth/verify` body JSON `VerifyEmailRequest` `{token}`; expira 24 h. El enlace de correo aterriza en Web con `?token=`; la Web reenvía el token en el body, no en query de la API |
 | E1-03 | Login con JWT (15 min) + refresh (30 días) | Web, CLI | Refresh rotativo; revocación por hash |
 | E1-04 | Recuperación de contraseña por token temporal | Web | 1 h de vida; usa mismo canal de correo |
 | E1-05 | Perfil (nombre, NIT) | Web | Requerido para factura |
