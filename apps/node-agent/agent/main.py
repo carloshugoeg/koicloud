@@ -21,7 +21,7 @@ def build_driver(settings: AgentSettings) -> PondDriver:
             default_size_bytes=settings.mock_default_size_bytes,
         )
     if settings.agent_mode == "docker":
-        return DockerDriver()
+        return DockerDriver(backup_dir=settings.backup_dir)
     raise ValueError(f"Unsupported agent mode: {settings.agent_mode}")
 
 

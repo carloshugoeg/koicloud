@@ -1,4 +1,4 @@
-.PHONY: sync-rules contracts check-api check-web check-cli check-node-agent check seed up
+.PHONY: sync-rules contracts check-api check-web check-cli check-node-agent check seed up pond-demo
 
 sync-rules:
 	python3 scripts/sync-rules.py
@@ -26,3 +26,6 @@ seed:
 
 up:
 	docker compose up --build
+
+pond-demo:
+	bash scripts/local-pond.sh

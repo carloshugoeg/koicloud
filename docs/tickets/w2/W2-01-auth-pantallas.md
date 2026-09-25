@@ -2,11 +2,11 @@
 id: W2-01
 workstream: W2
 persona: Jason
-estado: abierto
+estado: hecho
 rama: w2-auth-pantallas
 epica: "E1-01, E1-02, E1-03"
 sprint: S2
-pr:
+pr: "https://github.com/carloshugoeg/koicloud/pull/1"
 ---
 
 # [W2-01] Registro, login y verificación de correo

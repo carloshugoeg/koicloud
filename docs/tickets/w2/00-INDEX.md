@@ -6,7 +6,7 @@ el agente lo ignora.
 
 | ID | Título | Rama | Estado |
 |---|---|---|---|
-| W2-01 | Registro, login y verificación de correo | `w2-auth-pantallas` | abierto |
+| W2-01 | Registro, login y verificación de correo | `w2-auth-pantallas` | hecho ([PR #1](https://github.com/carloshugoeg/koicloud/pull/1)) |
 | W2-02 | Recuperación de contraseña | `w2-recuperar-password` | abierto |
 | W2-03 | Catálogo de planes y contratación | `w2-planes-checkout` | abierto |
 | W2-04 | Dashboard de ponds (lista y estados) | `w2-dashboard-ponds` | abierto |

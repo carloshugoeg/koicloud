@@ -1,0 +1,15 @@
+# Overlay: node-agent talks to the host Docker daemon and creates real ponds.
+#   AGENT_MODE=docker docker compose -f docker-compose.yml -f docker-compose.docker-agent.yml up
+#
+# CI and the default compose file stay on AGENT_MODE=mock (no socket mount).
+
+services:
+  node-agent:
+    environment:
+      AGENT_MODE: docker
+      NODE_PUBLIC_HOST: ${NODE_PUBLIC_HOST:-127.0.0.1}
+      BACKUP_DIR: /tmp/koicloud/backups
+    volumes:
+      - ./apps/node-agent:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${BACKUP_DIR:-/tmp/koicloud/backups}:/tmp/koicloud/backups

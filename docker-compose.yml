@@ -43,11 +43,33 @@ services:
     env_file:
       - .env.example
     environment:
-      AGENT_MODE: mock
+      AGENT_MODE: ${AGENT_MODE:-mock}
     volumes:
       - ./apps/node-agent:/app
     depends_on:
       - api
+
+  # Real postgres pond for the Friday hito when there is no VPS.
+  # `make pond-demo` or: docker compose --profile ponds up -d pond-demo
+  pond-demo:
+    profiles: ["ponds"]
+    image: postgres:16-alpine
+    container_name: koicloud-inventario-demo
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: local-pond-dev-only
+      POSTGRES_DB: inventario_demo
+    ports:
+      - "15432:5432"
+    labels:
+      koicloud.managed: "true"
+      koicloud.pond: inventario-demo
+      koicloud.pond_id: pond-local-demo
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d inventario_demo"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
 
   web:
     image: node:22-alpine

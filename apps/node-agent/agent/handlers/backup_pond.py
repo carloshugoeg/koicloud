@@ -5,5 +5,5 @@ from agent.drivers.base import PondDriver
 
 
 def handle(job: ClaimedJob, driver: PondDriver) -> dict[str, object]:
-    _ = (job, driver)
-    raise NotImplementedError("backup_pond handler scaffold pending follow-up implementation.")
+    artifact = driver.dump(str(job.payload["name"]), job.payload.get("backup_id"))
+    return {"backup": artifact.to_dict()}
