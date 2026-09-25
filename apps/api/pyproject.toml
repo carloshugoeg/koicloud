@@ -18,6 +18,7 @@ dependencies = [
   "pydantic-settings",
   "pyjwt",
   "slowapi",
+  "greenlet",
   "sqlalchemy",
   "uvicorn[standard]",
 ]
