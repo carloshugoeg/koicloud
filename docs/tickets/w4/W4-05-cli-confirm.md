@@ -22,6 +22,7 @@ Capa CLI para consumir o descartar `pending_confirmations`, más el formatter co
 - La respuesta `409 confirmation_required` ya viene sellada por el backend con `token`, `summary`, `expires_at` y `cli_example`.
 - TTL fijo del token: 5 minutos; errores `confirmation_not_found` y `confirmation_expired`.
 - Este ticket define el formatter compartido de `-o json` para los demás comandos.
+- Sin sesión: exit `1` y el mensaje de `api-surface.md` §5. Errores de token del catálogo también salen distinto de cero (`1`).
 
 ## Criterios de aceptación
 

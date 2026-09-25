@@ -11,6 +11,11 @@ FORBIDDEN = re.compile(r'(co-authored-by:.*(cursor|antigravity|gemini|claude)|ge
 AUTHOR_LINE = re.compile(r'^- \*\*(W[1-4])\*\* \| .* \| `@[^`]+` \| .* \| `[^`]+` \|')
 EMAIL_LINE = re.compile(r'`([^`]+@[^`]+)`')
 
+# git log --format control bytes. Keep them as escapes so the source file stays valid Python
+# if a checkout or patch ever mangles literal RS/US characters.
+RECORD_SEP = "\x1e"
+FIELD_SEP = "\x1f"
+
 
 def load_allowed_emails(workstreams: Path) -> set[str]:
     emails: set[str] = set()
@@ -21,14 +26,13 @@ def load_allowed_emails(workstreams: Path) -> set[str]:
 
 
 def git_log(base: str) -> list[dict[str, str]]:
-    fmt = '%H%x1f%an%x1f%ae%x1f%B%x1e'
+    fmt = f"%H{FIELD_SEP}%an{FIELD_SEP}%ae{FIELD_SEP}%B{RECORD_SEP}"
     raw = subprocess.check_output(['git', 'log', f'{base}..HEAD', f'--format={fmt}'], text=True)
     commits: list[dict[str, str]] = []
-    for chunk in raw.strip('
-').split(''):
+    for chunk in raw.strip(RECORD_SEP).split(RECORD_SEP):
         if not chunk.strip():
             continue
-        sha, name, email, body = chunk.split('', 3)
+        sha, name, email, body = chunk.split(FIELD_SEP, 3)
         commits.append({'sha': sha, 'name': name, 'email': email, 'body': body})
     return commits
 

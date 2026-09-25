@@ -54,7 +54,8 @@ for f in $(ls -1 "$dir" | grep -E '^W[0-9]-[0-9]+-.*\.md$' | sort); do
 done
 
 echo "Persona:    $persona"
-echo "Workstream: ${ws^^} — $area"
+ws_upper="$(printf '%s' "$ws" | tr '[:lower:]' '[:upper:]')"
+echo "Workstream: $ws_upper — $area"
 echo "Tickets:    docs/tickets/$ws/"
 echo "Puede tocar: $rutas"
 echo

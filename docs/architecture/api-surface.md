@@ -232,7 +232,7 @@ Servidor **FastMCP** montado en el mismo proceso API. Cada tool es de ≤ 25 lí
 
 - `--yes <token>` (opcional): permite pasar el token directo, útil para scripts CI.
 - `-o json` para todas las salidas (útil en CI). Default: tablas humanas con `rich`.
-- Cuando el usuario no está logueado, cualquier comando devuelve `1` con “Primero corré `koicloud login`”.
+- Cuando el usuario no está logueado, cualquier comando devuelve `1` con “Primero corré `koicloud login`”. Valor congelado: **`1`** (el `2` de la matriz de inputs no aplica).
 
 ---
 

@@ -22,6 +22,7 @@ Comandos CLI para correr SQL y consultar historial. El resultado visible es tabl
 - El modo por defecto es `read`; `--write` exige confirmación.
 - Errores fijos: `sql_readonly_violation` y `sql_timeout`.
 - La salida humana y JSON comparte formatter común; no se clona por comando.
+- Sin sesión: exit `1` y el mensaje de `api-surface.md` §5.
 
 ## Criterios de aceptación
 
