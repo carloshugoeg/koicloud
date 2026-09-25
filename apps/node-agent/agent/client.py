@@ -66,7 +66,10 @@ class InternalClient:
         if response.status_code == 204:
             return None
         response.raise_for_status()
-        return ClaimedJob.model_validate(response.json())
+        body = response.json()
+        if isinstance(body, dict) and "job" in body:
+            body = body["job"]
+        return ClaimedJob.model_validate(body)
 
     def complete_job(self, job_id: str, report: CompletionReport | dict[str, Any]) -> None:
         body = report.model_dump(mode="json", exclude_none=True) if isinstance(report, CompletionReport) else report
@@ -79,9 +82,20 @@ class InternalClient:
         containers: list[dict[str, Any]],
         samples: list[dict[str, Any]],
     ) -> None:
+        mapped_samples: list[dict[str, Any]] = []
+        for sample in samples:
+            mapped_samples.append(
+                {
+                    "pond_name": str(sample.get("pond_name") or sample.get("name") or ""),
+                    "size_bytes": int(sample.get("size_bytes") or 0),
+                    "container_state": str(
+                        sample.get("container_state") or sample.get("state") or "unknown"
+                    ),
+                }
+            )
         response = self._client.post(
             "heartbeat",
-            json={"containers": containers, "samples": samples},
+            json={"containers": containers, "samples": mapped_samples},
         )
         response.raise_for_status()
 

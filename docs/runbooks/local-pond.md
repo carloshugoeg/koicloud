@@ -1,48 +1,76 @@
 # Pond local (sin VPS)
 
-El hito del viernes pide un pond alcanzable con `psql`. No hay credenciales de VPS
-en este entorno. El camino que sí avanza el producto, sin inventar infra:
+El hito del viernes pide un pond alcanzable con `psql`. No hay credenciales de
+VPS en el entorno. Hay dos caminos locales, ambos con Docker en la laptop:
 
 | Camino | Qué hace | Cuándo usarlo |
 |---|---|---|
+| `make pond-demo` | Un `postgres:16-alpine` fijo en **15432** | Demo corta / fallback |
+| `POST /ponds` + `AGENT_MODE=docker` | Control plane persistido + `DockerDriver` | Camino de producto (W1) |
 | `AGENT_MODE=mock` | Cola + handlers en memoria | CI y laptops sin Docker |
-| `make pond-demo` | Un `postgres:16-alpine` en el puerto **15432** | Demo local / `psql` hoy |
-| `AGENT_MODE=docker` | `DockerDriver` crea ponds reales por job | Laptop o VPS con socket Docker |
 
-## 1. Pond de demostración (Compose)
+Register / verify / `POST /billing/subscribe` de W3 **siguen en fixtures**.
+`create_pond` upserta el usuario del JWT y adjunta el plan Micro si no hay
+suscripción activa, para no bloquear el hito.
+
+## 1. Pond de demostración (Compose, sin API)
 
 ```bash
 make pond-demo
 psql "postgresql://postgres:local-pond-dev-only@127.0.0.1:15432/inventario_demo"
 ```
 
-Servicio: `pond-demo` en `docker-compose.yml` (profile `ponds`). Imagen congelada
-`postgres:16-alpine`. Contraseña de desarrollo, no de producción.
+Servicio: `pond-demo` en `docker-compose.yml` (profile `ponds`). Contraseña de
+desarrollo, no de producción.
 
-## 2. Driver docker (mock → real)
+## 2. E2E persistido: login → `POST /ponds` → `psql`
 
-`apps/node-agent/agent/drivers/docker_driver.py` implementa el mismo ABC que
-`mock_driver`: `create_pond`, `start`, `stop`, `delete`, `dump`, `restore`, `sample`.
-CI **no** lo corre contra un daemon: las pruebas inyectan un cliente falso.
-
-En una máquina con Docker:
+Necesita Docker. El overlay monta el socket; el API corre `alembic upgrade head`
+al arrancar.
 
 ```bash
+# 1. Control plane + node-agent con DockerDriver
 AGENT_MODE=docker docker compose \
   -f docker-compose.yml \
   -f docker-compose.docker-agent.yml \
-  up
+  up --build db api node-agent
+
+# 2. Login (auth Fase 0: cualquier email/password válidos emiten JWT)
+TOKEN=$(curl -sS -X POST http://127.0.0.1:8000/api/v1/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"demo@koicloud.dev","password":"Sup3rSegura!2026"}' \
+  | python3 -c "import json,sys; print(json.load(sys.stdin)['access_token'])")
+
+# 3. Crear pond (primer puerto libre del rango 15000-15999)
+curl -sS -X POST http://127.0.0.1:8000/api/v1/ponds \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"inventario-demo"}'
+
+# 4. Esperar observed_state=running, luego:
+curl -sS http://127.0.0.1:8000/api/v1/ponds/<pond_id>/connection \
+  -H "Authorization: Bearer $TOKEN"
 ```
 
-El overlay monta `/var/run/docker.sock`. Cada job `create_pond` levanta
-`koicloud-<nombre>` y espera `pg_isready`.
+La URI usa `postgres` / `NODE_PUBLIC_HOST` (default `127.0.0.1`) / el
+`host_port` asignado / base `inventario_demo`. Ejemplo si tocó 15000:
 
-## 3. Lo que todavía necesita Carlos / VPS
+```bash
+psql "postgresql://postgres:<password>@127.0.0.1:15000/inventario_demo"
+```
 
-- Persistencia real de `create_pond` (hoy el comando de API sigue en el andamio
-  `build_pond` / `build_job` de Fase 0).
-- Register → suscripción Micro → `POST /ponds` contra control plane (W3-01 + W3-07).
-- Un VPS con `AGENT_MODE=docker` y el rango `POND_PORT_RANGE_*` publicado.
+El contenedor se llama `koicloud-<nombre>`. El agent reclama el job en
+`POST /internal/v1/jobs/claim` (`204` si no hay cola).
 
-Hasta entonces, `make pond-demo` es el `psql` del hito. No sustituye el E2E de
-producción; evita bloquear el viernes por falta de VPS.
+## 3. Driver docker (mock → real)
+
+`apps/node-agent/agent/drivers/docker_driver.py` implementa el mismo ABC que
+`mock_driver`. CI **no** lo corre contra un daemon: las pruebas inyectan un
+cliente falso. `AGENT_MODE=mock` sigue siendo el default de CI.
+
+## 4. Lo que sigue (no bloquea el hito local)
+
+- W3: register / verify / subscribe persistidos (hoy el puente es JWT + Micro).
+- `delete_pond` / retry siguen en andamio Fase 0.
+- Un VPS con `AGENT_MODE=docker` y `POND_PORT_RANGE_*` publicado, cuando existan
+  host y credenciales reales. No inventar infra.

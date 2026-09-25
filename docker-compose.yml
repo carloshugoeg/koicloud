@@ -13,9 +13,11 @@ services:
   api:
     build: ./apps/api
     working_dir: /app
-    command: sh -lc "uv sync --group dev && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    command: sh -lc "uv sync --group dev && uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
     env_file:
       - .env.example
+    environment:
+      DATABASE_URL: postgresql+asyncpg://koi:koi@db:5432/koicloud
     volumes:
       - ./apps/api:/app
       - ./packages:/packages
@@ -44,6 +46,7 @@ services:
       - .env.example
     environment:
       AGENT_MODE: ${AGENT_MODE:-mock}
+      INTERNAL_API_URL: http://api:8000/internal/v1
     volumes:
       - ./apps/node-agent:/app
     depends_on:

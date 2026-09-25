@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi.testclient import TestClient
 
 from app.main import app
+from tests.db_reset import reset_pond_tables
 
 client = TestClient(app)
 
@@ -40,6 +41,7 @@ def test_create_pond_requires_confirmation_for_cli_surface() -> None:
 
 
 def test_create_pond_web_happy_path_returns_queued_job() -> None:
+    reset_pond_tables()
     response = client.post(
         "/api/v1/ponds",
         headers=auth_headers(),
