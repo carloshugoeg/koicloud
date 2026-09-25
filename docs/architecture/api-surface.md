@@ -44,7 +44,7 @@ Notación: `M ROUTE → CommandOrService` con response resumido. `[C]` = requier
 | M | Ruta | Command | Descripción | Response |
 |---|------|---------|-------------|----------|
 | POST | `/auth/register` | `register_user` | Alta con email + pass + full_name + nit? | `{user_id, email_verified:false}` |
-| POST | `/auth/verify` | `verify_email` | Consume token de verificación | `{user_id, email_verified:true}` |
+| POST | `/auth/verify` | `verify_email` | Consume token de verificación. Body JSON `VerifyEmailRequest` `{token}` (no query) | `{user_id, email_verified:true}` |
 | POST | `/auth/login` | `issue_tokens` | Login → JWT + refresh | `{access_token, refresh_token, user}` |
 | POST | `/auth/refresh` | `rotate_refresh` | Rota refresh y emite JWT | `{access_token, refresh_token}` |
 | POST | `/auth/forgot` | `send_reset_token` | Envía email de reset | `{ok:true}` |

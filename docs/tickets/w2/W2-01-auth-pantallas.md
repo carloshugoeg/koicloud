@@ -18,7 +18,7 @@ Flujo de auth del mockup `#auth`: registro -> estado «Revisa tu correo» -> ver
 ## Entradas ya decididas (no se cambian)
 
 - Rutas: `/registro`, `/login`, `/verificar?token=`.
-- API: `POST /auth/register`, `POST /auth/verify`, `POST /auth/login`.
+- API: `POST /auth/register`, `POST /auth/verify` (body JSON `VerifyEmailRequest` `{token}`, no query), `POST /auth/login`. La página `/verificar` lee `?token=` del enlace de correo y lo reenvía en el body.
 - Campos de registro: `full_name`, `email`, `password`, `nit` opcional.
 - Login responde `{access_token, refresh_token, user}`; verify responde `{user_id, email_verified:true}`.
 - Códigos de error: `email_taken`, `password_too_weak`, `invalid_credentials`, `email_not_verified`, `token_invalid`, `token_expired`, `rate_limited`.
