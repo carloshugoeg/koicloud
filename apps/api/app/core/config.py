@@ -37,6 +37,19 @@ class Settings(BaseSettings):
     default_limit: int = Field(default=50, ge=1, le=100)
 
 
+def to_sync_database_url(url: str) -> str:
+    """Alembic uses a sync engine; asyncpg URLs raise MissingGreenlet."""
+    replacements = (
+        ("postgresql+asyncpg://", "postgresql+psycopg://"),
+        ("postgres+asyncpg://", "postgresql+psycopg://"),
+    )
+    for old, new in replacements:
+        if url.startswith(old):
+            return new + url[len(old) :]
+    return url
+
+
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
     return Settings()
+

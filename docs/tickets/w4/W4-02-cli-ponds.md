@@ -22,6 +22,7 @@ Comandos CLI para consultar y mutar ponds sin saltarse el contrato de confirmaci
 - Las mutaciones siempre pasan por `confirmation_required`; no se auto-confirman.
 - Create devuelve `202 {pond, job}` y delete resume el backup `pre_delete` antes de borrar.
 - El formato `-o json` reutiliza el helper común cuando exista; no se reimplementa por comando.
+- Sin sesión: exit `1` y el mensaje de `api-surface.md` §5.
 
 ## Criterios de aceptación
 

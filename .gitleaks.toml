@@ -1,0 +1,17 @@
+title = "KoiCloud"
+
+[extend]
+useDefault = true
+
+# gitleaks 8.24 merges the singular [allowlist] into the default config.
+# [[allowlists]] tables are ignored when useDefault = true (verified locally).
+[allowlist]
+description = "Phase 0 contract/CI fixtures — not live credentials"
+paths = [
+  '''packages/contracts/openapi\.json''',
+  '''apps/web/src/api/schema\.d\.ts''',
+  '''apps/api/app/schemas\.py''',
+]
+regexes = [
+  '''7chvGNh8l4rbVgpH0wWJjCT2J8eQ6D8eW5DiKjR3owE=''',
+]

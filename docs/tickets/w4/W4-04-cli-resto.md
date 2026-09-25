@@ -22,6 +22,7 @@ Resto de la superficie CLI fuera de ponds y SQL: suscripciones, backups, acceso 
 - Las mutaciones (`subscribe`, `cancel`, `restore`, `rotate`) usan confirmación; las lecturas no.
 - `agent show` nunca imprime password; `usage` consume `GET /usage`.
 - El soporte `-o json` sale del helper común de W4-05.
+- Sin sesión: exit `1` y el mensaje de `api-surface.md` §5.
 
 ## Criterios de aceptación
 

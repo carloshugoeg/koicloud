@@ -21,7 +21,7 @@ Comandos básicos de sesión de la CLI. El resultado visible es un archivo de se
 - API: `POST /auth/login`, `POST /auth/logout`, `GET /me`.
 - La sesión se guarda en `~/.config/koicloud/config.json` con permisos `0600`.
 - Se reutiliza `apps/cli/koicloud_cli/client.py` y el ejemplo `MockTransport` que deja W1.
-- El contrato del mensaje para falta de sesión está fijado; el código de salida choca entre docs (`1` vs `2`).
+- Sin sesión, cualquier comando sale con código `1` y el mensaje “Primero corré `koicloud login`” (`api-surface.md` §5). El `2` de la matriz de inputs no aplica.
 
 ## Criterios de aceptación
 
@@ -29,6 +29,7 @@ Comandos básicos de sesión de la CLI. El resultado visible es un archivo de se
 2. `whoami` imprime el usuario actual usando el contrato de `GET /me`.
 3. `logout` limpia el archivo o las credenciales guardadas.
 4. Hay pruebas con `CliRunner` y `respx`/`MockTransport` para login, whoami y logout.
+5. Un comando autenticado sin sesión (p.ej. `whoami`) termina con exit `1` y el mensaje de §5.
 
 ## No tocar
 
@@ -41,7 +42,6 @@ Comandos básicos de sesión de la CLI. El resultado visible es un archivo de se
 
 Respondé `BLOQUEADO: requiere <CCR | ticket para W1> porque <razón>` y pará.
 No inventes comandos, flags, payloads, tools ni atajos al flujo de confirmación.
-- W1 debe congelar el código de salida cuando falta sesión (`1` en `api-surface.md` §5 vs `2` en la matriz); no publiques dos comportamientos.
 
 ## Referencia
 

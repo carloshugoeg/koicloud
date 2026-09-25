@@ -14,6 +14,7 @@ dependencies = [
   "asyncpg",
   "cryptography",
   "fastapi",
+  "psycopg[binary]",
   "pydantic-settings",
   "pyjwt",
   "slowapi",
