@@ -89,5 +89,5 @@ def test_create_pond_rejects_duplicate_name_and_quota() -> None:
 
 def test_claim_without_jobs_returns_204() -> None:
     reset_pond_tables()
-    response = client.post("/internal/v1/jobs/claim", headers=node_headers())
+    response = client.post("/internal/v1/jobs/claim", headers=node_headers(), json={})
     assert response.status_code == 204

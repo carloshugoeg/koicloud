@@ -62,7 +62,7 @@ class InternalClient:
         payload: dict[str, Any] = {}
         if max_types:
             payload["max_types"] = max_types
-        response = self._client.post("jobs/claim", json=payload or None)
+        response = self._client.post("jobs/claim", json=payload)
         if response.status_code == 204:
             return None
         response.raise_for_status()

@@ -39,10 +39,10 @@ async def heartbeat(
     responses={204: {"description": "No hay jobs disponibles"}},
 )
 async def claim_job(
+    payload: ClaimJobRequest,
     _node: Annotated[NodeContext, Depends(get_node_identity)],
-    payload: ClaimJobRequest | None = None,
 ) -> ClaimJobResponse | Response:
-    result = await internal_commands.claim_job(payload or ClaimJobRequest())
+    result = await internal_commands.claim_job(payload)
     if result is None:
         return Response(status_code=status.HTTP_204_NO_CONTENT)
     return result
