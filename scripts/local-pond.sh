@@ -43,5 +43,6 @@ echo
 echo "Para el driver docker del node-agent (jobs create_pond reales):"
 echo "  AGENT_MODE=docker docker compose -f docker-compose.yml -f docker-compose.docker-agent.yml up"
 echo
-echo "El E2E register → Micro → POST /ponds sigue pidiendo persistencia W3/W1 y un VPS."
-echo "Este servicio solo adelanta el hito de \`psql\` contra un postgres:16-alpine real."
+echo "E2E persistido (login fixture → POST /ponds → DockerDriver):"
+echo "  AGENT_MODE=docker docker compose -f docker-compose.yml -f docker-compose.docker-agent.yml up db api node-agent"
+echo "Luego el runbook docs/runbooks/local-pond.md §2. VPS sigue opcional (sin credenciales aquí)."

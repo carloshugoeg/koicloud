@@ -1,0 +1,113 @@
+from __future__ import annotations
+
+from uuid import UUID
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.config import Settings
+from app.core.enums import JobStatus, JobType, NodeStatus, PondObservedState
+from app.core.errors import AppError, ErrorCode
+from app.core.models import Job, Node, PondStatus
+from app.core.security import hash_token
+from app.core.time import utc_now
+from app.schemas import (
+    ClaimedJob,
+    ClaimedJobPayload,
+    ClaimJobRequest,
+    ClaimJobResponse,
+    CompleteJobRequest,
+)
+
+
+class JobService:
+    def __init__(self, session: AsyncSession, settings: Settings) -> None:
+        self.session = session
+        self.settings = settings
+
+    async def heartbeat(self) -> None:
+        await self._touch_node()
+
+    async def claim(self, payload: ClaimJobRequest) -> ClaimJobResponse | None:
+        node = await self._touch_node()
+        stmt = (
+            select(Job)
+            .where(Job.status == JobStatus.QUEUED)
+            .order_by(Job.created_at.asc())
+            .with_for_update(skip_locked=True)
+            .limit(1)
+        )
+        if payload.max_types:
+            stmt = stmt.where(Job.type.in_(payload.max_types))
+        job = (await self.session.execute(stmt)).scalar_one_or_none()
+        if job is None:
+            return None
+
+        job.status = JobStatus.RUNNING
+        job.node_id = node.id
+        job.claimed_at = utc_now()
+        job.attempts += 1
+        await self.session.flush()
+        return ClaimJobResponse(
+            job=ClaimedJob(
+                id=job.id,
+                type=job.type,
+                pond_id=job.pond_id,
+                payload=ClaimedJobPayload.model_validate(job.payload),
+            )
+        )
+
+    async def complete(self, job_id: str, payload: CompleteJobRequest) -> None:
+        try:
+            parsed_id = UUID(job_id)
+        except ValueError as exc:
+            raise AppError(ErrorCode.POND_NOT_FOUND) from exc
+
+        job = await self.session.get(Job, parsed_id)
+        if job is None:
+            raise AppError(ErrorCode.POND_NOT_FOUND)
+
+        now = utc_now()
+        job.completed_at = now
+        if payload.status == "succeeded":
+            job.status = JobStatus.SUCCEEDED
+            job.last_error = None
+        else:
+            job.status = JobStatus.FAILED
+            job.last_error = payload.error
+
+        status = await self.session.get(PondStatus, job.pond_id)
+        if status is None:
+            return
+        status.updated_at = now
+        status.last_seen_at = now
+        if payload.status == "succeeded" and job.type == JobType.CREATE_POND:
+            status.observed_state = PondObservedState.RUNNING
+            status.healthy = True
+            status.last_error = None
+        elif payload.status == "failed":
+            status.observed_state = PondObservedState.FAILED
+            status.healthy = False
+            status.last_error = payload.error
+
+    async def _touch_node(self) -> Node:
+        settings = self.settings
+        token_hash = hash_token(settings.node_token)
+        node = await self.session.get(Node, settings.node_id)
+        if node is None:
+            node = Node(
+                id=settings.node_id,
+                public_host=settings.node_public_host,
+                status=NodeStatus.ALIVE,
+                capacity_ponds=20,
+                last_seen_at=utc_now(),
+                token_hash=token_hash,
+            )
+            self.session.add(node)
+            await self.session.flush()
+            return node
+        node.public_host = settings.node_public_host
+        node.status = NodeStatus.ALIVE
+        node.last_seen_at = utc_now()
+        node.token_hash = token_hash
+        return node
