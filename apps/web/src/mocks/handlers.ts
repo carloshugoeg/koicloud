@@ -1,9 +1,26 @@
 import { HttpResponse, http } from "msw";
 import { fixtures } from "@/mocks/fixtures";
 
-const API_ROOT = "/api/v1";
+const API_ROOT = "*/api/v1";
 
 export const handlers = [
+  http.post(`${API_ROOT}/auth/register`, () => {
+    return HttpResponse.json(
+      {
+        user_id: fixtures.session.user.id,
+        email_verified: false,
+      },
+      { status: 201 },
+    );
+  }),
+
+  http.post(`${API_ROOT}/auth/verify`, () => {
+    return HttpResponse.json({
+      user_id: fixtures.session.user.id,
+      email_verified: true,
+    });
+  }),
+
   http.post(`${API_ROOT}/auth/login`, () => {
     return HttpResponse.json(fixtures.session);
   }),
