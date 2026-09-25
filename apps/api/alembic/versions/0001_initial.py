@@ -18,16 +18,24 @@ down_revision = None
 branch_labels = None
 depends_on = None
 
-user_role = postgresql.ENUM("client", "admin", name="user_role")
-user_status = postgresql.ENUM("active", "suspended", name="user_status")
-email_token_kind = postgresql.ENUM("verify_email", "reset_password", name="email_token_kind")
-subscription_status = postgresql.ENUM(
-    "active", "canceled", "expired", "past_due", name="subscription_status"
+# create_type=False: upgrade() creates types once via ENUM.create(checkfirst=True).
+# Default create_type=True makes create_table emit CREATE TYPE again → DuplicateObject.
+user_role = postgresql.ENUM("client", "admin", name="user_role", create_type=False)
+user_status = postgresql.ENUM("active", "suspended", name="user_status", create_type=False)
+email_token_kind = postgresql.ENUM(
+    "verify_email", "reset_password", name="email_token_kind", create_type=False
 )
-invoice_status = postgresql.ENUM("issued", "paid", "void", name="invoice_status")
-payment_status = postgresql.ENUM("succeeded", "failed", "pending", name="payment_status")
-node_status = postgresql.ENUM("alive", "draining", "dead", name="node_status")
-pond_desired_state = postgresql.ENUM("running", "stopped", "deleted", name="pond_desired_state")
+subscription_status = postgresql.ENUM(
+    "active", "canceled", "expired", "past_due", name="subscription_status", create_type=False
+)
+invoice_status = postgresql.ENUM("issued", "paid", "void", name="invoice_status", create_type=False)
+payment_status = postgresql.ENUM(
+    "succeeded", "failed", "pending", name="payment_status", create_type=False
+)
+node_status = postgresql.ENUM("alive", "draining", "dead", name="node_status", create_type=False)
+pond_desired_state = postgresql.ENUM(
+    "running", "stopped", "deleted", name="pond_desired_state", create_type=False
+)
 pond_observed_state = postgresql.ENUM(
     "pending",
     "provisioning",
@@ -38,6 +46,7 @@ pond_observed_state = postgresql.ENUM(
     "deleted",
     "failed",
     name="pond_observed_state",
+    create_type=False,
 )
 job_type = postgresql.ENUM(
     "create_pond",
@@ -47,11 +56,18 @@ job_type = postgresql.ENUM(
     "backup_pond",
     "restore_pond",
     name="job_type",
+    create_type=False,
 )
-job_status = postgresql.ENUM("queued", "running", "succeeded", "failed", "lost", name="job_status")
-backup_kind = postgresql.ENUM("daily", "on_demand", "pre_delete", name="backup_kind")
-backup_status = postgresql.ENUM("queued", "running", "succeeded", "failed", name="backup_status")
-sql_mode = postgresql.ENUM("read", "write", name="sql_mode")
+job_status = postgresql.ENUM(
+    "queued", "running", "succeeded", "failed", "lost", name="job_status", create_type=False
+)
+backup_kind = postgresql.ENUM(
+    "daily", "on_demand", "pre_delete", name="backup_kind", create_type=False
+)
+backup_status = postgresql.ENUM(
+    "queued", "running", "succeeded", "failed", name="backup_status", create_type=False
+)
+sql_mode = postgresql.ENUM("read", "write", name="sql_mode", create_type=False)
 
 
 def upgrade() -> None:
