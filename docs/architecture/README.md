@@ -4,13 +4,13 @@
 **Curso:** Ingeniería de Software I · Universidad Rafael Landívar · 2026
 **Equipo KoiCloud:** Hugo Escobar · Jason Gutiérrez · Jousé Menendez · Diego Joachin
 **Audiencia de este pack:** el propio equipo y los agentes que colaborarán en el repositorio de implementación.
-**Estado:** planificación / diseño — **no** contiene código de aplicación, no crea repositorios, no despliega nada.
+**Estado:** pack de diseño **ya copiado** en el monorepo de implementación [`carloshugoeg/koicloud`](https://github.com/carloshugoeg/koicloud). Congela contratos; el código vive fuera de esta carpeta.
 
 ---
 
 ## Qué es este pack
 
-Esta carpeta es el puente entre la **Entrega 2** (requisitos + diseño preliminar, sellados en [`../entrega-2/`](../entrega-2/)) y el repositorio de implementación que todavía no existe (nombre sugerido: `koicloud`). Congela las decisiones necesarias para que cuatro personas — con asistencia intensiva de Cursor Ultra — construyan el sistema sin pisarse, sin salirse del **alcance sellado** y sin fantasear con productos que no vamos a entregar.
+Esta carpeta es el puente entre la **Entrega 2** (requisitos + diseño preliminar, sellados en [`../entrega-2/`](../entrega-2/)) y el monorepo de implementación `carloshugoeg/koicloud` (privado). Congela las decisiones necesarias para que cuatro personas — con asistencia intensiva de Cursor Ultra — construyan el sistema sin pisarse, sin salirse del **alcance sellado** y sin fantasear con productos que no vamos a entregar.
 
 El alcance sellado es el que aparece en [`../entrega-2/alcance.md`](../entrega-2/alcance.md): Web + CLI + MCP como adaptadores delgados sobre una sola API de control plane, PostgreSQL real en Docker, auth completa, billing simulado, consola SQL, respaldos, medición, admin, doble confirmación en mutaciones CLI/MCP, gate mínima de agente y guion de demo con fallback. Todo lo que aparece como “fuera de alcance” allí también está fuera aquí.
 
@@ -30,7 +30,7 @@ Lee en este orden si nunca has visto el pack; luego usa cualquier documento como
 | 6 | [`repo-scaffolding.md`](./repo-scaffolding.md) | Estructura exacta del monorepo, convenciones de config y entornos, esqueleto de CI |
 | 7 | [`dependencies.md`](./dependencies.md) | Elecciones de stack con *por qué*, dependencias externas, qué **no** agregar |
 | 8 | [`feature-breakdown.md`](./feature-breakdown.md) | Lista completa de funcionalidades → épicas → slices, dependencias y orden sugerido de construcción (camino a MVP para la demo) |
-| 9 | [`agent-docs.md`](./agent-docs.md) | Reglas de trabajo con Cursor y otros agentes: quién posee qué, `AGENTS.md`, límites del harness, DoD por superficie, política de publicación (`gh` + autoría Equipo KoiCloud, sin GitHub MCP) |
+| 9 | [`agent-docs.md`](./agent-docs.md) | Reglas de trabajo con Cursor y otros agentes: quién posee qué, `AGENTS.md`, límites del harness, DoD por superficie, política de publicación (`gh` + autoría personal de cada integrante, sin GitHub MCP) |
 | 10 | [`risks-and-demo-plan.md`](./risks-and-demo-plan.md) | Modos de falla, fallback si el LLM se cae en vivo, qué recortar si el semestre se atrasa |
 | — | [`diagrams/`](./diagrams/) | Fuentes Mermaid opcionales de los diagramas embebidos en los otros documentos |
 | — | [`../visual-guidelines.md`](../visual-guidelines.md) | **Piel del producto web**: color, tipografía, espaciado, movimiento, marca. Normativo para apariencia en `apps/web/**` |
@@ -43,7 +43,7 @@ Un [`internal/architecture-design-handoff.md`](../../internal/architecture-desig
 
 ## Cómo usar este pack en la implementación
 
-1. **Copia el pack** (o enlázalo) al repo de implementación cuando se cree. La versión en el store es la de referencia mientras el repo no exista; a partir de allí conviven ambas hasta la primera copia y luego el repo manda.
+1. **El repo de implementación ya existe** (`carloshugoeg/koicloud`). Esta copia en el monorepo manda; no re-bootstraps el pack desde plantillas viejas.
 2. **No lo edites al vuelo**: cambios de fondo pasan por CCR (Contract Change Request) como se describe en [`agent-docs.md`](./agent-docs.md). Correcciones tipográficas o de enlaces sí son PR directo.
 3. **Los agentes** deben leer `vision-and-constraints.md` + `agent-docs.md` + su sección de `feature-breakdown.md` **antes** de escribir código. La regla es de `AGENTS.md`, no una sugerencia.
 4. **Un ticket = un PR** dentro del workstream que lo posee. La propiedad de rutas está en [`repo-scaffolding.md`](./repo-scaffolding.md) §Ownership y en [`agent-docs.md`](./agent-docs.md).
@@ -80,17 +80,14 @@ En resumen: **el harness previo es fuente de inspiración de patrones, no fuente
 - **Documentación de estudiante:** español; identificadores en inglés (`create_pond`, `pending_confirmations`); UI en español.
 - **Apariencia de la Web:** la fija [`../visual-guidelines.md`](../visual-guidelines.md) — papel hueso, tinta casi negra, turquesa estructural, koi en pixel art como única ilustración, alma de reporte anual. Ningún documento de este pack redefine color ni tipografía.
 - **Sin adornos:** los diagramas explican; las tablas resumen. Ningún adjetivo comercial (“plataforma agéntica”, “auto-curación garantizada”).
-- **Sin GitHub MCP:** publicación con `gh` CLI y `GH_TOKEN` (ver `../github-publish.md`); autoría `Equipo KoiCloud`.
+- **Sin GitHub MCP:** publicación con `gh` CLI y `GH_TOKEN` (ver `../github-publish.md`); cada commit usa la cuenta personal de GitHub de quien hizo el trabajo. `Equipo KoiCloud` es voz de docs y UI, no identidad de git.
 
 ---
 
-## Estado y próximos pasos (planificación)
+## Estado y próximos pasos
 
-Este pack se considera **completo para la etapa de diseño**. Los pasos siguientes, en orden:
+Este pack se considera **completo para la etapa de diseño** y ya vive en `carloshugoeg/koicloud`. Los pasos siguientes son de producto, no de bootstrap:
 
-1. Revisar el pack en la próxima reunión del equipo; anotar objeciones como issues de discusión (no editar el pack sin acuerdo).
-2. Crear el repo de implementación `koicloud` (nombre sugerido, cambiable por acuerdo del equipo). Ver [`repo-scaffolding.md`](./repo-scaffolding.md) §Bootstrap.
-3. Copiar `AGENTS.md`, `.cursor/rules/`, `.github/` según [`agent-docs.md`](./agent-docs.md).
-4. Ejecutar la Fase 0 descrita en [`feature-breakdown.md`](./feature-breakdown.md) §Fase 0 antes de repartir tickets.
-
-Cualquier cambio de fondo posterior se registra como **ADR** en el propio repo de implementación (`docs/adr/NNN-*.md`), no aquí.
+1. Tickets W2–W4 en `docs/tickets/` (W2-01 aterrizó en [PR #1](https://github.com/carloshugoeg/koicloud/pull/1)).
+2. Pond alcanzable con `psql`: [`../runbooks/local-pond.md`](../runbooks/local-pond.md) (Compose) hasta tener VPS.
+3. Cualquier cambio de fondo se registra como **ADR** (`docs/adr/NNN-*.md`).

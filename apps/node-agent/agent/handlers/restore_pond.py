@@ -5,5 +5,4 @@ from agent.drivers.base import PondDriver
 
 
 def handle(job: ClaimedJob, driver: PondDriver) -> dict[str, object]:
-    _ = (job, driver)
-    raise NotImplementedError("restore_pond handler scaffold pending follow-up implementation.")
+    return driver.restore(str(job.payload["name"]), str(job.payload["backup_id"]))
