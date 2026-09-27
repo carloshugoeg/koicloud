@@ -14,7 +14,8 @@ no existe todavía. `00-INDEX.md` no es un ticket y el agente lo ignora.
 | W1-06 | Andamio de `apps/web`: cliente, auth-store, tema, MSW | `w1-web-scaffold` | por escribir |
 | W1-07 | Andamio de `apps/cli`: cliente, config, comando de referencia | `w1-cli-scaffold` | por escribir |
 | W1-08 | Node-agent con `mock_driver` y cola de jobs | `w1-node-agent-mock` | por escribir |
-| W1-09 | `create_pond` persistido + job claim | `w1-persist-create-pond` | en-revision |
+| W1-09 | `create_pond` persistido + job claim | `w1-persist-create-pond` | cerrado |
+| W1-15 | `users` + `email_tokens` persistidos | `w1-auth-persist` | en-revision |
 | W1-10 | Respaldos diarios y restauración verificada | `w1-backups` | por escribir |
 | W1-11 | Muestreo y agregación de consumo | `w1-metering` | por escribir |
 | W1-12 | MCP: montaje, gate, prompt, tools mutantes y confirmaciones | `w1-mcp-gate-confirm` | por escribir |

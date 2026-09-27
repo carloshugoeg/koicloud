@@ -4,15 +4,16 @@ from fastapi.testclient import TestClient
 
 from app.core.config import get_settings
 from app.main import app
-from tests.db_reset import reset_pond_tables
+from tests.db_reset import DEMO_EMAIL, DEMO_PASSWORD, ensure_demo_user, reset_pond_tables
 
 client = TestClient(app)
 
 
 def auth_headers() -> dict[str, str]:
+    ensure_demo_user()
     response = client.post(
         "/api/v1/auth/login",
-        json={"email": "demo@koicloud.dev", "password": "Sup3rSegura!2026"},
+        json={"email": DEMO_EMAIL, "password": DEMO_PASSWORD},
     )
     assert response.status_code == 200
     return {"Authorization": f"Bearer {response.json()['access_token']}"}

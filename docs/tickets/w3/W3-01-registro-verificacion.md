@@ -23,6 +23,7 @@ Dos endpoints de auth ya cerrados por contrato para que Web pueda registrar y ve
 - Verify recibe el token **solo** en body JSON `VerifyEmailRequest` `{token}` (OpenAPI / `api-surface.md`). No existe `POST /auth/verify?token=`. El enlace de correo puede aterrizar en Web con `?token=`; el router de W3 lee el body.
 - Errores: `email_taken`, `password_too_weak`, `token_invalid`, `token_expired`, `rate_limited`.
 - Las firmas de `register_user` y `verify_email` las deja W1; el router solo valida y transporta.
+- W1 ya persiste `users` y `email_tokens`. El router llama esos comandos y `issue_email_token(user_id, verify_email)` para obtener el plaintext del correo. No hay `token` en `RegisterUserResponse`.
 
 ## Criterios de aceptación
 

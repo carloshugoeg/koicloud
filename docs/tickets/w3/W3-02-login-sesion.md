@@ -22,6 +22,7 @@ Cableado de sesión JWT + refresh para que Web y CLI puedan iniciar sesión, rot
 - Login responde `{access_token, refresh_token, user}`; logout responde `204`.
 - Refresh token va en cookie `koi_refresh`; JWT 15 min y refresh 30 días, rotativo.
 - Errores: `invalid_credentials`, `email_not_verified`, `account_suspended`, `token_expired`, `rate_limited`.
+- W1 ya persiste login y refresh. `issue_tokens` exige usuario verificado. `rotate_refresh` rota y, si se reusa un refresh revocado, revoca la familia. `revoke_refresh(token)` revoca uno. Logout en `api_v1.py` todavía pasa `None`; el router de W3 debe pasar el refresh de la cookie.
 
 ## Criterios de aceptación
 
