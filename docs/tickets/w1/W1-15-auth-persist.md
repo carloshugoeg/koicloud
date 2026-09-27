@@ -6,7 +6,7 @@ estado: en-revision
 rama: w1-auth-persist
 epica: "E1-01, E1-02, E1-03, E1-04"
 sprint: S1
-pr:
+pr: https://github.com/carloshugoeg/koicloud/pull/7
 ---
 
 # [W1-15] Persistencia de `users` y `email_tokens`
