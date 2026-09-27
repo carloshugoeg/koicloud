@@ -22,6 +22,7 @@ Endpoints para recuperación de contraseña con respuesta neutral en forgot y co
 - Reset devuelve `{ok:true}` y revoca todos los refresh del usuario.
 - TTL fijo del token de reset: 1 h y un solo uso.
 - Errores: `token_invalid`, `token_expired`, `password_too_weak`, `rate_limited`.
+- W1 ya persiste el reset: `send_reset_token` inserta `email_tokens` (`kind=reset_password`, 1 h) si el usuario existe. El plaintext sale por `issue_email_token(user_id, reset_password)`. `reset_password` consume el token y revoca `refresh_tokens`.
 
 ## Criterios de aceptación
 
