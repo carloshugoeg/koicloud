@@ -7,6 +7,7 @@ rama: w3-registro-verificacion
 epica: "E1-01, E1-02"
 sprint: S2
 pr:
+depends_on: W1-15
 ---
 
 # [W3-01] `POST /auth/register` y `POST /auth/verify`
@@ -22,16 +23,18 @@ Dos endpoints de auth ya cerrados por contrato para que Web pueda registrar y ve
 - Verify responde `{user_id, email_verified:true}`.
 - Verify recibe el token **solo** en body JSON `VerifyEmailRequest` `{token}` (OpenAPI / `api-surface.md`). No existe `POST /auth/verify?token=`. El enlace de correo puede aterrizar en Web con `?token=`; el router de W3 lee el body.
 - Errores: `email_taken`, `password_too_weak`, `token_invalid`, `token_expired`, `rate_limited`.
+- Depends on W1-15 landed (`be147a5`). Call `register_user`, `verify_email` and
+  `issue_email_token` only. Do not edit `core/` or `commands/`.
 - Las firmas de `register_user` y `verify_email` las deja W1; el router solo valida y transporta.
 - W1 ya persiste `users` y `email_tokens`. El router llama esos comandos y `issue_email_token(user_id, verify_email)` para obtener el plaintext del correo. No hay `token` en `RegisterUserResponse`.
 
 ## Criterios de aceptación
 
-1. Register persiste al usuario y dispara la notificación de verificación.
-2. Verify marca `email_verified_at` y consume el token una sola vez.
-3. Correo duplicado devuelve `email_taken` 409.
+1. El router de `modules/auth` llama `register_user` y `issue_email_token`. El persist del usuario lo hace el comando.
+2. El router llama `verify_email`. El comando marca `email_verified_at` y consume el token.
+3. Correo duplicado devuelve `email_taken` 409 (el comando; el router transporta el `AppError`).
 4. Token inválido o expirado devuelve el `code` del catálogo y ejemplo de schema coherente.
-5. Hay pruebas de API para caso feliz y token expirado.
+5. Hay pruebas de API para caso feliz y token expirado. No reimplementes el persist en el test.
 
 ## No tocar
 
@@ -43,8 +46,9 @@ Dos endpoints de auth ya cerrados por contrato para que Web pueda registrar y ve
 
 ## Si algo falta
 
-Respondé `BLOQUEADO: requiere <CCR | ticket para W1> porque <razón>` y pará.
-No inventes endpoints, schemas, queries, comandos ni códigos de error.
+Respondé `BLOQUEADO` solo si hay que *editar* OpenAPI, una firma de comando o `core/`.
+`users` / `EmailToken` en `core/models.py` no es un muro: W1-15 ya los dejó. Llamá los comandos.
+Si `depends_on` no está hecho, `ESPERA`. No inventes endpoints, schemas, queries ni códigos.
 
 ## Referencia
 

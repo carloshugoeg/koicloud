@@ -23,7 +23,9 @@ Generador de PDF de factura a partir de un `invoice` ya calculado. El resultado 
 - Pie fijo: `Factura simulada — proyecto académico`.
 - Ejemplo Micro: subtotal `4.4643`, IVA `0.5357`, total `5.0000`.
 - El PDF se guarda bajo `INVOICE_DIR`.
-- El store no trae el golden PDF ni el JSON de `invoice` prometidos por la planificación.
+- Fixture de prueba: el ejemplo Micro de *Entradas* (`subtotal` 4.4643, `IVA` 0.5357,
+  `total` 5.0000, código `KC-2026-000001`). No hay golden PDF. Assert tamaño > 1 KB
+  y que el texto extraído contiene `12` / `IVA` / el pie académico.
 
 ## Criterios de aceptación
 
@@ -42,9 +44,8 @@ Generador de PDF de factura a partir de un `invoice` ya calculado. El resultado 
 
 ## Si algo falta
 
-Respondé `BLOQUEADO: requiere <CCR | ticket para W1> porque <razón>` y pará.
-No inventes endpoints, schemas, queries, comandos ni códigos de error.
-- Si W1 no entrega el golden PDF y el JSON de ejemplo, bloqueá y no fabriques un fixture “parecido”.
+Respondé `BLOQUEADO` solo si `split_iva` no existe en el comando de billing.
+El fixture Micro de *Entradas* alcanza. No esperes un golden PDF de W1.
 
 ## Referencia
 

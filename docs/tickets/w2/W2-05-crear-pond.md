@@ -37,15 +37,14 @@ Diálogo sobre el dashboard para crear un pond: valida el nombre en vivo, muestr
 - `src/api/client.ts`.
 - `src/api/schema.d.ts`.
 - `src/lib/auth-store.ts`.
-- `src/app/router.tsx` (si hiciera falta una ruta nueva, se pide a W1).
+- `src/app/router.tsx` salvo una ruta que este ticket nombre y aún no exista. Las de Fase 0 ya están.
 - `src/components/ui/*` salvo cambios de tema cuando el ticket lo permita.
 - Cualquier archivo fuera de `apps/web/`.
 
 ## Si algo falta
 
-Respondé `BLOQUEADO: requiere <CCR | ticket para W1> porque <razón>` y pará.
-No inventes endpoints, campos, hooks, rutas ni códigos de error.
-- Si el detalle `/app/ponds/:id` o el hook de create no quedaron congelados por W1, bloqueá; no abras rutas nuevas desde este ticket.
+Respondé `BLOQUEADO` solo si `POST /ponds` no está en el cliente generado.
+`/app/ponds/:id` y `/app/ponds/new` ya están en el router. Implementá la página.
 
 ## Referencia
 

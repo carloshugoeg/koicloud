@@ -7,6 +7,7 @@ rama: w2-recuperar-password
 epica: "E1-04"
 sprint: S3
 pr:
+depends_on:
 ---
 
 # [W2-02] Recuperación de contraseña
@@ -17,8 +18,9 @@ Flujo del mockup `#auth` para `¿Olvidaste tu contraseña?`: formulario de solic
 
 ## Entradas ya decididas (no se cambian)
 
-- Rutas: `/olvide` y `/restablecer?token=`.
-- API: `POST /auth/forgot` y `POST /auth/reset`.
+- Rutas ya registradas en `src/app/router.tsx`: `/forgot` y `/reset?token=`.
+  Implementá `ForgotPage` y `ResetPage`. No pidas CCR por el router.
+- API: `POST /auth/forgot` y `POST /auth/reset`. Los hooks/cliente de Fase 0 ya existen.
 - Forgot siempre devuelve `202 {ok:true}` con mensaje neutral, exista o no el correo.
 - Reset consume un token de un solo uso con TTL de 1 h y acepta la nueva contraseña.
 - Códigos de error: `token_invalid`, `token_expired`, `password_too_weak`, `rate_limited`.
@@ -37,15 +39,14 @@ Flujo del mockup `#auth` para `¿Olvidaste tu contraseña?`: formulario de solic
 - `src/api/client.ts`.
 - `src/api/schema.d.ts`.
 - `src/lib/auth-store.ts`.
-- `src/app/router.tsx` (si hiciera falta una ruta nueva, se pide a W1).
+- `src/app/router.tsx` (las rutas `/forgot` y `/reset` ya están).
 - `src/components/ui/*` salvo cambios de tema cuando el ticket lo permita.
 - Cualquier archivo fuera de `apps/web/`.
 
 ## Si algo falta
 
-Respondé `BLOQUEADO: requiere <CCR | ticket para W1> porque <razón>` y pará.
-No inventes endpoints, campos, hooks, rutas ni códigos de error.
-- Si W1 no dejó congelados los hooks/rutas de forgot y reset, bloqueá y no crees un flujo paralelo.
+Respondé `BLOQUEADO` solo si hay que *editar* OpenAPI o inventar un endpoint.
+`/forgot` y `/reset` ya están en el router. No declares BLOQUEADO por hooks.
 
 ## Referencia
 

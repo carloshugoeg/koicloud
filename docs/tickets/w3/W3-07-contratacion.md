@@ -7,6 +7,7 @@ rama: w3-contratacion
 epica: "E2-02, E2-05"
 sprint: S3
 pr:
+depends_on: W3-01
 ---
 
 # [W3-07] `POST /subscriptions` y `/cancel` (cableado)
@@ -17,6 +18,8 @@ Endpoints de contratación y cancelación al fin del período. Lo visible es el 
 
 ## Entradas ya decididas (no se cambian)
 
+- Depends on W3-01 (usuario real). Call `subscribe` and `cancel_subscription` only,
+  even if the command body is still a fixture.
 - Endpoints: `POST /subscriptions` -> `subscribe` y `POST /subscriptions/{id}/cancel` -> `cancel_subscription`.
 - La contratación responde `{subscription, invoice, payment}`.
 - CLI/MCP usan confirmación; Web no la requiere en esta ruta.

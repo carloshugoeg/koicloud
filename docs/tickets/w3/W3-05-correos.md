@@ -7,6 +7,7 @@ rama: w3-correos
 epica: "E1-01, E1-04, E8-03"
 sprint: S3
 pr:
+depends_on: W3-01
 ---
 
 # [W3-05] Módulo `notifications`: 4 plantillas y proveedor de consola
@@ -20,13 +21,18 @@ Módulo de notificaciones que valida contexto y renderiza correo HTML/txt con pr
 - Ruta propia: `apps/api/app/modules/notifications/**`.
 - API del módulo: `send(template, to, context)`.
 - El proveedor `console` imprime asunto, destinatario y cuerpo completo, incluyendo URLs de verify/reset.
-- Dos familias sí están fijadas por docs: verificación de correo y reset de contraseña.
-- Las otras dos pertenecen a E8-03/billing, pero la lista cerrada de nombres y el copy final no están en el store.
+- IDs congelados (cuatro, ni uno más): `verify_email`, `reset_password`,
+  `invoice_issued`, `subscription_canceled`.
+- Asuntos: «Verificá tu correo» · «Restablecé tu contraseña» · «Tu factura de KoiCloud» ·
+  «Cancelación programada».
+- Cuerpo: HTML + txt en español. Verify/reset incluyen la URL completa que recibe `send()`.
+- Contextos mínimos: `verify_email`/`reset_password` → `{url, email}`;
+  `invoice_issued` → `{code, total}`; `subscription_canceled` → `{plan, ends_on}`.
 
 ## Criterios de aceptación
 
 1. `send()` rechaza templates desconocidos o contexto incompleto.
-2. Las cuatro plantillas renderizan versión HTML y txt una vez que W1 congele nombres/textos.
+2. Las cuatro plantillas de *Entradas* renderizan HTML y txt.
 3. El proveedor `console` deja visible la URL completa en verify/reset.
 4. Hay una prueba unitaria feliz por plantilla y una de validación fallida.
 
@@ -40,9 +46,8 @@ Módulo de notificaciones que valida contexto y renderiza correo HTML/txt con pr
 
 ## Si algo falta
 
-Respondé `BLOQUEADO: requiere <CCR | ticket para W1> porque <razón>` y pará.
-No inventes endpoints, schemas, queries, comandos ni códigos de error.
-- No están congelados ni los cuatro IDs exactos ni el copy final en español; si no llegan en el ticket o desde W1, bloqueá y no inventes plantillas nuevas.
+Respondé `BLOQUEADO` solo si hace falta un quinto template o un campo fuera de *Entradas*.
+Los cuatro IDs ya están en este ticket. No esperes otro freeze de W1.
 
 ## Referencia
 

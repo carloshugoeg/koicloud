@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# ¿Qué me toca? — resuelve nombre → workstream → siguiente ticket abierto.
+# ¿Qué me toca? — resuelve nombre → workstream → siguiente ticket listo.
 #
 #   bash scripts/what-do-i-do.sh Jason
 #
-# Imprime el ticket de número más bajo con `estado: abierto` en docs/tickets/<wN>/,
-# su rama y sus rutas prohibidas. No modifica nada. La regla completa está en
-# AGENTS.md §1 y en docs/tickets/README.md.
+# Toma el ticket de número más bajo con `estado: abierto` cuyos `depends_on`
+# estén `hecho` o `cerrado`. Si el más bajo espera un prerrequisito, imprime
+# ESPERA (no BLOQUEADO / CCR). No modifica nada.
 
 set -euo pipefail
 
@@ -26,13 +26,13 @@ case "$nombre_lower" in
     rutas="todas (W1 puede tocar cualquier ruta)" ;;
   jason*)
     ws=w2; persona="Jason"; area="web"
-    rutas="apps/web/** — y nada fuera de ahí" ;;
+    rutas="apps/web/** y docs/tickets/w2/**" ;;
   jous*)
     ws=w3; persona="Jousé"; area="cuentas y dinero"
-    rutas="apps/api/app/modules/{auth,users,billing,notifications,admin}/**" ;;
+    rutas="apps/api/app/modules/{auth,users,billing,notifications,admin}/** y docs/tickets/w3/**" ;;
   diego*)
     ws=w4; persona="Diego"; area="superficies y operación"
-    rutas="apps/api/app/modules/sql_console/**, apps/api/app/mcp/** (solo tools de lectura), apps/cli/**, infra/**, load/**, manuales" ;;
+    rutas="apps/cli/**, mcp lectura, sql_console, infra, load, manuales y docs/tickets/w4/**" ;;
   *)
     echo "No conozco a «$1». Nombres válidos: Carlos · Jason · Jousé · Diego."
     echo "Si eres nuevo en el equipo, pide que te agreguen a AGENTS.md §1 y a docs/WORKSTREAMS.md."
@@ -45,13 +45,9 @@ if [ ! -d "$dir" ]; then
   exit 1
 fi
 
-ticket=""
-for f in $(ls -1 "$dir" | grep -E '^W[0-9]-[0-9]+-.*\.md$' | sort); do
-  if grep -qE '^estado:[[:space:]]*abierto[[:space:]]*$' "$dir/$f"; then
-    ticket="$dir/$f"
-    break
-  fi
-done
+next_out="$(python3 "$ROOT/scripts/ticket_prereqs.py" next "$1")"
+kind="$(printf '%s\n' "$next_out" | sed -n '1p')"
+kind="${kind:-NONE}"
 
 echo "Persona:    $persona"
 ws_upper="$(printf '%s' "$ws" | tr '[:lower:]' '[:upper:]')"
@@ -60,26 +56,39 @@ echo "Tickets:    docs/tickets/$ws/"
 echo "Puede tocar: $rutas"
 echo
 
-if [ -z "$ticket" ]; then
+if [ "$kind" = "NONE" ]; then
   echo "No hay ningún ticket con \`estado: abierto\` en docs/tickets/$ws/."
   echo "Mirá docs/tickets/$ws/00-INDEX.md para el plan del workstream, y pedí que escriban"
   echo "el siguiente ticket. No empieces trabajo sin ticket."
   exit 0
 fi
 
-rel="${ticket#"$ROOT"/}"
+if [ "$kind" = "ESPERA" ]; then
+  echo "ESPERA: el ticket más bajo todavía depende de otro que no está hecho/cerrado."
+  echo "No abras CCR. No declares BLOQUEADO. Hacé fetch de main cuando aterrice el prerrequisito."
+  echo
+  printf '%s\n' "$next_out" | sed -n '2,$s/^/  - /p'
+  exit 0
+fi
+
+rel="$kind"
+ticket="$ROOT/$rel"
 titulo="$(grep -m1 '^# ' "$ticket" | sed 's/^# //')"
-rama="$(grep -m1 '^rama:' "$ticket" | sed 's/^rama:[[:space:]]*//')"
+rama="$(printf '%s\n' "$next_out" | sed -n '3p')"
+deps="$(printf '%s\n' "$next_out" | sed -n '4p')"
 
 echo "Te toca:  $titulo"
 echo "Archivo:  $rel"
 echo "Rama:     $rama"
+if [ -n "$deps" ]; then
+  echo "Depends:  $deps (ya hecho/cerrado)"
+fi
 echo
 echo "Siguiente paso, en este orden:"
-echo "  1. Leé AGENTS.md completo."
+echo "  1. Leé AGENTS.md completo (sobre todo §1 paso 3: cuándo BLOQUEADO vs ESPERA vs llamar)."
 echo "  2. Leé $rel completo y verificá que trae las seis secciones."
-echo "     Si falta una, o pide tocar algo congelado o ajeno: respondé"
-echo "     'BLOQUEADO: requiere <CCR | ticket para Wn> porque <razón>' y pará."
+echo "     BLOQUEADO solo si hay que *editar* un contrato congelado o un archivo ajeno."
+echo "     Si el comando ya existe en app/commands, llamalo. No es BLOQUEADO."
 echo "  3. Leé solo las secciones de docs/architecture/ que el ticket cita."
 if [ "$ws" = "w2" ]; then
   echo "     Además, por ser W2: docs/visual-guidelines.md (la piel es obligatoria)."

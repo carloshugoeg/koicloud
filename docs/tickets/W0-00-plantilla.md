@@ -7,6 +7,7 @@ rama: w0-plantilla
 epica: E0-00
 sprint: S0
 pr:
+depends_on:
 ---
 
 # [W0-00] Título corto en español
@@ -29,6 +30,7 @@ Todo lo que el agente NO debe decidir:
 - Errores a manejar por `code`.
 - Textos en español, literales.
 - Para W2 además: piel (docs/visual-guidelines.md §10, fila de esta pantalla).
+- Prerrequisitos: "Depends on W1-XX landed. Call `comando` only."
 -->
 
 ## Criterios de aceptación
@@ -45,7 +47,9 @@ Todo lo que el agente NO debe decidir:
 
 ## Si algo falta
 
-Respondé `BLOQUEADO: requiere <CCR | ticket para Wn> porque <razón>` y pará.
+Respondé `BLOQUEADO: requiere <CCR | ticket para Wn> porque <razón>` y pará
+**solo** si hay que *editar* un contrato congelado o un archivo ajeno.
+Si el comando ya existe, llamalo. Si `depends_on` no aterrizó, `ESPERA`.
 No inventes endpoints, campos, tablas, códigos de error ni pantallas.
 
 ## Referencia

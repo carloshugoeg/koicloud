@@ -7,6 +7,7 @@ rama: w3-perfil
 epica: "E1-05"
 sprint: S3
 pr:
+depends_on: W1-15
 ---
 
 # [W3-04] `GET /me` y `PATCH /me`
@@ -17,17 +18,19 @@ Lectura y actualización del perfil del usuario autenticado. El resultado visibl
 
 ## Entradas ya decididas (no se cambian)
 
+- Depends on W1-15 landed. Call `get_me` and `update_profile` only.
 - Endpoints: `GET /me` -> `get_me` y `PATCH /me` -> `update_profile`.
 - Campos editables: `full_name` y `nit`.
 - Response de `GET /me`: `{user, subscription?, ponds_count}`.
 - Las `example` de request/response deben quedar en OpenAPI.
-- La validación exacta de NIT no está fijada en `api-surface.md`.
+- NIT (congelado aquí): opcional. `strip()`. Vacío → `null`. Sin regex ni normalización
+  de guiones. El comando guarda el string. El router no valida formato.
 
 ## Criterios de aceptación
 
-1. `GET /me` devuelve perfil, resumen de suscripción y cantidad de ponds.
-2. `PATCH /me` persiste `full_name` y `nit`.
-3. La validación de NIT usa solo la regla congelada por W1, sin regex ad hoc.
+1. El router llama `get_me`. Devuelve perfil, resumen de suscripción y cantidad de ponds.
+2. El router llama `update_profile`. El comando persiste `full_name` y `nit`.
+3. NIT vacío se guarda `null`. Cualquier otro string no vacío se transporta tal cual.
 4. Hay `example` coherentes para request y response.
 5. Las pruebas cubren get y patch feliz.
 
@@ -41,9 +44,8 @@ Lectura y actualización del perfil del usuario autenticado. El resultado visibl
 
 ## Si algo falta
 
-Respondé `BLOQUEADO: requiere <CCR | ticket para W1> porque <razón>` y pará.
-No inventes endpoints, schemas, queries, comandos ni códigos de error.
-- Si W1 no congela la regla de NIT, bloqueá el ticket y no inventes regex ni normalización nueva.
+Respondé `BLOQUEADO` solo si hay que *editar* OpenAPI o la firma de un comando.
+La regla de NIT está en *Entradas*. No abras CCR por un regex.
 
 ## Referencia
 

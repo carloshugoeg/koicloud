@@ -29,9 +29,9 @@ Los handles de la tabla son los de GitHub, verificados con `gh api users/<login>
 | Workstream | Rutas propias |
 |---|---|
 | **W1** | `apps/api/app/{core,commands,internal_api,workers,tooling}/**` · `apps/api/app/main.py` · `apps/api/app/modules/{ponds,jobs,nodes,backups,metering,agent_access}/**` · `apps/api/alembic/**` · `apps/node-agent/**` · `packages/contracts/**` · `Makefile` · `docker-compose.yml` · `.env.example` · `scripts/**` · `AGENTS.md`, `GEMINI.md`, `CLAUDE.md`, `.cursor/**`, `.agents/**` · `.github/**` (excepto `deploy.yml`) · `docs/architecture/**`, `docs/adr/**`, `docs/runbooks/**` |
-| **W2** | `apps/web/**` |
-| **W3** | `apps/api/app/modules/{auth,users,billing,notifications,admin}/**` |
-| **W4** | `apps/api/app/modules/sql_console/**` · `apps/api/app/mcp/**` (solo tools de lectura) · `apps/cli/**` · `infra/**` · `load/**` · `.github/workflows/deploy.yml` (con aprobación de W1) · `docs/manual-usuario/**`, `docs/manual-tecnico.md`, `docs/reporte-carga.md` |
+| **W2** | `apps/web/**` · `docs/tickets/w2/**` |
+| **W3** | `apps/api/app/modules/{auth,users,billing,notifications,admin}/**` · `docs/tickets/w3/**` |
+| **W4** | `apps/api/app/modules/sql_console/**` · `apps/api/app/mcp/**` (solo tools de lectura) · `apps/cli/**` · `infra/**` · `load/**` · `.github/workflows/deploy.yml` (con aprobación de W1) · `docs/manual-usuario/**`, `docs/manual-tecnico.md`, `docs/reporte-carga.md` · `docs/tickets/w4/**` |
 
 **Cualquier archivo no listado pertenece a W1.** Una rama `w1-…` puede tocar cualquier ruta;
 las demás fallan el job `ownership` de CI si tocan algo ajeno. Los manifiestos de

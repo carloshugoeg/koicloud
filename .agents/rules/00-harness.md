@@ -24,10 +24,12 @@ Nombre que no esté en la tabla: **pregunta**, no adivines.
 
 2. **Ticket:** el de número más bajo con `estado: abierto` en `docs/tickets/<wN>/`.
    Atajo: `bash scripts/what-do-i-do.sh <nombre>`. Convención: `docs/tickets/README.md`.
-3. **Valida el ticket:** debe traer las seis secciones (*Qué se ve*, *Entradas ya decididas*,
-   *Criterios de aceptación*, *No tocar*, *Si algo falta*, *Referencia*). Si falta una, o si
-   cumplirlo exige tocar algo congelado o ajeno, responde y **detente**:
-   `BLOQUEADO: requiere <CCR | ticket para Wn> porque <razón>`.
+3. **Valida el ticket:** seis secciones. Si falta una → `BLOQUEADO`. Si `depends_on:`
+   no está `hecho`/`cerrado` → `ESPERA: depends on <ID>`, no CCR. `BLOQUEADO` solo si
+   tenés que *editar* un contrato congelado o un archivo ajeno. **No es BLOQUEADO**
+   si el comando ya existe: llamalo. Persist en CA + *No tocar* `commands/` = el
+   comando persiste; el router transporta. Importar no es tocar. Ruta ya en
+   `router.tsx` = implementá la página.
 4. **Lee solo lo citado:** `AGENTS.md` → `docs/architecture/api-surface.md` (secciones del
    ticket) → `docs/architecture/data-model.md` → el ticket. En `w2-…` añade
    `docs/visual-guidelines.md`.
@@ -51,8 +53,9 @@ Tocas **solo** las rutas de tu workstream. Todo lo no listado es de W1: `app/{co
 internal_api,workers,tooling}/**`, `app/main.py`, `alembic/**`, `packages/contracts/**`,
 `apps/node-agent/**`, `Makefile`, `docker-compose.yml`, `.env.example`, `.github/**`,
 `AGENTS.md`, `.cursor/**`, `.agents/**`, `scripts/**`, `docs/architecture/**`.
-CI (`ownership`) falla si una rama `w2-`, `w3-` o `w4-` toca ajenos. Ninguna dependencia
-nueva que el ticket no nombre.
+CI (`ownership`) falla si una rama `w2-`, `w3-` o `w4-` toca ajenos. Importar un
+comando no es tocarlo. Cada workstream edita `docs/tickets/<wN>/**`. Ninguna
+dependencia nueva que el ticket no nombre.
 
 ## Autoría de commits
 

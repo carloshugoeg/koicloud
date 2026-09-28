@@ -24,5 +24,6 @@ qué tablas, qué pasos) sale de los mockups de `docs/entrega-2/mockups/`; la pi
 tipografía, densidad, movimiento) sale de `docs/visual-guidelines.md` y manda siempre.
 
 **Fuera de `apps/web/` no se toca nada.** Tampoco `src/api/client.ts`,
-`src/api/schema.d.ts`, `src/lib/auth-store.ts`, `src/app/router.tsx` ni
-`src/components/ui/*` (salvo tema).
+`src/api/schema.d.ts`, `src/lib/auth-store.ts` ni `src/components/ui/*` (salvo tema).
+`src/app/router.tsx` ya registra las rutas de Fase 0. Implementá la página del ticket.
+No pidas CCR por una ruta que ya está. Podés editar `docs/tickets/w2/**`.

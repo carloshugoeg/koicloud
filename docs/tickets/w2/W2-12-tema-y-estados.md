@@ -38,15 +38,14 @@ Shell base de la SPA, tokens visuales, estados de datos consistentes y navegaci�
 - `src/api/client.ts`.
 - `src/api/schema.d.ts`.
 - `src/lib/auth-store.ts`.
-- `src/app/router.tsx` (si hiciera falta una ruta nueva, se pide a W1).
+- `src/app/router.tsx` salvo una ruta que este ticket nombre y aún no exista. Las de Fase 0 ya están.
 - `src/components/ui/*` salvo cambios de tema cuando el ticket lo permita.
 - Cualquier archivo fuera de `apps/web/`.
 
 ## Si algo falta
 
-Respondé `BLOQUEADO: requiere <CCR | ticket para W1> porque <razón>` y pará.
-No inventes endpoints, campos, hooks, rutas ni códigos de error.
-- Si W1 no dejó el puente de tokens y el shell base de Fase 0, bloqueá y no rehagas el scaffold desde este ticket.
+Respondé `BLOQUEADO` solo si el shell o los tokens de `index.css` no están en `main`.
+El scaffold de Fase 0 ya está. No lo rehagas.
 
 ## Referencia
 

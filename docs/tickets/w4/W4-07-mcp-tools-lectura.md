@@ -19,8 +19,8 @@ Seis tools FastMCP read-only, cortas y copiando el patrón de referencia de W1. 
 
 - Ruta propia: `apps/api/app/mcp/**`, pero solo archivos de sus tools de lectura.
 - Cada tool debe quedar en 25 líneas o menos y delegar en comandos/servicios ya existentes.
-- Candidatas permitidas por contrato: `whoami`, `list_ponds`, `get_pond`, `get_connection`, `list_subscriptions`, `list_backups`, `get_usage`.
-- El store no fija cuál de esas 7 queda fuera para llegar a 6 tools.
+- Las seis tools (ni una más): `whoami`, `list_ponds`, `get_pond`, `get_connection`,
+  `list_subscriptions`, `list_backups`. `get_usage` queda fuera de este ticket.
 - No se tocan gate, prompt, server ni tools mutantes.
 
 ## Criterios de aceptación
@@ -39,9 +39,8 @@ Seis tools FastMCP read-only, cortas y copiando el patrón de referencia de W1. 
 
 ## Si algo falta
 
-Respondé `BLOQUEADO: requiere <CCR | ticket para W1> porque <razón>` y pará.
-No inventes comandos, flags, payloads, tools ni atajos al flujo de confirmación.
-- Si W1 no elige el subconjunto final de 6, bloqueá y no descartes una tool arbitrariamente.
+Respondé `BLOQUEADO` solo si hace falta una séptima tool o tocar el gate.
+Las seis ya están en *Entradas*. No esperes otro freeze.
 
 ## Referencia
 

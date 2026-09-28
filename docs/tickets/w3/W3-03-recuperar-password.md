@@ -7,6 +7,7 @@ rama: w3-recuperar-password
 epica: "E1-04"
 sprint: S3
 pr:
+depends_on: W1-15 W3-01
 ---
 
 # [W3-03] `POST /auth/forgot` y `/auth/reset`
@@ -22,14 +23,16 @@ Endpoints para recuperación de contraseña con respuesta neutral en forgot y co
 - Reset devuelve `{ok:true}` y revoca todos los refresh del usuario.
 - TTL fijo del token de reset: 1 h y un solo uso.
 - Errores: `token_invalid`, `token_expired`, `password_too_weak`, `rate_limited`.
+- Depends on W1-15 landed. Call `send_reset_token`, `reset_password` and
+  `issue_email_token` only.
 - W1 ya persiste el reset: `send_reset_token` inserta `email_tokens` (`kind=reset_password`, 1 h) si el usuario existe. El plaintext sale por `issue_email_token(user_id, reset_password)`. `reset_password` consume el token y revoca `refresh_tokens`.
 
 ## Criterios de aceptación
 
-1. Forgot devuelve 202 aun cuando el correo no exista.
-2. Reset con token válido actualiza el password hash y revoca sesiones.
-3. Token inválido o expirado devuelve el `code` correcto.
-4. El mismo token no puede reutilizarse.
+1. El router llama `send_reset_token`. Forgot devuelve 202 aun cuando el correo no exista.
+2. El router llama `reset_password`. El comando actualiza el hash y revoca sesiones.
+3. Token inválido o expirado devuelve el `code` correcto (el comando).
+4. El mismo token no puede reutilizarse (el comando).
 5. Hay pruebas de API para forgot neutral y reset feliz.
 
 ## No tocar
@@ -42,8 +45,8 @@ Endpoints para recuperación de contraseña con respuesta neutral en forgot y co
 
 ## Si algo falta
 
-Respondé `BLOQUEADO: requiere <CCR | ticket para W1> porque <razón>` y pará.
-No inventes endpoints, schemas, queries, comandos ni códigos de error.
+Respondé `BLOQUEADO` solo si hay que *editar* OpenAPI o la firma de un comando.
+El persist de `email_tokens` ya está en W1-15. Llamá los comandos.
 
 ## Referencia
 

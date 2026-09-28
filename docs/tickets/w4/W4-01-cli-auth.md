@@ -7,6 +7,7 @@ rama: w4-cli-auth
 epica: "E9-01"
 sprint: S2
 pr:
+depends_on:
 ---
 
 # [W4-01] CLI `login`, `logout`, `whoami`
@@ -21,6 +22,7 @@ Comandos básicos de sesión de la CLI. El resultado visible es un archivo de se
 - API: `POST /auth/login`, `POST /auth/logout`, `GET /me`.
 - La sesión se guarda en `~/.config/koicloud/config.json` con permisos `0600`.
 - Se reutiliza `apps/cli/koicloud_cli/client.py` y el ejemplo `MockTransport` que deja W1.
+  No necesitás `email_tokens`. Login pega a `POST /auth/login`.
 - Sin sesión, cualquier comando sale con código `1` y el mensaje “Primero corré `koicloud login`” (`api-surface.md` §5). El `2` de la matriz de inputs no aplica.
 
 ## Criterios de aceptación

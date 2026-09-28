@@ -58,13 +58,14 @@ OWNED: dict[str, list[str]] = {
         "docs/runbooks/**",
         "scripts/**",
     ],
-    "w2": ["apps/web/**"],
+    "w2": ["apps/web/**", "docs/tickets/w2/**"],
     "w3": [
         "apps/api/app/modules/auth/**",
         "apps/api/app/modules/users/**",
         "apps/api/app/modules/billing/**",
         "apps/api/app/modules/notifications/**",
         "apps/api/app/modules/admin/**",
+        "docs/tickets/w3/**",
     ],
     "w4": [
         "apps/api/app/modules/sql_console/**",
@@ -77,6 +78,7 @@ OWNED: dict[str, list[str]] = {
         "docs/manual-usuario.md",
         "docs/manual-usuario/**",
         "docs/reporte-carga.md",
+        "docs/tickets/w4/**",
     ],
 }
 

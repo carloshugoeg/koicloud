@@ -19,10 +19,10 @@ el agente lo ignora.
 | W3-11 | Admin: usuarios, suspender y reactivar | `w3-admin-usuarios` | abierto |
 | W3-12 | Admin: ponds del sistema y bitácora | `w3-admin-ponds-bitacora` | abierto |
 
-**El router transporta; el comando calcula.** Los invariantes de dinero (cómo se calcula la
-factura, el IVA, el prorrateo, la renovación y la cuota por plan) y los primitivos de token
-y hash ya están escritos en `app/commands/` y `app/core/`, y son de W1. Si tu endpoint
-necesita un campo que no existe, se abre **CCR**; no se agrega.
+**El router transporta; el comando calcula.** W1-15 ya persistió `users` y `email_tokens`.
+W3-01 depende de eso y **llama** `register_user` / `verify_email` / `issue_email_token`.
+Importar `app.commands` no es tocar `commands/`. Si falta un campo en OpenAPI, se abre
+**CCR**; si el comando ya existe, no.
 
 **Rutas propias:** `apps/api/app/modules/{auth,users,billing,notifications,admin}/**`.
 Nada de `core/`, `commands/`, `alembic/`, `packages/contracts/` ni los módulos de W1 o W4.
