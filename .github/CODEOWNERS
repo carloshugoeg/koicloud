@@ -43,6 +43,9 @@ docs/runbooks/**                           @carloshugoeg
 docs/WORKSTREAMS.md                        @carloshugoeg
 docs/visual-guidelines.md                  @carloshugoeg
 docs/tickets/**                            @carloshugoeg
+docs/tickets/w2/**                         @Jasgu097
+docs/tickets/w3/**                         @Josh-JM
+docs/tickets/w4/**                         @diegojoachin07
 
 # ── W2 · Jason — la SPA ──────────────────────────────────────────────────────────
 apps/web/**                                @Jasgu097

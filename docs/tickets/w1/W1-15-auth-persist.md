@@ -2,11 +2,12 @@
 id: W1-15
 workstream: W1
 persona: Carlos
-estado: en-revision
+estado: hecho
 rama: w1-auth-persist
 epica: "E1-01, E1-02, E1-03, E1-04"
 sprint: S1
 pr: https://github.com/carloshugoeg/koicloud/pull/7
+depends_on:
 ---
 
 # [W1-15] Persistencia de `users` y `email_tokens`

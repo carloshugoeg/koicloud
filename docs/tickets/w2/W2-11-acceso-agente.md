@@ -37,7 +37,7 @@ Tarjeta de acceso agente en `/app/acceso-agente` con URL MCP, slug, estado habil
 - `src/api/client.ts`.
 - `src/api/schema.d.ts`.
 - `src/lib/auth-store.ts`.
-- `src/app/router.tsx` (si hiciera falta una ruta nueva, se pide a W1).
+- `src/app/router.tsx` salvo una ruta que este ticket nombre y aún no exista. Las de Fase 0 ya están.
 - `src/components/ui/*` salvo cambios de tema cuando el ticket lo permita.
 - Cualquier archivo fuera de `apps/web/`.
 

@@ -19,14 +19,15 @@ Entrega documental con resultados reales de k6 y tres runbooks operativos. Lo vi
 
 - Rutas propias: `docs/reporte-carga.md` y `docs/runbooks/*.md`.
 - El reporte usa salida real de k6, con fecha, commit y percentiles.
-- Se requieren exactamente tres runbooks, pero el store no fija sus títulos/rutas finales.
-- Los candidatos citados en riesgos (`free-disk`, `restart-agent`, `caddy`, `rollback-migration`) no autorizan elegir una terna en silencio.
+- Los tres runbooks (rutas finales): `docs/runbooks/free-disk.md`,
+  `docs/runbooks/restart-agent.md`, `docs/runbooks/rollback-migration.md`.
+  `docs/runbooks/local-pond.md` ya existe y no cuenta en la terna.
 - `deploy.yml` sigue fuera de alcance sin aprobación de W1.
 
 ## Criterios de aceptación
 
 1. El reporte incluye números crudos, thresholds y contexto de ejecución.
-2. Quedan exactamente tres runbooks completos una vez que W1 congele sus nombres.
+2. Quedan exactamente los tres runbooks de *Entradas*.
 3. El manual técnico enlaza al reporte y a los runbooks finales.
 4. Ningún runbook reescribe el pipeline de deploy ni contratos del backend.
 
@@ -39,9 +40,8 @@ Entrega documental con resultados reales de k6 y tres runbooks operativos. Lo vi
 
 ## Si algo falta
 
-Respondé `BLOQUEADO: requiere <CCR | ticket para W1> porque <razón>` y pará.
-No inventes comandos, flags, payloads, tools ni atajos al flujo de confirmación.
-- Si W1 no define la terna final de runbooks y sus rutas, bloqueá y no elijas tres temas por intuición.
+Respondé `BLOQUEADO` solo si hace falta un cuarto runbook o tocar `deploy.yml`.
+Las tres rutas ya están en *Entradas*.
 
 ## Referencia
 

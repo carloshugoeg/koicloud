@@ -29,12 +29,28 @@ Convención completa en [`docs/tickets/README.md`](docs/tickets/README.md).
 
 **Paso 3 — Valida el ticket antes de trabajarlo.** Un ticket ejecutable trae las seis
 secciones: *Qué se ve* · *Entradas ya decididas* · *Criterios de aceptación* · *No tocar* ·
-*Si algo falta* · *Referencia*. Si falta una, o si cumplirlo exige tocar algo congelado (§2)
-o ajeno (§3), responde exactamente y **detente**:
+*Si algo falta* · *Referencia*. Si falta una, responde exactamente y **detente**:
 
 ```
 BLOQUEADO: requiere <CCR | ticket para Wn> porque <razón>
 ```
+
+Si el frontmatter trae `depends_on:` y algún ID no está `hecho` o `cerrado`, responde
+`ESPERA: depends on <ID> (estado=…)` y detente. **No es CCR.** Volvé a `main` cuando
+ese ticket aterrice.
+
+`BLOQUEADO` (CCR o ticket ajeno) **solo** si tenés que *editar*:
+un contrato congelado (§2) — ruta/schema OpenAPI, catálogo de errores, *firma* de un
+comando, tabla/columna/enum — o un archivo fuera de tu workstream (§3).
+
+**No es `BLOQUEADO`.** Trabajá el ticket cuando:
+- el comando ya existe en `app/commands/*` (aunque el cuerpo sea fixture o
+  `NotImplementedError`): **llámalo**, no lo reescribas;
+- un criterio dice «persiste X» y *No tocar* prohíbe `core/` o `commands/`: el
+  persist lo hace el comando; tu router o página solo llama;
+- importar `app.commands` no es tocar `commands/`;
+- la ruta ya está en `apps/web/src/app/router.tsx`: implementá la página;
+- falta un prerrequisito de `depends_on`: eso es `ESPERA`, no CCR.
 
 No completes un ticket incompleto con suposiciones. No inventes endpoints, campos, tablas,
 códigos de error ni pantallas.
@@ -93,7 +109,12 @@ Los manifiestos de dependencias (`apps/web/package.json`, `pnpm-lock.yaml`,
 `apps/cli/pyproject.toml`, `uv.lock`) los edita su workstream, pero CODEOWNERS exige además
 aprobación de W1. **Ninguna dependencia nueva que el ticket no nombre.**
 
-¿Necesitas algo de la zona de otro? No lo escribas: `BLOQUEADO: requiere ticket para Wn`.
+Importar y llamar un comando **no** es escribir en `commands/`. El job `ownership` mira el
+diff, no los imports. Cada workstream puede editar `docs/tickets/<wN>/**` (estado y cuerpo
+de *sus* tickets).
+
+¿Necesitas *editar* un archivo de la zona de otro? No lo escribas:
+`BLOQUEADO: requiere ticket para Wn`. Llamar lo que ya exporta esa zona no es editarla.
 
 ---
 

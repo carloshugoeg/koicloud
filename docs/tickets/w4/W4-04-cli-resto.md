@@ -7,6 +7,7 @@ rama: w4-cli-resto
 epica: "E9-01, E7-04"
 sprint: S3
 pr:
+depends_on: W4-01
 ---
 
 # [W4-04] CLI `subscription`, `backup`, `agent`, `usage`
@@ -40,9 +41,8 @@ Resto de la superficie CLI fuera de ponds y SQL: suscripciones, backups, acceso 
 
 ## Si algo falta
 
-Respondé `BLOQUEADO: requiere <CCR | ticket para W1> porque <razón>` y pará.
-No inventes comandos, flags, payloads, tools ni atajos al flujo de confirmación.
-- Si el formatter compartido para `-o json` no está listo, no lo dupliques aquí: dependé de W4-05 o bloqueá.
+Respondé `BLOQUEADO` solo si hay que inventar un flag o un endpoint.
+`-o json` es de W4-05. Este ticket imprime texto. No dupliques el formatter.
 
 ## Referencia
 

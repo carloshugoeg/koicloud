@@ -39,9 +39,8 @@ Manual de usuario con capturas reales de la Web. Lo visible es un documento en e
 
 ## Si algo falta
 
-Respondé `BLOQUEADO: requiere <CCR | ticket para W1> porque <razón>` y pará.
-No inventes comandos, flags, payloads, tools ni atajos al flujo de confirmación.
-- Si las pantallas de W2 todavía no existen o no son estables, bloqueá y no uses mockups como si fueran evidencia final.
+Respondé `BLOQUEADO` solo si falta una pantalla que el manual deba documentar y no está
+en mockups ni en `main`. Usá las pantallas de `main` y los mockups de `docs/entrega-2/`.
 
 ## Referencia
 

@@ -20,7 +20,9 @@ Endpoints read-only para ver ponds de todo el sistema y la bitácora sensible. L
 - Endpoints: `GET /admin/ponds` y `GET /admin/audit`.
 - La bitácora solo muestra acciones `suspend_user`, `reveal_agent_access`, `delete_pond` y `restore_backup`.
 - La lectura es global para admins; no hay mutaciones aquí.
-- Los filtros y query params exactos no están cerrados en el store.
+- Query params congelados (solo estos): `limit` (default 50, max 100) y `offset`
+  (default 0). Sin `user_id`, `state` ni otros filtros en v0.
+- Comandos: `admin_list_ponds` y `admin_list_audit`. Call only.
 - Los schemas deben dejar `example` suficiente para Web admin.
 
 ## Criterios de aceptación
@@ -28,7 +30,7 @@ Endpoints read-only para ver ponds de todo el sistema y la bitácora sensible. L
 1. `GET /admin/ponds` devuelve rows de todo el sistema con dueño y estado.
 2. `GET /admin/audit` devuelve actor, acción, target, timestamp y metadata.
 3. Los endpoints se mantienen read-only y sin helpers ocultos de mutación.
-4. Hay pruebas de API para filtros/paginación una vez que W1 congele los query params.
+4. Hay pruebas de API para `limit`/`offset` (página 2 vacía si no hay filas).
 
 ## No tocar
 
@@ -40,9 +42,8 @@ Endpoints read-only para ver ponds de todo el sistema y la bitácora sensible. L
 
 ## Si algo falta
 
-Respondé `BLOQUEADO: requiere <CCR | ticket para W1> porque <razón>` y pará.
-No inventes endpoints, schemas, queries, comandos ni códigos de error.
-- Si W1 no define los query params exactos de filtros/paginación, bloqueá y no inventes `?user_id=` o `?state=` por tu cuenta.
+Respondé `BLOQUEADO` si el ticket pidiera un filtro que no está en *Entradas*.
+`limit`/`offset` ya están. No inventes `?user_id=` ni `?state=`.
 
 ## Referencia
 

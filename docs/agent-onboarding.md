@@ -104,9 +104,10 @@ rápida de que el agente se confunda sobre cuál es la fuente de verdad.
 1. **Te identifica.** Nombre → workstream → tu carpeta de tickets.
 2. **Busca tu ticket:** el de número más bajo con `estado: abierto` en `docs/tickets/<wN>/`.
    Podés verlo vos mismo con `bash scripts/what-do-i-do.sh Jason`.
-3. **Revisa que el ticket esté completo.** Si le falta algo, te contesta
-   `BLOQUEADO: requiere …` y se detiene. **Eso es lo correcto**, no una falla: significa que
-   el ticket está mal escrito y hay que arreglarlo, no que el agente sea flojo.
+3. **Revisa que el ticket esté completo.** `BLOQUEADO` solo si hay que *editar* un
+   contrato congelado o un archivo ajeno. Si el comando ya existe, el agente lo llama.
+   Si `depends_on` no aterrizó, contesta `ESPERA` (no CCR). Un `BLOQUEADO` porque
+   `users` vive en `core/` es un ticket mal leído, no un muro real.
 4. **Crea la rama** `wN-slug` que el propio ticket declara.
 5. **Te muestra un plan de 5 a 15 líneas:** qué archivos va a tocar, qué hace cada uno, qué
    pruebas va a escribir. ← **Acá te toca a vos.** Leelo. Si los archivos están dentro de tu
@@ -117,15 +118,18 @@ rápida de que el agente se confunda sobre cuál es la fuente de verdad.
 
 ---
 
-## 6. Las tres respuestas que vas a ver seguido
+## 6. Las respuestas que vas a ver seguido
 
 **«BLOQUEADO: requiere CCR porque …»** — tu ticket necesita cambiar algo congelado (un
 endpoint, un campo, una tabla, la firma de un comando). No le insistas ni le pidas que lo
 resuelva igual: abrí el issue con la plantilla `ccr.md` y avisale a Carlos. Un contrato que
 cambia sin avisar rompe el trabajo de otras dos personas.
 
-**«BLOQUEADO: requiere ticket para W1 porque …»** — lo que necesitás está en la zona de
-otro. Se pide, no se escribe. Abrí un issue con la plantilla `ticket.md`.
+**«BLOQUEADO: requiere ticket para W1 porque …»** — necesitás *editar* un archivo de
+otro. Se pide, no se escribe. Llamar `register_user` no es editar W1.
+
+**«ESPERA: depends on W1-XX»** — el prerrequisito no está `hecho`/`cerrado`. No abras
+CCR. Hacé `git pull origin main` cuando aterrice.
 
 **«No hay ningún ticket con `estado: abierto`»** — no hay trabajo escrito para vos todavía.
 Mirá `docs/tickets/<wN>/00-INDEX.md` para ver el plan de tu workstream y pedí el siguiente

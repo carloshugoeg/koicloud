@@ -38,15 +38,14 @@ pr:
 - `src/api/client.ts`.
 - `src/api/schema.d.ts`.
 - `src/lib/auth-store.ts`.
-- `src/app/router.tsx` (si hiciera falta una ruta nueva, se pide a W1).
+- `src/app/router.tsx` salvo una ruta que este ticket nombre y aún no exista. Las de Fase 0 ya están.
 - `src/components/ui/*` salvo cambios de tema cuando el ticket lo permita.
 - Cualquier archivo fuera de `apps/web/`.
 
 ## Si algo falta
 
-Respondé `BLOQUEADO: requiere <CCR | ticket para W1> porque <razón>` y pará.
-No inventes endpoints, campos, hooks, rutas ni códigos de error.
-- Si W1 no congeló si este panel vive en una sola ruta o en `/app/admin/*`, bloqueá y pedí aclaración; no rediseñes la navegación desde W2.
+Respondé `BLOQUEADO` solo si hace falta una ruta admin que no esté en el router.
+El panel vive en `/app/admin/users|subscriptions|ponds|audit` (ya registradas).
 
 ## Referencia
 

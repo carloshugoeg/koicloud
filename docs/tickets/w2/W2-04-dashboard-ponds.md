@@ -39,15 +39,14 @@ Pantalla `/app/ponds` con fila de KPI, rejilla del estanque y tabla densa de pon
 - `src/api/client.ts`.
 - `src/api/schema.d.ts`.
 - `src/lib/auth-store.ts`.
-- `src/app/router.tsx` (si hiciera falta una ruta nueva, se pide a W1).
+- `src/app/router.tsx` salvo una ruta que este ticket nombre y aún no exista. Las de Fase 0 ya están.
 - `src/components/ui/*` salvo cambios de tema cuando el ticket lo permita.
 - Cualquier archivo fuera de `apps/web/`.
 
 ## Si algo falta
 
-Respondé `BLOQUEADO: requiere <CCR | ticket para W1> porque <razón>` y pará.
-No inventes endpoints, campos, hooks, rutas ni códigos de error.
-- El nombre exacto del hook y del handler MSW de `GET /ponds` lo congela W1; si no están, bloqueá en vez de rebautizarlos.
+Respondé `BLOQUEADO` solo si `GET /ponds` no existe en el cliente generado.
+Usá el hook/MSW que ya dejó el scaffold. No rebautices.
 
 ## Referencia
 

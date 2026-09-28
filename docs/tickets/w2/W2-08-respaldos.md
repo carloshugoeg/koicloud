@@ -38,7 +38,7 @@ Pantalla `/app/ponds/:id/respaldos` con tabla de backups y diálogo de restaurac
 - `src/api/client.ts`.
 - `src/api/schema.d.ts`.
 - `src/lib/auth-store.ts`.
-- `src/app/router.tsx` (si hiciera falta una ruta nueva, se pide a W1).
+- `src/app/router.tsx` salvo una ruta que este ticket nombre y aún no exista. Las de Fase 0 ya están.
 - `src/components/ui/*` salvo cambios de tema cuando el ticket lo permita.
 - Cualquier archivo fuera de `apps/web/`.
 
@@ -46,7 +46,7 @@ Pantalla `/app/ponds/:id/respaldos` con tabla de backups y diálogo de restaurac
 
 Respondé `BLOQUEADO: requiere <CCR | ticket para W1> porque <razón>` y pará.
 No inventes endpoints, campos, hooks, rutas ni códigos de error.
-- Si backend no congela esos códigos por CCR/W1, no los agregues desde web: usá solo el catálogo ya sellado o bloqueá el ticket.
+- Usá solo códigos del catálogo de `api-surface.md` §7. No inventes uno desde web.
 
 ## Referencia
 

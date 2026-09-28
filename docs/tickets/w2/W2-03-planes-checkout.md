@@ -23,7 +23,8 @@ Ruta `/app/planes` con tabla comparativa densa, tarjetas de los tres planes y di
 - Respuesta de contratación: `{subscription, invoice, payment}`.
 - La factura Micro de ejemplo debe mostrar subtotal `4.4643`, IVA `0.5357` y total `5.0000`.
 - El diálogo lleva aviso fijo `Pago simulado: no se realiza ningún cobro real.` y helper `CF si no tienes NIT`.
-- Error fijo conocido: `plan_required`; el `code` exacto para tarjeta simulada rechazada no está congelado en `api-surface.md` §7.
+- Error fijo: `plan_required`. No existe `payment_failed` ni código de tarjeta
+  rechazada. El pago simulado siempre pasa; no inventes un `code` nuevo.
 - Piel: `docs/visual-guidelines.md` §10 fila 2.
 
 ## Criterios de aceptación
@@ -40,15 +41,14 @@ Ruta `/app/planes` con tabla comparativa densa, tarjetas de los tres planes y di
 - `src/api/client.ts`.
 - `src/api/schema.d.ts`.
 - `src/lib/auth-store.ts`.
-- `src/app/router.tsx` (si hiciera falta una ruta nueva, se pide a W1).
+- `src/app/router.tsx` salvo una ruta que este ticket nombre y aún no exista. Las de Fase 0 ya están.
 - `src/components/ui/*` salvo cambios de tema cuando el ticket lo permita.
 - Cualquier archivo fuera de `apps/web/`.
 
 ## Si algo falta
 
-Respondé `BLOQUEADO: requiere <CCR | ticket para W1> porque <razón>` y pará.
-No inventes endpoints, campos, hooks, rutas ni códigos de error.
-- Falta congelar el `code` exacto para el rechazo de tarjeta simulada; si backend no lo define, no lo inventes desde web.
+Respondé `BLOQUEADO` solo si hay que agregar un `code` al catálogo.
+No hay rechazo de tarjeta en v0. Usá `plan_required` y el caso feliz.
 
 ## Referencia
 

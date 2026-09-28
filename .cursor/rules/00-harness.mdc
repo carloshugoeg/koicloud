@@ -16,8 +16,10 @@ contexto en conversaciones largas.
   Rama `w1-…` puede tocar todo; `w2-`, `w3-`, `w4-` no. Todo lo no listado es de W1.
 - **Congelado:** OpenAPI, firmas de `app/commands/*`, tablas, columnas y enums solo cambian
   con CCR aprobado. `openapi.json` y `schema.d.ts` son generados; no se editan a mano.
-- **Si falta algo, no lo inventes:** responde `BLOQUEADO: requiere <CCR | ticket para Wn>
-  porque <razón>` y detente.
+- **Si falta algo, no lo inventes.** `BLOQUEADO` solo si hay que *editar* un contrato
+  congelado o un archivo ajeno. Si el comando ya existe, llamalo: no declares
+  `BLOQUEADO` porque `users` o `email_tokens` viven en `core/`. Si `depends_on:` no
+  está `hecho`/`cerrado`, responde `ESPERA`, no CCR.
 - **Ramas:** `wN-<slug>` en kebab-case (`w2-detalle-pond`). Sin prefijo `cursor/`, sin sufijo
   aleatorio. Al abrir el PR desde un agente de Cursor, usa el override de prefijo de rama
   (`skip_branch_prefix_check: true`) con ese nombre exacto.
