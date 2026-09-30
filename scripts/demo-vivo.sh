@@ -23,6 +23,22 @@ POND_URI="${POND_URI:-postgresql://postgres:local-pond-dev-only@127.0.0.1:15432/
 DB_URL_HOST="${DATABASE_URL:-postgresql+asyncpg://koi:koi@127.0.0.1:5432/koicloud}"
 COMPOSE_B=(docker compose -f docker-compose.yml -f docker-compose.docker-agent.yml)
 
+use_hostnet_overlay_if_needed() {
+  [[ "${FORCE_HOSTNET:-0}" == "1" ]] || {
+    # After db is up, probe container→db. Failure ⇒ hostnet overlay (cloud VM quirk).
+    local net
+    net="$(docker network ls --format '{{.Name}}' | grep -E 'koicloud_default|_default$' | head -1 || true)"
+    [[ -n "$net" ]] || return 0
+    if docker run --rm --network "$net" postgres:16-alpine \
+        pg_isready -h db -U koi -d koicloud >/dev/null 2>&1; then
+      return 0
+    fi
+  }
+  [[ -f docker-compose.vm-hostnet.yml ]] || return 0
+  warn "Usando overlay docker-compose.vm-hostnet.yml (bridge TCP roto o FORCE_HOSTNET=1)"
+  COMPOSE_B=(docker compose -f docker-compose.yml -f docker-compose.docker-agent.yml -f docker-compose.vm-hostnet.yml)
+}
+
 RED=$'\033[31m'; GRN=$'\033[32m'; YLW=$'\033[33m'; BLU=$'\033[34m'; RST=$'\033[0m'
 ok()   { echo "${GRN}✓${RST} $*"; }
 warn() { echo "${YLW}!${RST} $*"; }
@@ -342,10 +358,12 @@ cmd_demo_b() {
   free_port 5432 "compose db"
   free_port 8000 "API"
 
-  info "Levantando db + api + node-agent (AGENT_MODE=docker)…"
-  AGENT_MODE=docker "${COMPOSE_B[@]}" up --build -d db api node-agent
-
+  info "Levantando db (probe de red)…"
+  AGENT_MODE=docker "${COMPOSE_B[@]}" up --build -d db
   wait_tcp 127.0.0.1 5432 45 || die "db no abre 5432"
+  use_hostnet_overlay_if_needed
+  info "Levantando api + node-agent (AGENT_MODE=docker)…"
+  AGENT_MODE=docker "${COMPOSE_B[@]}" up --build -d db api node-agent
   # API tarda: uv sync + alembic + uvicorn
   if ! wait_http "http://127.0.0.1:8000/api/v1/health" 180; then
     if ! wait_http "http://127.0.0.1:8000/health" 30; then

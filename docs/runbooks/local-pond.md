@@ -107,3 +107,19 @@ cliente falso. `AGENT_MODE=mock` sigue siendo el default de CI.
 - Billing / SQL console / backups HTTP siguen siendo fixtures de contrato.
 - Un VPS con `AGENT_MODE=docker` y `POND_PORT_RANGE_*` publicado, cuando existan
   host y credenciales reales. No inventar infra.
+
+## 5. Cloud VM con bridge Docker roto
+
+Si los contenedores no pueden hablar por la red bridge (timeout a `db:5432`)
+pero el host sí llega a `127.0.0.1:5432`, usá el overlay:
+
+```bash
+AGENT_MODE=docker docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.docker-agent.yml \
+  -f docker-compose.vm-hostnet.yml \
+  up --build -d db api node-agent
+```
+
+`scripts/demo-vivo.sh b` detecta ese fallo y agrega el overlay solo.
+Mac Docker Desktop no lo necesita.

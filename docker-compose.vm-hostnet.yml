@@ -1,0 +1,27 @@
+# Overlay for environments where Docker bridge TCP between containers is broken
+# (observed on some cloud VMs). Mac Docker Desktop does not need this.
+#
+#   AGENT_MODE=docker docker compose \
+#     -f docker-compose.yml \
+#     -f docker-compose.docker-agent.yml \
+#     -f docker-compose.vm-hostnet.yml \
+#     up --build -d db api node-agent
+#
+# db stays on the compose network with published ports. api and node-agent use
+# the host network and talk to Postgres / each other on 127.0.0.1.
+
+services:
+  api:
+    network_mode: host
+    environment:
+      DATABASE_URL: postgresql+asyncpg://koi:koi@127.0.0.1:5432/koicloud
+    # host network has no container DNS; drop depends_on network coupling noise
+    ports: !reset []
+
+  node-agent:
+    network_mode: host
+    environment:
+      AGENT_MODE: docker
+      INTERNAL_API_URL: http://127.0.0.1:8000/internal/v1
+      NODE_PUBLIC_HOST: 127.0.0.1
+    ports: !reset []
