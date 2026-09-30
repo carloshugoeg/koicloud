@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from app.commands import admin as admin_commands
 from app.commands import agent_access as agent_access_commands
 from app.commands import auth as auth_commands
+from app.modules.auth import AuthService
 from app.commands import backups as backup_commands
 from app.commands import billing as billing_commands
 from app.commands import confirmations as confirmation_commands
@@ -102,7 +103,7 @@ def _render(payload: Any, *, success_status: int) -> Response:
     responses=_error_responses(409, 422),
 )
 async def register_user(payload: RegisterUserRequest) -> RegisterUserResponse:
-    return await auth_commands.register_user(payload)
+    return await AuthService.register_user(payload)
 
 
 @router.post(
@@ -113,7 +114,7 @@ async def register_user(payload: RegisterUserRequest) -> RegisterUserResponse:
     responses=_error_responses(401, 404, 410),
 )
 async def verify_email(payload: VerifyEmailRequest) -> RegisterUserResponse:
-    return await auth_commands.verify_email(payload)
+    return await AuthService.verify_email(payload)
 
 
 @router.post(

@@ -51,6 +51,19 @@ async def test_register_and_verify_api_happy_path() -> None:
             assert user.email == "test_api@koicloud.dev"
             assert user.email_verified_at is None
 
+        # Register HTTP path must leave a VERIFY_EMAIL token (AuthService + command).
+        async with SessionLocal() as session:
+            tokens = (
+                await session.execute(
+                    select(EmailToken).where(
+                        EmailToken.user_id == user_id,
+                        EmailToken.kind == EmailTokenKind.VERIFY_EMAIL,
+                        EmailToken.consumed_at.is_(None),
+                    )
+                )
+            ).scalars().all()
+            assert len(tokens) >= 1
+
         # 2. Issue email verification token plaintext via AuthService
         token = await AuthService.issue_email_token(user_id, EmailTokenKind.VERIFY_EMAIL)
 
