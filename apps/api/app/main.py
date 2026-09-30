@@ -10,6 +10,7 @@ from app.core.config import get_settings
 from app.core.errors import AppError, app_error_handler, unexpected_error_handler
 from app.internal_v1 import router as internal_v1_router
 from app.mcp.router import router as mcp_router
+from app.schemas import HealthResponse
 
 
 def create_app() -> FastAPI:
@@ -17,7 +18,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title=settings.app_name,
         version=settings.app_version,
-        description="KoiCloud Phase 0 backend contract freeze",
+        description="KoiCloud control-plane API",
         openapi_url="/openapi.json",
         docs_url="/docs",
         redoc_url="/redoc",
@@ -44,6 +45,11 @@ def create_app() -> FastAPI:
                 "request_id": getattr(request.state, "request_id", None),
             },
         )
+
+    @app.get("/health", response_model=HealthResponse, include_in_schema=False)
+    async def root_health() -> HealthResponse:
+        # Ops alias. Contract path remains GET /api/v1/health.
+        return HealthResponse(ok=True, git_sha=settings.app_version)
 
     app.include_router(api_v1_router, prefix=settings.api_prefix)
     app.include_router(internal_v1_router, prefix=settings.internal_api_prefix)

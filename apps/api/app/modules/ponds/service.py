@@ -97,7 +97,7 @@ class PondService:
         ).first()
         if row is None:
             exists = await self.session.get(Pond, pond_id)
-            if exists is None:
+            if exists is None or exists.desired_state == PondDesiredState.DELETED:
                 raise AppError(ErrorCode.POND_NOT_FOUND)
             raise AppError(ErrorCode.NOT_OWNER)
         return row[0], row[1]
@@ -166,6 +166,88 @@ class PondService:
         if node is None:
             raise AppError(ErrorCode.NODE_UNAVAILABLE)
         return connection_for(pond, node, decrypt_secret(pond.db_password_encrypted))
+
+    async def delete(self, actor: AuthContext, pond_id: UUID) -> tuple[PondOut, list[JobOut]]:
+        pond, status = await self.get_owned(actor, pond_id)
+        await self._assert_no_active_job(pond.id)
+
+        pond.desired_state = PondDesiredState.DELETED
+        status.observed_state = PondObservedState.DELETING
+        status.healthy = False
+        status.updated_at = utc_now()
+
+        job = Job(
+            type=JobType.DELETE_POND,
+            pond_id=pond.id,
+            node_id=pond.node_id,
+            status=JobStatus.QUEUED,
+            payload=self._agent_payload(pond),
+        )
+        self.session.add(job)
+        await self.session.flush()
+        return pond_to_out(pond, status), [job_to_out(job)]
+
+    async def retry_failed(self, actor: AuthContext, pond_id: UUID) -> JobOut:
+        pond, status = await self.get_owned(actor, pond_id)
+        await self._assert_no_active_job(pond.id)
+
+        failed = (
+            await self.session.execute(
+                select(Job)
+                .where(Job.pond_id == pond.id, Job.status == JobStatus.FAILED)
+                .order_by(Job.created_at.desc())
+                .limit(1)
+            )
+        ).scalar_one_or_none()
+        if failed is None:
+            raise AppError(
+                ErrorCode.POND_NOT_FOUND,
+                message="No hay un job fallido para reintentar en este pond",
+            )
+
+        job = Job(
+            type=failed.type,
+            pond_id=pond.id,
+            node_id=pond.node_id,
+            status=JobStatus.QUEUED,
+            payload=dict(failed.payload or self._agent_payload(pond)),
+        )
+        status.observed_state = PondObservedState.PENDING
+        status.healthy = False
+        status.last_error = None
+        status.updated_at = utc_now()
+        if failed.type == JobType.CREATE_POND:
+            pond.desired_state = PondDesiredState.RUNNING
+        elif failed.type == JobType.DELETE_POND:
+            pond.desired_state = PondDesiredState.DELETED
+            status.observed_state = PondObservedState.DELETING
+
+        self.session.add(job)
+        await self.session.flush()
+        return job_to_out(job)
+
+    def _agent_payload(self, pond: Pond) -> dict[str, object]:
+        password = decrypt_secret(pond.db_password_encrypted)
+        return {
+            "name": pond.name,
+            "host_port": pond.host_port,
+            "memory_mb": 512,
+            "cpus": 0.5,
+            "db_password_plain": password,
+            "image": "postgres:16-alpine",
+        }
+
+    async def _assert_no_active_job(self, pond_id: UUID) -> None:
+        active = (
+            await self.session.execute(
+                select(Job.id).where(
+                    Job.pond_id == pond_id,
+                    Job.status.in_((JobStatus.QUEUED, JobStatus.RUNNING)),
+                )
+            )
+        ).scalar_one_or_none()
+        if active is not None:
+            raise AppError(ErrorCode.POND_BUSY)
 
     async def ensure_actor(self, actor: AuthContext) -> User:
         user_id = UUID(actor.user_id)
