@@ -168,8 +168,10 @@ async def reset_password(payload: ResetPasswordRequest) -> OkResponse:
     tags=["auth"],
     responses=_error_responses(401),
 )
-async def revoke_refresh() -> Response:
-    await auth_commands.revoke_refresh(None)
+async def revoke_refresh(
+    actor: Annotated[AuthContext, Depends(get_current_user)],
+) -> Response:
+    await auth_commands.revoke_all_refresh_tokens(UUID(actor.user_id))
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

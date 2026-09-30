@@ -95,7 +95,8 @@ def normalize_ponds(payload: Any) -> list[dict[str, Any]]:
     if isinstance(payload, list):
         return [row for row in payload if isinstance(row, dict)]
     if isinstance(payload, dict):
-        items = payload.get("items")
-        if isinstance(items, list):
-            return [row for row in items if isinstance(row, dict)]
+        for key in ("ponds", "items"):
+            rows = payload.get(key)
+            if isinstance(rows, list):
+                return [row for row in rows if isinstance(row, dict)]
     return []

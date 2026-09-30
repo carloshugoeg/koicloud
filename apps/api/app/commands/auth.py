@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
@@ -35,6 +36,8 @@ from app.schemas import (
     UserOut,
     VerifyEmailRequest,
 )
+
+logger = logging.getLogger(__name__)
 
 _EMAIL_TOKEN_TTL = {
     EmailTokenKind.VERIFY_EMAIL: timedelta(hours=24),
@@ -161,8 +164,10 @@ async def register_user(payload: RegisterUserRequest) -> RegisterUserResponse:
         except IntegrityError as exc:
             raise AppError(ErrorCode.EMAIL_TAKEN) from exc
 
-        await _issue_email_token_row(session, user.id, EmailTokenKind.VERIFY_EMAIL)
+        plaintext = await _issue_email_token_row(session, user.id, EmailTokenKind.VERIFY_EMAIL)
         await session.commit()
+        # No mailer yet: surface the verify token once in API logs (pack R-03 console).
+        logger.info("verify_email token for %s: %s", payload.email, plaintext)
         return RegisterUserResponse(user_id=user.id, email_verified=False)
 
 
@@ -272,4 +277,10 @@ async def revoke_refresh(token: str | None) -> None:
         if row is None or row.revoked_at is not None:
             return
         row.revoked_at = utc_now()
+        await session.commit()
+
+
+async def revoke_all_refresh_tokens(user_id: UUID) -> None:
+    async with SessionLocal() as session:
+        await _revoke_all_refresh(session, user_id)
         await session.commit()

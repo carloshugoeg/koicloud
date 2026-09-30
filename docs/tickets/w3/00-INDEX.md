@@ -6,7 +6,7 @@ el agente lo ignora.
 
 | ID | Título | Rama | Estado |
 |---|---|---|---|
-| W3-01 | `POST /auth/register` y `POST /auth/verify` | `w3-registro-verificacion` | abierto |
+| W3-01 | `POST /auth/register` y `POST /auth/verify` | `w3-registro-verificacion` | hecho |
 | W3-02 | `POST /auth/login`, `/refresh`, `/logout` | `w3-login-sesion` | abierto |
 | W3-03 | `POST /auth/forgot` y `/auth/reset` | `w3-recuperar-password` | abierto |
 | W3-04 | `GET /me` y `PATCH /me` | `w3-perfil` | abierto |

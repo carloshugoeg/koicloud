@@ -6,7 +6,7 @@ el agente lo ignora.
 
 | ID | Título | Rama | Estado |
 |---|---|---|---|
-| W4-01 | CLI `login`, `logout`, `whoami` | `w4-cli-auth` | abierto |
+| W4-01 | CLI `login`, `logout`, `whoami` | `w4-cli-auth` | hecho |
 | W4-02 | CLI `pond get/create/connection/delete` | `w4-cli-ponds` | abierto |
 | W4-03 | CLI `sql run` (lectura y `--write`) e historial | `w4-cli-sql` | abierto |
 | W4-04 | CLI `subscription`, `backup`, `agent`, `usage` | `w4-cli-resto` | abierto |
