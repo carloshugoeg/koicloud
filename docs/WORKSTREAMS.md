@@ -59,7 +59,7 @@ git config --get user.email    # verificá antes del primer commit
 |---|---|---|
 | Carlos Hugo Escobar | Carlos Hugo Escobar | `hescobar06cvo@gmail.com` (o su noreply de GitHub) |
 | Jason Gutiérrez | Jason Gutiérrez | `124702997+Jasgu097@users.noreply.github.com` |
-| Jousé Menendez | Jousé Menendez | `175631417+Josh-JM@users.noreply.github.com`, `josueandremj@gmail.com` |
+| Jousé Menendez | Jousé Menendez | `175631417+Josh-JM@users.noreply.github.com` |
 | Diego Joachin | Diego Joachin | `175631462+diegojoachin07@users.noreply.github.com` |
 
 Si preferís no publicar tu correo, usá el `noreply` de GitHub

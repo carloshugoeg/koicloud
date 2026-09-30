@@ -2,11 +2,11 @@
 id: W3-01
 workstream: W3
 persona: Jousé
-estado: abierto
-rama: w3-registro-verificacion
+estado: en-revision
+rama: w3-registro-verificacion-v2
 epica: "E1-01, E1-02"
 sprint: S2
-pr:
+pr: "#10"
 depends_on: W1-15
 ---
 
