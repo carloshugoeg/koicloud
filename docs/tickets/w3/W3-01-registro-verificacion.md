@@ -2,7 +2,7 @@
 id: W3-01
 workstream: W3
 persona: Jousé
-estado: en-revision
+estado: hecho
 rama: w3-registro-verificacion-v2
 epica: "E1-01, E1-02"
 sprint: S2
