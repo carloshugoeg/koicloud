@@ -12,9 +12,8 @@ class AuthService:
 
     @staticmethod
     async def register_user(payload: RegisterUserRequest) -> RegisterUserResponse:
-        response = await auth_commands.register_user(payload)
-        await auth_commands.issue_email_token(response.user_id, EmailTokenKind.VERIFY_EMAIL)
-        return RegisterUserResponse(user_id=response.user_id, email_verified=False)
+        # register_user already inserts the verify token and logs plaintext once.
+        return await auth_commands.register_user(payload)
 
     @staticmethod
     async def verify_email(payload: VerifyEmailRequest) -> RegisterUserResponse:

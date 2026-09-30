@@ -4061,6 +4061,24 @@
     "/api/v1/auth/logout": {
       "post": {
         "operationId": "revoke_refresh",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-KOI-Surface",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Surface"
+            }
+          }
+        ],
         "responses": {
           "204": {
             "description": "Successful Response"
@@ -4074,8 +4092,23 @@
               }
             },
             "description": "Unauthorized"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Revoke Refresh",
         "tags": [
           "auth"

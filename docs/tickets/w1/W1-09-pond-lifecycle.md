@@ -2,11 +2,11 @@
 id: W1-09
 workstream: W1
 persona: Carlos
-estado: en-revision
+estado: hecho
 rama: w1-persist-create-pond
 epica: E3-01
 sprint: S1
-pr:
+pr: "#6"
 ---
 
 # [W1-09] `create_pond` persistido + job claim

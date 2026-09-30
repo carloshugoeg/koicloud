@@ -75,3 +75,34 @@ def test_pond_list_json_output(monkeypatch, runner, write_logged_in_config) -> N
             "engine_version": "16",
         }
     ]
+
+
+def test_pond_list_accepts_api_ponds_key(monkeypatch, runner, write_logged_in_config) -> None:
+    write_logged_in_config()
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/api/v1/ponds"
+        return httpx.Response(
+            200,
+            json={
+                "ponds": [
+                    {
+                        "id": "pond_789",
+                        "name": "wrapped-pond",
+                        "desired_state": "running",
+                        "observed_state": "running",
+                        "engine_version": "16",
+                    }
+                ]
+            },
+        )
+
+    monkeypatch.setattr(
+        "koicloud_cli.commands.create_client",
+        lambda: ApiClient(transport=httpx.MockTransport(handler)),
+    )
+
+    result = runner.invoke(app, ["pond", "list", "-o", "json"])
+
+    assert result.exit_code == 0
+    assert json.loads(result.output)[0]["name"] == "wrapped-pond"

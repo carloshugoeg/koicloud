@@ -191,7 +191,6 @@ async def test_auth_service_register_user_invokes_both_commands() -> None:
     result = await AuthService.register_user(payload)
     assert result.email_verified is False
 
-    # Check both user was created and verification token was issued
     async with SessionLocal() as session:
         user = await session.get(User, result.user_id)
         assert user is not None
@@ -202,9 +201,9 @@ async def test_auth_service_register_user_invokes_both_commands() -> None:
             .scalars()
             .all()
         )
-        # Both register_user and issue_email_token added token rows
-        assert len(tokens) >= 1
-        assert all(t.kind == EmailTokenKind.VERIFY_EMAIL for t in tokens)
+        # register_user issues exactly one verify token (AuthService must not re-issue).
+        assert len(tokens) == 1
+        assert tokens[0].kind == EmailTokenKind.VERIFY_EMAIL
 
     # Verify email via AuthService
     raw_token = await AuthService.issue_email_token(result.user_id, EmailTokenKind.VERIFY_EMAIL)
