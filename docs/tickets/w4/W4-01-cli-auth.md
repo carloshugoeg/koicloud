@@ -6,7 +6,7 @@ estado: en-revision
 rama: w4-cli-auth
 epica: "E9-01"
 sprint: S2
-pr:
+pr: "https://github.com/carloshugoeg/koicloud/pull/12"
 depends_on:
 ---
 
