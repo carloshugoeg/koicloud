@@ -3113,7 +3113,9 @@ export interface operations {
     revoke_refresh: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-KOI-Surface"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -3133,6 +3135,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
