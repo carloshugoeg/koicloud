@@ -54,6 +54,10 @@ def save_config(config: CliConfig, settings: CliSettings | None = None) -> Path:
     path = settings.config_path
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(config.model_dump_json(indent=2), encoding="utf-8")
+    try:
+        path.chmod(0o600)
+    except OSError:
+        pass
     return path
 
 
