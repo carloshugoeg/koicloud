@@ -20,6 +20,7 @@ from app.commands import users as user_commands
 from app.core.auth import AuthContext, get_admin_user, get_current_user
 from app.core.deps import get_confirmation_token, get_surface
 from app.core.enums import AppSurface
+from app.modules.auth import AuthService
 from app.schemas import (
     AdminPondListResponse,
     AdminUserListResponse,
@@ -102,7 +103,7 @@ def _render(payload: Any, *, success_status: int) -> Response:
     responses=_error_responses(409, 422),
 )
 async def register_user(payload: RegisterUserRequest) -> RegisterUserResponse:
-    return await auth_commands.register_user(payload)
+    return await AuthService.register_user(payload)
 
 
 @router.post(
@@ -113,7 +114,7 @@ async def register_user(payload: RegisterUserRequest) -> RegisterUserResponse:
     responses=_error_responses(401, 404, 410),
 )
 async def verify_email(payload: VerifyEmailRequest) -> RegisterUserResponse:
-    return await auth_commands.verify_email(payload)
+    return await AuthService.verify_email(payload)
 
 
 @router.post(
