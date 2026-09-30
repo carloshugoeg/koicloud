@@ -9,39 +9,60 @@ services:
       - "5432:5432"
     volumes:
       - koicloud_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U koi -d koicloud"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
 
   api:
     build: ./apps/api
     working_dir: /app
-    command: sh -lc "uv sync --group dev && uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    # Bind-mount hides the image .venv; keep a named volume and sync runtime deps only
+    # (no --group dev / ruff) so Demo B does not depend on PyPI at every start.
+    command: sh -lc "uv sync --frozen && uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
     env_file:
       - .env.example
     environment:
       DATABASE_URL: postgresql+asyncpg://koi:koi@db:5432/koicloud
     volumes:
       - ./apps/api:/app
+      - api_venv:/app/.venv
       - ./packages:/packages
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     ports:
       - "8000:8000"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=2)\"",
+        ]
+      interval: 3s
+      timeout: 5s
+      retries: 40
+      start_period: 40s
 
   worker:
     build: ./apps/api
     working_dir: /app
-    command: sh -lc "uv sync --group dev && uv run python -m app.main"
+    command: sh -lc "uv sync --frozen && uv run python -m app.main"
     env_file:
       - .env.example
     volumes:
       - ./apps/api:/app
+      - api_venv:/app/.venv
       - ./packages:/packages
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   node-agent:
     build: ./apps/node-agent
     working_dir: /app
-    command: sh -lc "uv sync --group dev && uv run python -m agent.main"
+    command: sh -lc "uv sync --frozen && uv run python -m agent.main"
     env_file:
       - .env.example
     environment:
@@ -49,8 +70,10 @@ services:
       INTERNAL_API_URL: http://api:8000/internal/v1
     volumes:
       - ./apps/node-agent:/app
+      - agent_venv:/app/.venv
     depends_on:
-      - api
+      api:
+        condition: service_healthy
 
   # Real postgres pond for the Friday hito when there is no VPS.
   # `make pond-demo` or: docker compose --profile ponds up -d pond-demo
@@ -82,9 +105,12 @@ services:
       - ./apps/web:/app
       - /app/node_modules
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     ports:
       - "5173:5173"
 
 volumes:
   koicloud_db:
+  api_venv:
+  agent_venv:

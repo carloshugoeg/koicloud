@@ -43,7 +43,7 @@ echo
 echo "Para el driver docker del node-agent (jobs create_pond reales):"
 echo "  AGENT_MODE=docker docker compose -f docker-compose.yml -f docker-compose.docker-agent.yml up"
 echo
-echo "E2E persistido (make seed → login demo@koicloud.dev → POST /ponds → DockerDriver):"
-echo "  AGENT_MODE=docker docker compose -f docker-compose.yml -f docker-compose.docker-agent.yml up --build db api node-agent"
-echo "  make seed"
-echo "Luego el runbook docs/runbooks/local-pond.md §2. VPS sigue opcional (sin credenciales aquí)."
+echo "E2E persistido (make migrate/seed → login → POST /ponds → DockerDriver):"
+echo "  bash scripts/demo-vivo.sh b"
+echo "  # o docs/runbooks/local-pond.md §2"
+echo "VPS sigue opcional (sin credenciales aquí)."

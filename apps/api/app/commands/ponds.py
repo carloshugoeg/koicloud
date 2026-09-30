@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from app.commands import build_confirmation, build_job, build_pond
+from app.commands import build_confirmation
 from app.core.auth import AuthContext
 from app.core.config import get_settings
 from app.core.db import SessionLocal
-from app.core.enums import AppSurface, JobType, PondDesiredState, PondObservedState
+from app.core.enums import AppSurface
 from app.modules.ponds.service import PondService, pond_to_out
 from app.schemas import (
     ConfirmationRequiredResponse,
@@ -14,7 +14,6 @@ from app.schemas import (
     CreatePondRequest,
     CreatePondResponse,
     DeletePondResponse,
-    JobOut,
     PondListResponse,
     PondResponse,
     RetryFailedJobResponse,
@@ -75,6 +74,7 @@ async def get_connection(actor: AuthContext, pond_id: UUID) -> ConnectionRespons
 async def retry_failed_job(
     pond_id: UUID,
     *,
+    actor: AuthContext,
     surface: AppSurface,
     confirm_token: str | None = None,
 ) -> RetryFailedJobResponse | ConfirmationRequiredResponse:
@@ -83,8 +83,10 @@ async def retry_failed_job(
             action="retry_failed_job",
             summary=f"Se reintentará el último job fallido del pond '{pond_id}'. Expira en 5 min.",
         )
-    job = build_job(job_type=JobType.CREATE_POND, pond_id=pond_id)
-    return RetryFailedJobResponse(job=job)
+    async with SessionLocal() as session:
+        job = await PondService(session, get_settings()).retry_failed(actor, pond_id)
+        await session.commit()
+        return RetryFailedJobResponse(job=job)
 
 
 async def delete_pond(
@@ -97,18 +99,10 @@ async def delete_pond(
     if _requires_confirmation(surface, confirm_token):
         return build_confirmation(
             action="delete_pond",
-            summary=(
-                "Se eliminará el pond solicitado. "
-                "Se creará un respaldo previo automático. Expira en 5 min."
-            ),
+            summary="Se eliminará el pond solicitado. Expira en 5 min.",
         )
 
-    pond = build_pond(name="inventario-demo", user_id=actor.user_id)
-    pond.id = pond_id
-    pond.desired_state = PondDesiredState.DELETED
-    pond.observed_state = PondObservedState.DELETING
-    jobs: list[JobOut] = [
-        build_job(job_type=JobType.BACKUP_POND, pond_id=pond_id),
-        build_job(job_type=JobType.DELETE_POND, pond_id=pond_id),
-    ]
-    return DeletePondResponse(pond=pond, jobs=jobs)
+    async with SessionLocal() as session:
+        pond, jobs = await PondService(session, get_settings()).delete(actor, pond_id)
+        await session.commit()
+        return DeletePondResponse(pond=pond, jobs=jobs)

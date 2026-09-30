@@ -6,6 +6,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query, Response, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+from sqlalchemy import text
 
 from app.commands import admin as admin_commands
 from app.commands import agent_access as agent_access_commands
@@ -18,6 +19,8 @@ from app.commands import sql as sql_commands
 from app.commands import usage as usage_commands
 from app.commands import users as user_commands
 from app.core.auth import AuthContext, get_admin_user, get_current_user
+from app.core.config import get_settings
+from app.core.db import SessionLocal
 from app.core.deps import get_confirmation_token, get_surface
 from app.core.enums import AppSurface
 from app.modules.auth import AuthService
@@ -395,11 +398,13 @@ async def get_connection(
 )
 async def retry_failed_job(
     pond_id: UUID,
+    actor: Annotated[AuthContext, Depends(get_current_user)],
     surface: Annotated[AppSurface, Depends(get_surface)],
     confirm_token: Annotated[str | None, Depends(get_confirmation_token)],
 ) -> Response:
     result = await pond_commands.retry_failed_job(
         pond_id,
+        actor=actor,
         surface=surface,
         confirm_token=confirm_token,
     )
@@ -688,9 +693,16 @@ async def admin_list_audit(
 
 @router.get("/health", response_model=HealthResponse, operation_id="health", tags=["health"])
 async def health() -> HealthResponse:
-    return HealthResponse(ok=True, git_sha="phase0-contract-freeze")
+    return HealthResponse(ok=True, git_sha=get_settings().app_version)
 
 
 @router.get("/ready", response_model=ReadyResponse, operation_id="ready", tags=["health"])
 async def ready() -> ReadyResponse:
-    return ReadyResponse(ok=True, dependencies={"database": True, "mcp": True})
+    database_ok = False
+    try:
+        async with SessionLocal() as session:
+            await session.execute(text("SELECT 1"))
+            database_ok = True
+    except Exception:
+        database_ok = False
+    return ReadyResponse(ok=database_ok, dependencies={"database": database_ok, "mcp": True})

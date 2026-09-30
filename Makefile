@@ -1,4 +1,4 @@
-.PHONY: sync-rules contracts check-api check-web check-cli check-node-agent check seed up pond-demo
+.PHONY: sync-rules contracts check-api check-web check-cli check-node-agent check migrate seed up pond-demo
 
 sync-rules:
 	python3 scripts/sync-rules.py
@@ -20,6 +20,9 @@ check-node-agent:
 	cd apps/node-agent && uv run ruff check . && uv run pytest -q
 
 check: check-api check-web check-cli check-node-agent
+
+migrate:
+	bash scripts/migrate-dev.sh
 
 seed:
 	bash scripts/seed-dev.sh

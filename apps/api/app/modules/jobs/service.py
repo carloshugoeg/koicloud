@@ -6,9 +6,15 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings
-from app.core.enums import JobStatus, JobType, NodeStatus, PondObservedState
+from app.core.enums import (
+    JobStatus,
+    JobType,
+    NodeStatus,
+    PondDesiredState,
+    PondObservedState,
+)
 from app.core.errors import AppError, ErrorCode
-from app.core.models import Job, Node, PondStatus
+from app.core.models import Job, Node, Pond, PondStatus
 from app.core.security import hash_token
 from app.core.time import utc_now
 from app.schemas import (
@@ -85,6 +91,13 @@ class JobService:
             status.observed_state = PondObservedState.RUNNING
             status.healthy = True
             status.last_error = None
+        elif payload.status == "succeeded" and job.type == JobType.DELETE_POND:
+            status.observed_state = PondObservedState.DELETED
+            status.healthy = False
+            status.last_error = None
+            pond = await self.session.get(Pond, job.pond_id)
+            if pond is not None:
+                pond.desired_state = PondDesiredState.DELETED
         elif payload.status == "failed":
             status.observed_state = PondObservedState.FAILED
             status.healthy = False
