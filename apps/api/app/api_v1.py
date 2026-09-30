@@ -10,7 +10,6 @@ from pydantic import BaseModel
 from app.commands import admin as admin_commands
 from app.commands import agent_access as agent_access_commands
 from app.commands import auth as auth_commands
-from app.modules.auth import AuthService
 from app.commands import backups as backup_commands
 from app.commands import billing as billing_commands
 from app.commands import confirmations as confirmation_commands
@@ -21,6 +20,7 @@ from app.commands import users as user_commands
 from app.core.auth import AuthContext, get_admin_user, get_current_user
 from app.core.deps import get_confirmation_token, get_surface
 from app.core.enums import AppSurface
+from app.modules.auth import AuthService
 from app.schemas import (
     AdminPondListResponse,
     AdminUserListResponse,
