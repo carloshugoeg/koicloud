@@ -2,7 +2,7 @@
 id: W4-01
 workstream: W4
 persona: Diego
-estado: en-revision
+estado: hecho
 rama: w4-cli-auth
 epica: "E9-01"
 sprint: S2
