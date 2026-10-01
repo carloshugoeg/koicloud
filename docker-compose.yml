@@ -6,7 +6,8 @@ services:
       POSTGRES_PASSWORD: koi
       POSTGRES_DB: koicloud
     ports:
-      - "5432:5432"
+      # Remap with KOI_DB_HOST_PORT when host Postgres (e.g. EDB) owns 5432.
+      - "${KOI_DB_HOST_PORT:-5432}:5432"
     volumes:
       - koicloud_db:/var/lib/postgresql/data
     healthcheck:

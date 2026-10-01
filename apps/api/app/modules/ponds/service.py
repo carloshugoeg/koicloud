@@ -122,39 +122,39 @@ class PondService:
         await self._assert_quota(user.id, subscription.plan_id)
 
         password = secrets.token_urlsafe(18)
-        pond = Pond(
-            user_id=user.id,
-            plan_id=subscription.plan_id,
-            node_id=node.id,
-            name=name,
-            engine_version=engine_version,
-            desired_state=PondDesiredState.RUNNING,
-            host_port=await self._next_port(),
-            db_password_encrypted=encrypt_secret(password),
-        )
-        self.session.add(pond)
-        await self.session.flush()
-        status = PondStatus(
-            pond_id=pond.id,
-            observed_state=PondObservedState.PENDING,
-            healthy=False,
-        )
-        job = Job(
-            type=JobType.CREATE_POND,
-            pond_id=pond.id,
-            node_id=node.id,
-            status=JobStatus.QUEUED,
-            payload={
-                "name": pond.name,
-                "host_port": pond.host_port,
-                "memory_mb": 512,
-                "cpus": 0.5,
-                "db_password_plain": password,
-                "image": "postgres:16-alpine",
-            },
-        )
-        self.session.add_all([status, job])
         try:
+            pond = Pond(
+                user_id=user.id,
+                plan_id=subscription.plan_id,
+                node_id=node.id,
+                name=name,
+                engine_version=engine_version,
+                desired_state=PondDesiredState.RUNNING,
+                host_port=await self._next_port(),
+                db_password_encrypted=encrypt_secret(password),
+            )
+            self.session.add(pond)
+            await self.session.flush()
+            status = PondStatus(
+                pond_id=pond.id,
+                observed_state=PondObservedState.PENDING,
+                healthy=False,
+            )
+            job = Job(
+                type=JobType.CREATE_POND,
+                pond_id=pond.id,
+                node_id=node.id,
+                status=JobStatus.QUEUED,
+                payload={
+                    "name": pond.name,
+                    "host_port": pond.host_port,
+                    "memory_mb": 512,
+                    "cpus": 0.5,
+                    "db_password_plain": password,
+                    "image": "postgres:16-alpine",
+                },
+            )
+            self.session.add_all([status, job])
             await self.session.flush()
         except IntegrityError as exc:
             raise self._translate_integrity(exc) from exc
@@ -363,13 +363,9 @@ class PondService:
             raise AppError(ErrorCode.QUOTA_EXCEEDED)
 
     async def _next_port(self) -> int:
-        used = set(
-            (
-                await self.session.execute(
-                    select(Pond.host_port).where(Pond.desired_state != PondDesiredState.DELETED)
-                )
-            ).scalars()
-        )
+        # ponds_host_port_uk is global (includes soft-deleted rows), so skip all
+        # occupied ports — not only non-deleted ones.
+        used = set((await self.session.execute(select(Pond.host_port))).scalars())
         start = self.settings.pond_port_range_start
         end = self.settings.pond_port_range_end
         for port in range(start, end + 1):
