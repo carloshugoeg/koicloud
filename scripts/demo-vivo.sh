@@ -19,6 +19,8 @@ set -euo pipefail
 
 DEMO_EMAIL="${DEMO_EMAIL:-demo@koicloud.dev}"
 DEMO_PASSWORD="${DEMO_PASSWORD:-Sup3rSegura!2026}"
+# Distinct from pond-demo container name `koicloud-inventario-demo` so A+B can coexist.
+DEMO_POND_NAME="${DEMO_POND_NAME:-pond-api-demo}"
 POND_URI="${POND_URI:-postgresql://postgres:local-pond-dev-only@127.0.0.1:15432/inventario_demo}"
 DB_URL_HOST="${DATABASE_URL:-postgresql+asyncpg://koi:koi@127.0.0.1:5432/koicloud}"
 COMPOSE_B=(docker compose -f docker-compose.yml -f docker-compose.docker-agent.yml)
@@ -26,14 +28,20 @@ COMPOSE_B=(docker compose -f docker-compose.yml -f docker-compose.docker-agent.y
 use_hostnet_overlay_if_needed() {
   [[ "${FORCE_HOSTNET:-0}" == "1" ]] || {
     # After db is up, probe container→db. Failure ⇒ hostnet overlay (cloud VM quirk).
+    # Match THIS project's network only — `_default$` falsely hits crm-core_default etc.
     local net
-    net="$(docker network ls --format '{{.Name}}' | grep -E 'koicloud_default|_default$' | head -1 || true)"
+    net="$(docker network ls --format '{{.Name}}' | grep -E '^koicloud_default$' | head -1 || true)"
     [[ -n "$net" ]] || return 0
     if docker run --rm --network "$net" postgres:16-alpine \
         pg_isready -h db -U koi -d koicloud >/dev/null 2>&1; then
       return 0
     fi
   }
+  # hostnet overlay hardcodes 127.0.0.1:5432 — incompatible with KOI_DB_HOST_PORT remap
+  if [[ "${KOI_DB_HOST_PORT:-5432}" != "5432" ]]; then
+    warn "bridge probe falló pero KOI_DB_HOST_PORT=${KOI_DB_HOST_PORT} — no uso hostnet (quedate en bridge)"
+    return 0
+  fi
   [[ -f docker-compose.vm-hostnet.yml ]] || return 0
   warn "Usando overlay docker-compose.vm-hostnet.yml (bridge TCP roto o FORCE_HOSTNET=1)"
   COMPOSE_B=(docker compose -f docker-compose.yml -f docker-compose.docker-agent.yml -f docker-compose.vm-hostnet.yml)
@@ -72,11 +80,21 @@ port_pids() {
   fi
 }
 
+# lsof often misses listeners owned by other users (e.g. EDB postgres on macOS).
+port_accepts() {
+  local port="$1"
+  if command -v nc >/dev/null 2>&1 && nc -z 127.0.0.1 "$port" >/dev/null 2>&1; then
+    return 0
+  fi
+  (echo >/dev/tcp/127.0.0.1/"$port") >/dev/null 2>&1
+}
+
 port_in_use() {
   local port="$1"
   local pids
   pids="$(port_pids "$port")"
-  [[ -n "$pids" ]]
+  [[ -n "$pids" ]] && return 0
+  port_accepts "$port"
 }
 
 docker_ids_on_port() {
@@ -165,7 +183,7 @@ wait_http() {
 wait_tcp() {
   local host="$1" port="$2" secs="${3:-60}"
   local i=0
-  info "Esperando $host:$port…"
+  info "Esperando $host:${port}…"
   while (( i < secs )); do
     if (echo >/dev/tcp/"$host"/"$port") >/dev/null 2>&1; then
       ok "$host:$port acepta conexiones"
@@ -265,8 +283,13 @@ cmd_reset() {
     docker rm -f "$cid" 2>/dev/null || true
   done < <(docker ps -aq --filter name=koicloud 2>/dev/null || true)
   free_port 15432 "pond-demo"
-  free_port 5432 "compose db"
   free_port 8000 "API"
+  # Prefer default 5432; remap happens in Demo B if host Postgres owns it.
+  if port_in_use 5432; then
+    warn "5432 ocupado (probable Postgres del host) — Demo B remapea a KOI_DB_HOST_PORT"
+  else
+    ok "compose db libre (5432)"
+  fi
   ok "Reset limpio"
 }
 
@@ -349,21 +372,70 @@ migrate_host_if_needed() {
   ) && ok "alembic upgrade head OK" || warn "alembic host falló — si seed falla, mirá logs del api"
 }
 
+# Pick a host publish port for compose `db`. Prefer 5432; if a host Postgres
+# owns it (common: EnterpriseDB LaunchDaemon) and we cannot kill it, remap.
+ensure_db_host_port() {
+  local preferred="${KOI_DB_HOST_PORT:-5432}"
+  local fallback="${KOI_DB_FALLBACK_PORT:-5433}"
+  KOI_DB_HOST_PORT="$preferred"
+  export KOI_DB_HOST_PORT
+
+  if ! port_in_use "$preferred"; then
+    ok "compose db libre ($preferred)"
+  else
+    warn "compose db ocupado ($preferred) — intentando liberar Docker…"
+    # Docker-first free (no die): stop containers publishing the port
+    local id
+    for id in $(docker_ids_on_port "$preferred" | sort -u); do
+      [[ -z "$id" ]] && continue
+      info "docker stop $id"
+      docker stop "$id" >/dev/null || true
+    done
+    sleep 1
+    if port_in_use "$preferred" && [[ "${FORCE:-0}" == "1" ]]; then
+      local pid
+      for pid in $(port_pids "$preferred"); do
+        warn "FORCE=1 → kill $pid (puerto $preferred)"
+        kill "$pid" 2>/dev/null || true
+        sleep 0.5
+        kill -9 "$pid" 2>/dev/null || true
+      done
+      sleep 1
+    fi
+  fi
+
+  if port_in_use "$preferred"; then
+    if [[ "$preferred" == "$fallback" ]]; then
+      die "Puerto $preferred sigue ocupado y no hay fallback. Liberá Postgres del host o set KOI_DB_HOST_PORT."
+    fi
+    warn "Puerto $preferred ocupado por Postgres del host (lsof puede no verlo) — publicando db en $fallback"
+    KOI_DB_HOST_PORT="$fallback"
+    export KOI_DB_HOST_PORT
+    if port_in_use "$KOI_DB_HOST_PORT"; then
+      die "Fallback $KOI_DB_HOST_PORT también ocupado"
+    fi
+    ok "db host port → $KOI_DB_HOST_PORT"
+  fi
+
+  DB_URL_HOST="postgresql+asyncpg://koi:koi@127.0.0.1:${KOI_DB_HOST_PORT}/koicloud"
+  export DATABASE_URL="$DB_URL_HOST"
+}
+
 cmd_demo_b() {
   ensure_docker
   need_cmd curl
   need_cmd python3
   [[ "${SKIP_GIT:-0}" == "1" ]] || ensure_git_main
 
-  free_port 5432 "compose db"
   free_port 8000 "API"
+  ensure_db_host_port
 
-  info "Levantando db (probe de red)…"
-  AGENT_MODE=docker "${COMPOSE_B[@]}" up --build -d db
-  wait_tcp 127.0.0.1 5432 45 || die "db no abre 5432"
+  info "Levantando db (probe de red) en host :${KOI_DB_HOST_PORT}…"
+  AGENT_MODE=docker KOI_DB_HOST_PORT="$KOI_DB_HOST_PORT" "${COMPOSE_B[@]}" up --build -d db
+  wait_tcp 127.0.0.1 "$KOI_DB_HOST_PORT" 45 || die "db no abre ${KOI_DB_HOST_PORT}"
   use_hostnet_overlay_if_needed
   info "Levantando api + node-agent (AGENT_MODE=docker)…"
-  AGENT_MODE=docker "${COMPOSE_B[@]}" up --build -d db api node-agent
+  AGENT_MODE=docker KOI_DB_HOST_PORT="$KOI_DB_HOST_PORT" "${COMPOSE_B[@]}" up --build -d db api node-agent
   # API tarda: uv sync + alembic + uvicorn
   if ! wait_http "http://127.0.0.1:8000/api/v1/health" 180; then
     if ! wait_http "http://127.0.0.1:8000/health" 30; then
@@ -375,7 +447,7 @@ cmd_demo_b() {
 
   info "make seed"
   local seed_try=0
-  until make seed; do
+  until DATABASE_URL="$DB_URL_HOST" make seed; do
     seed_try=$((seed_try + 1))
     if (( seed_try > 3 )); then
       die "seed falló. ¿users existe? corré migrate y logs api"
@@ -403,10 +475,23 @@ cmd_demo_b() {
     curl -sS -X POST http://127.0.0.1:8000/api/v1/ponds \
       -H "Authorization: Bearer $token" \
       -H 'Content-Type: application/json' \
-      -d '{"name":"inventario-demo"}'
+      -d "{\"name\":\"$DEMO_POND_NAME\"}"
   )"
   echo "$pond_json" | python3 -m json.tool 2>/dev/null || echo "$pond_json"
-  pond_id="$(echo "$pond_json" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('id') or d.get('pond_id') or '')")"
+  pond_id="$(echo "$pond_json" | python3 -c "import json,sys; d=json.load(sys.stdin); p=d.get('pond') if isinstance(d.get('pond'), dict) else d; print((p or {}).get('id') or d.get('pond_id') or '')")"
+  # If name taken / previous failed row, list and reuse a non-failed pond or create with suffix
+  if [[ -z "$pond_id" ]]; then
+    warn "POST /ponds sin id — reintento con nombre único"
+    DEMO_POND_NAME="${DEMO_POND_NAME}-$(date +%s)"
+    pond_json="$(
+      curl -sS -X POST http://127.0.0.1:8000/api/v1/ponds \
+        -H "Authorization: Bearer $token" \
+        -H 'Content-Type: application/json' \
+        -d "{\"name\":\"$DEMO_POND_NAME\"}"
+    )"
+    echo "$pond_json" | python3 -m json.tool 2>/dev/null || echo "$pond_json"
+    pond_id="$(echo "$pond_json" | python3 -c "import json,sys; d=json.load(sys.stdin); p=d.get('pond') if isinstance(d.get('pond'), dict) else d; print((p or {}).get('id') or d.get('pond_id') or '')")"
+  fi
   [[ -n "$pond_id" ]] || die "no pude leer pond id de la respuesta"
 
   info "Poll observed_state=running (pond $pond_id)…"
@@ -415,7 +500,7 @@ cmd_demo_b() {
     state="$(
       curl -sS "http://127.0.0.1:8000/api/v1/ponds/$pond_id" \
         -H "Authorization: Bearer $token" \
-      | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('observed_state') or d.get('status') or '')" 2>/dev/null || true
+      | python3 -c "import json,sys; d=json.load(sys.stdin); p=d.get('pond') if isinstance(d.get('pond'), dict) else d; print((p or {}).get('observed_state') or d.get('status') or '')" 2>/dev/null || true
     )"
     echo "  state=$state"
     if [[ "$state" == "running" ]]; then
