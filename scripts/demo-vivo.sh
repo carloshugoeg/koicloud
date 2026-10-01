@@ -165,7 +165,7 @@ wait_http() {
 wait_tcp() {
   local host="$1" port="$2" secs="${3:-60}"
   local i=0
-  info "Esperando $host:$port…"
+  info "Esperando $host:${port}…"
   while (( i < secs )); do
     if (echo >/dev/tcp/"$host"/"$port") >/dev/null 2>&1; then
       ok "$host:$port acepta conexiones"
