@@ -6,7 +6,7 @@ estado: en-revision
 rama: w1-teammate-unblock-semana
 epica: "S2 unblock"
 sprint: S2
-pr:
+pr: "#19"
 depends_on:
 ---
 
