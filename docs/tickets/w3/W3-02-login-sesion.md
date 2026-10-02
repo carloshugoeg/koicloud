@@ -2,7 +2,7 @@
 id: W3-02
 workstream: W3
 persona: Jousé
-estado: abierto
+estado: en-revision
 rama: w3-login-sesion
 epica: "E1-03"
 sprint: S2
