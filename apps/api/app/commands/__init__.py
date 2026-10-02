@@ -7,8 +7,6 @@ from app.core.config import get_settings
 from app.core.enums import (
     JobStatus,
     JobType,
-    PondDesiredState,
-    PondObservedState,
     UserRole,
     UserStatus,
 )
@@ -18,8 +16,6 @@ from app.schemas import (
     ConfirmationNextStep,
     ConfirmationRequiredResponse,
     JobOut,
-    PondOut,
-    UserOut,
 )
 
 
@@ -29,25 +25,6 @@ def stable_uuid(*parts: str) -> UUID:
 
 def now_iso() -> datetime:
     return datetime.now(tz=UTC)
-
-
-def build_user(
-    *,
-    email: str,
-    full_name: str,
-    role: UserRole = UserRole.CLIENT,
-    nit: str | None = "0614-220999-101-3",
-) -> UserOut:
-    return UserOut(
-        id=stable_uuid("user", email),
-        email=email,
-        full_name=full_name,
-        role=role,
-        nit=nit,
-        status=UserStatus.ACTIVE,
-        email_verified=True,
-        created_at=now_iso(),
-    )
 
 
 def build_admin_user(
@@ -66,25 +43,6 @@ def build_admin_user(
         email_verified=True,
         created_at=now_iso(),
         active_subscription_plan="micro",
-    )
-
-
-def build_pond(*, name: str, user_id: str, observed_state: PondObservedState = PondObservedState.RUNNING) -> PondOut:
-    stable_id = stable_uuid("pond", user_id, name)
-    return PondOut(
-        id=stable_id,
-        user_id=UUID(user_id),
-        plan_id="micro",
-        node_id=get_settings().node_id,
-        name=name,
-        engine_version="16",
-        desired_state=PondDesiredState.RUNNING,
-        observed_state=observed_state,
-        host_port=15000 + (stable_id.int % 500),
-        healthy=observed_state == PondObservedState.RUNNING,
-        created_at=now_iso(),
-        last_restore_at=None,
-        last_error=None,
     )
 
 

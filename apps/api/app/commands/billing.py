@@ -2,10 +2,14 @@ from __future__ import annotations
 
 from uuid import UUID
 
+from sqlalchemy import select
+
 from app.commands import build_confirmation
 from app.core.auth import AuthContext
+from app.core.db import SessionLocal
 from app.core.enums import AppSurface
 from app.core.errors import AppError, ErrorCode
+from app.core.models import Plan
 from app.schemas import (
     CancelSubscriptionResponse,
     ConfirmationRequiredResponse,
@@ -14,6 +18,7 @@ from app.schemas import (
     OkResponse,
     PaymentOut,
     PlanListResponse,
+    PlanOut,
     SubscribeRequest,
     SubscribeResponse,
     SubscriptionListResponse,
@@ -25,8 +30,26 @@ def _requires_confirmation(surface: AppSurface, confirm_token: str | None) -> bo
     return surface in {AppSurface.CLI, AppSurface.MCP} and not confirm_token
 
 
+def _plan_to_out(plan: Plan) -> PlanOut:
+    return PlanOut(
+        id=plan.id,
+        name=plan.name,
+        description=plan.description,
+        price_monthly_usd=float(plan.price_monthly_usd),
+        max_ponds=plan.max_ponds,
+        max_storage_gb=plan.max_storage_gb,
+        validity_minutes=plan.validity_minutes,
+        postpaid=plan.postpaid,
+        active=plan.active,
+    )
+
+
 async def list_plans() -> PlanListResponse:
-    return PlanListResponse.example()
+    async with SessionLocal() as session:
+        rows = (
+            await session.scalars(select(Plan).where(Plan.active.is_(True)).order_by(Plan.id))
+        ).all()
+        return PlanListResponse(plans=[_plan_to_out(row) for row in rows], next_cursor=None)
 
 
 async def list_my_subscriptions(_: AuthContext) -> SubscriptionListResponse:

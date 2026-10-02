@@ -17,11 +17,13 @@ pr: "#6"
 
 ## Entradas ya decididas (no se cambian)
 
-- Firma de `commands.create_pond` / `list_ponds` / `get_pond` / `get_connection`.
+- Firma de `commands.create_pond` / `list_ponds` / `get_pond` / `get_connection` /
+  `delete_pond` / `retry_failed_job`.
 - OpenAPI: `202 {pond, job}`, errores `plan_required`, `quota_exceeded`, `pond_name_taken`, `node_unavailable`.
-- `DELETE /ponds` y retry siguen en andamio Fase 0.
+- `DELETE /ponds` y retry **persisten** (jobs `delete_pond` / requeue) desde #17/#18; no son andamio.
 - Driver `postgres:16-alpine` ya en `main` (`DockerDriver`).
-- Auth/register/subscribe de W3 siguen fixtures; este ticket upserta el usuario del JWT y adjunta Micro si no hay suscripción.
+- Auth register/verify/login/refresh persisten (W1-15 / W3-01). Subscribe/billing HTTP
+  siguen fixtures; `create_pond` adjunta Micro si no hay suscripción.
 
 ## Criterios de aceptación
 

@@ -123,3 +123,7 @@ AGENT_MODE=docker docker compose \
 
 `scripts/demo-vivo.sh b` detecta ese fallo y agrega el overlay solo.
 Mac Docker Desktop no lo necesita.
+
+Si **5432** en el host ya lo usa Postgres.app/EDB, el mismo script remapea
+`KOI_DB_HOST_PORT` (hostnet queda deshabilitado en ese caso). Puntero:
+[`demo-vivo.md`](./demo-vivo.md).

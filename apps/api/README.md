@@ -1,3 +1,5 @@
 # KoiCloud API
 
-Phase 0 contract-freeze backend skeleton for the KoiCloud control plane.
+FastAPI control plane: auth, ponds, jobs queue, OpenAPI export, and MCP skeleton.
+Ponds and auth persist against Postgres. Billing subscribe/invoices, backups HTTP,
+SQL console, and metering still return contract fixtures until their W1 tickets land.

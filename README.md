@@ -40,6 +40,10 @@ bash scripts/demo-vivo.sh b
 # o a mano: docs/runbooks/local-pond.md §2
 ```
 
+Puntero corto: [`docs/runbooks/demo-vivo.md`](docs/runbooks/demo-vivo.md).
+Quirks Mac/VM (bash 3.2, puerto 5432, worktree, `agent worker start`):
+[`docs/agent-onboarding.md`](docs/agent-onboarding.md) §9.
+
 ## Autoría
 
 Los commits se firman con la cuenta real de GitHub de quien hizo el trabajo.
