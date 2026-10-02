@@ -2,7 +2,7 @@
 id: W1-16
 workstream: W1
 persona: Carlos
-estado: en-revision
+estado: hecho
 rama: w1-teammate-unblock-semana
 epica: "S2 unblock"
 sprint: S2
