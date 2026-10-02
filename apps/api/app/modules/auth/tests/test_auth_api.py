@@ -7,14 +7,14 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy import select
 
 from app.core.db import SessionLocal
-from app.core.enums import EmailTokenKind
+from app.core.enums import EmailTokenKind, UserStatus
 from app.core.errors import AppError, ErrorCode
-from app.core.models import EmailToken, User
+from app.core.models import EmailToken, RefreshToken, User
 from app.core.security import hash_token
 from app.core.time import utc_now
 from app.main import app
 from app.modules.auth import AuthService
-from app.schemas import RegisterUserRequest, VerifyEmailRequest
+from app.schemas import LoginRequest, RegisterUserRequest, VerifyEmailRequest
 from tests.db_reset import reset_auth_tables
 
 PASSWORD = "Sup3rSegura!2026"
@@ -210,3 +210,120 @@ async def test_auth_service_register_user_invokes_both_commands() -> None:
     verify_res = await AuthService.verify_email(VerifyEmailRequest(token=raw_token))
     assert verify_res.user_id == result.user_id
     assert verify_res.email_verified is True
+
+
+async def _register_and_verify(client: AsyncClient, email: str) -> UUID:
+    response = await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": email,
+            "password": PASSWORD,
+            "full_name": "Session User",
+        },
+    )
+    assert response.status_code == 201
+    user_id = UUID(response.json()["user_id"])
+    token = await AuthService.issue_email_token(user_id, EmailTokenKind.VERIFY_EMAIL)
+    verify_res = await client.post("/api/v1/auth/verify", json={"token": token})
+    assert verify_res.status_code == 200
+    return user_id
+
+
+async def test_login_refresh_logout_api_happy_path() -> None:
+    reset_auth_tables()
+
+    async with _make_client() as client:
+        user_id = await _register_and_verify(client, "session@koicloud.dev")
+
+        login_res = await client.post(
+            "/api/v1/auth/login",
+            json={"email": "session@koicloud.dev", "password": PASSWORD},
+        )
+        assert login_res.status_code == 200
+        login = login_res.json()
+        assert set(login.keys()) >= {"access_token", "refresh_token", "user"}
+        assert login["user"]["id"] == str(user_id)
+        assert login["user"]["email_verified"] is True
+        assert "koi_refresh" in login_res.cookies
+        assert login_res.cookies["koi_refresh"] == login["refresh_token"]
+
+        refresh_res = await client.post(
+            "/api/v1/auth/refresh",
+            json={"refresh_token": login["refresh_token"]},
+        )
+        assert refresh_res.status_code == 200
+        rotated = refresh_res.json()
+        assert set(rotated.keys()) == {"access_token", "refresh_token"}
+        assert rotated["refresh_token"] != login["refresh_token"]
+        assert refresh_res.cookies["koi_refresh"] == rotated["refresh_token"]
+
+        reused = await client.post(
+            "/api/v1/auth/refresh",
+            json={"refresh_token": login["refresh_token"]},
+        )
+        assert reused.status_code == 401
+        assert reused.json()["code"] == "token_invalid"
+
+        logout_res = await client.post(
+            "/api/v1/auth/logout",
+            headers={"Authorization": f"Bearer {rotated['access_token']}"},
+            cookies={"koi_refresh": rotated["refresh_token"]},
+        )
+        assert logout_res.status_code == 204
+
+        async with SessionLocal() as session:
+            tokens = (
+                await session.execute(select(RefreshToken).where(RefreshToken.user_id == user_id))
+            ).scalars().all()
+            assert tokens
+            assert any(
+                row.token_hash == hash_token(rotated["refresh_token"]) and row.revoked_at is not None
+                for row in tokens
+            )
+
+
+async def test_login_rejects_suspended_account() -> None:
+    reset_auth_tables()
+
+    async with _make_client() as client:
+        user_id = await _register_and_verify(client, "suspended@koicloud.dev")
+
+        async with SessionLocal() as session:
+            user = await session.get(User, user_id)
+            assert user is not None
+            user.status = UserStatus.SUSPENDED
+            await session.commit()
+
+        suspended = await client.post(
+            "/api/v1/auth/login",
+            json={"email": "suspended@koicloud.dev", "password": PASSWORD},
+        )
+        assert suspended.status_code == 403
+        assert suspended.json()["code"] == "account_suspended"
+
+
+async def test_auth_service_logout_prefers_cookie_refresh() -> None:
+    reset_auth_tables()
+
+    created = await AuthService.register_user(
+        RegisterUserRequest(
+            email="cookie@koicloud.dev",
+            password=PASSWORD,
+            full_name="Cookie User",
+        )
+    )
+    token = await AuthService.issue_email_token(created.user_id, EmailTokenKind.VERIFY_EMAIL)
+    await AuthService.verify_email(VerifyEmailRequest(token=token))
+
+    login = await AuthService.issue_tokens(
+        LoginRequest(email="cookie@koicloud.dev", password=PASSWORD)
+    )
+    await AuthService.logout(refresh_token=login.refresh_token, user_id=created.user_id)
+
+    async with SessionLocal() as session:
+        row = (
+            await session.execute(
+                select(RefreshToken).where(RefreshToken.token_hash == hash_token(login.refresh_token))
+            )
+        ).scalar_one()
+        assert row.revoked_at is not None

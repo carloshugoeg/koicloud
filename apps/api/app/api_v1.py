@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Annotated, Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, Response, status
+from fastapi import APIRouter, Depends, Query, Request, Response, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from sqlalchemy import text
@@ -24,6 +24,7 @@ from app.core.db import SessionLocal
 from app.core.deps import get_confirmation_token, get_surface
 from app.core.enums import AppSurface
 from app.modules.auth import AuthService
+from app.modules.auth.service import REFRESH_COOKIE
 from app.schemas import (
     AdminPondListResponse,
     AdminUserListResponse,
@@ -120,6 +121,23 @@ async def verify_email(payload: VerifyEmailRequest) -> RegisterUserResponse:
     return await AuthService.verify_email(payload)
 
 
+def _set_refresh_cookie(response: Response, refresh_token: str) -> None:
+    settings = get_settings()
+    response.set_cookie(
+        key=REFRESH_COOKIE,
+        value=refresh_token,
+        httponly=True,
+        samesite="lax",
+        max_age=settings.refresh_ttl_days * 24 * 60 * 60,
+        path=settings.api_prefix,
+    )
+
+
+def _clear_refresh_cookie(response: Response) -> None:
+    settings = get_settings()
+    response.delete_cookie(key=REFRESH_COOKIE, path=settings.api_prefix)
+
+
 @router.post(
     "/auth/login",
     response_model=LoginResponse,
@@ -127,8 +145,10 @@ async def verify_email(payload: VerifyEmailRequest) -> RegisterUserResponse:
     tags=["auth"],
     responses=_error_responses(401, 403, 429),
 )
-async def issue_tokens(payload: LoginRequest) -> LoginResponse:
-    return await auth_commands.issue_tokens(payload)
+async def issue_tokens(payload: LoginRequest, response: Response) -> LoginResponse:
+    result = await AuthService.issue_tokens(payload)
+    _set_refresh_cookie(response, result.refresh_token)
+    return result
 
 
 @router.post(
@@ -138,8 +158,10 @@ async def issue_tokens(payload: LoginRequest) -> LoginResponse:
     tags=["auth"],
     responses=_error_responses(401),
 )
-async def rotate_refresh(payload: RefreshTokenRequest) -> TokenPairResponse:
-    return await auth_commands.rotate_refresh(payload)
+async def rotate_refresh(payload: RefreshTokenRequest, response: Response) -> TokenPairResponse:
+    result = await AuthService.rotate_refresh(payload)
+    _set_refresh_cookie(response, result.refresh_token)
+    return result
 
 
 @router.post(
@@ -172,9 +194,15 @@ async def reset_password(payload: ResetPasswordRequest) -> OkResponse:
     responses=_error_responses(401),
 )
 async def revoke_refresh(
+    request: Request,
+    response: Response,
     actor: Annotated[AuthContext, Depends(get_current_user)],
 ) -> Response:
-    await auth_commands.revoke_all_refresh_tokens(UUID(actor.user_id))
+    await AuthService.logout(
+        refresh_token=request.cookies.get(REFRESH_COOKIE),
+        user_id=UUID(actor.user_id),
+    )
+    _clear_refresh_cookie(response)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
