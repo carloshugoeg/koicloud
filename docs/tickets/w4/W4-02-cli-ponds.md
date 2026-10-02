@@ -6,7 +6,7 @@ estado: en-revision
 rama: w4-cli-ponds
 epica: "E9-01"
 sprint: S2
-pr:
+pr: "https://github.com/carloshugoeg/koicloud/pull/22"
 ---
 
 # [W4-02] CLI `pond get/create/connection/delete`
