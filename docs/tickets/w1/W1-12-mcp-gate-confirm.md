@@ -49,6 +49,13 @@ Info + lecturas mínimas + propose/confirm para `create_pond` (y cancel). Dejar 
 ticket (sección follow-up del PR) lo diferido: mount Streamable HTTP puro, rotate gate
 persistido, `restore_backup` / `run_sql` write MCP, delete con summary rico.
 
+### Follow-up (post vertical slice)
+
+- Montar FastMCP ASGI Streamable HTTP en `/mcp` sin romper OpenAPI `mcp_info`.
+- Persistir `agent_access` (slug/password argon2 por usuario) en lugar del demo settings.
+- Tools mutantes restantes: `restore_backup`, `run_sql` write; enriquecer summary de delete.
+- W4-07 añade el resto de lecturas copiando el patrón de `server.py`.
+
 ## No tocar
 
 `apps/web/**`, `apps/cli/**`, tools de solo lectura reservadas a W4-07 salvo el mínimo de
