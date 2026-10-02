@@ -99,7 +99,7 @@ async def delete_pond(
     if _requires_confirmation(surface, confirm_token):
         return build_confirmation(
             action="delete_pond",
-            summary="Se eliminará el pond solicitado. Expira en 5 min.",
+            summary=f"Se eliminará el pond '{pond_id}'. Se creará un respaldo previo automático. Expira en 5 min.",
         )
 
     async with SessionLocal() as session:
