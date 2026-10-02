@@ -49,7 +49,11 @@ def to_sync_database_url(url: str) -> str:
     )
     for old, new in replacements:
         if url.startswith(old):
-            return new + url[len(old) :]
+            url = new + url[len(old) :]
+            break
+    # asyncpg uses `ssl=require`; psycopg expects `sslmode=require`.
+    if "sslmode=" not in url:
+        url = url.replace("ssl=require", "sslmode=require").replace("ssl=true", "sslmode=require")
     return url
 
 

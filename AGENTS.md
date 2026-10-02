@@ -271,3 +271,6 @@ alcance — y entonces pregunta siempre.
 `make up` · `make migrate` · `make seed` · `make contracts` (regenera OpenAPI y tipos TS,
 solo W1) · `make check` · `make check-api` · `make check-web` · `make check-agent` ·
 `make check-cli` · `bash scripts/what-do-i-do.sh <nombre>`
+
+Demo A/B: `bash scripts/demo-vivo.sh` (puntero [`docs/runbooks/demo-vivo.md`](docs/runbooks/demo-vivo.md)).
+Quirks de Mac/VM y worker local: [`docs/agent-onboarding.md`](docs/agent-onboarding.md) §9.

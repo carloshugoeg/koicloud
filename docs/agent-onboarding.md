@@ -30,6 +30,11 @@ git config --get user.email     # verificá que salga el tuyo
 make up && make migrate && make seed
 ```
 
+`make seed` ya corre migrate primero. Si `make up` falla por puerto **5432** ocupado
+(Postgres.app / EDB en Mac), usá el guion canónico `bash scripts/demo-vivo.sh b`
+(remapea con `KOI_DB_HOST_PORT`) o el runbook corto
+[`docs/runbooks/demo-vivo.md`](./runbooks/demo-vivo.md).
+
 Sobre el correo: usá el de tu cuenta de GitHub, o su `noreply`
 (`ID+handle@users.noreply.github.com`, lo encontrás en *Settings → Emails*) si preferís no
 publicarlo. Cuenta igual para la atribución y para tu gráfico de contribuciones.
@@ -170,3 +175,23 @@ dependencias. Un PR = un ticket, ≤ 500 líneas netas.
 Y lo último, que no lo revisa ninguna máquina: **tenés que poder explicar qué hace tu código
 y por qué así, sin leer**. La exposición final evalúa exactamente eso, y un PR que su dueño
 no puede explicar es un PR que no está terminado.
+
+---
+
+## 9. Quirks operativos (Mac + cloud VM)
+
+La fuente canónica del ensayo Demo A/B es `scripts/demo-vivo.sh` (también
+[`docs/runbooks/demo-vivo.md`](./runbooks/demo-vivo.md) y
+[`docs/runbooks/local-pond.md`](./runbooks/local-pond.md)). Lecciones ya codificadas ahí:
+
+| Quirk | Qué hacer |
+|---|---|
+| macOS **bash 3.2** | No inventes otro wait; el script usa `host:port` compatible. |
+| Host **5432** ocupado (EDB/Postgres.app) | `demo-vivo.sh b` remapea `KOI_DB_HOST_PORT`. |
+| Nombre de pond choca con Demo A | Demo B usa `pond-api-demo` (no `inventario-demo`). |
+| Worktree retiene `main` | `git worktree list` → `remove`/`prune` antes del checkout. |
+| Cloud VM bridge Docker roto | Overlay `docker-compose.vm-hostnet.yml` (auto en el script). Mac Desktop no lo necesita. |
+| Bind-mount tapaba `.venv` | Compose usa volúmenes `api_venv` / `agent_venv` + `uv sync --frozen`. |
+| Worker local Cursor | En Mac: `agent worker start` (no `cursor worker start`). Solo cuando el agente deba manejar Docker/demo en esa máquina. |
+
+No inventar VPS. Demo local Docker basta para el hito.
