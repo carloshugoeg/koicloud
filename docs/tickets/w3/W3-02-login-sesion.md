@@ -2,11 +2,11 @@
 id: W3-02
 workstream: W3
 persona: Jousé
-estado: abierto
+estado: en-revision
 rama: w3-login-sesion
 epica: "E1-03"
 sprint: S2
-pr:
+pr: "https://github.com/carloshugoeg/koicloud/pull/21"
 depends_on: W1-15 W3-01
 ---
 
