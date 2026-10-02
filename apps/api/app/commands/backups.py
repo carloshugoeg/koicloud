@@ -28,13 +28,16 @@ async def list_backups(_: AuthContext, pond_id: UUID) -> BackupListResponse:
 async def trigger_backup(
     pond_id: UUID,
     *,
+    actor: AuthContext,
     surface: AppSurface,
     confirm_token: str | None = None,
 ) -> TriggerBackupResponse | ConfirmationRequiredResponse:
     if _requires_confirmation(surface, confirm_token):
-        return build_confirmation(
+        return await build_confirmation(
+            actor=actor,
             action="trigger_backup",
             summary=f"Se encolará un respaldo manual para el pond '{pond_id}'. Expira en 5 min.",
+            payload={"pond_id": str(pond_id)},
         )
     backup = BackupOut.example()
     backup.pond_id = pond_id
@@ -49,16 +52,19 @@ async def restore_backup(
     pond_id: UUID,
     payload: RestoreBackupRequest,
     *,
+    actor: AuthContext,
     surface: AppSurface,
     confirm_token: str | None = None,
 ) -> JobResponse | ConfirmationRequiredResponse:
     if _requires_confirmation(surface, confirm_token):
-        return build_confirmation(
+        return await build_confirmation(
+            actor=actor,
             action="restore_backup",
             summary=(
                 f"Se restaurará el respaldo '{payload.backup_id}' sobre el pond '{pond_id}'. "
                 "Expira en 5 min."
             ),
+            payload={"pond_id": str(pond_id), "backup_id": str(payload.backup_id)},
         )
     job = build_job(job_type=JobType.RESTORE_POND, pond_id=pond_id)
     return JobResponse(job=job)

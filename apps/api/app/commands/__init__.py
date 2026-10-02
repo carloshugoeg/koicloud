@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
+from typing import Any
 from uuid import NAMESPACE_URL, UUID, uuid5
 
+from app.core.auth import AuthContext
 from app.core.config import get_settings
 from app.core.enums import (
     JobStatus,
@@ -10,10 +12,8 @@ from app.core.enums import (
     UserRole,
     UserStatus,
 )
-from app.core.security import generate_confirmation_token
 from app.schemas import (
     AdminUserOut,
-    ConfirmationNextStep,
     ConfirmationRequiredResponse,
     JobOut,
 )
@@ -61,16 +61,13 @@ def build_job(*, job_type: JobType, pond_id: UUID | None = None, status: JobStat
     )
 
 
-def build_confirmation(*, action: str, summary: str) -> ConfirmationRequiredResponse:
-    settings = get_settings()
-    token = generate_confirmation_token(action)
-    return ConfirmationRequiredResponse(
-        status="confirmation_required",
-        token=token,
-        summary=summary,
-        expires_at=(now_iso() + timedelta(seconds=settings.confirm_ttl_seconds)).replace(microsecond=0),
-        next=ConfirmationNextStep(
-            confirm_url=f"/api/v1/confirm/{token}",
-            cli_example=f"koicloud confirm {token}",
-        ),
-    )
+async def build_confirmation(
+    *,
+    actor: AuthContext,
+    action: str,
+    summary: str,
+    payload: dict[str, Any] | None = None,
+) -> ConfirmationRequiredResponse:
+    from app.commands.confirmations import propose_action
+
+    return await propose_action(actor=actor, action=action, summary=summary, payload=payload)

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import base64
-import binascii
 from typing import Annotated
 
 import jwt
@@ -78,28 +76,6 @@ async def get_mcp_user(
     authorization: str | None = Header(default=None),
     x_koi_agent_password: str | None = Header(default=None, alias="X-KOI-Agent-Password"),
 ) -> AuthContext:
-    settings = get_settings()
-    if not settings.mcp_enabled:
-        raise AppError(ErrorCode.AGENT_DISABLED)
+    from app.mcp.gate import authenticate_mcp
 
-    slug = settings.mcp_demo_slug
-    password = x_koi_agent_password
-
-    if authorization and authorization.lower().startswith("basic "):
-        token = authorization.split(" ", 1)[1]
-        try:
-            decoded = base64.b64decode(token).decode("utf-8")
-            slug, password = decoded.split(":", 1)
-        except (ValueError, binascii.Error, UnicodeDecodeError) as exc:
-            raise AppError(ErrorCode.AGENT_BAD_CREDENTIALS) from exc
-
-    if slug != settings.mcp_demo_slug or password != settings.mcp_demo_password:
-        raise AppError(ErrorCode.AGENT_BAD_CREDENTIALS)
-
-    return AuthContext(
-        user_id="00000000-0000-0000-0000-000000000001",
-        email="agent@koicloud.dev",
-        role=UserRole.CLIENT,
-        status=UserStatus.ACTIVE,
-        surface=AppSurface.MCP,
-    )
+    return await authenticate_mcp(authorization=authorization, agent_password=x_koi_agent_password)

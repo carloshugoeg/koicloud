@@ -486,11 +486,13 @@ async def list_backups(
 )
 async def trigger_backup(
     pond_id: UUID,
+    actor: Annotated[AuthContext, Depends(get_current_user)],
     surface: Annotated[AppSurface, Depends(get_surface)],
     confirm_token: Annotated[str | None, Depends(get_confirmation_token)],
 ) -> Response:
     result = await backup_commands.trigger_backup(
         pond_id,
+        actor=actor,
         surface=surface,
         confirm_token=confirm_token,
     )
@@ -508,12 +510,14 @@ async def trigger_backup(
 async def restore_backup(
     pond_id: UUID,
     payload: RestoreBackupRequest,
+    actor: Annotated[AuthContext, Depends(get_current_user)],
     surface: Annotated[AppSurface, Depends(get_surface)],
     confirm_token: Annotated[str | None, Depends(get_confirmation_token)],
 ) -> Response:
     result = await backup_commands.restore_backup(
         pond_id,
         payload,
+        actor=actor,
         surface=surface,
         confirm_token=confirm_token,
     )
@@ -593,10 +597,12 @@ async def get_agent_access(
     responses=_error_responses(401, 409, confirmation=True),
 )
 async def rotate_agent_password(
+    actor: Annotated[AuthContext, Depends(get_current_user)],
     surface: Annotated[AppSurface, Depends(get_surface)],
     confirm_token: Annotated[str | None, Depends(get_confirmation_token)],
 ) -> Response:
     result = await agent_access_commands.rotate_agent_password(
+        actor=actor,
         surface=surface,
         confirm_token=confirm_token,
     )
@@ -612,11 +618,13 @@ async def rotate_agent_password(
 )
 async def toggle_agent_access(
     payload: ToggleAgentAccessRequest,
+    actor: Annotated[AuthContext, Depends(get_current_user)],
     surface: Annotated[AppSurface, Depends(get_surface)],
     confirm_token: Annotated[str | None, Depends(get_confirmation_token)],
 ) -> Response:
     result = await agent_access_commands.toggle_agent_access(
         payload,
+        actor=actor,
         surface=surface,
         confirm_token=confirm_token,
     )
