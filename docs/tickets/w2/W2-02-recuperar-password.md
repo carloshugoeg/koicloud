@@ -2,11 +2,11 @@
 id: W2-02
 workstream: W2
 persona: Jason
-estado: abierto
+estado: en-revision
 rama: w2-recuperar-password
 epica: "E1-04"
 sprint: S3
-pr:
+pr: "https://github.com/carloshugoeg/koicloud/pull/24"
 depends_on:
 ---
 
