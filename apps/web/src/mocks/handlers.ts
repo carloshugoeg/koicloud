@@ -25,6 +25,14 @@ export const handlers = [
     return HttpResponse.json(fixtures.session);
   }),
 
+  http.post(`${API_ROOT}/auth/forgot`, () => {
+    return HttpResponse.json({ ok: true });
+  }),
+
+  http.post(`${API_ROOT}/auth/reset`, () => {
+    return HttpResponse.json({ ok: true });
+  }),
+
   http.post(`${API_ROOT}/auth/refresh`, () => {
     return HttpResponse.json(fixtures.refreshed);
   }),

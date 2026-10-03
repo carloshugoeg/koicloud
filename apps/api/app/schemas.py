@@ -943,6 +943,7 @@ class ClaimedJobPayload(SchemaModel):
     cpus: float
     db_password_plain: str
     image: str
+    backup_id: str | None = None
 
     model_config = config_with_example(
         {

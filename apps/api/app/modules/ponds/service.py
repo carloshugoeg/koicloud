@@ -168,6 +168,9 @@ class PondService:
         return connection_for(pond, node, decrypt_secret(pond.db_password_encrypted))
 
     async def delete(self, actor: AuthContext, pond_id: UUID) -> tuple[PondOut, list[JobOut]]:
+        from app.core.enums import BackupKind
+        from app.modules.backups.service import BackupService
+
         pond, status = await self.get_owned(actor, pond_id)
         await self._assert_no_active_job(pond.id)
 
@@ -176,16 +179,13 @@ class PondService:
         status.healthy = False
         status.updated_at = utc_now()
 
-        job = Job(
-            type=JobType.DELETE_POND,
-            pond_id=pond.id,
-            node_id=pond.node_id,
-            status=JobStatus.QUEUED,
-            payload=self._agent_payload(pond),
+        # jobs_one_active: only the pre_delete backup is queued now.
+        # JobService enqueues delete_pond after that backup succeeds.
+        _backup, backup_job = await BackupService(self.session, self.settings).enqueue_backup(
+            pond=pond,
+            kind=BackupKind.PRE_DELETE,
         )
-        self.session.add(job)
-        await self.session.flush()
-        return pond_to_out(pond, status), [job_to_out(job)]
+        return pond_to_out(pond, status), [job_to_out(backup_job)]
 
     async def retry_failed(self, actor: AuthContext, pond_id: UUID) -> JobOut:
         pond, status = await self.get_owned(actor, pond_id)

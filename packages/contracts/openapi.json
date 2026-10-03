@@ -704,6 +704,17 @@
           "name": "inventario-demo"
         },
         "properties": {
+          "backup_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Backup Id"
+          },
           "cpus": {
             "title": "Cpus",
             "type": "number"
