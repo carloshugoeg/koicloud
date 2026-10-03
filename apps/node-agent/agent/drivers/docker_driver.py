@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import io
 import os
 import tarfile
@@ -126,10 +127,17 @@ class DockerDriver(PondDriver):
         )
         if code != 0:
             raise PondDriverError(f"dump_failed:{pond_name}")
+        raw = output if isinstance(output, bytes) else str(output).encode()
         path = self.backup_dir / f"{pond_name}-{backup_id}.sql"
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(output if isinstance(output, bytes) else str(output).encode())
-        return BackupArtifact(pond_id=runtime.pond_id, backup_id=backup_id, path=str(path))
+        path.write_bytes(raw)
+        return BackupArtifact(
+            pond_id=runtime.pond_id,
+            backup_id=backup_id,
+            path=str(path),
+            size_bytes=len(raw),
+            sha256=hashlib.sha256(raw).hexdigest(),
+        )
 
     def restore(self, pond_name: str, backup_id: str) -> dict[str, Any]:
         container = self._container(pond_name)
