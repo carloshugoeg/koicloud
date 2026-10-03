@@ -1106,6 +1106,8 @@ export interface components {
          *     }
          */
         ClaimedJobPayload: {
+            /** Backup Id */
+            backup_id?: string | null;
             /** Cpus */
             cpus: number;
             /** Db Password Plain */

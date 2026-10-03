@@ -37,6 +37,8 @@ class BackupArtifact:
     pond_id: str
     backup_id: str
     path: str
+    size_bytes: int = 0
+    sha256: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

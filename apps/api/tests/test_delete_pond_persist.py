@@ -51,12 +51,34 @@ def test_delete_pond_persists_job_and_marks_deleted() -> None:
     assert body["pond"]["desired_state"] == "deleted"
     assert body["pond"]["observed_state"] == "deleting"
     assert len(body["jobs"]) == 1
-    assert body["jobs"][0]["type"] == "delete_pond"
+    assert body["jobs"][0]["type"] == "backup_pond"
     assert body["jobs"][0]["status"] == "queued"
 
     listed = client.get("/api/v1/ponds", headers=headers)
     assert listed.status_code == 200
     assert listed.json()["ponds"] == []
+
+    claimed_backup = client.post("/internal/v1/jobs/claim", headers=node_headers(), json={})
+    assert claimed_backup.status_code == 200
+    backup_job = claimed_backup.json()["job"]
+    assert backup_job["type"] == "backup_pond"
+    assert backup_job["payload"]["name"] == "inventario-demo"
+
+    done_backup = client.post(
+        f"/internal/v1/jobs/{backup_job['id']}/complete",
+        headers=node_headers(),
+        json={
+            "status": "succeeded",
+            "result": {
+                "backup": {
+                    "path": "/tmp/pre-delete.dump",
+                    "size_bytes": 1,
+                    "sha256": "d" * 64,
+                }
+            },
+        },
+    )
+    assert done_backup.status_code == 204
 
     claimed = client.post("/internal/v1/jobs/claim", headers=node_headers(), json={})
     assert claimed.status_code == 200
