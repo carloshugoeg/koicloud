@@ -1,3 +1,4 @@
 from app.mcp.router import router
+from app.mcp.server import mcp
 
-__all__ = ["router"]
+__all__ = ["mcp", "router"]

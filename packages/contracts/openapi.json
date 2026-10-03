@@ -3835,6 +3835,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Rotate Agent Password",
         "tags": [
           "agent-access"
@@ -3930,6 +3935,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Toggle Agent Access",
         "tags": [
           "agent-access"
@@ -5615,6 +5625,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Trigger Backup",
         "tags": [
           "backups"
@@ -5834,6 +5849,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Restore Backup",
         "tags": [
           "backups"
