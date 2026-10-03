@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from enum import StrEnum
 from typing import Any
 from uuid import UUID, uuid4
 
-from sqlalchemy import BigInteger, Boolean, DateTime, Enum, ForeignKey, Integer, Numeric, Text
+from sqlalchemy import BigInteger, Boolean, Date, DateTime, Enum, ForeignKey, Integer, Numeric, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -193,6 +193,31 @@ class Backup(Base):
     sha256: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utc_now)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class PondSample(Base):
+    __tablename__ = "pond_samples"
+
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
+    pond_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("ponds.id", ondelete="CASCADE"), nullable=False
+    )
+    size_bytes: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    container_state: Mapped[str] = mapped_column(Text, nullable=False)
+    sampled_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utc_now
+    )
+
+
+class UsageDaily(Base):
+    __tablename__ = "usage_daily"
+
+    pond_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("ponds.id", ondelete="CASCADE"), primary_key=True
+    )
+    day: Mapped[date] = mapped_column(Date, primary_key=True)
+    instance_hours: Mapped[Decimal] = mapped_column(Numeric(12, 4), nullable=False)
+    storage_gb_hours: Mapped[Decimal] = mapped_column(Numeric(12, 4), nullable=False)
 
 
 class PendingConfirmation(Base):
