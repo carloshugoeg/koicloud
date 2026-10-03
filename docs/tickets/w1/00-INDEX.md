@@ -17,7 +17,7 @@ no existe todavía. `00-INDEX.md` no es un ticket y el agente lo ignora.
 | W1-09 | `create_pond` persistido + job claim (+ delete/retry) | `w1-persist-create-pond` | hecho ([PR #6](https://github.com/carloshugoeg/koicloud/pull/6); delete/retry en #17/#18) |
 | W1-15 | `users` + `email_tokens` persistidos | `w1-auth-persist` | hecho ([PR #7](https://github.com/carloshugoeg/koicloud/pull/7)) |
 | W1-16 | MSW fixtures + ticket/docs honesty + `list_plans` | `w1-teammate-unblock-semana` | hecho ([PR #19](https://github.com/carloshugoeg/koicloud/pull/19)) |
-| W1-10 | Respaldos diarios y restauración verificada | `w1-backups` | abierto |
+| W1-10 | Respaldos diarios y restauración verificada | `w1-backups` | hecho ([PR #30](https://github.com/carloshugoeg/koicloud/pull/30)) |
 | W1-11 | Muestreo y agregación de consumo | `w1-metering` | abierto |
 | W1-12 | MCP: montaje, gate, prompt, tools mutantes y confirmaciones | `w1-mcp-gate-confirm` | hecho ([PR #27](https://github.com/carloshugoeg/koicloud/pull/27); follow-ups en ticket) |
 | W1-13 | Infra: Caddy, compose de producción, systemd, `deploy.yml` | `w1-infra-deploy` | abierto (requires real host — do not invent VPS) |
