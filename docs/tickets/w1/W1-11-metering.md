@@ -2,11 +2,11 @@
 id: W1-11
 workstream: W1
 persona: Carlos
-estado: abierto
+estado: hecho
 rama: w1-metering
 epica: "E7-01, E7-02, E7-03, E7-04"
 sprint: S3
-pr:
+pr: https://github.com/carloshugoeg/koicloud/pull/36
 depends_on:
 ---
 
