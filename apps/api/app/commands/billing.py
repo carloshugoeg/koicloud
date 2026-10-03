@@ -66,9 +66,11 @@ async def subscribe(
     if not payload.plan_id:
         raise AppError(ErrorCode.PLAN_REQUIRED)
     if _requires_confirmation(surface, confirm_token):
-        return build_confirmation(
+        return await build_confirmation(
+            actor=actor,
             action="subscribe",
             summary=f"Se contratará el plan '{payload.plan_id}' para {actor.email}. Expira en 5 min.",
+            payload=payload.model_dump(mode="json"),
         )
 
     subscription = SubscriptionOut.example()
@@ -88,12 +90,14 @@ async def cancel_subscription(
     confirm_token: str | None = None,
 ) -> CancelSubscriptionResponse | ConfirmationRequiredResponse:
     if _requires_confirmation(surface, confirm_token):
-        return build_confirmation(
+        return await build_confirmation(
+            actor=actor,
             action="cancel_subscription",
             summary=(
                 f"Se cancelará la suscripción '{subscription_id}' al final del período "
                 f"de {actor.email}. Expira en 5 min."
             ),
+            payload={"subscription_id": str(subscription_id)},
         )
     subscription = SubscriptionOut.example()
     subscription.id = subscription_id
