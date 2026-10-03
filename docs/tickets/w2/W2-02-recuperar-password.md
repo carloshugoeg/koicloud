@@ -2,7 +2,7 @@
 id: W2-02
 workstream: W2
 persona: Jason
-estado: en-revision
+estado: hecho
 rama: w2-recuperar-password
 epica: "E1-04"
 sprint: S3
