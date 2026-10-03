@@ -2,11 +2,11 @@
 id: W1-10
 workstream: W1
 persona: Carlos
-estado: abierto
+estado: hecho
 rama: w1-backups
 epica: "E6-01, E6-02, E6-03, E6-04"
 sprint: S3
-pr:
+pr: https://github.com/carloshugoeg/koicloud/pull/30
 depends_on:
 ---
 
