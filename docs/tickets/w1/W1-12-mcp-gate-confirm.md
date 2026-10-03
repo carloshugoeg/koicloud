@@ -2,11 +2,11 @@
 id: W1-12
 workstream: W1
 persona: Carlos
-estado: abierto
+estado: hecho
 rama: w1-mcp-gate-confirm
 epica: "E9-02, E9-03, E9-04"
 sprint: S4
-pr:
+pr: "#27"
 depends_on:
 ---
 
