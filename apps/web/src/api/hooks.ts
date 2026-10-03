@@ -54,11 +54,15 @@ export function useUsageQuery(month?: string) {
 }
 
 export {
+  useForgotPasswordMutation,
   useLoginMutation,
   useRegisterMutation,
+  useResetPasswordMutation,
   useVerifyEmailMutation,
+  type ForgotPasswordPayload,
   type LoginPayload,
   type RegisterPayload,
+  type ResetPasswordPayload,
   type VerifyEmailPayload,
 } from "@/api/hooks/auth";
 

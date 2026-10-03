@@ -108,3 +108,69 @@ describe("W2-01 Auth flows (register, verify, login)", () => {
     expect(useAuthStore.getState().session).toBeNull();
   });
 });
+
+describe("W2-02 Forgot and reset password flows", () => {
+  it("shows a neutral confirmation after forgot submit regardless of email existence", async () => {
+    const user = userEvent.setup();
+    renderAuthRoute("/forgot");
+
+    expect(await screen.findByRole("heading", { name: "Recuperar acceso" })).toBeInTheDocument();
+    await user.type(screen.getByLabelText("Correo"), "ghost@ejemplo.gt");
+    await user.click(screen.getByRole("button", { name: "Enviar enlace" }));
+
+    expect(await screen.findByRole("heading", { name: "Revisa tu correo" })).toBeInTheDocument();
+    expect(screen.getByText(/ghost@ejemplo\.gt/i)).toBeInTheDocument();
+    expect(screen.getByText(/no confirmamos si el correo está registrado/i)).toBeInTheDocument();
+  });
+
+  it("resets password with a valid token and shows the final success state", async () => {
+    const user = userEvent.setup();
+    renderAuthRoute("/reset?token=reset_token_123");
+
+    expect(await screen.findByRole("heading", { name: "Restablecer contraseña" })).toBeInTheDocument();
+    await user.type(screen.getByLabelText("Nueva contraseña"), "NuevaClave!2026");
+    await user.type(screen.getByLabelText("Confirmar contraseña"), "NuevaClave!2026");
+    await user.click(screen.getByRole("button", { name: "Guardar contraseña" }));
+
+    expect(await screen.findByRole("heading", { name: "Contraseña actualizada" })).toBeInTheDocument();
+    expect(screen.getByText("password_reset = true")).toBeInTheDocument();
+  });
+
+  it("shows code-based error and recovery exit when reset token is expired", async () => {
+    server.use(
+      http.post("*/api/v1/auth/reset", () =>
+        HttpResponse.json({ code: "token_expired", message: "Expired", request_id: "req_reset" }, { status: 401 }),
+      ),
+    );
+    const user = userEvent.setup();
+    renderAuthRoute("/reset?token=expired_reset");
+
+    await user.type(screen.getByLabelText("Nueva contraseña"), "NuevaClave!2026");
+    await user.type(screen.getByLabelText("Confirmar contraseña"), "NuevaClave!2026");
+    await user.click(screen.getByRole("button", { name: "Guardar contraseña" }));
+
+    expect(await screen.findByText("Tu sesión expiró. Iniciá sesión otra vez.")).toBeInTheDocument();
+    expect(screen.getByText("token_expired")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Volver a recuperar acceso" })).toBeInTheDocument();
+  });
+
+  it("shows password_too_weak inline from code when reset rejects the password", async () => {
+    server.use(
+      http.post("*/api/v1/auth/reset", () =>
+        HttpResponse.json(
+          { code: "password_too_weak", message: "Weak", request_id: "req_weak" },
+          { status: 422 },
+        ),
+      ),
+    );
+    const user = userEvent.setup();
+    renderAuthRoute("/reset?token=reset_token_weak");
+
+    await user.type(screen.getByLabelText("Nueva contraseña"), "short");
+    await user.type(screen.getByLabelText("Confirmar contraseña"), "short");
+    await user.click(screen.getByRole("button", { name: "Guardar contraseña" }));
+
+    expect(await screen.findByText("La contraseña no cumple los requisitos mínimos.")).toBeInTheDocument();
+    expect(screen.getByText("password_too_weak")).toBeInTheDocument();
+  });
+});

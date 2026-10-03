@@ -5,32 +5,12 @@ import { PlaceholderPage } from "@/components/placeholder-page";
 export { LoginPage } from "@/features/auth/login-page";
 export { RegisterPage } from "@/features/auth/register-page";
 export { VerifyPage } from "@/features/auth/verify-page";
+export { ForgotPage } from "@/features/auth/forgot-page";
+export { ResetPage } from "@/features/auth/reset-page";
 
 function usePondRouteLabel(suffix?: string) {
   const { pondId } = useParams();
   return pondId ? `/app/ponds/${pondId}${suffix ?? ""}` : "/app/ponds/:pondId";
-}
-
-export function ForgotPage() {
-  return (
-    <PlaceholderPage
-      description="Placeholder del flujo de recuperación de contraseña."
-      route="/forgot"
-      ticket="W2-02"
-      title="Recuperar acceso"
-    />
-  );
-}
-
-export function ResetPage() {
-  return (
-    <PlaceholderPage
-      description="Pantalla placeholder para reestablecer la contraseña con token ya validado."
-      route="/reset"
-      ticket="W2-02"
-      title="Restablecer contraseña"
-    />
-  );
 }
 
 export function DashboardPage() {

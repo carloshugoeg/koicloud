@@ -32,6 +32,20 @@ def test_mock_driver_create_pond_and_sample() -> None:
     assert samples[0].size_bytes == 42
 
 
+def test_mock_driver_dump_and_restore() -> None:
+    driver = MockDriver()
+    driver.create_pond(build_spec())
+
+    artifact = driver.dump("inventario-demo", "backup_ab")
+    assert artifact.backup_id == "backup_ab"
+    assert artifact.size_bytes > 0
+    assert len(artifact.sha256) == 64
+
+    restored = driver.restore("inventario-demo", "backup_ab")
+    assert restored["restored"] is True
+    assert restored["backup_id"] == "backup_ab"
+
+
 def test_mock_fail_next_is_one_shot(monkeypatch: pytest.MonkeyPatch) -> None:
     driver = MockDriver()
     monkeypatch.setenv("MOCK_FAIL_NEXT", "create_pond")

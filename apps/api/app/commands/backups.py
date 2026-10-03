@@ -2,12 +2,14 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from app.commands import build_confirmation, build_job
+from app.commands import build_confirmation
 from app.core.auth import AuthContext
-from app.core.enums import AppSurface, BackupKind, BackupStatus, JobType
+from app.core.config import get_settings
+from app.core.db import SessionLocal
+from app.core.enums import AppSurface
+from app.modules.backups.service import BackupService
 from app.schemas import (
     BackupListResponse,
-    BackupOut,
     ConfirmationRequiredResponse,
     JobResponse,
     RestoreBackupRequest,
@@ -19,10 +21,10 @@ def _requires_confirmation(surface: AppSurface, confirm_token: str | None) -> bo
     return surface in {AppSurface.CLI, AppSurface.MCP} and not confirm_token
 
 
-async def list_backups(_: AuthContext, pond_id: UUID) -> BackupListResponse:
-    backup = BackupOut.example()
-    backup.pond_id = pond_id
-    return BackupListResponse(backups=[backup], next_cursor=None)
+async def list_backups(actor: AuthContext, pond_id: UUID) -> BackupListResponse:
+    async with SessionLocal() as session:
+        backups = await BackupService(session, get_settings()).list_for_owned(actor, pond_id)
+        return BackupListResponse(backups=backups, next_cursor=None)
 
 
 async def trigger_backup(
@@ -39,13 +41,13 @@ async def trigger_backup(
             summary=f"Se encolará un respaldo manual para el pond '{pond_id}'. Expira en 5 min.",
             payload={"pond_id": str(pond_id)},
         )
-    backup = BackupOut.example()
-    backup.pond_id = pond_id
-    backup.kind = BackupKind.ON_DEMAND
-    backup.status = BackupStatus.QUEUED
-    backup.completed_at = None
-    job = build_job(job_type=JobType.BACKUP_POND, pond_id=pond_id)
-    return TriggerBackupResponse(backup=backup, job=job)
+
+    async with SessionLocal() as session:
+        backup, job = await BackupService(session, get_settings()).trigger_on_demand(
+            actor, pond_id
+        )
+        await session.commit()
+        return TriggerBackupResponse(backup=backup, job=job)
 
 
 async def restore_backup(
@@ -66,5 +68,10 @@ async def restore_backup(
             ),
             payload={"pond_id": str(pond_id), "backup_id": str(payload.backup_id)},
         )
-    job = build_job(job_type=JobType.RESTORE_POND, pond_id=pond_id)
-    return JobResponse(job=job)
+
+    async with SessionLocal() as session:
+        job = await BackupService(session, get_settings()).restore(
+            actor, pond_id, payload.backup_id
+        )
+        await session.commit()
+        return JobResponse(job=job)

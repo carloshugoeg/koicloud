@@ -20,6 +20,7 @@ def reset_pond_tables() -> None:
     with engine.begin() as connection:
         connection.execute(text("DELETE FROM pending_confirmations"))
         connection.execute(text("DELETE FROM jobs"))
+        connection.execute(text("DELETE FROM backups"))
         connection.execute(text("DELETE FROM pond_status"))
         connection.execute(text("DELETE FROM ponds"))
         connection.execute(text("DELETE FROM subscriptions"))
@@ -37,6 +38,7 @@ def reset_auth_tables() -> None:
         connection.execute(text("DELETE FROM refresh_tokens"))
         connection.execute(text("DELETE FROM email_tokens"))
         connection.execute(text("DELETE FROM jobs"))
+        connection.execute(text("DELETE FROM backups"))
         connection.execute(text("DELETE FROM pond_status"))
         connection.execute(text("DELETE FROM ponds"))
         connection.execute(text("DELETE FROM subscriptions"))

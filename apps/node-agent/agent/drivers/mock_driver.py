@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import os
 import time
 from dataclasses import replace
@@ -83,10 +84,15 @@ class MockDriver(PondDriver):
     def dump(self, pond_name: str, backup_id: str | None = None) -> BackupArtifact:
         self._run("dump")
         runtime = self._require_pond(pond_name)
+        resolved_id = backup_id or f"backup_{uuid4().hex[:8]}"
+        path = f"/tmp/mock-backups/{pond_name}-{resolved_id}.sql"
+        payload = f"mock-dump:{pond_name}:{resolved_id}".encode()
         artifact = BackupArtifact(
             pond_id=runtime.pond_id,
-            backup_id=backup_id or f"backup_{uuid4().hex[:8]}",
-            path=f"/tmp/mock-backups/{pond_name}-{uuid4().hex[:8]}.sql",
+            backup_id=resolved_id,
+            path=path,
+            size_bytes=len(payload),
+            sha256=hashlib.sha256(payload).hexdigest(),
         )
         self._backups.setdefault(pond_name, []).append(artifact)
         return artifact
