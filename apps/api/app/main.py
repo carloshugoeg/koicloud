@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 from uuid import uuid4
 
 from fastapi import FastAPI, Request
@@ -9,8 +10,15 @@ from app.api_v1 import router as api_v1_router
 from app.core.config import get_settings
 from app.core.errors import AppError, app_error_handler, unexpected_error_handler
 from app.internal_v1 import router as internal_v1_router
+from app.mcp.asgi import mcp_stream_app, wrap_with_mcp_stream
 from app.mcp.router import router as mcp_router
 from app.schemas import HealthResponse
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    async with mcp_stream_app.lifespan(app):
+        yield
 
 
 def create_app() -> FastAPI:
@@ -22,6 +30,7 @@ def create_app() -> FastAPI:
         openapi_url="/openapi.json",
         docs_url="/docs",
         redoc_url="/redoc",
+        lifespan=lifespan,
     )
 
     @app.middleware("http")
@@ -57,4 +66,4 @@ def create_app() -> FastAPI:
     return app
 
 
-app = create_app()
+app = wrap_with_mcp_stream(create_app())

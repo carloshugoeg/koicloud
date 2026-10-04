@@ -19,8 +19,8 @@ no existe todavía. `00-INDEX.md` no es un ticket y el agente lo ignora.
 | W1-16 | MSW fixtures + ticket/docs honesty + `list_plans` | `w1-teammate-unblock-semana` | hecho ([PR #19](https://github.com/carloshugoeg/koicloud/pull/19)) |
 | W1-10 | Respaldos diarios y restauración verificada | `w1-backups` | hecho ([PR #30](https://github.com/carloshugoeg/koicloud/pull/30)) |
 | W1-11 | Muestreo y agregación de consumo | `w1-metering` | hecho ([PR #36](https://github.com/carloshugoeg/koicloud/pull/36)) |
-| W1-12 | MCP: montaje, gate, prompt, tools mutantes y confirmaciones | `w1-mcp-gate-confirm` | hecho ([PR #27](https://github.com/carloshugoeg/koicloud/pull/27); follow-ups en ticket) |
-| W1-13 | Infra: Caddy, compose de producción, systemd, `deploy.yml` | `w1-infra-deploy` | abierto (requires real host — do not invent VPS) |
+| W1-12 | MCP: montaje, gate, prompt, tools mutantes y confirmaciones | `w1-mcp-gate-confirm` | hecho ([PR #27](https://github.com/carloshugoeg/koicloud/pull/27); follow-ups [#38](https://github.com/carloshugoeg/koicloud/pull/38)) |
+| W1-13 | Infra: Caddy, compose de producción, systemd, `deploy.yml` | `w1-infra-deploy` | abierto · ESPERA host real (do not invent VPS) |
 | W1-14 | Guion de la demo y sus tres ensayos | `w1-guion-demo` | hecho (formaliza `scripts/demo-vivo.sh` + runbook ya en `main`) |
 
 W1 es el único workstream que puede tocar cualquier ruta, y el único que escribe migraciones,

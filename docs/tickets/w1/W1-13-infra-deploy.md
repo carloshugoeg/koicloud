@@ -12,6 +12,11 @@ depends_on:
 
 # [W1-13] Infra: Caddy, compose de producción, systemd, `deploy.yml`
 
+## ESPERA — host real
+
+`ESPERA: requires real host (VPS) — none provisioned by the team. Do not invent IP/DNS/provider.`
+Stubs in `infra/` stay until a real host exists. No fake deploy.
+
 ## Qué se ve
 
 `infra/docker-compose.prod.yml` deja de ser stub vacío. Caddy termina TLS y enruta

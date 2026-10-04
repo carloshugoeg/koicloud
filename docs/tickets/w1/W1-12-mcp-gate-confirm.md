@@ -6,7 +6,7 @@ estado: hecho
 rama: w1-mcp-gate-confirm
 epica: "E9-02, E9-03, E9-04"
 sprint: S4
-pr: "#27"
+pr: "#27; follow-ups #38"
 depends_on:
 ---
 
@@ -51,9 +51,12 @@ persistido, `restore_backup` / `run_sql` write MCP, delete con summary rico.
 
 ### Follow-up (post vertical slice)
 
-- Montar FastMCP ASGI Streamable HTTP en `/mcp` sin romper OpenAPI `mcp_info`.
-- Persistir `agent_access` (slug/password argon2 por usuario) en lugar del demo settings.
-- Tools mutantes restantes: `restore_backup`, `run_sql` write; enriquecer summary de delete.
+- [x] Montar FastMCP ASGI Streamable HTTP en `/mcp` sin romper OpenAPI `mcp_info`
+  (hybrid ASGI: `Accept: text/event-stream` → FastMCP; GET/POST OpenAPI intactos).
+- [x] Persistir `agent_access` (slug/password argon2 por usuario); gate lee la tabla
+  (bootstrap demo slug/password solo si aún no hay fila).
+- [x] Tools mutantes: `restore_backup`, `run_sql` (write → propose); summary de delete
+  con estado observado + `pre_delete`.
 - W4-07 añade el resto de lecturas copiando el patrón de `server.py`.
 
 ## No tocar

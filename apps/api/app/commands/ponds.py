@@ -102,14 +102,21 @@ async def delete_pond(
 ) -> DeletePondResponse | ConfirmationRequiredResponse:
     if _requires_confirmation(surface, confirm_token):
         async with SessionLocal() as session:
-            pond, _status = await PondService(session, get_settings()).get_owned(actor, pond_id)
+            pond, pond_status = await PondService(session, get_settings()).get_owned(
+                actor, pond_id
+            )
             pond_name = pond.name
+            observed = (
+                pond_status.observed_state.value
+                if hasattr(pond_status.observed_state, "value")
+                else str(pond_status.observed_state)
+            )
         return await build_confirmation(
             actor=actor,
             action="delete_pond",
             summary=(
-                f"Se eliminará el pond '{pond_name}'. "
-                "Se creará un respaldo previo automático. Expira en 5 min."
+                f"Se eliminará el pond '{pond_name}' (estado: {observed}). "
+                "Se encolará un respaldo pre_delete y luego el borrado. Expira en 5 min."
             ),
             payload={"pond_id": str(pond_id)},
         )
