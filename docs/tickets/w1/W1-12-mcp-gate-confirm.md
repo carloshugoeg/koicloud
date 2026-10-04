@@ -6,7 +6,7 @@ estado: hecho
 rama: w1-mcp-gate-confirm
 epica: "E9-02, E9-03, E9-04"
 sprint: S4
-pr: "#27; follow-ups #PENDING"
+pr: "#27; follow-ups #38"
 depends_on:
 ---
 
