@@ -1,0 +1,66 @@
+name: deploy
+
+# W1-13 groundwork. Does nothing until repository variables and secrets exist.
+# Never invents a VPS. See docs/runbooks/deploy.md.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "apps/**"
+      - "packages/contracts/**"
+      - "infra/**"
+      - ".github/workflows/deploy.yml"
+
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
+
+jobs:
+  missing-host:
+    name: waiting-for-host
+    if: >-
+      vars.KOICLOUD_DEPLOY_HOST == '' ||
+      vars.KOICLOUD_DEPLOY_USER == '' ||
+      vars.KOICLOUD_DOMAIN == '' ||
+      vars.KOICLOUD_DEPLOY_SSH_KNOWN_HOSTS == '' ||
+      secrets.KOICLOUD_DEPLOY_SSH_KEY == ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: Document the wait
+        run: |
+          echo "ESPERA: no real host is configured."
+          echo "Set KOICLOUD_DEPLOY_HOST, KOICLOUD_DEPLOY_USER, KOICLOUD_DOMAIN,"
+          echo "KOICLOUD_DEPLOY_SSH_KNOWN_HOSTS (repo variables) and"
+          echo "KOICLOUD_DEPLOY_SSH_KEY (repo secret). Do not invent IP or DNS."
+          echo "Checklist: docs/runbooks/deploy.md"
+
+  deploy:
+    name: deploy
+    if: >-
+      vars.KOICLOUD_DEPLOY_HOST != '' &&
+      vars.KOICLOUD_DEPLOY_USER != '' &&
+      vars.KOICLOUD_DOMAIN != '' &&
+      vars.KOICLOUD_DEPLOY_SSH_KNOWN_HOSTS != '' &&
+      secrets.KOICLOUD_DEPLOY_SSH_KEY != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: SSH and run host deploy script
+        env:
+          KOICLOUD_DEPLOY_HOST: ${{ vars.KOICLOUD_DEPLOY_HOST }}
+          KOICLOUD_DEPLOY_USER: ${{ vars.KOICLOUD_DEPLOY_USER }}
+          KOICLOUD_DOMAIN: ${{ vars.KOICLOUD_DOMAIN }}
+          KOICLOUD_DEPLOY_SSH_KNOWN_HOSTS: ${{ vars.KOICLOUD_DEPLOY_SSH_KNOWN_HOSTS }}
+          KOICLOUD_DEPLOY_SSH_KEY: ${{ secrets.KOICLOUD_DEPLOY_SSH_KEY }}
+        run: |
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%s\n' "$KOICLOUD_DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          printf '%s\n' "$KOICLOUD_DEPLOY_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes \
+            "${KOICLOUD_DEPLOY_USER}@${KOICLOUD_DEPLOY_HOST}" \
+            "bash /srv/koicloud/infra/scripts/deploy.sh"
+          curl -fsS --retry 12 --retry-all-errors --retry-delay 5 \
+            "https://${KOICLOUD_DOMAIN}/health"

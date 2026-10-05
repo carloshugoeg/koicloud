@@ -1,1 +1,19 @@
-# systemd unit — not implemented.
+[Unit]
+Description=KoiCloud node-agent
+Documentation=docs/runbooks/restart-agent.md
+After=docker.service network-online.target
+Requires=docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/srv/koicloud/apps/node-agent
+EnvironmentFile=/srv/koicloud/infra/env/prod.env
+Environment=AGENT_MODE=docker
+Environment=INTERNAL_API_URL=http://127.0.0.1:8000/internal/v1
+ExecStart=/usr/bin/uv run python -m agent.main
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

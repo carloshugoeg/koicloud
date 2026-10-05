@@ -15,7 +15,9 @@ depends_on:
 ## ESPERA — host real
 
 `ESPERA: requires real host (VPS) — none provisioned by the team. Do not invent IP/DNS/provider.`
-Stubs in `infra/` stay until a real host exists. No fake deploy.
+Compose, Caddy template, systemd unit, `deploy.yml` (gated on env) and runbooks are in the repo; **cableado y deploy real siguen pendientes**. No fake deploy.
+
+Checklist de campos: `docs/runbooks/deploy.md`.
 
 ## Qué se ve
 

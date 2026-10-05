@@ -1,1 +1,41 @@
-# Not implemented.
+# Template for a real host. KOICLOUD_DOMAIN is an env placeholder
+# (architecture: koicloud.example until DNS exists). Do not invent IP/DNS.
+# ACME will not issue a certificate for .example — leave Caddy stopped
+# until the team points a real name at the machine.
+
+{$KOICLOUD_DOMAIN:koicloud.example} {
+	encode gzip
+
+	@internal path /internal /internal/*
+	respond @internal 403
+
+	handle /api/* {
+		reverse_proxy api:8000
+	}
+
+	handle /mcp* {
+		reverse_proxy api:8000
+	}
+
+	handle /docs* {
+		reverse_proxy api:8000
+	}
+
+	handle /redoc* {
+		reverse_proxy api:8000
+	}
+
+	handle /openapi.json {
+		reverse_proxy api:8000
+	}
+
+	handle /health {
+		reverse_proxy api:8000
+	}
+
+	handle {
+		root * /srv/koicloud/web
+		try_files {path} /index.html
+		file_server
+	}
+}
