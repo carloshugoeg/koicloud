@@ -28,8 +28,10 @@ pack de presentación del Project store.
 
 ## Criterios de aceptación
 
-1. `scripts/demo-vivo.sh` existe en `main` con subcomandos `preflight|a|b|all|reset`.
-2. `docs/runbooks/demo-vivo.md` apunta al script (no duplica el guion entero).
+1. `scripts/demo-vivo.sh` existe en `main` con subcomandos
+   `preflight|reset|a|sql|b|full|entrega|warm|all`.
+2. `docs/runbooks/demo-vivo.md` apunta al script y documenta el guion de Entrega final,
+   ensayos E1–E3 y checklist VPS (sin inventar deploy).
 3. Tres ensayos previos a la demo final quedan como ritual de equipo (calendario en
    risks-and-demo-plan §7); no requieren código nuevo en este ticket.
 

@@ -6,6 +6,8 @@
 #   bash path/to/demo-vivo.sh a          # Demo A (siempre)
 #   bash path/to/demo-vivo.sh b          # Demo B (control plane)
 #   bash path/to/demo-vivo.sh all        # reset → A → B
+#   bash path/to/demo-vivo.sh full       # register → Micro → pond (Entrega final)
+#   bash path/to/demo-vivo.sh entrega    # reset → full (ensayo completo API)
 #   bash path/to/demo-vivo.sh sql        # solo SQL inventario en pond-demo
 #   bash path/to/demo-vivo.sh warm       # deja A caliente sin SQL
 #
@@ -21,8 +23,13 @@ DEMO_EMAIL="${DEMO_EMAIL:-demo@koicloud.dev}"
 DEMO_PASSWORD="${DEMO_PASSWORD:-Sup3rSegura!2026}"
 # Distinct from pond-demo container name `koicloud-inventario-demo` so A+B can coexist.
 DEMO_POND_NAME="${DEMO_POND_NAME:-pond-api-demo}"
+FULL_DEMO_EMAIL="${FULL_DEMO_EMAIL:-presenter-$(date +%Y%m%d-%H%M%S)@koicloud.dev}"
+FULL_DEMO_PASSWORD="${FULL_DEMO_PASSWORD:-Sup3rSegura!2026}"
+FULL_DEMO_NAME="${FULL_DEMO_NAME:-Presentador Demo}"
+FULL_DEMO_POND="${FULL_DEMO_POND:-inventario-demo}"
 POND_URI="${POND_URI:-postgresql://postgres:local-pond-dev-only@127.0.0.1:15432/inventario_demo}"
 DB_URL_HOST="${DATABASE_URL:-postgresql+asyncpg://koi:koi@127.0.0.1:5432/koicloud}"
+API_BASE="${API_BASE:-http://127.0.0.1:8000/api/v1}"
 COMPOSE_B=(docker compose -f docker-compose.yml -f docker-compose.docker-agent.yml)
 
 use_hostnet_overlay_if_needed() {
@@ -206,6 +213,100 @@ ensure_docker() {
     die "Docker no responde. Abrí Docker Desktop y esperá a Running."
   fi
   ok "Docker OK"
+}
+
+py_json() {
+  python3 -c "import json,sys; $1" "$@"
+}
+
+api_post() {
+  local path="$1"
+  local body="$2"
+  local token="${3:-}"
+  local surface="${4:-}"
+  local extra=()
+  [[ -n "$token" ]] && extra+=(-H "Authorization: Bearer $token")
+  [[ -n "$surface" ]] && extra+=(-H "X-KOI-Surface: $surface")
+  curl -sS -X POST "${API_BASE}${path}" \
+    -H 'Content-Type: application/json' \
+    "${extra[@]}" \
+    -d "$body"
+}
+
+api_get() {
+  local path="$1"
+  local token="${2:-}"
+  local extra=()
+  [[ -n "$token" ]] && extra+=(-H "Authorization: Bearer $token")
+  curl -sS "${API_BASE}${path}" "${extra[@]}"
+}
+
+extract_verify_token() {
+  local email="$1"
+  local try=0
+  local token=""
+  while (( try < 20 )); do
+    token="$(
+      "${COMPOSE_B[@]}" logs api 2>&1 \
+        | grep "verify_email token for ${email}:" \
+        | tail -1 \
+        | sed -E 's/.*verify_email token for [^:]*: //' \
+        || true
+    )"
+    [[ -n "$token" ]] && break
+    sleep 1
+    try=$((try + 1))
+  done
+  [[ -n "$token" ]] || die "no encontré verify_email token en logs del api para $email"
+  echo "$token"
+}
+
+login_token() {
+  local email="$1"
+  local password="$2"
+  api_post "/auth/login" "{\"email\":\"$email\",\"password\":\"$password\"}" \
+    | py_json "print(json.load(sys.stdin)['access_token'])"
+}
+
+poll_pond_running() {
+  local pond_id="$1"
+  local token="$2"
+  local state="" i=0
+  while (( i < 90 )); do
+    state="$(
+      api_get "/ponds/$pond_id" "$token" \
+        | py_json "d=json.load(sys.stdin); p=d.get('pond') if isinstance(d.get('pond'), dict) else d; print((p or {}).get('observed_state') or d.get('status') or '')" \
+        2>/dev/null || true
+    )"
+    echo "  state=$state"
+    [[ "$state" == "running" ]] && return 0
+    sleep 2
+    i=$((i + 2))
+  done
+  return 1
+}
+
+start_control_plane() {
+  ensure_docker
+  need_cmd curl
+  need_cmd python3
+  [[ "${SKIP_GIT:-0}" == "1" ]] || ensure_git_main
+
+  free_port 8000 "API"
+  ensure_db_host_port
+
+  info "Levantando db (probe de red) en host :${KOI_DB_HOST_PORT}…"
+  AGENT_MODE=docker KOI_DB_HOST_PORT="$KOI_DB_HOST_PORT" "${COMPOSE_B[@]}" up --build -d db
+  wait_tcp 127.0.0.1 "$KOI_DB_HOST_PORT" 45 || die "db no abre ${KOI_DB_HOST_PORT}"
+  use_hostnet_overlay_if_needed
+  info "Levantando api + node-agent (AGENT_MODE=docker)…"
+  AGENT_MODE=docker KOI_DB_HOST_PORT="$KOI_DB_HOST_PORT" "${COMPOSE_B[@]}" up --build -d db api node-agent
+  if ! wait_http "http://127.0.0.1:8000/api/v1/health" 180; then
+    if ! wait_http "http://127.0.0.1:8000/health" 30; then
+      die "API no healthy. Revisá: AGENT_MODE=docker ${COMPOSE_B[*]} logs api --tail 80"
+    fi
+  fi
+  migrate_host_if_needed
 }
 
 ensure_git_main() {
@@ -422,28 +523,7 @@ ensure_db_host_port() {
 }
 
 cmd_demo_b() {
-  ensure_docker
-  need_cmd curl
-  need_cmd python3
-  [[ "${SKIP_GIT:-0}" == "1" ]] || ensure_git_main
-
-  free_port 8000 "API"
-  ensure_db_host_port
-
-  info "Levantando db (probe de red) en host :${KOI_DB_HOST_PORT}…"
-  AGENT_MODE=docker KOI_DB_HOST_PORT="$KOI_DB_HOST_PORT" "${COMPOSE_B[@]}" up --build -d db
-  wait_tcp 127.0.0.1 "$KOI_DB_HOST_PORT" 45 || die "db no abre ${KOI_DB_HOST_PORT}"
-  use_hostnet_overlay_if_needed
-  info "Levantando api + node-agent (AGENT_MODE=docker)…"
-  AGENT_MODE=docker KOI_DB_HOST_PORT="$KOI_DB_HOST_PORT" "${COMPOSE_B[@]}" up --build -d db api node-agent
-  # API tarda: uv sync + alembic + uvicorn
-  if ! wait_http "http://127.0.0.1:8000/api/v1/health" 180; then
-    if ! wait_http "http://127.0.0.1:8000/health" 30; then
-      die "API no healthy. Revisá: AGENT_MODE=docker ${COMPOSE_B[*]} logs api --tail 80"
-    fi
-  fi
-
-  migrate_host_if_needed
+  start_control_plane
 
   info "make seed"
   local seed_try=0
@@ -525,6 +605,118 @@ cmd_demo_b() {
   echo "  export KOI_TOKEN=$token"
 }
 
+cmd_full() {
+  start_control_plane
+
+  local email="$FULL_DEMO_EMAIL"
+  local password="$FULL_DEMO_PASSWORD"
+  local pond_name="$FULL_DEMO_POND"
+
+  info "POST /auth/register ($email)…"
+  local reg_json
+  reg_json="$(
+    api_post "/auth/register" \
+      "{\"email\":\"$email\",\"password\":\"$password\",\"full_name\":\"$FULL_DEMO_NAME\"}"
+  )"
+  echo "$reg_json" | python3 -m json.tool 2>/dev/null || echo "$reg_json"
+  py_json "d=json.load(sys.stdin); assert d.get('email_verified') is False" <<<"$reg_json" \
+    || die "register no devolvió email_verified:false"
+
+  info "Extrayendo token de verificación de logs del api…"
+  local verify_token
+  verify_token="$(extract_verify_token "$email")"
+  ok "verify token OK"
+
+  info "POST /auth/verify…"
+  local verify_json
+  verify_json="$(api_post "/auth/verify" "{\"token\":\"$verify_token\"}")"
+  echo "$verify_json" | python3 -m json.tool 2>/dev/null || echo "$verify_json"
+
+  info "Login…"
+  local token
+  token="$(login_token "$email" "$password")"
+  [[ -n "$token" ]] || die "login sin access_token"
+  ok "JWT OK"
+
+  info "GET /plans…"
+  local plans_json
+  plans_json="$(api_get "/plans")"
+  echo "$plans_json" | python3 -m json.tool 2>/dev/null || echo "$plans_json"
+
+  info "POST /subscriptions (plan micro)…"
+  warn "W3-07 aún no persiste subscribe; la respuesta es fixture hasta que aterrice el ticket."
+  local sub_json
+  sub_json="$(api_post "/subscriptions" '{"plan_id":"micro"}' "$token")"
+  echo "$sub_json" | python3 -m json.tool 2>/dev/null || echo "$sub_json"
+
+  info "POST /ponds ($pond_name)…"
+  local pond_json pond_id
+  pond_json="$(api_post "/ponds" "{\"name\":\"$pond_name\"}" "$token")"
+  echo "$pond_json" | python3 -m json.tool 2>/dev/null || echo "$pond_json"
+  pond_id="$(echo "$pond_json" | py_json "d=json.load(sys.stdin); p=d.get('pond') if isinstance(d.get('pond'), dict) else d; print((p or {}).get('id') or d.get('pond_id') or '')")"
+  if [[ -z "$pond_id" ]]; then
+    warn "nombre ocupado — reintento con sufijo"
+    pond_name="${pond_name}-$(date +%s)"
+    pond_json="$(api_post "/ponds" "{\"name\":\"$pond_name\"}" "$token")"
+    echo "$pond_json" | python3 -m json.tool 2>/dev/null || echo "$pond_json"
+    pond_id="$(echo "$pond_json" | py_json "d=json.load(sys.stdin); p=d.get('pond') if isinstance(d.get('pond'), dict) else d; print((p or {}).get('id') or d.get('pond_id') or '')")"
+  fi
+  [[ -n "$pond_id" ]] || die "no pude leer pond id"
+
+  info "Poll observed_state=running (pond $pond_id)…"
+  poll_pond_running "$pond_id" "$token" || die "pond no llegó a running. logs: ${COMPOSE_B[*]} logs node-agent --tail 80"
+
+  info "GET /ponds/$pond_id/connection…"
+  local conn_json conn_uri
+  conn_json="$(api_get "/ponds/$pond_id/connection" "$token")"
+  echo "$conn_json" | python3 -m json.tool 2>/dev/null || echo "$conn_json"
+  conn_uri="$(echo "$conn_json" | py_json "d=json.load(sys.stdin); c=d.get('connection') or d; print((c or {}).get('uri') or '')" 2>/dev/null || true)"
+
+  if [[ -n "$conn_uri" ]] && command -v psql >/dev/null 2>&1; then
+    info "psql CREATE TABLE items…"
+    psql "$conn_uri" -v ON_ERROR_STOP=1 -c \
+      'CREATE TABLE IF NOT EXISTS items(id serial PRIMARY KEY, nombre text);' \
+      -c "INSERT INTO items(nombre) SELECT 'demo' WHERE NOT EXISTS (SELECT 1 FROM items LIMIT 1);" \
+      -c 'SELECT * FROM items;' \
+      && ok "psql OK" \
+      || warn "psql falló — el pond igual está running; probá manual"
+  else
+    warn "sin psql o sin uri — saltando CREATE TABLE"
+  fi
+
+  info "Demo propose→confirm (DELETE pond vía superficie CLI)…"
+  local del_json confirm_token
+  del_json="$(curl -sS -X DELETE "${API_BASE}/ponds/$pond_id" \
+    -H "Authorization: Bearer $token" \
+    -H 'X-KOI-Surface: cli')"
+  echo "$del_json" | python3 -m json.tool 2>/dev/null || echo "$del_json"
+  confirm_token="$(echo "$del_json" | py_json "d=json.load(sys.stdin); print(d.get('token') or '')" 2>/dev/null || true)"
+  if [[ -n "$confirm_token" ]]; then
+    echo "$del_json" | py_json "print('Summary:', json.load(sys.stdin).get('summary',''))" 2>/dev/null || true
+    if [[ "${DEMO_CONFIRM_DELETE:-0}" == "1" ]]; then
+      info "POST /confirm/$confirm_token…"
+      api_post "/confirm/$confirm_token" '{}' "$token" | python3 -m json.tool 2>/dev/null || true
+      ok "confirm OK — pond en deleting"
+    else
+      warn "DEMO_CONFIRM_DELETE=0 — dejé el pond running para la Web. Para confirmar: curl -X POST ${API_BASE}/confirm/$confirm_token -H \"Authorization: Bearer \$KOI_TOKEN\""
+    fi
+  else
+    warn "no hubo confirmation_required en delete"
+  fi
+
+  ok "Demo full lista"
+  echo
+  echo "Cuenta: $email / $password"
+  echo "Pond:   $pond_name (id $pond_id)"
+  echo "Web:    http://127.0.0.1:5173 (si levantaste apps/web con pnpm dev)"
+  echo "Guion presentación: docs/runbooks/demo-vivo.md § Entrega final"
+}
+
+cmd_entrega() {
+  cmd_reset
+  SKIP_GIT=1 cmd_full
+}
+
 cmd_warm() {
   SKIP_GIT="${SKIP_GIT:-0}" cmd_demo_a
   ok "Pond caliente. En la talk: psql + $0 sql"
@@ -550,6 +742,8 @@ KoiCloud demo vivo
   $(basename "$0") a           # Demo A (pond-demo)
   $(basename "$0") sql         # CREATE/INSERT/SELECT inventario
   $(basename "$0") b           # Demo B (compose + migrate + seed + pond)
+  $(basename "$0") full        # register → Micro → pond + confirm (API)
+  $(basename "$0") entrega     # reset → full
   $(basename "$0") warm        # deja A lista
   $(basename "$0") all         # reset → A → B
 
@@ -571,6 +765,8 @@ main() {
     a|A|demo-a)   cmd_demo_a ;;
     sql|SQL)      cmd_sql ;;
     b|B|demo-b)   cmd_demo_b ;;
+    full|entrega-final|f) cmd_full ;;
+    entrega|e)    cmd_entrega ;;
     warm)         cmd_warm ;;
     all)          cmd_all ;;
     -h|--help|help|"") usage ;;
