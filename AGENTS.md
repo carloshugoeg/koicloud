@@ -5,6 +5,88 @@ Lo leen Cursor (solo), Antigravity CLI (solo), y Antigravity IDE a través de
 `.agents/rules/00-harness.md` (copia exacta, siempre activa). CI, CODEOWNERS y el
 revisor automático verifican lo que aquí dice. Un PR que viola estas reglas se rechaza.
 
+**Contexto del repo:** lee también [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) (resumen de comportamiento y flujo de datos). Si un PR cambia comportamiento observable, actualiza ese archivo en el mismo PR.
+
+---
+
+## 0. Kit de agente — arranque rápido
+
+### Qué es KoiCloud
+
+Monorepo de un **DBaaS académico**: PostgreSQL en Docker gestionado por un control plane (API FastAPI + cola en PostgreSQL + worker) y un node-agent en un solo VPS. Tres superficies delgadas — Web SPA, CLI `koicloud` y servidor MCP — llaman a la **misma API**; las reglas de negocio viven una sola vez en `apps/api/app/commands/*`.
+
+Proyecto de entrega final (Universidad Rafael Landívar, 2026). Documentación de producto en `docs/entrega-2/`; contratos técnicos en `docs/architecture/`.
+
+### Prerrequisitos
+
+- **Python 3.12** + [`uv`](https://docs.astral.sh/uv/) (API, CLI, node-agent)
+- **Node 22** + **pnpm 9** (`apps/web`)
+- **Docker** + Docker Compose (stack completo, `make up`, `make check-infra`, pruebas API con Postgres)
+
+### Comandos verificados en este repo
+
+| Comando | Área | Estado |
+|---------|------|--------|
+| `make sync-rules` | Reglas de agente (`.cursor/` ↔ `.agents/`) | OK |
+| `cd apps/web && pnpm install` | Dependencias web | OK |
+| `cd apps/web && pnpm lint` | ESLint | OK |
+| `cd apps/web && pnpm typecheck` | TypeScript | OK |
+| `cd apps/web && pnpm test` | Vitest (17 tests) | OK |
+| `cd apps/web && pnpm build` | Build de producción | OK |
+| `cd apps/api && uv sync --frozen --group dev && uv run ruff check .` | Lint API | OK |
+| `cd apps/cli && uv sync --frozen --group dev && uv run ruff check .` | Lint CLI | OK |
+| `cd apps/node-agent && uv sync --frozen --group dev && uv run ruff check .` | Lint node-agent | OK |
+| `cd apps/cli && uv run pytest -q` | Pruebas CLI | OK |
+| `cd apps/node-agent && uv run pytest -q` | Pruebas node-agent | OK |
+| `make check-web` | Atajo web (lint + typecheck + test + build) | OK (equivalente a filas web arriba) |
+| `make check-infra` | Valida compose de producción | **Falla sin Docker** (`docker compose is required`) |
+| `make migrate` / `make seed` | Alembic + datos demo | **Falla sin Postgres** en `127.0.0.1:5432` |
+| `cd apps/api && uv run pytest -q` | Pruebas API | **Falla sin Postgres** (conexión rechazada) |
+| `make up` | Stack Compose completo | Requiere Docker; no verificado en entorno sin daemon |
+| `make check` | Todo el monorepo | Requiere Docker + Postgres para API e infra |
+
+Atajos del Makefile: `make check-api` · `make check-web` · `make check-cli` · `make check-node-agent` · `make check-infra` · `make contracts` (solo W1) · `bash scripts/what-do-i-do.sh <nombre>`.
+
+Credenciales demo tras `make seed`: `demo@koicloud.dev` / `Sup3rSegura!2026` (ver `README.md`).
+
+### Estructura principal
+
+```
+apps/api/          FastAPI, Alembic, comandos, módulos de dominio, MCP montado en la API
+apps/web/          React + Vite + TanStack Query; tipos desde OpenAPI generado
+apps/cli/          CLI Typer → HTTP (sin reglas de negocio)
+apps/node-agent/   Docker/mock driver; heartbeat y jobs hacia /internal/v1
+packages/contracts/openapi.json   Contrato exportado (generado, no editar a mano)
+docs/architecture/ Pack de diseño sellado (api-surface, data-model, diagramas)
+docs/tickets/      Tickets por workstream (w1–w4)
+docs/ARCHITECTURE.md   Resumen de comportamiento para agentes y entrega
+```
+
+### Convenciones clave
+
+- **Código en inglés;** UI, correos y docs de producto en **español**.
+- **Una regla, un lugar:** routers, CLI y MCP son adaptadores; `app/commands/*` orquesta.
+- **Contratos congelados** (OpenAPI, firmas de comandos, tablas/enums): solo con CCR aprobado por W1 (§2).
+- **Propiedad por workstream** y rama `wN-<slug>` (§1 y §3).
+- **Web:** piel en `docs/visual-guidelines.md`; datos solo vía `src/api/client.ts` + TanStack Query.
+- **Mutaciones CLI/MCP:** patrón `propose → confirm` obligatorio (§6).
+- **Commits:** cuenta real de GitHub de quien hizo el trabajo; sin trailers de herramienta (§7).
+
+### Para y pregunta a Carlos antes de seguir
+
+Detén el trabajo y consulta a **Carlos** (`@carloshugoeg`, W1) si el cambio toca cualquiera de estos temas:
+
+| Tema | Rutas típicas |
+|------|----------------|
+| **Autenticación y sesión** | `apps/api/app/modules/auth/**`, `apps/api/app/core/auth.py`, `apps/api/app/core/security.py` |
+| **Pagos y facturación** | `apps/api/app/modules/billing/**` |
+| **Migraciones y esquema** | `apps/api/alembic/**`, `packages/contracts/**`, `docs/architecture/data-model.md` |
+| **Permisos y aislamiento por usuario** | `apps/api/app/core/deps.py`, `apps/api/app/modules/agent_access/**` (gate MCP; no hay módulo `tenancy/`) |
+| **Borrado de datos** | Comandos `delete_pond`, `restore_backup`, SQL write, cancelación de suscripción |
+| **Variables de entorno y despliegue** | `.env.example`, `docker-compose.yml`, `apps/api/app/core/config.py` |
+
+Ante duda de contrato: `BLOQUEADO: requiere CCR porque …` (§2). Ante archivo de otro workstream: `BLOQUEADO: requiere ticket para Wn`.
+
 ---
 
 ## 1. ¿Quién soy y qué me toca? (protocolo de arranque)
