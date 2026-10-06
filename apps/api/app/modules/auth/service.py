@@ -5,11 +5,14 @@ from uuid import UUID
 from app.commands import auth as auth_commands
 from app.core.enums import EmailTokenKind
 from app.schemas import (
+    ForgotPasswordRequest,
     LoginRequest,
     LoginResponse,
+    OkResponse,
     RefreshTokenRequest,
     RegisterUserRequest,
     RegisterUserResponse,
+    ResetPasswordRequest,
     TokenPairResponse,
     VerifyEmailRequest,
 )
@@ -49,3 +52,11 @@ class AuthService:
             await auth_commands.revoke_refresh(refresh_token)
             return
         await auth_commands.revoke_all_refresh_tokens(user_id)
+
+    @staticmethod
+    async def send_reset_token(payload: ForgotPasswordRequest) -> OkResponse:
+        return await auth_commands.send_reset_token(payload)
+
+    @staticmethod
+    async def reset_password(payload: ResetPasswordRequest) -> OkResponse:
+        return await auth_commands.reset_password(payload)
