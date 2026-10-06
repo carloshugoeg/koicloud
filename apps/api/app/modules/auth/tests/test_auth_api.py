@@ -14,7 +14,13 @@ from app.core.security import hash_token
 from app.core.time import utc_now
 from app.main import app
 from app.modules.auth import AuthService
-from app.schemas import LoginRequest, RegisterUserRequest, VerifyEmailRequest
+from app.schemas import (
+    ForgotPasswordRequest,
+    LoginRequest,
+    RegisterUserRequest,
+    ResetPasswordRequest,
+    VerifyEmailRequest,
+)
 from tests.db_reset import reset_auth_tables
 
 PASSWORD = "Sup3rSegura!2026"
@@ -327,3 +333,203 @@ async def test_auth_service_logout_prefers_cookie_refresh() -> None:
             )
         ).scalar_one()
         assert row.revoked_at is not None
+
+
+async def test_forgot_password_api_neutral_response() -> None:
+    reset_auth_tables()
+
+    async with _make_client() as client:
+        # 1. Non-existent email returns neutral 200 {ok: true} without inserting tokens
+        ghost_res = await client.post(
+            "/api/v1/auth/forgot",
+            json={"email": "nonexistent@koicloud.dev"},
+        )
+        assert ghost_res.status_code == 200
+        assert ghost_res.json() == {"ok": True}
+
+        async with SessionLocal() as session:
+            tokens = (await session.execute(select(EmailToken))).scalars().all()
+            assert len(tokens) == 0
+
+        # 2. Existing user returns neutral 200 {ok: true} and inserts a RESET_PASSWORD token
+        user_id = await _register_and_verify(client, "forgot_api@koicloud.dev")
+        known_res = await client.post(
+            "/api/v1/auth/forgot",
+            json={"email": "forgot_api@koicloud.dev"},
+        )
+        assert known_res.status_code == 200
+        assert known_res.json() == {"ok": True}
+
+        async with SessionLocal() as session:
+            reset_tokens = (
+                await session.execute(
+                    select(EmailToken).where(
+                        EmailToken.user_id == user_id,
+                        EmailToken.kind == EmailTokenKind.RESET_PASSWORD,
+                        EmailToken.consumed_at.is_(None),
+                    )
+                )
+            ).scalars().all()
+            assert len(reset_tokens) >= 1
+
+
+async def test_reset_password_api_happy_path_and_session_revocation() -> None:
+    reset_auth_tables()
+
+    async with _make_client() as client:
+        user_id = await _register_and_verify(client, "reset_api@koicloud.dev")
+
+        # Login to create an active refresh session
+        login_res = await client.post(
+            "/api/v1/auth/login",
+            json={"email": "reset_api@koicloud.dev", "password": PASSWORD},
+        )
+        assert login_res.status_code == 200
+        active_refresh = login_res.json()["refresh_token"]
+
+        async with SessionLocal() as session:
+            active_tokens = (
+                await session.execute(
+                    select(RefreshToken).where(
+                        RefreshToken.user_id == user_id,
+                        RefreshToken.revoked_at.is_(None),
+                    )
+                )
+            ).scalars().all()
+            assert len(active_tokens) == 1
+
+        # Issue reset token and reset password via API
+        reset_token = await AuthService.issue_email_token(user_id, EmailTokenKind.RESET_PASSWORD)
+        reset_res = await client.post(
+            "/api/v1/auth/reset",
+            json={"token": reset_token, "new_password": "NewSecretPass!2026"},
+        )
+        assert reset_res.status_code == 200
+        assert reset_res.json() == {"ok": True}
+
+        # Token is marked consumed
+        async with SessionLocal() as session:
+            token_row = (
+                await session.execute(
+                    select(EmailToken).where(
+                        EmailToken.user_id == user_id,
+                        EmailToken.kind == EmailTokenKind.RESET_PASSWORD,
+                    )
+                )
+            ).scalar_one()
+            assert token_row.consumed_at is not None
+
+        # All existing refresh tokens for the user are revoked
+        async with SessionLocal() as session:
+            all_refresh = (
+                await session.execute(
+                    select(RefreshToken).where(RefreshToken.user_id == user_id)
+                )
+            ).scalars().all()
+            assert all_refresh
+            assert all(row.revoked_at is not None for row in all_refresh)
+
+        # Old refresh token is rejected
+        rotate_res = await client.post(
+            "/api/v1/auth/refresh",
+            json={"refresh_token": active_refresh},
+        )
+        assert rotate_res.status_code == 401
+        assert rotate_res.json()["code"] == "token_invalid"
+
+        # Old password is rejected
+        old_login = await client.post(
+            "/api/v1/auth/login",
+            json={"email": "reset_api@koicloud.dev", "password": PASSWORD},
+        )
+        assert old_login.status_code == 401
+        assert old_login.json()["code"] == "invalid_credentials"
+
+        # New password logs in successfully
+        new_login = await client.post(
+            "/api/v1/auth/login",
+            json={"email": "reset_api@koicloud.dev", "password": "NewSecretPass!2026"},
+        )
+        assert new_login.status_code == 200
+        assert new_login.json()["user"]["id"] == str(user_id)
+
+
+async def test_reset_password_api_error_cases() -> None:
+    reset_auth_tables()
+
+    async with _make_client() as client:
+        user_id = await _register_and_verify(client, "errors_api@koicloud.dev")
+
+        # 1. Invalid token
+        inv_res = await client.post(
+            "/api/v1/auth/reset",
+            json={"token": "reset_not-a-valid-token", "new_password": "NewSecretPass!2026"},
+        )
+        assert inv_res.status_code == 401
+        assert inv_res.json()["code"] == "token_invalid"
+
+        # 2. Expired token
+        expired_token = await AuthService.issue_email_token(user_id, EmailTokenKind.RESET_PASSWORD)
+        async with SessionLocal() as session:
+            token_row = (
+                await session.execute(
+                    select(EmailToken).where(EmailToken.token_hash == hash_token(expired_token))
+                )
+            ).scalar_one()
+            token_row.expires_at = utc_now() - timedelta(minutes=1)
+            await session.commit()
+
+        exp_res = await client.post(
+            "/api/v1/auth/reset",
+            json={"token": expired_token, "new_password": "NewSecretPass!2026"},
+        )
+        assert exp_res.status_code == 401
+        assert exp_res.json()["code"] == "token_expired"
+
+        # 3. Single-use token cannot be reused
+        valid_token = await AuthService.issue_email_token(user_id, EmailTokenKind.RESET_PASSWORD)
+        first_res = await client.post(
+            "/api/v1/auth/reset",
+            json={"token": valid_token, "new_password": "FirstNewPass!2026"},
+        )
+        assert first_res.status_code == 200
+
+        reused_res = await client.post(
+            "/api/v1/auth/reset",
+            json={"token": valid_token, "new_password": "SecondNewPass!2026"},
+        )
+        assert reused_res.status_code == 401
+        assert reused_res.json()["code"] == "token_invalid"
+
+        # 4. Weak password (< 8 chars) rejected
+        weak_token = await AuthService.issue_email_token(user_id, EmailTokenKind.RESET_PASSWORD)
+        weak_res = await client.post(
+            "/api/v1/auth/reset",
+            json={"token": weak_token, "new_password": "short"},
+        )
+        assert weak_res.status_code == 422
+
+
+async def test_auth_service_reset_methods() -> None:
+    reset_auth_tables()
+
+    created = await AuthService.register_user(
+        RegisterUserRequest(
+            email="service_reset@koicloud.dev",
+            password=PASSWORD,
+            full_name="Service Reset User",
+        )
+    )
+    vtoken = await AuthService.issue_email_token(created.user_id, EmailTokenKind.VERIFY_EMAIL)
+    await AuthService.verify_email(VerifyEmailRequest(token=vtoken))
+
+    forgot_res = await AuthService.send_reset_token(
+        ForgotPasswordRequest(email="service_reset@koicloud.dev")
+    )
+    assert forgot_res.ok is True
+
+    rtoken = await AuthService.issue_email_token(created.user_id, EmailTokenKind.RESET_PASSWORD)
+    reset_res = await AuthService.reset_password(
+        ResetPasswordRequest(token=rtoken, new_password="NewDirectPass!2026")
+    )
+    assert reset_res.ok is True
