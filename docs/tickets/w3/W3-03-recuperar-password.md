@@ -2,7 +2,7 @@
 id: W3-03
 workstream: W3
 persona: Jousé
-estado: abierto
+estado: hecho
 rama: w3-recuperar-password
 epica: "E1-04"
 sprint: S3
