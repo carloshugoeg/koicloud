@@ -4,6 +4,23 @@
 # GitHub ignora en silencio un handle inexistente y esa ruta queda sin dueño.
 #
 # Cualquier archivo no listado pertenece a W1.
+#
+# ── Rutas sensibles — @carloshugoeg (auth, pagos, esquema, permisos, config) ─────
+# Todas verificadas en el repo. No hay módulo tenancy/; aislamiento = core/deps + agent_access.
+apps/api/app/modules/auth/**               @carloshugoeg @Josh-JM
+apps/api/app/core/auth.py                  @carloshugoeg
+apps/api/app/core/security.py              @carloshugoeg
+apps/api/app/core/deps.py                  @carloshugoeg
+apps/api/app/modules/billing/**            @carloshugoeg @Josh-JM
+apps/api/app/modules/agent_access/**       @carloshugoeg
+apps/api/alembic/**                        @carloshugoeg
+packages/contracts/**                      @carloshugoeg
+docs/architecture/data-model.md            @carloshugoeg
+.env.example                               @carloshugoeg
+docker-compose.yml                         @carloshugoeg
+apps/api/app/core/config.py                @carloshugoeg
+docs/ARCHITECTURE.md                       @carloshugoeg
+.cursor/BUGBOT.md                          @carloshugoeg
 
 # ── W1 · Carlos — núcleo, contratos, migraciones, harness de agentes ─────────────
 apps/api/app/core/**                       @carloshugoeg
@@ -54,9 +71,7 @@ apps/web/package.json                      @Jasgu097 @carloshugoeg
 apps/web/pnpm-lock.yaml                    @Jasgu097 @carloshugoeg
 
 # ── W3 · Jousé — cuentas y dinero ────────────────────────────────────────────────
-apps/api/app/modules/auth/**               @Josh-JM
 apps/api/app/modules/users/**              @Josh-JM
-apps/api/app/modules/billing/**            @Josh-JM
 apps/api/app/modules/notifications/**      @Josh-JM
 apps/api/app/modules/admin/**              @Josh-JM
 
