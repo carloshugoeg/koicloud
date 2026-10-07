@@ -7,6 +7,7 @@ export { RegisterPage } from "@/features/auth/register-page";
 export { VerifyPage } from "@/features/auth/verify-page";
 export { ForgotPage } from "@/features/auth/forgot-page";
 export { ResetPage } from "@/features/auth/reset-page";
+export { PlansPage } from "@/features/plans/plans-page";
 
 function usePondRouteLabel(suffix?: string) {
   const { pondId } = useParams();
@@ -92,17 +93,6 @@ export function BackupsPage() {
       route={usePondRouteLabel("/backups")}
       ticket="W2-08"
       title="Respaldos"
-    />
-  );
-}
-
-export function PlansPage() {
-  return (
-    <PlaceholderPage
-      description="Catálogo de planes conectado al endpoint público /plans."
-      route="/app/plans"
-      ticket="W2-03"
-      title="Planes"
     />
   );
 }

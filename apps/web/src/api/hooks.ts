@@ -2,15 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/api/client";
 import { ApiError } from "@/lib/errors";
 
-async function listPlans() {
-  const { data, error } = await apiClient.GET("/api/v1/plans", {});
-  if (error) {
-    throw new ApiError(error);
-  }
-
-  return data?.plans ?? [];
-}
-
 async function listPonds() {
   const { data, error } = await apiClient.GET("/api/v1/ponds", {});
   if (error) {
@@ -32,13 +23,6 @@ async function getUsage(month?: string) {
   return data;
 }
 
-export function usePlansQuery() {
-  return useQuery({
-    queryKey: ["plans"],
-    queryFn: listPlans,
-  });
-}
-
 export function usePondsQuery() {
   return useQuery({
     queryKey: ["ponds"],
@@ -52,6 +36,14 @@ export function useUsageQuery(month?: string) {
     queryFn: () => getUsage(month),
   });
 }
+
+export {
+  usePlansQuery,
+  useSubscribeMutation,
+  type PlanOut,
+  type SubscribeRequest,
+  type SubscribeResponse,
+} from "@/api/hooks/plans";
 
 export {
   useForgotPasswordMutation,
