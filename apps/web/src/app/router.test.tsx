@@ -36,10 +36,8 @@ describe("app router scaffold", () => {
       user: demoUser,
     });
 
-    const pondHeadings = await screen.findAllByRole("heading", { name: "Ponds" });
-
-    expect(pondHeadings).toHaveLength(2);
-    expect(screen.getAllByText("Uso del mes")).toHaveLength(2);
+    expect(await screen.findByRole("heading", { name: "Ponds" })).toBeInTheDocument();
+    expect(await screen.findByTestId("ponds-dashboard")).toBeInTheDocument();
     expect(screen.getByText("Operador Demo")).toBeInTheDocument();
   });
 

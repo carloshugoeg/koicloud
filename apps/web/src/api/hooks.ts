@@ -11,15 +11,6 @@ async function listPlans() {
   return data?.plans ?? [];
 }
 
-async function listPonds() {
-  const { data, error } = await apiClient.GET("/api/v1/ponds", {});
-  if (error) {
-    throw new ApiError(error);
-  }
-
-  return data?.ponds ?? [];
-}
-
 async function getUsage(month?: string) {
   const { data, error } = await apiClient.GET("/api/v1/usage", {
     params: month ? { query: { month } } : undefined,
@@ -39,19 +30,24 @@ export function usePlansQuery() {
   });
 }
 
-export function usePondsQuery() {
-  return useQuery({
-    queryKey: ["ponds"],
-    queryFn: listPonds,
-  });
-}
-
 export function useUsageQuery(month?: string) {
   return useQuery({
     queryKey: ["usage", month ?? "current"],
     queryFn: () => getUsage(month),
   });
 }
+
+export {
+  useGetConnection,
+  useGetPond,
+  useListBackups,
+  usePondsQuery,
+  useRestoreBackupMutation,
+  type Backup,
+  type Connection,
+  type Pond,
+  type PondObservedState,
+} from "@/api/hooks/ponds";
 
 export {
   useForgotPasswordMutation,
@@ -65,4 +61,10 @@ export {
   type ResetPasswordPayload,
   type VerifyEmailPayload,
 } from "@/api/hooks/auth";
+
+export {
+  downloadInvoicePdf,
+  useInvoiceQuery,
+  useInvoicesQuery,
+} from "@/api/hooks/invoices";
 

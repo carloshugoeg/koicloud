@@ -22,6 +22,7 @@ import {
   ResetPage,
   SqlConsolePage,
   UsagePage,
+  UsoPage,
   VerifyPage,
 } from "@/features/pages";
 
@@ -78,6 +79,11 @@ export const appRoutes: RouteObject[] = [
             handle: { title: "Ponds" } satisfies RouteHandle,
           },
           {
+            path: "ponds",
+            element: <DashboardPage />,
+            handle: { title: "Ponds" } satisfies RouteHandle,
+          },
+          {
             path: "ponds/new",
             element: <CreatePondPage />,
             handle: { title: "Crear pond" } satisfies RouteHandle,
@@ -98,6 +104,11 @@ export const appRoutes: RouteObject[] = [
             handle: { title: "Respaldos" } satisfies RouteHandle,
           },
           {
+            path: "ponds/:pondId/respaldos",
+            element: <BackupsPage />,
+            handle: { title: "Respaldos" } satisfies RouteHandle,
+          },
+          {
             path: "plans",
             element: <PlansPage />,
             handle: { title: "Planes" } satisfies RouteHandle,
@@ -106,6 +117,11 @@ export const appRoutes: RouteObject[] = [
             path: "billing",
             element: <BillingPage />,
             handle: { title: "Facturación" } satisfies RouteHandle,
+          },
+          {
+            path: "uso",
+            element: <UsoPage />,
+            handle: { title: "Uso del mes" } satisfies RouteHandle,
           },
           {
             path: "usage",
