@@ -22,6 +22,7 @@ import {
   ResetPage,
   SqlConsolePage,
   UsagePage,
+  UsoPage,
   VerifyPage,
 } from "@/features/pages";
 
@@ -120,6 +121,11 @@ export const appRoutes: RouteObject[] = [
           {
             path: "usage",
             element: <UsagePage />,
+            handle: { title: "Uso del mes" } satisfies RouteHandle,
+          },
+          {
+            path: "uso",
+            element: <UsoPage />,
             handle: { title: "Uso del mes" } satisfies RouteHandle,
           },
           {

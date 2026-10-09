@@ -14,7 +14,7 @@ el agente lo ignora.
 | W2-06 | Detalle del pond y cadena de conexión | `w2-detalle-pond` | abierto |
 | W2-07 | Consola SQL (editor y tabla de resultados) | `w2-consola-sql` | abierto |
 | W2-08 | Respaldos: lista y restauración | `w2-respaldos` | abierto |
-| W2-09 | Uso del mes e historial de facturas | `w2-uso-y-facturas` | abierto |
+| W2-09 | Uso del mes e historial de facturas | `w2-uso-y-facturas` | en curso |
 | W2-10 | Panel administrador (tres tablas) | `w2-panel-admin` | abierto |
 | W2-11 | Acceso agente: revelar y rotar | `w2-acceso-agente` | abierto |
 | W2-12 | Layout, tema, estados vacíos y responsive a 360 px | `w2-tema-y-estados` | abierto |

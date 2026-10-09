@@ -58,27 +58,7 @@ export function PlansPage() {
   );
 }
 
-export function BillingPage() {
-  return (
-    <PlaceholderPage
-      description="Placeholder para facturación e historial de invoices del usuario."
-      route="/app/billing"
-      ticket="W2-09"
-      title="Facturación"
-    />
-  );
-}
-
-export function UsagePage() {
-  return (
-    <PlaceholderPage
-      description="Vista base para el uso mensual, gráficas y totales agregados."
-      route="/app/usage"
-      ticket="W2-09"
-      title="Uso del mes"
-    />
-  );
-}
+export { UsoPage as BillingPage, UsoPage as UsagePage, UsoPage } from "@/features/uso/uso-page";
 
 export function AccountPage() {
   return (
