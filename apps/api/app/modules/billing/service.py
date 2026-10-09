@@ -135,8 +135,6 @@ class BillingService:
             raise AppError(ErrorCode.PLAN_REQUIRED)
         now = utc_now()
         subscription.status = SubscriptionStatus.PENDING_PAYMENT
-        subscription.current_period_start = now
-        subscription.current_period_end = now + timedelta(minutes=plan.validity_minutes)
         await self.session.flush()
         invoice = await self._create_invoice(
             user_id=subscription.user_id,
@@ -178,12 +176,17 @@ class BillingService:
                 ErrorCode.POND_NOT_FOUND,
                 message="No existe la suscripción solicitada",
             )
+        plan = await self.session.get(Plan, subscription.plan_id)
+        if plan is None:
+            raise AppError(ErrorCode.PLAN_REQUIRED)
 
         now = utc_now()
         payment.status = PaymentStatus.SUCCEEDED
         payment.processed_at = now
         invoice.status = InvoiceStatus.PAID
         subscription.status = SubscriptionStatus.ACTIVE
+        subscription.current_period_start = now
+        subscription.current_period_end = now + timedelta(minutes=plan.validity_minutes)
         await self.session.flush()
         return payment
 

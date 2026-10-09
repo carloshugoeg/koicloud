@@ -2,7 +2,7 @@
 id: G1
 workstream: W1
 persona: Carlos
-estado: en_revision
+estado: hecho
 rama: w1-g1-billing-persistence
 epica: "E2-02, E2-03, E2-06"
 sprint: S3
@@ -25,7 +25,7 @@ Subscribe creates a real subscription, invoice (`KC-{year}-{seq:06d}`), and paym
 
 ## Criterios de aceptación
 
-1. Subscribe persists subscription + invoice + payment via `PaymentProvider.start_payment` and shared `confirm_payment`.
+1. Subscribe persists subscription + invoice + payment via `PaymentProvider.start_payment` and shared `confirm_payment`. The paid period starts in `confirm_payment`.
 2. Invoice numbers are unique per year (`invoices.number` unique + advisory lock + retry) with a concurrency test.
 3. `get_invoice_pdf` reads the stored invoice (no fixture map).
 4. `BillingService` receives the provider by injection and does not import adapters.
