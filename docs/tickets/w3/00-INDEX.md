@@ -12,9 +12,9 @@ el agente lo ignora.
 | W3-04 | `GET /me` y `PATCH /me` | `w3-perfil` | hecho |
 | W3-05 | Módulo `notifications`: 4 plantillas y proveedor de consola | `w3-correos` | abierto |
 | W3-06 | `GET /plans` y valores de la semilla | `w3-planes` | abierto |
-| W3-07 | `POST /subscriptions` y `/cancel` (cableado) | `w3-contratacion` | abierto |
-| W3-08 | `GET /subscriptions` y `GET /invoices` | `w3-historiales` | en_revision |
-| W3-09 | Factura PDF con `fpdf2` e IVA desglosado | `w3-factura-pdf` | en_revision |
+| W3-07 | `POST /subscriptions` y `/cancel` (cableado) | `w3-contratacion` | en_revision |
+| W3-08 | `GET /subscriptions` y `GET /invoices` | `w3-historiales` | hecho ([PR #55](https://github.com/carloshugoeg/koicloud/pull/55)) |
+| W3-09 | Factura PDF con `fpdf2` e IVA desglosado | `w3-factura-pdf` | hecho ([PR #49](https://github.com/carloshugoeg/koicloud/pull/49)) |
 | W3-10 | `GET /invoices/{id}` y `/pdf` | `w3-facturas-detalle` | en_revision |
 | W3-11 | Admin: usuarios, suspender y reactivar | `w3-admin-usuarios` | abierto |
 | W3-12 | Admin: ponds del sistema y bitácora | `w3-admin-ponds-bitacora` | abierto |
