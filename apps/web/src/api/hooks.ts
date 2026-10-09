@@ -38,6 +38,7 @@ export function useUsageQuery(month?: string) {
 }
 
 export {
+  useCreatePondMutation,
   useGetConnection,
   useGetPond,
   useListBackups,
