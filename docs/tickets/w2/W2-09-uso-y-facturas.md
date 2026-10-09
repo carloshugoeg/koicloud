@@ -2,7 +2,7 @@
 id: W2-09
 workstream: W2
 persona: Jason
-estado: en_curso
+estado: hecho
 rama: w2-uso-y-facturas
 epica: "E7-03, E2-03, E2-06"
 sprint: S3
