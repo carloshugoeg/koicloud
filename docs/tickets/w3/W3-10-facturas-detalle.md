@@ -2,7 +2,7 @@
 id: W3-10
 workstream: W3
 persona: Jousé
-estado: abierto
+estado: en_revision
 rama: w3-facturas-detalle
 epica: "E2-03"
 sprint: S4
@@ -22,6 +22,7 @@ Detalle de invoice y descarga PDF del mismo documento. Lo visible es el JSON de 
 - La descarga responde `application/pdf` y `Content-Disposition: attachment`.
 - Si el archivo falta en disco, se regenera desde la factura almacenada.
 - Errores: `not_owner` o 404 según el contrato congelado.
+- La factura es la fila persistida (G1, #54). El cableado del comando llegó en #50. Este ticket cubre el HTTP: detalle, headers y regeneración si falta el archivo.
 
 ## Criterios de aceptación
 
