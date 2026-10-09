@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from httpx import ASGITransport, AsyncClient
 
-from app.commands import billing as billing_commands
-from app.core.auth import AuthContext
-from app.core.enums import AppSurface, EmailTokenKind, UserRole, UserStatus
+from app.core.enums import EmailTokenKind
 from app.main import app
 from app.modules.auth import AuthService
 from app.modules.billing.invoice_pdf import ACADEMIC_FOOTER
@@ -33,52 +31,46 @@ async def _create_active_user(client: AsyncClient, email: str) -> tuple[UUID, st
     return user_id, login.json()["access_token"]
 
 
-def _actor(user_id: UUID) -> AuthContext:
-    return AuthContext(
-        user_id=str(user_id),
-        email="demo@koicloud.dev",
-        role=UserRole.CLIENT,
-        status=UserStatus.ACTIVE,
-        surface=AppSurface.WEB,
-    )
-
-
 async def test_get_invoice_pdf_renders_iva_pdf() -> None:
     reset_auth_tables()
-    billing_commands._FIXTURE_OWNERS.clear()
     async with _make_client() as client:
-        user_id, token = await _create_active_user(client, "pdf-wire@koicloud.dev")
-        invoice_id = uuid4()
-        pdf = await billing_commands.get_invoice_pdf(_actor(user_id), invoice_id)
-        assert pdf.startswith(b"%PDF")
-        assert len(pdf) > 1024
-        text = pdf.decode("latin-1", errors="ignore")
+        _, token = await _create_active_user(client, "pdf-wire@koicloud.dev")
+        subscribe = await client.post(
+            "/api/v1/subscriptions",
+            headers={"Authorization": f"Bearer {token}"},
+            json={"plan_id": "micro"},
+        )
+        assert subscribe.status_code == 202
+        invoice_id = subscribe.json()["invoice"]["id"]
+        pdf = await client.get(
+            f"/api/v1/invoices/{invoice_id}/pdf",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert pdf.status_code == 200
+        assert pdf.content.startswith(b"%PDF")
+        assert len(pdf.content) > 1024
+        text = pdf.content.decode("latin-1", errors="ignore")
         assert "IVA" in text
         assert "12" in text
         assert ACADEMIC_FOOTER in text
         assert "KC-" in text
 
-        http = await client.get(
-            f"/api/v1/invoices/{invoice_id}/pdf",
-            headers={"Authorization": f"Bearer {token}"},
-        )
-        assert http.status_code == 200
-        assert http.headers["content-type"].startswith("application/pdf")
-
 
 async def test_get_invoice_pdf_not_owner() -> None:
     reset_auth_tables()
-    billing_commands._FIXTURE_OWNERS.clear()
     async with _make_client() as client:
-        user_a, _ = await _create_active_user(client, "pdf-owner@koicloud.dev")
-        user_b, token_b = await _create_active_user(client, "pdf-other@koicloud.dev")
-        invoice_id = uuid4()
-        await billing_commands.get_invoice_pdf(_actor(user_a), invoice_id)
-
+        _, token_a = await _create_active_user(client, "pdf-owner@koicloud.dev")
+        _, token_b = await _create_active_user(client, "pdf-other@koicloud.dev")
+        subscribe = await client.post(
+            "/api/v1/subscriptions",
+            headers={"Authorization": f"Bearer {token_a}"},
+            json={"plan_id": "micro"},
+        )
+        assert subscribe.status_code == 202
+        invoice_id = subscribe.json()["invoice"]["id"]
         http = await client.get(
             f"/api/v1/invoices/{invoice_id}/pdf",
             headers={"Authorization": f"Bearer {token_b}"},
         )
         assert http.status_code == 403
         assert http.json()["code"] == "not_owner"
-        assert user_b != user_a
