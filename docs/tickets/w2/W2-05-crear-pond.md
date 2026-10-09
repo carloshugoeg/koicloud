@@ -6,7 +6,7 @@ estado: en_revision
 rama: w2-crear-pond
 epica: "E3-01"
 sprint: S3
-pr:
+pr: "https://github.com/carloshugoeg/koicloud/pull/63"
 ---
 
 # [W2-05] Crear pond (diálogo de configuración)
