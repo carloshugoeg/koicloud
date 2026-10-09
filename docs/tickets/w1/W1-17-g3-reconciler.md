@@ -26,7 +26,7 @@ No se vende como auto-heal.
 - Enums `JobType` / `JobStatus` (incluye `lost`) y índice `jobs_one_active` ya en `main`.
 - `ClaimedJobPayload` exige `name`, `host_port`, `memory_mb`, `cpus`, `db_password_plain`, `image`.
 - Payload de agente: mismos defaults que `PondService._agent_payload` (512 MB, 0.5 CPU, `postgres:16-alpine`).
-- `desired=deleted` con `observed` running, stopped, failed o deleting encola `delete_pond`. El tick no cambia desired ni observed.
+- `desired=deleted` + `observed=running|stopped` no se remedia aquí (exige backup `pre_delete`).
 
 ## Criterios de aceptación
 
