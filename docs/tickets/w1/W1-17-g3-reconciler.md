@@ -3,7 +3,7 @@ id: W1-17
 workstream: W1
 persona: Carlos
 estado: en-revision
-rama: w1-fix-reconciler-attempt-cap
+rama: cursor/fix-reconciler-attempt-cap-ca31
 epica: E4-05
 sprint: S3
 pr: "https://github.com/carloshugoeg/koicloud/pull/53"
