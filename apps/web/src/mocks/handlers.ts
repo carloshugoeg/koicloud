@@ -41,6 +41,30 @@ export const handlers = [
     return HttpResponse.json({ plans: fixtures.plans, next_cursor: null });
   }),
 
+  http.post(`${API_ROOT}/subscriptions`, async ({ request }) => {
+    const body = (await request.json()) as { plan_id?: string };
+    if (!body?.plan_id) {
+      return HttpResponse.json(
+        {
+          code: "plan_required",
+          message: "El plan es requerido.",
+          request_id: "req_plan_err",
+        },
+        { status: 400 },
+      );
+    }
+    return HttpResponse.json(
+      {
+        ...fixtures.subscriptionResponse,
+        subscription: {
+          ...fixtures.subscriptionResponse.subscription,
+          plan_id: body.plan_id,
+        },
+      },
+      { status: 202 },
+    );
+  }),
+
   http.get(`${API_ROOT}/ponds`, () => {
     return HttpResponse.json({ ponds: fixtures.ponds, next_cursor: null });
   }),
