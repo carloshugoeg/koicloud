@@ -1,5 +1,4 @@
 import { useParams } from "react-router-dom";
-import { usePondsQuery } from "@/api/hooks";
 import { PlaceholderPage } from "@/components/placeholder-page";
 
 export { LoginPage } from "@/features/auth/login-page";
@@ -7,49 +6,11 @@ export { RegisterPage } from "@/features/auth/register-page";
 export { VerifyPage } from "@/features/auth/verify-page";
 export { ForgotPage } from "@/features/auth/forgot-page";
 export { ResetPage } from "@/features/auth/reset-page";
+export { DashboardPage } from "@/features/ponds/dashboard-page";
 
 function usePondRouteLabel(suffix?: string) {
   const { pondId } = useParams();
   return pondId ? `/app/ponds/${pondId}${suffix ?? ""}` : "/app/ponds/:pondId";
-}
-
-export function DashboardPage() {
-  const { data: ponds, isPending, isError } = usePondsQuery();
-  const pondsValue = isPending ? "…" : isError ? "—" : String(ponds?.length ?? 0);
-
-  return (
-    <PlaceholderPage
-      description="Scaffold W2-04. Los KPI inventados salieron: ponds viene de GET /ponds; plan y uso esperan endpoints reales."
-      route="/app"
-      ticket="W2-04"
-      title="Ponds"
-    >
-      <div className="grid gap-3 md:grid-cols-3">
-        {[
-          ["Ponds", pondsValue],
-          ["Plan actual", "—"],
-          ["Uso del mes", "—"],
-        ].map(([label, value]) => (
-          <div key={label} className="rounded-md border border-line bg-paper p-4">
-            <p className="text-xs font-medium uppercase tracking-[0.18em] text-ink-muted">
-              {label}
-            </p>
-            <p className="font-display text-4xl text-ink">{value}</p>
-          </div>
-        ))}
-      </div>
-      {!isPending && !isError && (ponds?.length ?? 0) === 0 ? (
-        <p className="mt-4 text-sm leading-6 text-ink-muted">
-          Todavía no tenés ponds. Creá el primero cuando W2-05 conecte el formulario.
-        </p>
-      ) : null}
-      {isError ? (
-        <p className="mt-4 text-sm leading-6 text-ink-muted">
-          No se pudo cargar GET /ponds. Revisá la sesión o el API.
-        </p>
-      ) : null}
-    </PlaceholderPage>
-  );
 }
 
 export function CreatePondPage() {
