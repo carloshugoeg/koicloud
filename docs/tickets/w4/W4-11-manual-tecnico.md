@@ -6,7 +6,7 @@ estado: en-curso
 rama: w4-manual-tecnico
 epica: "E10-05"
 sprint: S3
-pr:
+pr: "https://github.com/carloshugoeg/koicloud/pull/60"
 ---
 
 # [W4-11] Manual técnico (PDF)
