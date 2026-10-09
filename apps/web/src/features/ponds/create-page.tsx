@@ -90,7 +90,7 @@ function CreatePondDialog() {
             />
             {valid ? (
               <span className="rounded-sm bg-green-100 px-2 py-0.5 text-xs font-medium text-ink">
-                ● disponible
+                ● nombre válido
               </span>
             ) : null}
           </div>
