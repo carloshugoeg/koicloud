@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom";
+import { Navigate, useParams } from "react-router-dom";
 import { PlaceholderPage } from "@/components/placeholder-page";
 
 export { LoginPage } from "@/features/auth/login-page";
@@ -58,7 +58,11 @@ export function PlansPage() {
   );
 }
 
-export { UsoPage as BillingPage, UsoPage as UsagePage, UsoPage } from "@/features/uso/uso-page";
+export { UsoPage, UsoPage as BillingPage } from "@/features/uso/uso-page";
+
+export function UsagePage() {
+  return <Navigate replace to="/app/uso" />;
+}
 
 export function AccountPage() {
   return (

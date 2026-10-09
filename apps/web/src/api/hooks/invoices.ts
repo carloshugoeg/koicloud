@@ -57,7 +57,12 @@ export function useInvoicesQuery() {
 export function useInvoiceQuery(invoiceId: string | undefined) {
   return useQuery({
     queryKey: ["invoices", invoiceId],
-    queryFn: () => getInvoice(invoiceId as string),
+    queryFn: () => {
+      if (!invoiceId) {
+        throw new Error("invoiceId required when query is enabled");
+      }
+      return getInvoice(invoiceId);
+    },
     enabled: Boolean(invoiceId),
   });
 }

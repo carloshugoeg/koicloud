@@ -119,13 +119,13 @@ export const appRoutes: RouteObject[] = [
             handle: { title: "Facturación" } satisfies RouteHandle,
           },
           {
-            path: "usage",
-            element: <UsagePage />,
+            path: "uso",
+            element: <UsoPage />,
             handle: { title: "Uso del mes" } satisfies RouteHandle,
           },
           {
-            path: "uso",
-            element: <UsoPage />,
+            path: "usage",
+            element: <UsagePage />,
             handle: { title: "Uso del mes" } satisfies RouteHandle,
           },
           {

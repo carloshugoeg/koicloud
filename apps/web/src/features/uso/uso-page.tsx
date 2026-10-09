@@ -60,13 +60,36 @@ function formatHours(value: number) {
   return value.toFixed(1);
 }
 
-function monthOptions(selected: string) {
-  const options = new Set<string>([selected, "2026-09", "2026-08", currentMonthValue()]);
+function issuedMonth(issuedAt: string) {
+  const date = new Date(issuedAt);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  return `${year}-${month}`;
+}
+
+function monthOptions(selected: string, extraMonths: string[] = []) {
+  const options = new Set<string>([selected, currentMonthValue(), ...extraMonths]);
+  const [yearPart, monthPart] = selected.split("-");
+  const year = Number(yearPart);
+  const month = Number(monthPart);
+
+  if (Number.isFinite(year) && Number.isFinite(month)) {
+    for (let offset = 0; offset < 12; offset += 1) {
+      const date = new Date(Date.UTC(year, month - 1 - offset, 1));
+      const value = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+      options.add(value);
+    }
+  }
+
   return [...options].sort().reverse();
 }
 
 function invoiceForMonth(invoices: Invoice[] | undefined, month: string) {
-  return invoices?.find((invoice) => invoice.issued_at.startsWith(month));
+  return invoices?.find((invoice) => issuedMonth(invoice.issued_at) === month);
 }
 
 function isEmptyUsage(usage: {
@@ -190,12 +213,20 @@ export function UsoPage() {
     () => invoiceForMonth(invoicesQuery.data, month),
     [invoicesQuery.data, month],
   );
+  const invoiceMonths = useMemo(
+    () =>
+      (invoicesQuery.data ?? [])
+        .map((invoice) => issuedMonth(invoice.issued_at))
+        .filter((value): value is string => Boolean(value)),
+    [invoicesQuery.data],
+  );
   const invoiceQuery = useInvoiceQuery(monthInvoice?.id);
   const [pdfError, setPdfError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
 
   const usage = usageQuery.data;
   const empty = usage ? isEmptyUsage(usage) : false;
+  const selectableMonths = monthOptions(month, invoiceMonths);
 
   async function handleDownloadPdf() {
     if (!monthInvoice) {
@@ -228,7 +259,7 @@ export function UsoPage() {
           </p>
           <h2 className="font-display text-4xl text-ink">{monthLabel(month)}</h2>
           <p className="mt-1 text-sm text-ink-muted">
-            Agregado del mes desde GET /usage. La factura sale de GET /invoices.
+            Horas y almacenamiento del mes, con la factura del mismo período.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -243,7 +274,7 @@ export function UsoPage() {
               setSearchParams({ month: event.target.value });
             }}
           >
-            {monthOptions(month).map((value) => (
+            {selectableMonths.map((value) => (
               <option key={value} value={value}>
                 {monthLabel(value)}
               </option>
@@ -321,9 +352,7 @@ export function UsoPage() {
           <section className="rounded-md border border-line bg-bone-raised p-4">
             <div className="mb-4">
               <h3 className="font-display text-2xl text-ink">Tendencia del mes</h3>
-              <p className="text-sm text-ink-muted">
-                Barras por pond a partir de `ponds[]`. El contrato no expone serie diaria.
-              </p>
+              <p className="text-sm text-ink-muted">Horas de instancia por pond en el período.</p>
             </div>
             <PondBars ponds={usage.ponds} />
           </section>
@@ -331,7 +360,7 @@ export function UsoPage() {
           <section className="rounded-md border border-line bg-bone-raised p-4">
             <div className="mb-4">
               <h3 className="font-display text-2xl text-ink">Desglose por pond</h3>
-              <p className="text-sm text-ink-muted">Totales del mes en el response de uso.</p>
+              <p className="text-sm text-ink-muted">Totales del mes por estanque.</p>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[28rem] text-left text-sm">
@@ -375,9 +404,7 @@ export function UsoPage() {
       <section className="space-y-3">
         <div>
           <h3 className="font-display text-2xl text-ink">Factura</h3>
-          <p className="text-sm text-ink-muted">
-            Lienzo `paper` con subtotal, IVA 12 % y total del contrato.
-          </p>
+          <p className="text-sm text-ink-muted">Subtotal, IVA 12 % y total listos para descargar.</p>
         </div>
         {monthInvoice && invoiceQuery.data ? (
           <InvoicePaper invoice={invoiceQuery.data.invoice} lines={invoiceQuery.data.lines} />
