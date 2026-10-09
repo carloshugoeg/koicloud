@@ -2358,7 +2358,7 @@ export interface components {
          * SubscriptionStatus
          * @enum {string}
          */
-        SubscriptionStatus: "active" | "canceled" | "expired" | "past_due";
+        SubscriptionStatus: "pending_payment" | "active" | "canceled" | "expired" | "past_due";
         /**
          * SuspendUserRequest
          * @example {
