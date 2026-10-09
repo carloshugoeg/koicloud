@@ -328,8 +328,7 @@ def test_reconciler_skips_exhausted_failed_create() -> None:
     assert queued == []
 
 
-def test_reconciler_skips_deleted_running_without_pre_delete() -> None:
-    """desired=deleted + observed=running needs pre_delete; reconciler no-ops."""
+def test_reconciler_enqueues_delete_when_desired_deleted() -> None:
     pond_id = _create_and_complete_pond("delete-drift")
 
     async def setup_and_tick():
@@ -352,11 +351,19 @@ def test_reconciler_skips_deleted_running_without_pre_delete() -> None:
                     )
                 )
             ).all()
-            return stats, jobs
+            pond = await session.get(Pond, UUID(pond_id))
+            status = await session.get(PondStatus, UUID(pond_id))
+            return stats, jobs, pond, status
 
-    stats, jobs = asyncio.run(setup_and_tick())
-    assert stats.drift_enqueued == 0
-    assert jobs == []
+    stats, jobs, pond, status = asyncio.run(setup_and_tick())
+    assert stats.drift_enqueued == 1
+    assert len(jobs) == 1
+    assert jobs[0].type == JobType.DELETE_POND
+    assert jobs[0].payload["name"] == "delete-drift"
+    assert pond is not None
+    assert status is not None
+    assert pond.desired_state == PondDesiredState.DELETED
+    assert status.observed_state == PondObservedState.RUNNING
 
 
 def test_reconciler_enqueues_delete_when_deleting_stuck() -> None:
