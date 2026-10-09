@@ -6,7 +6,7 @@ estado: en_curso
 rama: w2-uso-y-facturas
 epica: "E7-03, E2-03, E2-06"
 sprint: S3
-pr:
+pr: "https://github.com/carloshugoeg/koicloud/pull/51"
 ---
 
 # [W2-09] Uso del mes e historial de facturas
