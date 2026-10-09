@@ -2,7 +2,7 @@
 id: W1-18
 workstream: W1
 persona: Carlos
-estado: en-revision
+estado: hecho
 rama: w1-demo-vivo-s3
 epica: "E9-06"
 sprint: S3
