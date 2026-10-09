@@ -9,21 +9,11 @@ export { ResetPage } from "@/features/auth/reset-page";
 export { DashboardPage } from "@/features/ponds/dashboard-page";
 export { BackupsPage } from "@/features/ponds/backups-page";
 export { PondDetailPage } from "@/features/ponds/detail-page";
+export { CreatePondPage } from "@/features/ponds/create-page";
 
 function usePondRouteLabel(suffix?: string) {
   const { pondId } = useParams();
   return pondId ? `/app/ponds/${pondId}${suffix ?? ""}` : "/app/ponds/:pondId";
-}
-
-export function CreatePondPage() {
-  return (
-    <PlaceholderPage
-      description="Base para el modal o página de creación del pond con validación y submit real."
-      route="/app/ponds/new"
-      ticket="W2-05"
-      title="Crear pond"
-    />
-  );
 }
 
 export function SqlConsolePage() {

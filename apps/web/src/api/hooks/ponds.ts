@@ -76,6 +76,25 @@ export function useListBackups(pondId: string | undefined) {
   });
 }
 
+const ENGINE_VERSION = "16";
+
+export function useCreatePondMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (name: string) => {
+      const { data, error } = await apiClient.POST("/api/v1/ponds", {
+        body: { name, engine_version: ENGINE_VERSION },
+      });
+      if (error || !data) throw new ApiError(error);
+      return data;
+    },
+    onSuccess: (data) => {
+      void queryClient.invalidateQueries({ queryKey: ["ponds"] });
+      void queryClient.setQueryData(["ponds", data.pond.id], data.pond);
+    },
+  });
+}
+
 export function useRestoreBackupMutation(pondId: string) {
   const queryClient = useQueryClient();
   return useMutation({
