@@ -1,8 +1,8 @@
-"""Minimal reconciler.
+"""Minimal reconciler (E4-05 / W1-17).
 
 Long-lived loop, every 30 seconds. Reclaims stale running jobs and enqueues
 one correction when desired and observed differ and the pond has no active job.
-Does not change pond desired or observed state.
+Does not change pond desired or observed state. Not auto-heal.
 
     cd apps/api && DATABASE_URL=… uv run python -m app.workers.reconciler
 """
@@ -19,34 +19,31 @@ from sqlalchemy import cast, exists, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.types import Text
 
-from app.core.crypto import decrypt_secret
+from app.core.config import get_settings
 from app.core.db import SessionLocal
 from app.core.enums import JobStatus, JobType, PondDesiredState, PondObservedState
 from app.core.models import Job, Pond, PondStatus
 from app.core.time import utc_now
+from app.modules.ponds.service import PondService
 
 logger = logging.getLogger(__name__)
 
 INTERVAL_SECONDS = 30
 ZOMBIE_AFTER = timedelta(minutes=2)
 MAX_ATTEMPTS = 3
-# One key so every worker contends on the same session lock.
-# The lock survives commit and drops on unlock or session close.
 ADVISORY_LOCK_KEY = 4_050_930
 
+# Skip desired=deleted + observed=running|stopped: that path needs pre_delete backup.
 REMEDIATE: dict[tuple[PondDesiredState, PondObservedState], JobType] = {
     (PondDesiredState.RUNNING, PondObservedState.STOPPED): JobType.START_POND,
     (PondDesiredState.RUNNING, PondObservedState.PENDING): JobType.CREATE_POND,
     (PondDesiredState.RUNNING, PondObservedState.FAILED): JobType.CREATE_POND,
     (PondDesiredState.RUNNING, PondObservedState.DELETED): JobType.CREATE_POND,
-    (PondDesiredState.DELETED, PondObservedState.RUNNING): JobType.DELETE_POND,
-    (PondDesiredState.DELETED, PondObservedState.STOPPED): JobType.DELETE_POND,
-    (PondDesiredState.DELETED, PondObservedState.FAILED): JobType.DELETE_POND,
     (PondDesiredState.DELETED, PondObservedState.DELETING): JobType.DELETE_POND,
+    (PondDesiredState.DELETED, PondObservedState.FAILED): JobType.DELETE_POND,
 }
 
 _PAYLOAD_KEYS = ("name", "host_port", "memory_mb", "cpus", "db_password_plain", "image")
-
 _ACTIVE = (JobStatus.QUEUED, JobStatus.RUNNING)
 
 
@@ -58,16 +55,8 @@ class ReconcileStats:
     skipped_lock: bool = False
 
 
-def _agent_payload(pond: Pond) -> dict[str, object]:
-    password = decrypt_secret(pond.db_password_encrypted)
-    return {
-        "name": pond.name,
-        "host_port": pond.host_port,
-        "memory_mb": 512,
-        "cpus": 0.5,
-        "db_password_plain": password,
-        "image": "postgres:16-alpine",
-    }
+def _agent_payload(session: AsyncSession, pond: Pond) -> dict[str, object]:
+    return PondService(session, get_settings())._agent_payload(pond)
 
 
 async def _try_lock(session: AsyncSession) -> bool:
@@ -113,22 +102,39 @@ async def _reclaim_zombies(session: AsyncSession) -> tuple[int, int]:
     return requeued, failed
 
 
-async def _latest_job(session: AsyncSession, pond_id: UUID, job_type: JobType) -> Job | None:
-    return (
-        await session.scalars(
+async def _latest_job(
+    session: AsyncSession, pond_id: UUID, job_type: JobType | None = None
+) -> Job | None:
+    stmt = select(Job).where(Job.pond_id == pond_id).order_by(Job.created_at.desc()).limit(1)
+    if job_type is not None:
+        stmt = (
             select(Job)
             .where(Job.pond_id == pond_id, Job.type == job_type)
             .order_by(Job.created_at.desc())
             .limit(1)
         )
-    ).first()
+    return (await session.scalars(stmt)).first()
 
 
-def _claimable_payload(pond: Pond, prior: Job | None) -> dict[str, object]:
-    # Claim rejects a job whose payload is missing these keys.
+def _claimable_payload(
+    session: AsyncSession, pond: Pond, prior: Job | None
+) -> dict[str, object]:
     if prior is not None and prior.payload and all(key in prior.payload for key in _PAYLOAD_KEYS):
         return dict(prior.payload)
-    return _agent_payload(pond)
+    return _agent_payload(session, pond)
+
+
+async def _resolve_job_type(
+    session: AsyncSession, pond: Pond, observed: PondObservedState
+) -> JobType | None:
+    mapped = REMEDIATE.get((pond.desired_state, observed))
+    if mapped is None:
+        return None
+    if pond.desired_state == PondDesiredState.RUNNING and observed == PondObservedState.FAILED:
+        last = await _latest_job(session, pond.id)
+        if last is not None and last.status == JobStatus.FAILED:
+            return last.type
+    return mapped
 
 
 async def _enqueue_drift(session: AsyncSession) -> int:
@@ -138,7 +144,6 @@ async def _enqueue_drift(session: AsyncSession) -> int:
             Job.status.in_(_ACTIVE),
         )
     )
-    # desired_state and observed_state are different Postgres enums.
     rows = (
         await session.execute(
             select(Pond, PondStatus)
@@ -152,7 +157,7 @@ async def _enqueue_drift(session: AsyncSession) -> int:
 
     enqueued = 0
     for pond, status in rows:
-        job_type = REMEDIATE.get((pond.desired_state, status.observed_state))
+        job_type = await _resolve_job_type(session, pond, status.observed_state)
         if job_type is None:
             continue
         prior = await _latest_job(session, pond.id, job_type)
@@ -168,7 +173,7 @@ async def _enqueue_drift(session: AsyncSession) -> int:
                 pond_id=pond.id,
                 node_id=pond.node_id,
                 status=JobStatus.QUEUED,
-                payload=_claimable_payload(pond, prior),
+                payload=_claimable_payload(session, pond, prior),
                 attempts=0,
             )
         )
@@ -181,12 +186,8 @@ async def tick(session: AsyncSession) -> ReconcileStats:
         return ReconcileStats(skipped_lock=True)
     try:
         zombies_requeued, zombies_failed = await _reclaim_zombies(session)
-        # Drift must see zombie writes in this tick. A requeue is an active
-        # job, and a terminal failure has to trip the attempts gate.
         await session.flush()
         drift_enqueued = await _enqueue_drift(session)
-        # Commit before unlock so a second worker cannot insert a duplicate
-        # active job against uncommitted rows.
         await session.commit()
         return ReconcileStats(
             zombies_requeued=zombies_requeued,
