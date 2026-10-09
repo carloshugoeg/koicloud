@@ -53,6 +53,8 @@ describe("W2-05 Crear pond", () => {
     await user.type(input, "inventario-mvp");
     expect(screen.getByTestId("create-pond-echo")).toHaveClass("font-mono");
     expect(screen.getByTestId("create-pond-echo")).toHaveTextContent("inventario-mvp");
+    expect(screen.getByText("● nombre válido")).toBeInTheDocument();
+    expect(screen.queryByText("● disponible")).not.toBeInTheDocument();
     expect(screen.queryByTestId("create-pond-issues")).not.toBeInTheDocument();
     expect(screen.getByTestId("create-pond-submit")).toBeEnabled();
   });
