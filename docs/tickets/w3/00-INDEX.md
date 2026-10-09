@@ -10,7 +10,7 @@ el agente lo ignora.
 | W3-02 | `POST /auth/login`, `/refresh`, `/logout` | `w3-login-sesion` | hecho ([PR #21](https://github.com/carloshugoeg/koicloud/pull/21)) |
 | W3-03 | `POST /auth/forgot` y `/auth/reset` | `w3-recuperar-password` | hecho |
 | W3-04 | `GET /me` y `PATCH /me` | `w3-perfil` | hecho |
-| W3-05 | Módulo `notifications`: 4 plantillas y proveedor de consola | `w3-correos` | abierto |
+| W3-05 | Módulo `notifications`: 4 plantillas y proveedor de consola | `w3-correos` | hecho |
 | W3-06 | `GET /plans` y valores de la semilla | `w3-planes` | hecho |
 | W3-07 | `POST /subscriptions` y `/cancel` (cableado) | `w3-contratacion` | en_revision |
 | W3-08 | `GET /subscriptions` y `GET /invoices` | `w3-historiales` | hecho ([PR #55](https://github.com/carloshugoeg/koicloud/pull/55)) |
