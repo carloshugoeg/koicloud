@@ -16,7 +16,7 @@ el agente lo ignora.
 | W4-08 | k6: `login`, `list_ponds`, `create_pond` | `w4-k6` | abierto |
 | W4-09 | `scripts/demo-mcp-replay.py` (repetición determinista) | `w4-demo-replay` | abierto |
 | W4-10 | Manual de usuario (PDF) | `w4-manual-usuario` | abierto |
-| W4-11 | Manual técnico (PDF) | `w4-manual-tecnico` | abierto |
+| W4-11 | Manual técnico (PDF) | `w4-manual-tecnico` | en-curso |
 | W4-12 | Reporte de carga y tres runbooks | `w4-reporte-carga` | abierto |
 
 **El montaje de `/mcp`, el gate y todas las tools mutantes son de W1.** W4 implementa solo
