@@ -37,7 +37,17 @@ export function useUsageQuery(month?: string) {
   });
 }
 
-export { usePondsQuery, type Pond, type PondObservedState } from "@/api/hooks/ponds";
+export {
+  useGetConnection,
+  useGetPond,
+  useListBackups,
+  usePondsQuery,
+  useRestoreBackupMutation,
+  type Backup,
+  type Connection,
+  type Pond,
+  type PondObservedState,
+} from "@/api/hooks/ponds";
 
 export {
   useForgotPasswordMutation,
@@ -51,4 +61,10 @@ export {
   type ResetPasswordPayload,
   type VerifyEmailPayload,
 } from "@/api/hooks/auth";
+
+export {
+  downloadInvoicePdf,
+  useInvoiceQuery,
+  useInvoicesQuery,
+} from "@/api/hooks/invoices";
 

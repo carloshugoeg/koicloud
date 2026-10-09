@@ -235,6 +235,10 @@ button:disabled {
   animation: pond-row-flash 600ms var(--ease);
 }
 
+.dialog-veil {
+  background: rgba(20, 33, 31, 0.32);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .koi, .koi--x2 { animation: none; background-position-x: 0; }
   .pond-water-auth { animation: none; }

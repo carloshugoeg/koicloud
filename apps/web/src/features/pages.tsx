@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom";
+import { Navigate, useParams } from "react-router-dom";
 import { PlaceholderPage } from "@/components/placeholder-page";
 
 export { LoginPage } from "@/features/auth/login-page";
@@ -7,6 +7,7 @@ export { VerifyPage } from "@/features/auth/verify-page";
 export { ForgotPage } from "@/features/auth/forgot-page";
 export { ResetPage } from "@/features/auth/reset-page";
 export { DashboardPage } from "@/features/ponds/dashboard-page";
+export { BackupsPage } from "@/features/ponds/backups-page";
 
 function usePondRouteLabel(suffix?: string) {
   const { pondId } = useParams();
@@ -46,17 +47,6 @@ export function SqlConsolePage() {
   );
 }
 
-export function BackupsPage() {
-  return (
-    <PlaceholderPage
-      description="Lista placeholder de respaldos y restauraciones del pond activo."
-      route={usePondRouteLabel("/backups")}
-      ticket="W2-08"
-      title="Respaldos"
-    />
-  );
-}
-
 export function PlansPage() {
   return (
     <PlaceholderPage
@@ -68,26 +58,10 @@ export function PlansPage() {
   );
 }
 
-export function BillingPage() {
-  return (
-    <PlaceholderPage
-      description="Placeholder para facturación e historial de invoices del usuario."
-      route="/app/billing"
-      ticket="W2-09"
-      title="Facturación"
-    />
-  );
-}
+export { UsoPage, UsoPage as BillingPage } from "@/features/uso/uso-page";
 
 export function UsagePage() {
-  return (
-    <PlaceholderPage
-      description="Vista base para el uso mensual, gráficas y totales agregados."
-      route="/app/usage"
-      ticket="W2-09"
-      title="Uso del mes"
-    />
-  );
+  return <Navigate replace to="/app/uso" />;
 }
 
 export function AccountPage() {

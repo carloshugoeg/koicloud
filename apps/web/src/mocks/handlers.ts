@@ -84,8 +84,77 @@ export const handlers = [
     return HttpResponse.json({ backups: fixtures.backups, next_cursor: null });
   }),
 
-  http.get(`${API_ROOT}/usage`, () => {
+  http.post(`${API_ROOT}/ponds/:pondId/restore`, async ({ params }) => {
+    return HttpResponse.json(
+      {
+        job: {
+          id: "job_restore_01",
+          type: "restore_pond",
+          status: "queued",
+          attempts: 0,
+          created_at: "2026-09-22T21:00:00Z",
+          node_id: "node-sv-01",
+          pond_id: String(params.pondId),
+        },
+      },
+      { status: 202 },
+    );
+  }),
+
+  http.get(`${API_ROOT}/usage`, ({ request }) => {
+    const month = new URL(request.url).searchParams.get("month");
+    if (month === fixtures.usageEmpty.month) {
+      return HttpResponse.json(fixtures.usageEmpty);
+    }
+
+    if (month) {
+      return HttpResponse.json({ ...fixtures.usage, month });
+    }
+
     return HttpResponse.json(fixtures.usage);
+  }),
+
+  http.get(`${API_ROOT}/invoices`, () => {
+    return HttpResponse.json({ invoices: fixtures.invoices, next_cursor: null });
+  }),
+
+  http.get(`${API_ROOT}/invoices/:invoiceId`, ({ params }) => {
+    const invoiceId = String(params.invoiceId);
+    if (invoiceId !== fixtures.invoiceDetail.invoice.id) {
+      return HttpResponse.json(
+        {
+          code: "internal_error",
+          message: "Invoice not found",
+          request_id: "req_invoice_missing",
+        },
+        { status: 404 },
+      );
+    }
+
+    return HttpResponse.json(fixtures.invoiceDetail);
+  }),
+
+  http.get(`${API_ROOT}/invoices/:invoiceId/pdf`, ({ params }) => {
+    const invoiceId = String(params.invoiceId);
+    if (invoiceId !== fixtures.invoiceDetail.invoice.id) {
+      return HttpResponse.json(
+        {
+          code: "internal_error",
+          message: "Invoice not found",
+          request_id: "req_invoice_pdf_missing",
+        },
+        { status: 404 },
+      );
+    }
+
+    const pdfBytes = new TextEncoder().encode("%PDF-1.4\n%KOI invoice fixture\n");
+    return new HttpResponse(pdfBytes, {
+      status: 200,
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="${fixtures.invoiceDetail.invoice.number}.pdf"`,
+      },
+    });
   }),
 
   http.get(`${API_ROOT}/agent-access`, () => {

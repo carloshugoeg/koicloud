@@ -2,7 +2,7 @@
 id: W2-08
 workstream: W2
 persona: Jason
-estado: abierto
+estado: en_revision
 rama: w2-respaldos
 epica: "E6-02, E6-03"
 sprint: S3
