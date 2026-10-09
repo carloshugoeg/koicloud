@@ -7,7 +7,7 @@ rama: w1-demo-vivo-s3
 epica: "E9-06"
 sprint: S3
 pr: https://github.com/carloshugoeg/koicloud/pull/75
-depends_on: G1
+depends_on:
 ---
 
 # [W1-18] Demo vivo S3 — subscribe → usage → PDF+IVA → backup → restore
