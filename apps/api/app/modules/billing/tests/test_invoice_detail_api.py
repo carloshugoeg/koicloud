@@ -114,3 +114,17 @@ async def test_invoice_detail_missing_is_404() -> None:
             headers={"Authorization": f"Bearer {token}"},
         )
         assert missing.status_code == 404
+        assert "code" in missing.json()
+
+
+async def test_invoice_pdf_missing_is_404() -> None:
+    reset_auth_tables()
+    async with _make_client() as client:
+        _, token = await _create_active_user(client, "pdf-404@koicloud.dev")
+        missing = await client.get(
+            f"/api/v1/invoices/{uuid4()}/pdf",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert missing.status_code == 404
+        body = missing.json()
+        assert body["code"] == "pond_not_found"
