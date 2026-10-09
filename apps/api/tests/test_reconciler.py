@@ -9,8 +9,8 @@ from sqlalchemy import select
 
 from app.core.config import get_settings
 from app.core.db import SessionLocal
-from app.core.enums import JobStatus, JobType, PondObservedState
-from app.core.models import Job, PondStatus
+from app.core.enums import JobStatus, JobType, PondDesiredState, PondObservedState
+from app.core.models import Job, Pond, PondStatus
 from app.core.time import utc_now
 from app.main import app
 from app.workers.reconciler import MAX_ATTEMPTS, tick
@@ -52,31 +52,23 @@ def _create_and_complete_pond(name: str = "inventario-demo") -> str:
     return pond_id
 
 
-async def _run_tick():
-    async with SessionLocal() as session:
-        stats = await tick(session)
-        await session.commit()
-        return stats
-
-
 def test_reconciler_enqueues_start_pond_on_stopped_drift() -> None:
     pond_id = _create_and_complete_pond()
 
     async def setup_and_tick():
         async with SessionLocal() as session:
             status = await session.get(PondStatus, UUID(pond_id))
+            pond = await session.get(Pond, UUID(pond_id))
             assert status is not None
+            assert pond is not None
             status.observed_state = PondObservedState.STOPPED
             status.healthy = False
             await session.commit()
-        return await _run_tick()
+            host_port = pond.host_port
 
-    stats = asyncio.run(setup_and_tick())
-    assert stats.drift_enqueued == 1
-    assert stats.skipped_lock is False
-
-    async def read_jobs():
         async with SessionLocal() as session:
+            stats = await tick(session)
+            again = await tick(session)
             jobs = (
                 await session.scalars(
                     select(Job)
@@ -84,12 +76,49 @@ def test_reconciler_enqueues_start_pond_on_stopped_drift() -> None:
                     .order_by(Job.created_at.desc())
                 )
             ).all()
-            return jobs
+            pond = await session.get(Pond, UUID(pond_id))
+            status = await session.get(PondStatus, UUID(pond_id))
+            return stats, again, jobs, pond, status, host_port
 
-    jobs = asyncio.run(read_jobs())
+    stats, again, jobs, pond, status, host_port = asyncio.run(setup_and_tick())
+    assert stats.drift_enqueued == 1
+    assert stats.skipped_lock is False
+    assert again.drift_enqueued == 0
     assert len(jobs) == 1
     assert jobs[0].type == JobType.START_POND
+    assert jobs[0].attempts == 0
     assert jobs[0].payload["name"] == "inventario-demo"
+    assert jobs[0].payload["host_port"] == host_port
+    assert jobs[0].payload["db_password_plain"]
+    assert jobs[0].payload["memory_mb"] == 512
+    assert jobs[0].payload["cpus"] == 0.5
+    assert jobs[0].payload["image"] == "postgres:16-alpine"
+    assert pond is not None
+    assert status is not None
+    assert pond.desired_state == PondDesiredState.RUNNING
+    assert status.observed_state == PondObservedState.STOPPED
+    assert jobs[0].payload["host_port"]
+    assert jobs[0].payload["db_password_plain"]
+    assert jobs[0].payload["image"]
+
+    # Claim must accept the reconciler payload (ClaimedJobPayload is strict).
+    claimed = client.post("/internal/v1/jobs/claim", headers=node_headers(), json={})
+    assert claimed.status_code == 200
+    assert claimed.json()["job"]["type"] == "start_pond"
+    assert claimed.json()["job"]["payload"]["name"] == "inventario-demo"
+
+    done = client.post(
+        f"/internal/v1/jobs/{claimed.json()['job']['id']}/complete",
+        headers=node_headers(),
+        json={"status": "succeeded", "result": {"observed_state": "running"}},
+    )
+    assert done.status_code == 204
+    detail = client.get(
+        f"/api/v1/ponds/{pond_id}",
+        headers=auth_headers(),
+    )
+    assert detail.status_code == 200
+    assert detail.json()["pond"]["observed_state"] == "running"
 
 
 def test_reconciler_skips_when_active_job_exists() -> None:
@@ -132,9 +161,12 @@ def test_reconciler_skips_when_active_job_exists() -> None:
 
 def test_reconciler_requeues_zombie_running_job() -> None:
     pond_id = _create_and_complete_pond("zombie-demo")
-    # Leave desired=running / observed=running; seed a stale RUNNING job.
+
     async def setup_and_tick():
         async with SessionLocal() as session:
+            status = await session.get(PondStatus, UUID(pond_id))
+            assert status is not None
+            status.observed_state = PondObservedState.STOPPED
             job = Job(
                 type=JobType.START_POND,
                 pond_id=UUID(pond_id),
@@ -147,21 +179,33 @@ def test_reconciler_requeues_zombie_running_job() -> None:
             session.add(job)
             await session.commit()
             job_id = job.id
-        stats = await _run_tick()
-        return stats, job_id
 
-    stats, job_id = asyncio.run(setup_and_tick())
-    assert stats.zombies_requeued == 1
-
-    async def read_job():
         async with SessionLocal() as session:
-            return await session.get(Job, job_id)
+            stats = await tick(session)
+            again = await tick(session)
+            job = await session.get(Job, job_id)
+            queued = (
+                await session.scalars(
+                    select(Job).where(
+                        Job.pond_id == UUID(pond_id),
+                        Job.status == JobStatus.QUEUED,
+                    )
+                )
+            ).all()
+            return stats, again, job, queued
 
-    job = asyncio.run(read_job())
+    stats, again, job, queued = asyncio.run(setup_and_tick())
+    assert stats.zombies_requeued == 1
+    assert stats.drift_enqueued == 0
+    assert again.zombies_requeued == 0
+    assert again.drift_enqueued == 0
     assert job is not None
     assert job.status == JobStatus.QUEUED
     assert job.attempts == 2
     assert job.claimed_at is None
+    assert job.node_id is None
+    assert len(queued) == 1
+    assert queued[0].id == job.id
 
 
 def test_reconciler_fails_zombie_at_max_attempts() -> None:
@@ -169,8 +213,11 @@ def test_reconciler_fails_zombie_at_max_attempts() -> None:
 
     async def setup_and_tick():
         async with SessionLocal() as session:
+            status = await session.get(PondStatus, UUID(pond_id))
+            assert status is not None
+            status.observed_state = PondObservedState.STOPPED
             job = Job(
-                type=JobType.CREATE_POND,
+                type=JobType.START_POND,
                 pond_id=UUID(pond_id),
                 node_id=get_settings().node_id,
                 status=JobStatus.RUNNING,
@@ -181,21 +228,28 @@ def test_reconciler_fails_zombie_at_max_attempts() -> None:
             session.add(job)
             await session.commit()
             job_id = job.id
-        stats = await _run_tick()
-        return stats, job_id
 
-    stats, job_id = asyncio.run(setup_and_tick())
+        async with SessionLocal() as session:
+            stats = await tick(session)
+            job = await session.get(Job, job_id)
+            queued = (
+                await session.scalars(
+                    select(Job).where(
+                        Job.pond_id == UUID(pond_id),
+                        Job.status == JobStatus.QUEUED,
+                    )
+                )
+            ).all()
+            return stats, job, queued
+
+    stats, job, queued = asyncio.run(setup_and_tick())
     assert stats.zombies_failed == 1
     assert stats.zombies_requeued == 0
-
-    async def read_job():
-        async with SessionLocal() as session:
-            return await session.get(Job, job_id)
-
-    job = asyncio.run(read_job())
+    assert stats.drift_enqueued == 0
     assert job is not None
     assert job.status == JobStatus.FAILED
     assert job.attempts == MAX_ATTEMPTS
+    assert queued == []
 
 
 def test_reconciler_skips_non_remediable_pair() -> None:
@@ -254,7 +308,19 @@ def test_reconciler_skips_exhausted_failed_create() -> None:
             assert status is not None
             status.observed_state = PondObservedState.FAILED
             await session.commit()
-        return await _run_tick()
 
-    stats = asyncio.run(mark_exhausted_and_tick())
+        async with SessionLocal() as session:
+            stats = await tick(session)
+            queued = (
+                await session.scalars(
+                    select(Job).where(
+                        Job.pond_id == UUID(pond_id),
+                        Job.status == JobStatus.QUEUED,
+                    )
+                )
+            ).all()
+            return stats, queued
+
+    stats, queued = asyncio.run(mark_exhausted_and_tick())
     assert stats.drift_enqueued == 0
+    assert queued == []
