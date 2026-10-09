@@ -110,8 +110,9 @@ Cualquier dependencia nueva se declara en el PR bajo “Dependencias nuevas” (
 
 | Área | Elección | Rol |
 |------|----------|-----|
-| CI runner | **GitHub Actions** (runner hosted) | 6 jobs required + revisor automático |
-| Revisor de IA | **Cursor Bugbot** (preferido) o **anthropic/claude-code-action** | Ver [`agent-docs.md`](./agent-docs.md) §Revisor |
+| CI runner | **GitHub Actions** (runner hosted) | Jobs required: ownership · api · web · node-agent · cli · secrets · rules · authorship |
+| Compuerta de merge | **ship** (Grok Bot) + CI verde | Comentario `ship review: LGTM` en el head; ver [`agent-docs.md`](./agent-docs.md) §8 |
+| Revisor auxiliar | **Cursor Bugbot** | Reglas en `.cursor/BUGBOT.md`; no es required check |
 | Secret scanning | **gitleaks** | Job `secrets` |
 | Load testing | **k6** | 3 escenarios: login, list_ponds, create_pond |
 | SSH deploy | Solo `ssh` + `docker compose` + `alembic upgrade` + rsync | Sin Ansible/Terraform |
@@ -132,7 +133,7 @@ Cualquier dependencia nueva se declara en el PR bajo “Dependencias nuevas” (
 | Externa | Uso | Qué asumimos |
 |---------|-----|--------------|
 | **Resend** (correo, prod) | Verificación y recuperación | Free tier; si falla, degradamos a consola y avisamos al usuario en la Web |
-| **Anthropic API** (revisor CI + demo MCP) | Revisor automático + Claude Desktop en la demo | Free/paid; si el revisor Anthropic falla, se cambia a Bugbot o a revisión manual (con retraso) |
+| **Anthropic API** (demo MCP opcional) | Claude Desktop en la demo MCP | Free/paid; si falla, script `scripts/demo-mcp-replay.py` (ver `risks-and-demo-plan.md`) |
 | **Let's Encrypt** (ACME por Caddy) | TLS del dominio | Estable; Caddy maneja renovación |
 | **VPS provider** (por decidir) | Servidor único | Cualquier proveedor con Ubuntu 24.04, ≥4 GB RAM, IP pública, 20+ GB SSD |
 
