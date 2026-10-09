@@ -10,6 +10,7 @@ type Invoice = components["schemas"]["InvoiceOut"];
 type InvoiceLine = components["schemas"]["InvoiceLineOut"];
 type AgentAccess = components["schemas"]["AgentAccessOut"];
 type PondConnection = components["schemas"]["ConnectionOut"];
+type SubscribeResponse = components["schemas"]["SubscribeResponse"];
 
 const invoiceId = "33333333-3333-3333-3333-333333333333";
 const subscriptionId = "22222222-2222-2222-2222-222222222222";
@@ -299,4 +300,35 @@ export const fixtures = {
     rotated_at: "2026-09-22T20:00:00Z",
   } satisfies AgentAccess,
   adminUsers: [adminUser] satisfies AdminUser[],
+  subscriptionResponse: {
+    subscription: {
+      id: "22222222-2222-2222-2222-222222222222",
+      user_id: demoUser.id,
+      plan_id: "micro",
+      status: "active",
+      current_period_start: "2026-09-22T20:00:00Z",
+      current_period_end: "2026-10-22T20:00:00Z",
+      cancel_at_period_end: false,
+    },
+    invoice: {
+      id: "33333333-3333-3333-3333-333333333333",
+      user_id: demoUser.id,
+      subscription_id: "22222222-2222-2222-2222-222222222222",
+      number: "KOI-202609-0001",
+      status: "paid",
+      subtotal_usd: 4.4643,
+      iva_usd: 0.5357,
+      total_usd: 5.0000,
+      issued_at: "2026-09-22T20:00:00Z",
+      pdf_path: "/var/lib/koicloud/invoices/KOI-202609-0001.pdf",
+    },
+    payment: {
+      id: "55555555-5555-5555-5555-555555555555",
+      invoice_id: "33333333-3333-3333-3333-333333333333",
+      amount_usd: 5.0000,
+      status: "succeeded",
+      method: "simulated",
+      processed_at: "2026-09-22T20:00:00Z",
+    },
+  } satisfies SubscribeResponse,
 };

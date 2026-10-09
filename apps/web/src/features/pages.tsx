@@ -6,6 +6,7 @@ export { RegisterPage } from "@/features/auth/register-page";
 export { VerifyPage } from "@/features/auth/verify-page";
 export { ForgotPage } from "@/features/auth/forgot-page";
 export { ResetPage } from "@/features/auth/reset-page";
+export { PlansPage } from "@/features/plans/plans-page";
 export { DashboardPage } from "@/features/ponds/dashboard-page";
 export { BackupsPage } from "@/features/ponds/backups-page";
 export { PondDetailPage } from "@/features/ponds/detail-page";
@@ -23,17 +24,6 @@ export function SqlConsolePage() {
       route={usePondRouteLabel("/console")}
       ticket="W2-07"
       title="Consola SQL"
-    />
-  );
-}
-
-export function PlansPage() {
-  return (
-    <PlaceholderPage
-      description="Catálogo de planes conectado al endpoint público /plans."
-      route="/app/plans"
-      ticket="W2-03"
-      title="Planes"
     />
   );
 }
