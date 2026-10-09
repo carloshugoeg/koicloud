@@ -9,7 +9,7 @@ el agente lo ignora.
 | W2-01 | Registro, login y verificación de correo | `w2-auth-pantallas` | hecho ([PR #1](https://github.com/carloshugoeg/koicloud/pull/1)) |
 | W2-02 | Recuperación de contraseña | `w2-recuperar-password` | hecho ([PR #24](https://github.com/carloshugoeg/koicloud/pull/24)) |
 | W2-03 | Catálogo de planes y contratación | `w2-planes-checkout` | abierto |
-| W2-04 | Dashboard de ponds (lista y estados) | `w2-dashboard-ponds` | abierto |
+| W2-04 | Dashboard de ponds (lista y estados) | `w2-dashboard-ponds` | hecho ([PR #52](https://github.com/carloshugoeg/koicloud/pull/52)) |
 | W2-05 | Crear pond (diálogo de configuración) | `w2-crear-pond` | abierto |
 | W2-06 | Detalle del pond y cadena de conexión | `w2-detalle-pond` | abierto |
 | W2-07 | Consola SQL (editor y tabla de resultados) | `w2-consola-sql` | abierto |

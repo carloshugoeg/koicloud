@@ -2,11 +2,11 @@
 id: W2-04
 workstream: W2
 persona: Jason
-estado: en_revision
+estado: hecho
 rama: w2-dashboard-ponds
 epica: "E3-02, E3-05"
 sprint: S2
-pr:
+pr: "https://github.com/carloshugoeg/koicloud/pull/52"
 ---
 
 # [W2-04] Dashboard de ponds (lista y estados)

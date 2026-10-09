@@ -7,6 +7,7 @@ export { VerifyPage } from "@/features/auth/verify-page";
 export { ForgotPage } from "@/features/auth/forgot-page";
 export { ResetPage } from "@/features/auth/reset-page";
 export { DashboardPage } from "@/features/ponds/dashboard-page";
+export { BackupsPage } from "@/features/ponds/backups-page";
 
 function usePondRouteLabel(suffix?: string) {
   const { pondId } = useParams();
@@ -42,17 +43,6 @@ export function SqlConsolePage() {
       route={usePondRouteLabel("/console")}
       ticket="W2-07"
       title="Consola SQL"
-    />
-  );
-}
-
-export function BackupsPage() {
-  return (
-    <PlaceholderPage
-      description="Lista placeholder de respaldos y restauraciones del pond activo."
-      route={usePondRouteLabel("/backups")}
-      ticket="W2-08"
-      title="Respaldos"
     />
   );
 }
