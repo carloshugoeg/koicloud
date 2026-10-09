@@ -3,7 +3,7 @@ id: W1-17
 workstream: W1
 persona: Carlos
 estado: en-revision
-rama: w1-g3-reconciler
+rama: w1-fix-reconciler-attempt-cap
 epica: E4-05
 sprint: S3
 pr: "https://github.com/carloshugoeg/koicloud/pull/53"
@@ -26,7 +26,10 @@ No se vende como auto-heal.
 - Enums `JobType` / `JobStatus` (incluye `lost`) y índice `jobs_one_active` ya en `main`.
 - `ClaimedJobPayload` exige `name`, `host_port`, `memory_mb`, `cpus`, `db_password_plain`, `image`.
 - Payload de agente: mismos defaults que `PondService._agent_payload` (512 MB, 0.5 CPU, `postgres:16-alpine`).
-- `desired=deleted` + `observed=running|stopped` no se remedia aquí (exige backup `pre_delete`).
+- `desired=deleted` + `observed=running|stopped|deleting` no se remedia por mapa (pre_delete / hold).
+- Drift requeues carry `attempts` from the prior failed row of the same type (claim increments).
+- `running`+`failed` only retries `create_pond` / `start_pond` / `delete_pond` — never backup/restore.
+- `deleted`+`deleting` only requeues after a failed `delete_pond`, not after a failed backup.
 
 ## Criterios de aceptación
 
