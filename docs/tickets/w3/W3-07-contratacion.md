@@ -6,7 +6,7 @@ estado: en_revision
 rama: w3-contratacion
 epica: "E2-02, E2-05"
 sprint: S3
-pr: https://github.com/carloshugoeg/koicloud/pull/47
+pr: https://github.com/carloshugoeg/koicloud/pull/73
 depends_on: W3-01
 ---
 
