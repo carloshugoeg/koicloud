@@ -2,8 +2,8 @@
 
 Este archivo es la **fuente única** de reglas para agentes de IA en este repositorio.
 Lo leen Cursor (solo), Antigravity CLI (solo), y Antigravity IDE a través de
-`.agents/rules/00-harness.md` (copia exacta, siempre activa). CI, CODEOWNERS y el
-revisor automático verifican lo que aquí dice. Un PR que viola estas reglas se rechaza.
+`.agents/rules/00-harness.md` (copia exacta, siempre activa). CI, CODEOWNERS y ship
+(`ship review: LGTM` en el head) verifican lo que aquí dice. Un PR que viola estas reglas se rechaza.
 
 **Contexto del repo:** lee también [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) (resumen de comportamiento y flujo de datos). Si un PR cambia comportamiento observable, actualiza ese archivo en el mismo PR.
 
