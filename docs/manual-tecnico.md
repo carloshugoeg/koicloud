@@ -116,7 +116,7 @@ No commitees secretos reales.
 | `NODE_TOKEN` | Auth del agent hacia `/internal/v1` | `change-me` |
 | `KOICLOUD_DOMAIN` | Dominio público (placeholder hasta host real) | `koicloud.example` |
 | `NODE_PUBLIC_HOST` | Host que ven los clientes del pond | `127.0.0.1` |
-| `POND_PORT_RANGE_START` / `END` | Rango publicado de ponds | `15000`–`15999` |
+| `POND_PORT_RANGE_START` / `END` | Rango publicado de ponds | `15000`-`15999` |
 | `MCP_ENABLED` | Monta el servidor MCP | `true` |
 | `EMAIL_PROVIDER` | `console` (dev) o `resend` (prod) | `console` |
 | `INVOICE_DIR` | PDFs de factura en disco | `/var/lib/koicloud/invoices` |
@@ -191,7 +191,7 @@ Flujo narrado: [`architecture/interconnections.md`](./architecture/interconnecti
    `KOICLOUD_DOMAIN`, `KOICLOUD_DEPLOY_SSH_KNOWN_HOSTS`, `KOICLOUD_DEPLOY_SSH_KEY`).
 5. `infra/env/prod.env` en el host, sin placeholders.
 6. Layout: clone en `/srv/koicloud`, `uv`, Docker Engine, unit systemd del agent.
-7. Firewall: `22`, `80`, `443`, `15000–15999`.
+7. Firewall: `22`, `80`, `443`, `15000-15999`.
 
 Hasta que eso exista, el ticket de cableado (W1-13) sigue abierto. No fingir deploy.
 
@@ -201,7 +201,7 @@ Hasta que eso exista, el ticket de cableado (W1-13) sigue abierto. No fingir dep
 sudo mkdir -p /srv/koicloud /var/lib/koicloud/{invoices,backups,ponds} /srv/koicloud/web
 # clone del repo en /srv/koicloud
 cp infra/env/prod.env.example infra/env/prod.env
-# editar prod.env — sin placeholders
+# editar prod.env. Sin placeholders.
 sudo cp infra/koicloud-agent.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now koicloud-agent
