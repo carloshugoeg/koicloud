@@ -2,11 +2,11 @@
 id: W3-08
 workstream: W3
 persona: Jousé
-estado: abierto
+estado: en_revision
 rama: w3-historiales
 epica: "E2-06"
 sprint: S3
-pr:
+pr: https://github.com/carloshugoeg/koicloud/pull/55
 ---
 
 # [W3-08] `GET /subscriptions` y `GET /invoices`
@@ -24,7 +24,7 @@ Historial paginado de suscripciones e invoices del usuario autenticado. Lo visib
 
 ## Criterios de aceptación
 
-1. Ambos endpoints aceptan `cursor` y `limit` y devuelven `next_cursor` cuando aplica.
+1. ~~Ambos endpoints aceptan `cursor` y `limit` y devuelven `next_cursor` cuando aplica.~~ **Descoped:** frozen OpenAPI has no `cursor`/`limit` query params on these GETs; lists currently return `next_cursor: null`. Needs a future CCR before AC#1 can land. Not inventing params in this ticket.
 2. Nunca exponen rows de otro usuario.
 3. Las pruebas cubren estado vacío y estado poblado.
 4. Los schemas de lista quedan con `example` coherente.
