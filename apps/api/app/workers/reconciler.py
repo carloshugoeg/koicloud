@@ -33,15 +33,17 @@ ZOMBIE_AFTER = timedelta(minutes=2)
 MAX_ATTEMPTS = 3
 ADVISORY_LOCK_KEY = 4_050_930
 
-# Skip desired=deleted + observed=running|stopped: that path needs pre_delete backup.
+# Skip desired=deleted + observed=running|stopped|deleting: pre_delete must win.
+# (deleted, deleting) after a failed backup is a hold, not delete_pond.
 REMEDIATE: dict[tuple[PondDesiredState, PondObservedState], JobType] = {
     (PondDesiredState.RUNNING, PondObservedState.STOPPED): JobType.START_POND,
     (PondDesiredState.RUNNING, PondObservedState.PENDING): JobType.CREATE_POND,
     (PondDesiredState.RUNNING, PondObservedState.FAILED): JobType.CREATE_POND,
     (PondDesiredState.RUNNING, PondObservedState.DELETED): JobType.CREATE_POND,
-    (PondDesiredState.DELETED, PondObservedState.DELETING): JobType.DELETE_POND,
     (PondDesiredState.DELETED, PondObservedState.FAILED): JobType.DELETE_POND,
 }
+
+_DRIFT_RETRY_TYPES = frozenset({JobType.CREATE_POND, JobType.START_POND, JobType.DELETE_POND})
 
 _PAYLOAD_KEYS = ("name", "host_port", "memory_mb", "cpus", "db_password_plain", "image")
 _ACTIVE = (JobStatus.QUEUED, JobStatus.RUNNING)
@@ -127,12 +129,31 @@ def _claimable_payload(
 async def _resolve_job_type(
     session: AsyncSession, pond: Pond, observed: PondObservedState
 ) -> JobType | None:
+    # Retry a failed delete_pond while observed is still deleting.
+    if (
+        pond.desired_state == PondDesiredState.DELETED
+        and observed == PondObservedState.DELETING
+    ):
+        last = await _latest_job(session, pond.id)
+        if (
+            last is not None
+            and last.status == JobStatus.FAILED
+            and last.type == JobType.DELETE_POND
+        ):
+            return JobType.DELETE_POND
+        return None
+
     mapped = REMEDIATE.get((pond.desired_state, observed))
     if mapped is None:
         return None
     if pond.desired_state == PondDesiredState.RUNNING and observed == PondObservedState.FAILED:
         last = await _latest_job(session, pond.id)
-        if last is not None and last.status == JobStatus.FAILED:
+        # Never auto-replay backup/restore from drift.
+        if (
+            last is not None
+            and last.status == JobStatus.FAILED
+            and last.type in _DRIFT_RETRY_TYPES
+        ):
             return last.type
     return mapped
 
@@ -161,11 +182,13 @@ async def _enqueue_drift(session: AsyncSession) -> int:
         if job_type is None:
             continue
         prior = await _latest_job(session, pond.id, job_type)
-        if (
-            prior is not None
-            and prior.status == JobStatus.FAILED
-            and prior.attempts >= MAX_ATTEMPTS
-        ):
+        # Carry claim count across requeues so the cap is real (claim increments).
+        chain_attempts = (
+            prior.attempts
+            if prior is not None and prior.status == JobStatus.FAILED
+            else 0
+        )
+        if chain_attempts >= MAX_ATTEMPTS:
             continue
         session.add(
             Job(
@@ -174,7 +197,7 @@ async def _enqueue_drift(session: AsyncSession) -> int:
                 node_id=pond.node_id,
                 status=JobStatus.QUEUED,
                 payload=_claimable_payload(session, pond, prior),
-                attempts=0,
+                attempts=chain_attempts,
             )
         )
         enqueued += 1
