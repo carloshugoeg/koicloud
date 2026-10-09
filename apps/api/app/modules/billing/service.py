@@ -23,6 +23,8 @@ from app.schemas import (
     InvoiceListResponse,
     InvoiceOut,
     PaymentOut,
+    PlanListResponse,
+    PlanOut,
     SubscribeResponse,
     SubscriptionListResponse,
     SubscriptionOut,
@@ -77,6 +79,30 @@ class BillingService:
         self.session = session
         self.settings = settings
         self.payment_provider = payment_provider
+
+    async def list_plans(self) -> PlanListResponse:
+        rows = (
+            await self.session.scalars(
+                select(Plan).where(Plan.active.is_(True)).order_by(Plan.id)
+            )
+        ).all()
+        return PlanListResponse(
+            plans=[
+                PlanOut(
+                    id=row.id,
+                    name=row.name,
+                    description=row.description,
+                    price_monthly_usd=float(row.price_monthly_usd),
+                    max_ponds=row.max_ponds,
+                    max_storage_gb=row.max_storage_gb,
+                    validity_minutes=row.validity_minutes,
+                    postpaid=row.postpaid,
+                    active=row.active,
+                )
+                for row in rows
+            ],
+            next_cursor=None,
+        )
 
     async def list_subscriptions(self, actor: AuthContext) -> SubscriptionListResponse:
         rows = (
