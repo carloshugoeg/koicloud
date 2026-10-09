@@ -367,6 +367,86 @@ def test_reconciler_skips_deleted_running_without_pre_delete() -> None:
     assert jobs == []
 
 
+def test_reconciler_skips_deleted_stopped_without_pre_delete() -> None:
+    """desired=deleted + observed=stopped also needs pre_delete; reconciler no-ops."""
+    pond_id = _create_and_complete_pond("delete-stopped")
+
+    async def setup_and_tick():
+        async with SessionLocal() as session:
+            pond = await session.get(Pond, UUID(pond_id))
+            status = await session.get(PondStatus, UUID(pond_id))
+            assert pond is not None
+            assert status is not None
+            pond.desired_state = PondDesiredState.DELETED
+            status.observed_state = PondObservedState.STOPPED
+            await session.commit()
+
+        async with SessionLocal() as session:
+            stats = await tick(session)
+            jobs = (
+                await session.scalars(
+                    select(Job).where(
+                        Job.pond_id == UUID(pond_id),
+                        Job.status == JobStatus.QUEUED,
+                    )
+                )
+            ).all()
+            return stats, jobs
+
+    stats, jobs = asyncio.run(setup_and_tick())
+    assert stats.drift_enqueued == 0
+    assert jobs == []
+
+
+def test_reconciler_retries_failed_start_pond_on_running_failed() -> None:
+    """_resolve_job_type keeps last failed start_pond instead of always create_pond."""
+    pond_id = _create_and_complete_pond("start-retry")
+
+    async def setup_and_tick():
+        async with SessionLocal() as session:
+            status = await session.get(PondStatus, UUID(pond_id))
+            pond = await session.get(Pond, UUID(pond_id))
+            assert status is not None
+            assert pond is not None
+            status.observed_state = PondObservedState.FAILED
+            session.add(
+                Job(
+                    type=JobType.START_POND,
+                    pond_id=UUID(pond_id),
+                    node_id=get_settings().node_id,
+                    status=JobStatus.FAILED,
+                    payload={
+                        "name": "start-retry",
+                        "host_port": pond.host_port,
+                        "memory_mb": 512,
+                        "cpus": 0.5,
+                        "db_password_plain": "x",
+                        "image": "postgres:16-alpine",
+                    },
+                    attempts=1,
+                )
+            )
+            await session.commit()
+
+        async with SessionLocal() as session:
+            stats = await tick(session)
+            jobs = (
+                await session.scalars(
+                    select(Job).where(
+                        Job.pond_id == UUID(pond_id),
+                        Job.status == JobStatus.QUEUED,
+                    )
+                )
+            ).all()
+            return stats, jobs
+
+    stats, jobs = asyncio.run(setup_and_tick())
+    assert stats.drift_enqueued == 1
+    assert len(jobs) == 1
+    assert jobs[0].type == JobType.START_POND
+    assert jobs[0].attempts == 1
+
+
 def test_reconciler_holds_deleting_after_failed_backup() -> None:
     """Failed pre_delete backup must not unlock delete_pond via drift."""
     pond_id = _create_and_complete_pond("delete-backup-fail")

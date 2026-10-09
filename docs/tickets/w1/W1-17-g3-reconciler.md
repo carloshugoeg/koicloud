@@ -3,7 +3,7 @@ id: W1-17
 workstream: W1
 persona: Carlos
 estado: en-revision
-rama: cursor/fix-reconciler-attempt-cap-ca31
+rama: w1-g3-reconciler
 epica: E4-05
 sprint: S3
 pr: "https://github.com/carloshugoeg/koicloud/pull/53"
@@ -26,10 +26,15 @@ No se vende como auto-heal.
 - Enums `JobType` / `JobStatus` (incluye `lost`) y índice `jobs_one_active` ya en `main`.
 - `ClaimedJobPayload` exige `name`, `host_port`, `memory_mb`, `cpus`, `db_password_plain`, `image`.
 - Payload de agente: mismos defaults que `PondService._agent_payload` (512 MB, 0.5 CPU, `postgres:16-alpine`).
-- `desired=deleted` + `observed=running|stopped|deleting` no se remedia por mapa (pre_delete / hold).
+- **pre_delete-safe:** `desired=deleted` + `observed=running|stopped` is **not remediable** in the
+  reconciler (no-op). `PondService.delete` owns the pre_delete `backup_pond` → then `delete_pond`.
+  Do not enqueue backup or delete from the reconciler for those pairs.
+- `desired=deleted` + `observed=deleting` is a hold unless the latest job is a failed `delete_pond`
+  (failed pre_delete backup must not unlock delete).
+- `_resolve_job_type` stays: on `running`+`failed`, retry the last failed type when it is
+  `create_pond` / `start_pond` / `delete_pond` so a failed `start_pond` is retried instead of
+  always falling back to `create_pond`. Never replay backup/restore from drift.
 - Drift requeues carry `attempts` from the prior failed row of the same type (claim increments).
-- `running`+`failed` only retries `create_pond` / `start_pond` / `delete_pond` — never backup/restore.
-- `deleted`+`deleting` only requeues after a failed `delete_pond`, not after a failed backup.
 
 ## Criterios de aceptación
 
