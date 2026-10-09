@@ -88,7 +88,7 @@ services:
       [
         "sh",
         "-lc",
-        "while true; do uv run python -m app.workers.daily_backups; uv run python -m app.workers.daily_usage; sleep 3600; done",
+        "while true; do uv run python -m app.workers.daily_backups; uv run python -m app.workers.daily_usage; uv run python -m app.workers.daily_renewal; sleep 3600; done",
       ]
 
   caddy:

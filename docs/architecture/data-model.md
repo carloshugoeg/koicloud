@@ -110,6 +110,8 @@ erDiagram
       numeric amount_usd
       payment_status status
       text method
+      text provider
+      text provider_ref
       timestamptz processed_at
     }
     nodes {
@@ -237,7 +239,7 @@ CREATE TYPE user_role AS ENUM ('client','admin');
 CREATE TYPE user_status AS ENUM ('active','suspended');
 CREATE TYPE email_token_kind AS ENUM ('verify_email','reset_password');
 
-CREATE TYPE subscription_status AS ENUM ('active','canceled','expired','past_due');
+CREATE TYPE subscription_status AS ENUM ('pending_payment','active','canceled','expired','past_due');
 CREATE TYPE invoice_status AS ENUM ('issued','paid','void');
 CREATE TYPE payment_status AS ENUM ('succeeded','failed','pending');
 
@@ -289,6 +291,9 @@ CREATE INDEX sql_history_user_time ON sql_history (user_id, executed_at DESC);
 
 -- Muestras por pond y tiempo
 CREATE INDEX pond_samples_pond_time ON pond_samples (pond_id, sampled_at DESC);
+
+-- Un provider_ref único por proveedor de pago (CCR #66)
+CREATE UNIQUE INDEX payments_provider_ref_ix ON payments (provider, provider_ref);
 ```
 
 Reglas de integridad relevantes:
@@ -296,7 +301,7 @@ Reglas de integridad relevantes:
 - `ponds.node_id` es `NOT NULL` (siempre asignado al crear).
 - `ponds.host_port` es `NOT NULL` y `UNIQUE` (un puerto = un pond).
 - `pond_status` está atado 1-1 a `ponds` (se crea junto en la misma transacción).
-- `invoices.number` es único a nivel global (`KOI-YYYYMM-<seq>`).
+- `invoices.number` es único a nivel global (`KC-{year}-{seq:06d}`).
 - `refresh_tokens` almacena solo el hash; nunca el valor.
 
 ---

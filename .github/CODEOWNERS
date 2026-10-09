@@ -52,7 +52,6 @@ CONTRIBUTING.md                            @carloshugoeg
 .agents/**                                 @carloshugoeg
 .github/CODEOWNERS                         @carloshugoeg
 .github/workflows/ci.yml                   @carloshugoeg
-.github/workflows/ai-review.yml            @carloshugoeg
 .github/scripts/**                         @carloshugoeg
 docs/architecture/**                       @carloshugoeg
 docs/adr/**                                @carloshugoeg

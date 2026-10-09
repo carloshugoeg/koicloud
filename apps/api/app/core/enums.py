@@ -19,6 +19,7 @@ class EmailTokenKind(StrEnum):
 
 
 class SubscriptionStatus(StrEnum):
+    PENDING_PAYMENT = "pending_payment"
     ACTIVE = "active"
     CANCELED = "canceled"
     EXPIRED = "expired"

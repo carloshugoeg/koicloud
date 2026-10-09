@@ -2861,6 +2861,7 @@
       },
       "SubscriptionStatus": {
         "enum": [
+          "pending_payment",
           "active",
           "canceled",
           "expired",

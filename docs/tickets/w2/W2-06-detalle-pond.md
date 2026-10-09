@@ -2,11 +2,11 @@
 id: W2-06
 workstream: W2
 persona: Jason
-estado: abierto
+estado: hecho
 rama: w2-detalle-pond
 epica: "E3-03"
 sprint: S3
-pr:
+pr: "https://github.com/carloshugoeg/koicloud/pull/57"
 ---
 
 # [W2-06] Detalle del pond y cadena de conexión
