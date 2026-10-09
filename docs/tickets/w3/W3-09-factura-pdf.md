@@ -2,7 +2,7 @@
 id: W3-09
 workstream: W3
 persona: Jousé
-estado: abierto
+estado: en_revision
 rama: w3-factura-pdf
 epica: "E2-03"
 sprint: S3
