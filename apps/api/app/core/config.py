@@ -32,6 +32,7 @@ class Settings(BaseSettings):
     pond_port_range_end: int = 15999
     node_stale_seconds: int = 90
     auto_micro_subscription: bool = True
+    payment_provider: str = "simulated"
     invoice_dir: str = "/var/lib/koicloud/invoices"
     backup_dir: str = "/var/lib/koicloud/backups"
     mcp_enabled: bool = True

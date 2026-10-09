@@ -22,6 +22,7 @@ dependencies = [
   "sqlalchemy",
   "uvicorn[standard]",
   "fastmcp>=4.0.10",
+  "fpdf2>=2.8.9",
 ]
 
 [dependency-groups]

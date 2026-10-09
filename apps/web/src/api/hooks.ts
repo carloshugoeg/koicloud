@@ -2,15 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/api/client";
 import { ApiError } from "@/lib/errors";
 
-async function listPonds() {
-  const { data, error } = await apiClient.GET("/api/v1/ponds", {});
-  if (error) {
-    throw new ApiError(error);
-  }
-
-  return data?.ponds ?? [];
-}
-
 async function getUsage(month?: string) {
   const { data, error } = await apiClient.GET("/api/v1/usage", {
     params: month ? { query: { month } } : undefined,
@@ -21,13 +12,6 @@ async function getUsage(month?: string) {
   }
 
   return data;
-}
-
-export function usePondsQuery() {
-  return useQuery({
-    queryKey: ["ponds"],
-    queryFn: listPonds,
-  });
 }
 
 export function useUsageQuery(month?: string) {
@@ -46,6 +30,19 @@ export {
 } from "@/api/hooks/plans";
 
 export {
+  useCreatePondMutation,
+  useGetConnection,
+  useGetPond,
+  useListBackups,
+  usePondsQuery,
+  useRestoreBackupMutation,
+  type Backup,
+  type Connection,
+  type Pond,
+  type PondObservedState,
+} from "@/api/hooks/ponds";
+
+export {
   useForgotPasswordMutation,
   useLoginMutation,
   useRegisterMutation,
@@ -58,3 +55,8 @@ export {
   type VerifyEmailPayload,
 } from "@/api/hooks/auth";
 
+export {
+  downloadInvoicePdf,
+  useInvoiceQuery,
+  useInvoicesQuery,
+} from "@/api/hooks/invoices";

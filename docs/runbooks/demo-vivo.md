@@ -18,6 +18,8 @@ bash scripts/demo-vivo.sh sql           # CREATE/SELECT inventario en pond-demo
 bash scripts/demo-vivo.sh b             # Demo B — seed + login + pond vía API
 bash scripts/demo-vivo.sh full          # Entrega final — register → Micro → pond (API)
 bash scripts/demo-vivo.sh entrega       # reset → full (ensayo completo local)
+bash scripts/demo-vivo.sh s3            # S3 — subscribe → usage → PDF+IVA → backup → restore
+bash scripts/demo-vivo.sh s3-entrega    # reset → s3 (ensayo Avance 50 %)
 bash scripts/demo-vivo.sh all           # reset → A → B (rehearsal rápido)
 ```
 
@@ -28,6 +30,8 @@ bash scripts/demo-vivo.sh all           # reset → A → B (rehearsal rápido)
 | `b` | Smoke test con usuario sembrado (`demo@koicloud.dev`) |
 | `full` | Camino feliz de Entrega final por API (registro real) |
 | `entrega` | Ensayo E1/E2/E3 local desde cero |
+| `s3` | Happy path S3 (billing + usage + PDF + backup/restore) vía API real |
+| `s3-entrega` | Ensayo S3 desde cero (`reset` + `s3`) |
 
 Variables útiles:
 
@@ -39,25 +43,63 @@ Variables útiles:
 | `FULL_DEMO_EMAIL` | `presenter-…@koicloud.dev` | Cuenta nueva en `full` |
 | `FULL_DEMO_POND` | `inventario-demo` | Nombre del pond en `full` |
 | `DEMO_CONFIRM_DELETE=1` | `0` | Si `1`, confirma el delete al final de `full` |
+| `S3_DEMO_POND` | `s3-demo` | Nombre del pond en `s3` |
+| `S3_PDF_PATH` | `/tmp/koicloud-s3-invoice.pdf` | Destino del PDF de factura |
 
 ---
 
 ## Qué está automatizado vs qué es manual
 
-| Paso del guion (12 min) | Automatizado en `full` | Manual (Web / MCP / CLI) |
+| Paso del guion (12 min) | Automatizado en `full` / `s3` | Manual (Web / MCP / CLI) |
 |---|---|---|
-| Registro + verificación de correo | Sí — token desde logs del `api` | Web: pantalla de registro y verify |
-| Contratar Micro | Llama `POST /subscriptions` | Web: checkout simulado. **Respuesta fixture** hasta W3-07 |
+| Registro + verificación de correo | `full` — token desde logs del `api` | Web: pantalla de registro y verify |
+| Contratar Micro | Sí — `POST /subscriptions` persiste (G1) | Web: checkout (pago simulado) |
+| Vista de uso | `s3` — `GET /usage` | Web: pantalla de uso (W2-09) |
+| Factura PDF con IVA | `s3` — `GET /invoices/{id}/pdf` | Web/admin descarga |
+| Backup on-demand + restore | `s3` — API + node-agent Docker | Web restore (W2-08) / CLI W4-04 |
 | Crear pond + poll `running` | Sí | Web: formulario «Crear pond» |
 | `psql` / CREATE TABLE | Sí si hay `psql` y URI | Terminal del presentador |
 | Consola SQL Web | No | Web: `SELECT * FROM items` |
 | CLI `pond list` / delete / confirm | Parcial — `koicloud pond list` sí; `confirm` es W4-05 | CLI o `curl` con `X-KOI-Surface: cli` |
 | MCP (Claude/Cursor) | No | Ver § MCP abajo y `risks-and-demo-plan.md` §4 |
-| Admin / factura PDF | No | Tickets W3-08…W3-10 |
 
-**Honestidad:** en dev, `auto_micro_subscription=true` asigna Micro al crear el primer pond
-aunque `subscribe` no persista todavía. El script igual llama `subscribe` para ensayar el
-contrato HTTP. No decir «factura persistida» hasta que W3-07 aterrice.
+**Honestidad (S3):**
+
+- `payment.method=simulated` — port real `SimulatedPaymentProvider` (no tarjeta). Invoice,
+  subscription y PDF son filas/archivo reales (`KC-{año}-{seq}`, IVA 12 %), no fixture JSON.
+- `GET /usage` es API real; en ensayo fresco puede devolver **ceros** hasta que haya
+  `pond_samples` + `daily_usage` (no inventar horas en la demo).
+- Backup/restore requieren `AGENT_MODE=docker` + node-agent (el script los levanta).
+
+**`full` / `entrega` (post-G1):** el camino ya **exige** `payment.method=simulated` y
+factura `paid` con IVA > 0. En stacks viejos sin G1 el script falla a propósito — no es
+regresión del guion; actualizá `main` o usá solo Demo A/B.
+
+---
+
+## S3 — happy path (Avance 50 %)
+
+Ticket: [`W1-18`](../tickets/w1/W1-18-demo-vivo-s3.md).
+
+Camino: **subscribe → usage → invoice PDF con IVA → backup → restore**.
+
+Creds (post-seed, igual que Demo B): `demo@koicloud.dev` / `Sup3rSegura!2026`.
+
+```bash
+bash scripts/demo-vivo.sh preflight
+bash scripts/demo-vivo.sh s3-entrega
+# o, si el stack ya está limpio:
+bash scripts/demo-vivo.sh s3
+```
+
+El script:
+
+1. Levanta db + api + node-agent, migra y hace `make seed`
+2. `POST /subscriptions` plan `micro` — aserta `status=active`, `invoice.number` `KC-…`, IVA > 0
+3. `GET /usage` — shape real; avisa si hours = 0
+4. `GET /invoices/{id}` + descarga PDF a `$S3_PDF_PATH`; verifica `%PDF` y texto IVA/12/KC-
+   vía extracción de streams (`pdftotext` o inflate FlateDecode), cruzado con el JSON
+5. Crea pond, opcionalmente inserta fila SQL, dispara backup, muta, restore, poll `running`
 
 ---
 
@@ -143,6 +185,9 @@ Comandos sugeridos por ensayo:
 ```bash
 # E1 — local Docker
 bash scripts/demo-vivo.sh entrega
+
+# S3 / Avance 50 % — billing + usage + PDF + backup/restore
+bash scripts/demo-vivo.sh s3-entrega
 
 # E2 — mismo + fallback MCP (cuando exista W4-09)
 python scripts/demo-mcp-replay.py --simulate-chat
