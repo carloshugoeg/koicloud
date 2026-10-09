@@ -78,6 +78,11 @@ export const appRoutes: RouteObject[] = [
             handle: { title: "Ponds" } satisfies RouteHandle,
           },
           {
+            path: "ponds",
+            element: <DashboardPage />,
+            handle: { title: "Ponds" } satisfies RouteHandle,
+          },
+          {
             path: "ponds/new",
             element: <CreatePondPage />,
             handle: { title: "Crear pond" } satisfies RouteHandle,

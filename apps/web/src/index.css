@@ -39,6 +39,7 @@
   --ok: #376b2c;
   --warn: #8a5a0a;
   --danger: #a81f2b;
+  --danger-soft: #f6d9d9;
 
   /* ── Tipografía ────────────────────────────────────────────────── */
   --font-display: "Fraunces Variable", "Fraunces", "Source Serif 4", Georgia,
@@ -200,9 +201,44 @@ button:disabled {
   background: url("/koi/koi-mark-32.png") 0 0 / 32px 32px no-repeat;
   image-rendering: pixelated;
 }
+.pond-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: 180px;
+}
+
+.pond-cell {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 0;
+}
+
+.pond-cell--free {
+  background: var(--bone);
+  border: 1px solid var(--line);
+}
+
+@keyframes pond-row-flash {
+  0%,
+  100% {
+    background-color: transparent;
+  }
+  35%,
+  65% {
+    background-color: var(--turquoise-100);
+  }
+}
+
+.pond-row-flash {
+  animation: pond-row-flash 600ms var(--ease);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .koi, .koi--x2 { animation: none; background-position-x: 0; }
   .pond-water-auth { animation: none; }
+  .pond-row-flash { animation: none; background-color: var(--turquoise-100); }
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
