@@ -1,20 +1,26 @@
 from __future__ import annotations
 
+from pathlib import Path
 from uuid import UUID
 
 from sqlalchemy import select
 
 from app.commands import build_confirmation
 from app.core.auth import AuthContext
+from app.core.config import get_settings
 from app.core.db import SessionLocal
-from app.core.enums import AppSurface
+from app.core.enums import AppSurface, InvoiceStatus
 from app.core.errors import AppError, ErrorCode
 from app.core.models import Plan
+from app.core.time import utc_now
+from app.modules.billing.invoice_pdf import render_invoice_pdf, split_iva
 from app.schemas import (
     CancelSubscriptionResponse,
     ConfirmationRequiredResponse,
     InvoiceDetailResponse,
+    InvoiceLineOut,
     InvoiceListResponse,
+    InvoiceOut,
     OkResponse,
     PaymentOut,
     PlanListResponse,
@@ -24,6 +30,11 @@ from app.schemas import (
     SubscriptionListResponse,
     SubscriptionOut,
 )
+
+MICRO_TOTAL = 5.0
+MICRO_CODE = "KC-2026-000001"
+# Fixture-backed invoice ownership until G1 persistence (process-local).
+_FIXTURE_OWNERS: dict[UUID, UUID] = {}
 
 
 def _requires_confirmation(surface: AppSurface, confirm_token: str | None) -> bool:
@@ -109,14 +120,52 @@ async def list_invoices(_: AuthContext) -> InvoiceListResponse:
     return InvoiceListResponse.example()
 
 
-async def get_invoice(_: AuthContext, invoice_id: UUID) -> InvoiceDetailResponse:
-    detail = InvoiceDetailResponse.example()
-    detail.invoice.id = invoice_id
-    return detail
+def _fixture_invoice_detail(actor: AuthContext, invoice_id: UUID) -> InvoiceDetailResponse:
+    """Demo invoice until G1 persistence. First caller claims ownership of the id."""
+    owner = _FIXTURE_OWNERS.get(invoice_id)
+    actor_id = UUID(actor.user_id)
+    if owner is None:
+        _FIXTURE_OWNERS[invoice_id] = actor_id
+        owner = actor_id
+    elif owner != actor_id:
+        raise AppError(ErrorCode.NOT_OWNER)
+
+    subtotal, iva = split_iva(MICRO_TOTAL)
+    invoice = InvoiceOut(
+        id=invoice_id,
+        number=MICRO_CODE,
+        user_id=owner,
+        subscription_id=SubscriptionOut.example().id,
+        subtotal_usd=float(subtotal),
+        iva_usd=float(iva),
+        total_usd=MICRO_TOTAL,
+        status=InvoiceStatus.PAID,
+        issued_at=utc_now(),
+        pdf_path=None,
+    )
+    lines = [
+        InvoiceLineOut(
+            id=InvoiceLineOut.example().id,
+            invoice_id=invoice_id,
+            description="Plan Micro mensual",
+            amount_usd=float(subtotal),
+        )
+    ]
+    return InvoiceDetailResponse(invoice=invoice, lines=lines)
 
 
-async def get_invoice_pdf(_: AuthContext, __: UUID) -> bytes:
-    return b"%PDF-1.4\n% KoiCloud invoice placeholder\n"
+async def get_invoice(actor: AuthContext, invoice_id: UUID) -> InvoiceDetailResponse:
+    return _fixture_invoice_detail(actor, invoice_id)
+
+
+async def get_invoice_pdf(actor: AuthContext, invoice_id: UUID) -> bytes:
+    detail = await get_invoice(actor, invoice_id)
+    path = render_invoice_pdf(
+        detail.invoice,
+        detail.lines,
+        invoice_dir=Path(get_settings().invoice_dir),
+    )
+    return path.read_bytes()
 
 
 async def mark_invoice_sent() -> OkResponse:
