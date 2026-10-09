@@ -2,7 +2,7 @@
 id: W2-05
 workstream: W2
 persona: Jason
-estado: en_revision
+estado: hecho
 rama: w2-crear-pond
 epica: "E3-01"
 sprint: S3
