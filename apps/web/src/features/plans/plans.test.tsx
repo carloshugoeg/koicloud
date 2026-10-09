@@ -4,7 +4,7 @@ import { HttpResponse, http } from "msw";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { AppProviders } from "@/app/providers";
 import { appRoutes } from "@/app/router";
-import { demoUser } from "@/mocks/fixtures";
+import { demoUser, fixtures } from "@/mocks/fixtures";
 import { server } from "@/mocks/server";
 import { useAuthStore } from "@/lib/auth-store";
 
@@ -91,6 +91,59 @@ describe("W2-03 Planes y Checkout flow", () => {
     await waitFor(() => {
       expect(router.state.location.pathname).toBe("/app/ponds/new");
     });
+  });
+
+  it("guards against double submit while checkout is pending", async () => {
+    let releaseRequest!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      releaseRequest = resolve;
+    });
+    let postCount = 0;
+
+    server.use(
+      http.post("*/api/v1/subscriptions", async () => {
+        postCount += 1;
+        await gate;
+        return HttpResponse.json(
+          {
+            ...fixtures.subscriptionResponse,
+            subscription: {
+              ...fixtures.subscriptionResponse.subscription,
+              plan_id: "micro",
+            },
+          },
+          { status: 202 },
+        );
+      }),
+    );
+
+    const user = userEvent.setup();
+    const router = renderPlansRoute("/app/planes");
+
+    const chooseMicroBtn = await screen.findByRole("button", { name: "Elegir plan Micro" });
+    await user.click(chooseMicroBtn);
+
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText("Número de tarjeta simulada"), "4242 4242 4242 4242");
+    await user.type(screen.getByLabelText("Expiración"), "12/28");
+    await user.type(screen.getByLabelText("CVC"), "123");
+
+    await user.click(screen.getByRole("button", { name: "Confirmar contratación" }));
+
+    const pendingButton = await screen.findByRole("button", { name: "Contratando…" });
+    expect(pendingButton).toBeDisabled();
+    expect(postCount).toBe(1);
+
+    await user.click(pendingButton);
+    expect(postCount).toBe(1);
+
+    releaseRequest();
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/app/ponds/new");
+    });
+    expect(postCount).toBe(1);
   });
 
   it("handles API error resolved by code without matching message", async () => {

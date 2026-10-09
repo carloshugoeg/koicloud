@@ -2,11 +2,11 @@
 id: W2-03
 workstream: W2
 persona: Jason
-estado: abierto
+estado: hecho
 rama: w2-planes-checkout
 epica: "E2-01, E2-02"
 sprint: S2
-pr:
+pr: "https://github.com/carloshugoeg/koicloud/pull/48"
 ---
 
 # [W2-03] Catálogo de planes y contratación
