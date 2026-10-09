@@ -15,9 +15,11 @@ from app.core.enums import (
     BackupKind,
     BackupStatus,
     EmailTokenKind,
+    InvoiceStatus,
     JobStatus,
     JobType,
     NodeStatus,
+    PaymentStatus,
     PondDesiredState,
     PondObservedState,
     SubscriptionStatus,
@@ -111,6 +113,55 @@ class Subscription(Base):
     current_period_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     current_period_end: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     cancel_at_period_end: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+
+class Invoice(Base):
+    __tablename__ = "invoices"
+
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
+    number: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
+    user_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    subscription_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("subscriptions.id"), nullable=False
+    )
+    subtotal_usd: Mapped[Decimal] = mapped_column(Numeric(12, 4), nullable=False)
+    iva_usd: Mapped[Decimal] = mapped_column(Numeric(12, 4), nullable=False)
+    total_usd: Mapped[Decimal] = mapped_column(Numeric(12, 4), nullable=False)
+    status: Mapped[InvoiceStatus] = mapped_column(
+        pg_enum(InvoiceStatus, "invoice_status"), nullable=False
+    )
+    issued_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utc_now)
+    pdf_path: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class InvoiceLine(Base):
+    __tablename__ = "invoice_lines"
+
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
+    invoice_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("invoices.id", ondelete="CASCADE"), nullable=False
+    )
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    amount_usd: Mapped[Decimal] = mapped_column(Numeric(12, 4), nullable=False)
+
+
+class Payment(Base):
+    __tablename__ = "payments"
+
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
+    invoice_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("invoices.id", ondelete="CASCADE"), nullable=False
+    )
+    amount_usd: Mapped[Decimal] = mapped_column(Numeric(12, 4), nullable=False)
+    status: Mapped[PaymentStatus] = mapped_column(
+        pg_enum(PaymentStatus, "payment_status"), nullable=False
+    )
+    method: Mapped[str] = mapped_column(Text, nullable=False)
+    provider: Mapped[str] = mapped_column(Text, nullable=False)
+    provider_ref: Mapped[str] = mapped_column(Text, nullable=False)
+    processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class Node(Base):

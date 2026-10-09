@@ -2,9 +2,9 @@ import { NavLink, Outlet, useMatches } from "react-router-dom";
 import { useAuthStore } from "@/lib/auth-store";
 
 const primaryLinks = [
-  { to: "/app", label: "Ponds" },
+  { to: "/app/ponds", label: "Ponds" },
   { to: "/app/plans", label: "Planes" },
-  { to: "/app/usage", label: "Uso del mes" },
+  { to: "/app/uso", label: "Uso del mes" },
   { to: "/app/billing", label: "Facturación" },
   { to: "/app/agent-access", label: "Acceso agente" },
   { to: "/app/account", label: "Cuenta" },

@@ -262,34 +262,32 @@ Nunca inicia un flujo interactivo de `gh auth login` en runners cloud (rompería
 
 ---
 
-## 8. Revisor automático (compuerta bloqueante)
+## 8. Compuerta de merge (ship + CI)
 
-`.github/workflows/ai-review.yml` corre en cada PR. Preferencia:
+El antiguo workflow Claude de revisión automática (y su job de auto-aprobación) se eliminó. No hay secretos de API Anthropic en CI para revisar PRs.
 
-1. **Cursor Bugbot** si está disponible en el account/team → integración nativa, comentario con veredicto.
-2. Alternativa: `anthropics/claude-code-action@v1` con el prompt de `.github/review-prompt.md`.
+Un PR es mergeable cuando:
 
-**Contrato del veredicto (obligatorio):** el revisor termina su comentario con una línea:
-
-```
-KOI-REVIEW: APPROVE
-```
-
-o
+1. Los checks required de CI están verdes, incluido `ownership` (`ownership`, `api`, `web`, `node-agent`, `cli`, `secrets`, `rules`, `authorship`).
+2. En el **head commit** actual hay un comentario de revisión de **ship** (Grok Bot de Carlos) cuyo cuerpo empieza por:
 
 ```
-KOI-REVIEW: REQUEST_CHANGES
+ship review: LGTM
 ```
 
-El job **falla** si no encuentra esa línea. Con `APPROVE` en rutas no críticas, la cuenta `koi-reviewer-bot` (PAT en secreto `KOI_BOT_TOKEN`) aprueba y activa auto-merge. En rutas críticas (`core/`, `commands/`, `alembic/`, `packages/contracts/`, `internal_api/`, `workers/`, `node-agent/`, `.github/**`, `AGENTS.md`, rules) se exige además la aprobación humana de W1 vía CODEOWNERS.
+Si el comentario empieza por `ship review: changes needed`, se corrige en la misma rama y se espera un nuevo `ship review: LGTM` en el head nuevo. ship puede fusionar el PR.
 
-**Lo que el revisor marca `REQUEST_CHANGES` sin discusión**, además de las prohibiciones de
+**Cursor Bugbot** (`.cursor/BUGBOT.md`) puede seguir comentando riesgos; no es compuerta de merge ni sustituye a ship.
+
+**Lo que bloquea sin discusión**, además de las prohibiciones de
 `AGENTS.md` §8: un commit con trailer de herramienta (`Co-authored-by: Cursor|Antigravity|
 Gemini|Claude`, «Generated with…»), un autor que no esté en el registro de
 `docs/WORKSTREAMS.md` §3, un PR sin la salida real de `make check`, y un PR que toca rutas
-de otro workstream sin CCR ni etiqueta `cross-workstream`.
+de otro workstream sin CCR ni etiqueta `cross-workstream`. En rutas críticas
+(`core/`, `commands/`, `alembic/`, `packages/contracts/`, `internal_api/`, `workers/`,
+`node-agent/`, `.github/**`, `AGENTS.md`, rules) CODEOWNERS sigue exigiendo aprobación de W1.
 
-**El revisor NO sustituye:**
+**ship / Bugbot NO sustituyen:**
 
 - El caso feliz manual (que sigue en el DoD del ticket).
 - La revisión visual del W2 dueño de la SPA.
