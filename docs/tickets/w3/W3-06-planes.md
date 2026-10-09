@@ -2,7 +2,7 @@
 id: W3-06
 workstream: W3
 persona: Jousé
-estado: abierto
+estado: hecho
 rama: w3-planes
 epica: "E2-01"
 sprint: S2
