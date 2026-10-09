@@ -52,7 +52,7 @@ export const POND_STATE_META: Record<PondObservedState, PondStateMeta> = {
   },
   failed: {
     label: "Con fallas",
-    badgeClass: "bg-[#F6D9D9] text-danger",
+    badgeClass: "bg-danger-soft text-danger",
     cellClass: "bg-koi",
     glyph: "✕",
   },
