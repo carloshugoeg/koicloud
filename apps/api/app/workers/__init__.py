@@ -1,1 +1,1 @@
-"""Backup worker package."""
+"""Background workers (daily schedulers and the minimal reconciler)."""

@@ -49,9 +49,11 @@ services:
   worker:
     build: ./apps/api
     working_dir: /app
-    command: sh -lc "uv sync --frozen && uv run python -m app.main"
+    command: sh -lc "uv sync --frozen && uv run python -m app.workers.reconciler"
     env_file:
       - .env.example
+    environment:
+      DATABASE_URL: postgresql+asyncpg://koi:koi@db:5432/koicloud
     volumes:
       - ./apps/api:/app
       - api_venv:/app/.venv

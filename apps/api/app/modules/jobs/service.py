@@ -98,7 +98,10 @@ class JobService:
         status.updated_at = now
         status.last_seen_at = now
 
-        if payload.status == "succeeded" and job.type == JobType.CREATE_POND:
+        if payload.status == "succeeded" and job.type in (
+            JobType.CREATE_POND,
+            JobType.START_POND,
+        ):
             status.observed_state = PondObservedState.RUNNING
             status.healthy = True
             status.last_error = None
