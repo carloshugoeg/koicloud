@@ -4,8 +4,11 @@ from typing import Any
 
 from httpx import ASGITransport, AsyncClient
 
+from app.core.config import get_settings
+from app.core.db import SessionLocal
 from app.main import app
 from app.modules.billing import BillingService
+from app.modules.billing.payments import get_payment_provider
 from app.schemas import PlanListResponse, PlanOut
 
 SEEDED_PLANS: dict[str, dict[str, Any]] = {
@@ -72,7 +75,11 @@ async def test_list_plans_public_happy_path() -> None:
 
 
 async def test_billing_service_list_plans() -> None:
-    result = await BillingService.list_plans()
+    settings = get_settings()
+    async with SessionLocal() as session:
+        service = BillingService(session, settings, get_payment_provider(settings))
+        result = await service.list_plans()
+
     assert isinstance(result, PlanListResponse)
     assert len(result.plans) == 3
     assert [p.id for p in result.plans] == ["micro", "pro", "sandbox"]

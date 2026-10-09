@@ -6,8 +6,13 @@ type Plan = components["schemas"]["PlanOut"];
 type Pond = components["schemas"]["PondOut"];
 type Backup = components["schemas"]["BackupOut"];
 type Usage = components["schemas"]["UsageResponse"];
+type Invoice = components["schemas"]["InvoiceOut"];
+type InvoiceLine = components["schemas"]["InvoiceLineOut"];
 type AgentAccess = components["schemas"]["AgentAccessOut"];
 type PondConnection = components["schemas"]["ConnectionOut"];
+
+const invoiceId = "33333333-3333-3333-3333-333333333333";
+const subscriptionId = "22222222-2222-2222-2222-222222222222";
 
 export const demoUser: User = {
   id: "11111111-1111-1111-1111-111111111111",
@@ -235,10 +240,58 @@ export const fixtures = {
         instance_hours: 124.5,
         storage_gb_hours: 31.2,
       },
+      {
+        pond_id: "77777777-7777-7777-7777-777777777777",
+        pond_name: "reportes-dev",
+        instance_hours: 48.0,
+        storage_gb_hours: 12.4,
+      },
     ],
-    total_instance_hours: 124.5,
-    total_storage_gb_hours: 31.2,
+    total_instance_hours: 172.5,
+    total_storage_gb_hours: 43.6,
   } satisfies Usage,
+  usageEmpty: {
+    month: "2026-08",
+    ponds: [],
+    total_instance_hours: 0,
+    total_storage_gb_hours: 0,
+  } satisfies Usage,
+  invoices: [
+    {
+      id: invoiceId,
+      issued_at: "2026-09-22T20:00:00Z",
+      iva_usd: 0.5357,
+      number: "KOI-202609-0001",
+      pdf_path: "/var/lib/koicloud/invoices/KOI-202609-0001.pdf",
+      status: "paid",
+      subscription_id: subscriptionId,
+      subtotal_usd: 4.4643,
+      total_usd: 5.0,
+      user_id: demoUser.id,
+    },
+  ] satisfies Invoice[],
+  invoiceDetail: {
+    invoice: {
+      id: invoiceId,
+      issued_at: "2026-09-22T20:00:00Z",
+      iva_usd: 0.5357,
+      number: "KOI-202609-0001",
+      pdf_path: "/var/lib/koicloud/invoices/KOI-202609-0001.pdf",
+      status: "paid",
+      subscription_id: subscriptionId,
+      subtotal_usd: 4.4643,
+      total_usd: 5.0,
+      user_id: demoUser.id,
+    },
+    lines: [
+      {
+        amount_usd: 4.4643,
+        description: "Suscripción plan Micro · mensual",
+        id: "44444444-4444-4444-4444-444444444444",
+        invoice_id: invoiceId,
+      },
+    ] satisfies InvoiceLine[],
+  },
   agentAccess: {
     slug: "demo-agent",
     url: "https://koicloud.local/mcp",

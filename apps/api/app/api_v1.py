@@ -337,7 +337,15 @@ async def get_invoice_pdf(
     invoice_id: UUID,
     actor: Annotated[AuthContext, Depends(get_current_user)],
 ) -> Response:
-    return _render(await billing_commands.get_invoice_pdf(actor, invoice_id), success_status=200)
+    result = await billing_commands.get_invoice_pdf(actor, invoice_id)
+    if not isinstance(result, bytes):
+        return _render(result, success_status=200)
+    return Response(
+        content=result,
+        media_type="application/pdf",
+        status_code=200,
+        headers={"Content-Disposition": 'attachment; filename="invoice.pdf"'},
+    )
 
 
 @router.get(
