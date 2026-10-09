@@ -8,6 +8,7 @@ export { ForgotPage } from "@/features/auth/forgot-page";
 export { ResetPage } from "@/features/auth/reset-page";
 export { DashboardPage } from "@/features/ponds/dashboard-page";
 export { BackupsPage } from "@/features/ponds/backups-page";
+export { PondDetailPage } from "@/features/ponds/detail-page";
 
 function usePondRouteLabel(suffix?: string) {
   const { pondId } = useParams();
@@ -21,17 +22,6 @@ export function CreatePondPage() {
       route="/app/ponds/new"
       ticket="W2-05"
       title="Crear pond"
-    />
-  );
-}
-
-export function PondDetailPage() {
-  return (
-    <PlaceholderPage
-      description="Detalle scaffolded del pond con espacio para resumen, conexión, SQL, respaldos y uso."
-      route={usePondRouteLabel()}
-      ticket="W2-06"
-      title="Detalle del pond"
     />
   );
 }

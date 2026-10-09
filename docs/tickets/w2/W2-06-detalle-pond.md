@@ -2,7 +2,7 @@
 id: W2-06
 workstream: W2
 persona: Jason
-estado: abierto
+estado: en_revision
 rama: w2-detalle-pond
 epica: "E3-03"
 sprint: S3

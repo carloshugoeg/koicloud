@@ -2,11 +2,11 @@
 id: W2-08
 workstream: W2
 persona: Jason
-estado: en_revision
+estado: hecho
 rama: w2-respaldos
 epica: "E6-02, E6-03"
 sprint: S3
-pr:
+pr: "https://github.com/carloshugoeg/koicloud/pull/56"
 ---
 
 # [W2-08] Respaldos: lista y restauración
