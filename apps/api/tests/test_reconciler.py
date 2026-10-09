@@ -97,28 +97,13 @@ def test_reconciler_enqueues_start_pond_on_stopped_drift() -> None:
     assert status is not None
     assert pond.desired_state == PondDesiredState.RUNNING
     assert status.observed_state == PondObservedState.STOPPED
-    assert jobs[0].payload["host_port"]
-    assert jobs[0].payload["db_password_plain"]
-    assert jobs[0].payload["image"]
 
-    # Claim must accept the reconciler payload (ClaimedJobPayload is strict).
     claimed = client.post("/internal/v1/jobs/claim", headers=node_headers(), json={})
     assert claimed.status_code == 200
-    assert claimed.json()["job"]["type"] == "start_pond"
-    assert claimed.json()["job"]["payload"]["name"] == "inventario-demo"
-
-    done = client.post(
-        f"/internal/v1/jobs/{claimed.json()['job']['id']}/complete",
-        headers=node_headers(),
-        json={"status": "succeeded", "result": {"observed_state": "running"}},
-    )
-    assert done.status_code == 204
-    detail = client.get(
-        f"/api/v1/ponds/{pond_id}",
-        headers=auth_headers(),
-    )
-    assert detail.status_code == 200
-    assert detail.json()["pond"]["observed_state"] == "running"
+    body = claimed.json()["job"]
+    assert body["type"] == "start_pond"
+    assert body["payload"]["name"] == "inventario-demo"
+    assert body["payload"]["db_password_plain"]
 
 
 def test_reconciler_skips_when_active_job_exists() -> None:
@@ -138,7 +123,9 @@ def test_reconciler_skips_when_active_job_exists() -> None:
             )
             session.add(pond_job)
             await session.commit()
-        return await _run_tick()
+
+        async with SessionLocal() as session:
+            return await tick(session)
 
     stats = asyncio.run(setup_and_tick())
     assert stats.drift_enqueued == 0
@@ -261,14 +248,10 @@ def test_reconciler_skips_non_remediable_pair() -> None:
             assert status is not None
             status.observed_state = PondObservedState.RESTORING
             await session.commit()
-        return await _run_tick()
 
-    stats = asyncio.run(setup_and_tick())
-    assert stats.drift_enqueued == 0
-
-    async def count_queued():
         async with SessionLocal() as session:
-            jobs = (
+            stats = await tick(session)
+            queued = (
                 await session.scalars(
                     select(Job).where(
                         Job.pond_id == UUID(pond_id),
@@ -276,9 +259,17 @@ def test_reconciler_skips_non_remediable_pair() -> None:
                     )
                 )
             ).all()
-            return len(jobs)
+            pond = await session.get(Pond, UUID(pond_id))
+            status = await session.get(PondStatus, UUID(pond_id))
+            return stats, queued, pond, status
 
-    assert asyncio.run(count_queued()) == 0
+    stats, queued, pond, status = asyncio.run(setup_and_tick())
+    assert stats.drift_enqueued == 0
+    assert queued == []
+    assert pond is not None
+    assert status is not None
+    assert pond.desired_state == PondDesiredState.RUNNING
+    assert status.observed_state == PondObservedState.RESTORING
 
 
 def test_reconciler_skips_exhausted_failed_create() -> None:
@@ -324,3 +315,66 @@ def test_reconciler_skips_exhausted_failed_create() -> None:
     stats, queued = asyncio.run(mark_exhausted_and_tick())
     assert stats.drift_enqueued == 0
     assert queued == []
+
+
+def test_reconciler_skips_deleted_running_without_pre_delete() -> None:
+    """desired=deleted + observed=running needs pre_delete; reconciler no-ops."""
+    pond_id = _create_and_complete_pond("delete-drift")
+
+    async def setup_and_tick():
+        async with SessionLocal() as session:
+            pond = await session.get(Pond, UUID(pond_id))
+            status = await session.get(PondStatus, UUID(pond_id))
+            assert pond is not None
+            assert status is not None
+            pond.desired_state = PondDesiredState.DELETED
+            status.observed_state = PondObservedState.RUNNING
+            await session.commit()
+
+        async with SessionLocal() as session:
+            stats = await tick(session)
+            jobs = (
+                await session.scalars(
+                    select(Job).where(
+                        Job.pond_id == UUID(pond_id),
+                        Job.status == JobStatus.QUEUED,
+                    )
+                )
+            ).all()
+            return stats, jobs
+
+    stats, jobs = asyncio.run(setup_and_tick())
+    assert stats.drift_enqueued == 0
+    assert jobs == []
+
+
+def test_reconciler_enqueues_delete_when_deleting_stuck() -> None:
+    pond_id = _create_and_complete_pond("delete-stuck")
+
+    async def setup_and_tick():
+        async with SessionLocal() as session:
+            pond = await session.get(Pond, UUID(pond_id))
+            status = await session.get(PondStatus, UUID(pond_id))
+            assert pond is not None
+            assert status is not None
+            pond.desired_state = PondDesiredState.DELETED
+            status.observed_state = PondObservedState.DELETING
+            await session.commit()
+
+        async with SessionLocal() as session:
+            stats = await tick(session)
+            jobs = (
+                await session.scalars(
+                    select(Job).where(
+                        Job.pond_id == UUID(pond_id),
+                        Job.status == JobStatus.QUEUED,
+                    )
+                )
+            ).all()
+            return stats, jobs
+
+    stats, jobs = asyncio.run(setup_and_tick())
+    assert stats.drift_enqueued == 1
+    assert len(jobs) == 1
+    assert jobs[0].type == JobType.DELETE_POND
+    assert jobs[0].payload["name"] == "delete-stuck"

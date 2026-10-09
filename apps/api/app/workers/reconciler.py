@@ -34,16 +34,17 @@ MAX_ATTEMPTS = 3
 # The lock survives commit and drops on unlock or session close.
 ADVISORY_LOCK_KEY = 4_050_930
 
+# Skip desired=deleted + observed=running|stopped: that path needs pre_delete backup.
 REMEDIATE: dict[tuple[PondDesiredState, PondObservedState], JobType] = {
     (PondDesiredState.RUNNING, PondObservedState.STOPPED): JobType.START_POND,
     (PondDesiredState.RUNNING, PondObservedState.PENDING): JobType.CREATE_POND,
     (PondDesiredState.RUNNING, PondObservedState.FAILED): JobType.CREATE_POND,
     (PondDesiredState.RUNNING, PondObservedState.DELETED): JobType.CREATE_POND,
-    (PondDesiredState.DELETED, PondObservedState.RUNNING): JobType.DELETE_POND,
-    (PondDesiredState.DELETED, PondObservedState.STOPPED): JobType.DELETE_POND,
-    (PondDesiredState.DELETED, PondObservedState.FAILED): JobType.DELETE_POND,
     (PondDesiredState.DELETED, PondObservedState.DELETING): JobType.DELETE_POND,
+    (PondDesiredState.DELETED, PondObservedState.FAILED): JobType.DELETE_POND,
 }
+
+_PAYLOAD_KEYS = ("name", "host_port", "memory_mb", "cpus", "db_password_plain", "image")
 
 _ACTIVE = (JobStatus.QUEUED, JobStatus.RUNNING)
 
@@ -111,15 +112,35 @@ async def _reclaim_zombies(session: AsyncSession) -> tuple[int, int]:
     return requeued, failed
 
 
-async def _latest_job(session: AsyncSession, pond_id: UUID, job_type: JobType) -> Job | None:
-    return (
-        await session.scalars(
+async def _latest_job(session: AsyncSession, pond_id: UUID, job_type: JobType | None = None) -> Job | None:
+    stmt = select(Job).where(Job.pond_id == pond_id).order_by(Job.created_at.desc()).limit(1)
+    if job_type is not None:
+        stmt = (
             select(Job)
             .where(Job.pond_id == pond_id, Job.type == job_type)
             .order_by(Job.created_at.desc())
             .limit(1)
         )
-    ).first()
+    return (await session.scalars(stmt)).first()
+
+
+def _claimable_payload(pond: Pond, prior: Job | None) -> dict[str, object]:
+    if prior is not None and prior.payload and all(key in prior.payload for key in _PAYLOAD_KEYS):
+        return dict(prior.payload)
+    return _agent_payload(pond)
+
+
+async def _resolve_job_type(
+    session: AsyncSession, pond: Pond, observed: PondObservedState
+) -> JobType | None:
+    mapped = REMEDIATE.get((pond.desired_state, observed))
+    if mapped is None:
+        return None
+    if pond.desired_state == PondDesiredState.RUNNING and observed == PondObservedState.FAILED:
+        last = await _latest_job(session, pond.id)
+        if last is not None and last.status == JobStatus.FAILED:
+            return last.type
+    return mapped
 
 
 async def _enqueue_drift(session: AsyncSession) -> int:
@@ -143,7 +164,7 @@ async def _enqueue_drift(session: AsyncSession) -> int:
 
     enqueued = 0
     for pond, status in rows:
-        job_type = REMEDIATE.get((pond.desired_state, status.observed_state))
+        job_type = await _resolve_job_type(session, pond, status.observed_state)
         if job_type is None:
             continue
         prior = await _latest_job(session, pond.id, job_type)
@@ -153,16 +174,13 @@ async def _enqueue_drift(session: AsyncSession) -> int:
             and prior.attempts >= MAX_ATTEMPTS
         ):
             continue
-        payload = (
-            dict(prior.payload) if prior is not None and prior.payload else _agent_payload(pond)
-        )
         session.add(
             Job(
                 type=job_type,
                 pond_id=pond.id,
                 node_id=pond.node_id,
                 status=JobStatus.QUEUED,
-                payload=payload,
+                payload=_claimable_payload(pond, prior),
                 attempts=0,
             )
         )
