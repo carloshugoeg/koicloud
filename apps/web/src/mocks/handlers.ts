@@ -84,6 +84,23 @@ export const handlers = [
     return HttpResponse.json({ backups: fixtures.backups, next_cursor: null });
   }),
 
+  http.post(`${API_ROOT}/ponds/:pondId/restore`, async ({ params }) => {
+    return HttpResponse.json(
+      {
+        job: {
+          id: "job_restore_01",
+          type: "restore_pond",
+          status: "queued",
+          attempts: 0,
+          created_at: "2026-09-22T21:00:00Z",
+          node_id: "node-sv-01",
+          pond_id: String(params.pondId),
+        },
+      },
+      { status: 202 },
+    );
+  }),
+
   http.get(`${API_ROOT}/usage`, () => {
     return HttpResponse.json(fixtures.usage);
   }),

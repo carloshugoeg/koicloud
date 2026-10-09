@@ -103,6 +103,11 @@ export const appRoutes: RouteObject[] = [
             handle: { title: "Respaldos" } satisfies RouteHandle,
           },
           {
+            path: "ponds/:pondId/respaldos",
+            element: <BackupsPage />,
+            handle: { title: "Respaldos" } satisfies RouteHandle,
+          },
+          {
             path: "plans",
             element: <PlansPage />,
             handle: { title: "Planes" } satisfies RouteHandle,
