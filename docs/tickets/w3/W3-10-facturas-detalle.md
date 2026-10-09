@@ -6,7 +6,7 @@ estado: en_revision
 rama: w3-facturas-detalle
 epica: "E2-03"
 sprint: S4
-pr:
+pr: https://github.com/carloshugoeg/koicloud/pull/69
 ---
 
 # [W3-10] `GET /invoices/{id}` y `/pdf`
