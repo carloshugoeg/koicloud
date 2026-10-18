@@ -27,18 +27,23 @@ Endpoints read-only para ver ponds de todo el sistema y la bitácora sensible. L
 
 ## Criterios de aceptación
 
-1. `GET /admin/ponds` devuelve rows de todo el sistema con dueño y estado.
-2. `GET /admin/audit` devuelve actor, acción, target, timestamp y metadata.
+1. `GET /admin/ponds` devuelve rows de todo el sistema con dueño y estado (DB, no fixture).
+2. `GET /admin/audit` devuelve actor, acción, target, timestamp y metadata (DB, acciones sensibles).
 3. Los endpoints se mantienen read-only y sin helpers ocultos de mutación.
 4. ~~Hay pruebas de API para `limit`/`offset` (página 2 vacía si no hay filas).~~ **Descoped:** frozen OpenAPI has no `limit`/`offset` query params on these GETs; lists return `next_cursor`. Needs a future CCR before AC#4 can land. Not inventing params in this ticket.
+
+## Notas de implementación
+
+- Persistencia en `AdminService` (W3). `commands/admin.py` solo delega (W1-19, mismo PR, label `cross-workstream`).
+- Schemas `AdminPondOut` / `AuditEventOut` ya traen `example` en el contrato congelado; no se editan.
 
 ## No tocar
 
 - `apps/api/app/core/**`.
-- `apps/api/app/commands/**`.
 - `apps/api/alembic/**`.
 - `apps/api/app/modules/{ponds,jobs,nodes,backups,metering,agent_access}/**`.
 - `packages/contracts/**`.
+- Firmas de `commands/**` (sí se permite el cuerpo thin-wire vía W1-19).
 
 ## Si algo falta
 

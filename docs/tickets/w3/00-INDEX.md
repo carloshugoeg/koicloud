@@ -17,7 +17,7 @@ el agente lo ignora.
 | W3-09 | Factura PDF con `fpdf2` e IVA desglosado | `w3-factura-pdf` | hecho ([PR #49](https://github.com/carloshugoeg/koicloud/pull/49)) |
 | W3-10 | `GET /invoices/{id}` y `/pdf` | `w3-facturas-detalle` | en_revision |
 | W3-11 | Admin: usuarios, suspender y reactivar | `w3-admin-usuarios` | en_revision ([PR #77](https://github.com/carloshugoeg/koicloud/pull/77)) |
-| W3-12 | Admin: ponds del sistema y bitácora | `w3-admin-ponds-bitacora` | en_revision |
+| W3-12 | Admin: ponds del sistema y bitácora | `w3-admin-ponds-bitacora` | en_revision ([PR #82](https://github.com/carloshugoeg/koicloud/pull/82)) |
 
 **El router transporta; el comando calcula.** W1-15 ya persistió `users` y `email_tokens`.
 W3-01 depende de eso y **llama** `register_user` / `verify_email` / `issue_email_token`.

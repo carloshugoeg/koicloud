@@ -39,8 +39,12 @@ async def reactivate_user(user_id: UUID) -> AdminUserResponse:
 
 
 async def admin_list_ponds() -> AdminPondListResponse:
-    return AdminPondListResponse.example()
+    from app.modules.admin.service import AdminService
+
+    return await AdminService.list_ponds()
 
 
 async def admin_list_audit() -> AuditEventListResponse:
-    return AuditEventListResponse.example()
+    from app.modules.admin.service import AdminService
+
+    return await AdminService.list_audit()
