@@ -2,11 +2,11 @@
 id: W2-07
 workstream: W2
 persona: Jason
-estado: en_curso
+estado: hecho
 rama: w2-consola-sql
 epica: "E5-01, E5-04, E5-05"
 sprint: S4
-pr:
+pr: "https://github.com/carloshugoeg/koicloud/pull/81"
 ---
 
 # [W2-07] Consola SQL (editor y tabla de resultados)
