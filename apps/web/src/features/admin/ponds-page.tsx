@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useAdminPondsQuery, type AdminPond } from "@/api/hooks/admin";
+import { MoreResultsNote } from "@/features/admin/more-results-note";
 import { ApiError, problemToMessage } from "@/lib/errors";
 import { POND_STATE_META, pondStateMeta } from "@/features/ponds/pond-state";
 
@@ -57,6 +58,8 @@ export function AdminPondsPage() {
       </div>
     );
   }
+
+  const pondsHaveMore = Boolean(pondsQuery.data?.next_cursor);
 
   return (
     <div className="space-y-4" data-testid="admin-ponds-page">
@@ -127,6 +130,8 @@ export function AdminPondsPage() {
           </table>
         </div>
       )}
+
+      {pondsHaveMore ? <MoreResultsNote /> : null}
     </div>
   );
 }

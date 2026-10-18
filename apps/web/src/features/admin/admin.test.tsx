@@ -163,6 +163,32 @@ describe("W2-10 Panel admin", () => {
     expect(screen.getByTestId(`pond-count-${adminUser.id}`)).toHaveTextContent("—");
   });
 
+  it("shows — for pond counts and a more-results note when ponds return next_cursor", async () => {
+    server.use(
+      http.get("*/api/v1/admin/ponds", () =>
+        HttpResponse.json({
+          ponds: fixtures.adminPonds,
+          next_cursor: "page-2",
+        }),
+      ),
+      http.get("*/api/v1/admin/users", () =>
+        HttpResponse.json({
+          users: fixtures.adminUsers,
+          next_cursor: "users-page-2",
+        }),
+      ),
+    );
+
+    renderAdmin("/app/admin/users");
+    expect(await screen.findByTestId("admin-users-page")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId(`pond-count-${adminClientUser.id}`)).toHaveTextContent("—");
+    });
+    expect(screen.getByTestId("admin-more-results")).toHaveTextContent(
+      /Hay más resultados en el servidor/,
+    );
+  });
+
   it("renders every audit event the backend returns, including reactivate_user", async () => {
     renderAdmin("/app/admin/audit");
     expect(await screen.findByTestId("admin-audit-page")).toBeInTheDocument();

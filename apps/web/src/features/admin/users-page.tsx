@@ -6,6 +6,8 @@ import {
   useSuspendUserMutation,
   type AdminUser,
 } from "@/api/hooks/admin";
+import { isCompleteCursorPage } from "@/features/admin/cursor-page";
+import { MoreResultsNote } from "@/features/admin/more-results-note";
 import { ReactivateDialog } from "@/features/admin/reactivate-dialog";
 import { SuspendDialog } from "@/features/admin/suspend-dialog";
 import { ApiError, problemToMessage } from "@/lib/errors";
@@ -15,14 +17,6 @@ type DialogState =
   | { kind: "closed" }
   | { kind: "suspend"; user: AdminUser }
   | { kind: "reactivate"; user: AdminUser };
-
-function planLabel(user: AdminUser) {
-  return user.active_subscription_plan ?? "—";
-}
-
-function statusLabel(status: AdminUser["status"]) {
-  return status === "suspended" ? "suspendido" : "activo";
-}
 
 export function AdminUsersPage() {
   const usersQuery = useAdminUsersQuery();
@@ -35,14 +29,20 @@ export function AdminUsersPage() {
   const [confirmEmail, setConfirmEmail] = useState("");
   const [motivo, setMotivo] = useState("");
 
+  const pondsComplete =
+    pondsQuery.isSuccess && isCompleteCursorPage(pondsQuery.data.next_cursor);
+
   const pondCountByEmail = useMemo(() => {
     const counts = new Map<string, number>();
-    for (const pond of pondsQuery.data?.ponds ?? []) {
+    if (!pondsComplete || !pondsQuery.data) {
+      return counts;
+    }
+    for (const pond of pondsQuery.data.ponds) {
       const key = pond.owner_email.toLowerCase();
       counts.set(key, (counts.get(key) ?? 0) + 1);
     }
     return counts;
-  }, [pondsQuery.data?.ponds]);
+  }, [pondsComplete, pondsQuery.data]);
 
   const users = useMemo(() => {
     const rows = usersQuery.data?.users ?? [];
@@ -112,6 +112,8 @@ export function AdminUsersPage() {
     );
   }
 
+  const usersHaveMore = Boolean(usersQuery.data?.next_cursor);
+
   return (
     <div className="space-y-4" data-testid="admin-users-page">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -166,11 +168,13 @@ export function AdminUsersPage() {
                     <p className="font-medium text-ink">{user.full_name}</p>
                     <p className="font-mono text-xs text-ink-muted">{user.email}</p>
                   </td>
-                  <td className="px-4 py-3 font-mono text-xs">{planLabel(user)}</td>
+                  <td className="px-4 py-3 font-mono text-xs">
+                    {user.active_subscription_plan ?? "—"}
+                  </td>
                   <td className="px-4 py-3 font-mono text-xs" data-testid={`pond-count-${user.id}`}>
-                    {pondsQuery.isError || !pondsQuery.isSuccess
-                      ? "—"
-                      : (pondCountByEmail.get(user.email.toLowerCase()) ?? 0)}
+                    {pondsComplete
+                      ? (pondCountByEmail.get(user.email.toLowerCase()) ?? 0)
+                      : "—"}
                   </td>
                   <td className="px-4 py-3">
                     <span
@@ -180,7 +184,7 @@ export function AdminUsersPage() {
                           : "rounded-sm bg-green-100 px-2 py-1 text-xs text-ink"
                       }
                     >
-                      {statusLabel(user.status)}
+                      {user.status === "suspended" ? "suspendido" : "activo"}
                     </span>
                   </td>
                   <td className="px-4 py-3">
@@ -214,6 +218,8 @@ export function AdminUsersPage() {
           </table>
         </div>
       )}
+
+      {usersHaveMore ? <MoreResultsNote /> : null}
 
       {dialog.kind === "suspend" ? (
         <SuspendDialog

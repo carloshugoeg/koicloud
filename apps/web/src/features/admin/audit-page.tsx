@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useAdminAuditQuery, type AuditEvent } from "@/api/hooks/admin";
+import { MoreResultsNote } from "@/features/admin/more-results-note";
 import { ApiError, problemToMessage } from "@/lib/errors";
 
 function dayKey(iso: string) {
@@ -69,6 +70,8 @@ export function AdminAuditPage() {
     );
   }
 
+  const auditHaveMore = Boolean(auditQuery.data?.next_cursor);
+
   return (
     <div className="space-y-4" data-testid="admin-audit-page">
       <p className="text-sm text-ink-muted">Últimos eventos sensibles del sistema.</p>
@@ -109,6 +112,8 @@ export function AdminAuditPage() {
           ))}
         </div>
       )}
+
+      {auditHaveMore ? <MoreResultsNote /> : null}
     </div>
   );
 }
