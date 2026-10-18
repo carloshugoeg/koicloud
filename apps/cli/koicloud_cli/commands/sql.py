@@ -1,8 +1,7 @@
 from __future__ import annotations
 
+import httpx
 import typer
-from rich.console import Console
-from rich.table import Table
 
 from koicloud_cli.client import ApiClient
 from koicloud_cli.commands import (
@@ -13,11 +12,11 @@ from koicloud_cli.commands import (
     emit_table,
     exit_for_error,
     get_authenticated_client,
-    render_cell,
 )
 from koicloud_cli.errors import ApiError, NotLoggedInError
 
 HISTORY_QUERY_MAX_CHARS = 4000
+CLIENT_TIMEOUT_MESSAGE = "La consulta excedió el límite de 10 segundos [sql_timeout]"
 
 app = typer.Typer(help="Ejecutá SQL contra un pond.")
 
@@ -32,16 +31,16 @@ def run_sql(
 ) -> None:
     """Ejecuta SQL read o write. Ticket W4-03."""
 
+    if yes is not None and not write:
+        typer.echo("--yes solo aplica con --write.", err=True)
+        raise typer.Exit(1)
+
     client = None
     try:
         client = get_authenticated_client()
         if write:
             if yes is not None:
-                payload = client.resolve_mutation(
-                    "POST",
-                    "ponds/_/sql",
-                    yes_token=yes,
-                )
+                payload = client.confirm(yes)
             else:
                 pond_id = resolve_pond_id(client, pond)
                 payload = client.resolve_mutation(
@@ -58,6 +57,12 @@ def run_sql(
             )
     except (ApiError, NotLoggedInError) as error:
         exit_for_error(error)
+    except httpx.TimeoutException:
+        typer.echo(CLIENT_TIMEOUT_MESSAGE, err=True)
+        raise typer.Exit(1) from None
+    except httpx.TransportError as error:
+        typer.echo(f"Error de red: {error}", err=True)
+        raise typer.Exit(1) from None
     finally:
         if client is not None:
             client.close()
@@ -79,6 +84,12 @@ def sql_history(
         payload = client.request("GET", f"ponds/{pond_id}/sql/history")
     except (ApiError, NotLoggedInError) as error:
         exit_for_error(error)
+    except httpx.TimeoutException:
+        typer.echo(CLIENT_TIMEOUT_MESSAGE, err=True)
+        raise typer.Exit(1) from None
+    except httpx.TransportError as error:
+        typer.echo(f"Error de red: {error}", err=True)
+        raise typer.Exit(1) from None
     finally:
         if client is not None:
             client.close()
@@ -112,6 +123,23 @@ def is_confirmation(payload: object) -> bool:
     )
 
 
+def sql_result_rows(
+    columns: list[object], rows: list[object]
+) -> tuple[list[dict[str, object]], list[tuple[str, str]]]:
+    labels = [str(col) for col in columns]
+    if not labels:
+        specs = [("_", "(sin columnas)")]
+        return [{"_": None} for _ in rows], specs
+
+    specs = [(f"c{i}", label) for i, label in enumerate(labels)]
+    dict_rows: list[dict[str, object]] = []
+    for row in rows:
+        cells = list(row) if isinstance(row, list) else [row]
+        padded = cells + [None] * max(0, len(labels) - len(cells))
+        dict_rows.append({key: padded[i] for i, (key, _) in enumerate(specs)})
+    return dict_rows, specs
+
+
 def emit_run_result(payload: object, *, output: OutputFormat) -> None:
     if is_confirmation(payload):
         assert isinstance(payload, dict)
@@ -129,20 +157,8 @@ def emit_run_result(payload: object, *, output: OutputFormat) -> None:
     columns = payload.get("columns")
     rows = payload.get("rows")
     if isinstance(columns, list) and isinstance(rows, list):
-        table = Table(title="Resultado SQL")
-        labels = [str(col) for col in columns]
-        if not labels:
-            table.add_column("(sin columnas)")
-            for _ in rows:
-                table.add_row("—")
-        else:
-            for label in labels:
-                table.add_column(label)
-            for row in rows:
-                cells = list(row) if isinstance(row, list) else [row]
-                padded = cells + [None] * max(0, len(labels) - len(cells))
-                table.add_row(*(render_cell(cell) for cell in padded[: len(labels)]))
-        Console().print(table)
+        dict_rows, specs = sql_result_rows(columns, rows)
+        emit_table(dict_rows, columns=specs, title="Resultado SQL")
 
     row_count = payload.get("row_count")
     duration_ms = payload.get("duration_ms")
