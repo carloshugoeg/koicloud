@@ -9,6 +9,7 @@ from koicloud_cli.commands import (
     YES_TOKEN_OPTION,
     OutputFormat,
     emit_json,
+    emit_mutation_result,
     emit_table,
     exit_for_error,
     get_authenticated_client,
@@ -107,7 +108,19 @@ def create_pond(
         if client is not None:
             client.close()
 
-    emit_mutation_result(payload, output=output, title="Pond creado")
+    pond = extract_pond(payload)
+    emit_mutation_result(
+        payload,
+        output=output,
+        title="Pond creado",
+        rows=[pond] if pond else None,
+        columns=[
+            ("id", "ID"),
+            ("name", "Nombre"),
+            ("desired_state", "Deseado"),
+            ("observed_state", "Observado"),
+        ],
+    )
 
 
 @app.command("connection")
@@ -177,7 +190,19 @@ def delete_pond(
         if client is not None:
             client.close()
 
-    emit_mutation_result(payload, output=output, title="Pond eliminado")
+    pond = extract_pond(payload)
+    emit_mutation_result(
+        payload,
+        output=output,
+        title="Pond eliminado",
+        rows=[pond] if pond else None,
+        columns=[
+            ("id", "ID"),
+            ("name", "Nombre"),
+            ("desired_state", "Deseado"),
+            ("observed_state", "Observado"),
+        ],
+    )
 
 
 def normalize_ponds(payload: Any) -> list[dict[str, Any]]:
@@ -209,43 +234,3 @@ def extract_connection(payload: Any) -> dict[str, Any]:
         if "uri" in payload:
             return payload
     return {}
-
-
-def is_confirmation(payload: Any) -> bool:
-    return isinstance(payload, dict) and (
-        payload.get("status") == "confirmation_required" or payload.get("code") == "confirmation_required"
-    )
-
-
-def emit_mutation_result(payload: Any, *, output: OutputFormat, title: str) -> None:
-    if is_confirmation(payload):
-        if output == OutputFormat.JSON:
-            emit_json(payload)
-            return
-        typer.echo(str(payload.get("summary") or "Confirmación requerida."))
-        typer.echo(f"Token: {payload.get('token')}")
-        next_step = payload.get("next") if isinstance(payload.get("next"), dict) else {}
-        cli_example = next_step.get("cli_example")
-        if cli_example:
-            typer.echo(f"Confirmá con: {cli_example}")
-        return
-
-    if output == OutputFormat.JSON:
-        emit_json(payload)
-        return
-
-    if isinstance(payload, dict):
-        pond = extract_pond(payload)
-        if pond:
-            emit_table(
-                [pond],
-                title=title,
-                columns=[
-                    ("id", "ID"),
-                    ("name", "Nombre"),
-                    ("desired_state", "Deseado"),
-                    ("observed_state", "Observado"),
-                ],
-            )
-            return
-    typer.echo(title)
