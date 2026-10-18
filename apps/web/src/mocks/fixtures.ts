@@ -326,7 +326,7 @@ export const fixtures = {
       executed_at: "2026-09-22T20:00:00Z",
     },
     {
-      id: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+      id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
       pond_id: "66666666-6666-6666-6666-666666666666",
       query_truncated:
         "SELECT " +

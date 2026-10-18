@@ -2,50 +2,23 @@ import { sql } from "@codemirror/lang-sql";
 import CodeMirror from "@uiw/react-codemirror";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import {
-  useRunSqlMutation,
-  useSqlHistoryQuery,
-  type SQLMode,
-  type SQLResultResponse,
-} from "@/api/hooks/sql-console";
+import { useRunSqlMutation, type SQLMode, type SQLResultResponse } from "@/api/hooks/sql-console";
 import { ApiError, problemToMessage } from "@/lib/errors";
+import { SqlHistoryPanel } from "@/features/sql-console/sql-history-panel";
+import { SqlResults } from "@/features/sql-console/sql-results";
+import { sqlEditorChrome, sqlSyntaxHighlight } from "@/features/sql-console/sql-editor-theme";
 
 type Outcome =
   | { kind: "idle" }
   | { kind: "result"; result: SQLResultResponse; mode: SQLMode }
   | { kind: "error"; error: unknown };
 
-function formatStamp(iso: string) {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) {
-    return iso;
-  }
-  return new Intl.DateTimeFormat("es-GT", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "UTC",
-  }).format(date);
-}
-
-function cellText(value: unknown) {
-  if (value === null || value === undefined) {
-    return "NULL";
-  }
-  if (typeof value === "object") {
-    return JSON.stringify(value);
-  }
-  return String(value);
-}
-
 export function SqlConsolePage() {
   const { pondId = "" } = useParams();
   const [query, setQuery] = useState("SELECT 1");
   const [mode, setMode] = useState<SQLMode>("read");
   const [outcome, setOutcome] = useState<Outcome>({ kind: "idle" });
-
-  const historyQuery = useSqlHistoryQuery(pondId || undefined);
   const runSql = useRunSqlMutation(pondId);
-
   const write = mode === "write";
 
   function run() {
@@ -90,8 +63,8 @@ export function SqlConsolePage() {
         </button>
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-[1fr_280px]">
-        <div className="space-y-4">
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
+        <div className="min-w-0 space-y-4">
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
@@ -100,6 +73,7 @@ export function SqlConsolePage() {
                   ? "bg-turquoise-700 text-bone-raised"
                   : "border border-line-control bg-bone-raised text-ink"
               }`}
+              aria-pressed={mode === "read"}
               onClick={() => setMode("read")}
               data-testid="sql-mode-read"
             >
@@ -112,6 +86,7 @@ export function SqlConsolePage() {
                   ? "bg-koi text-bone-raised"
                   : "border border-line-control bg-bone-raised text-ink"
               }`}
+              aria-pressed={write}
               onClick={() => setMode("write")}
               data-testid="sql-mode-write"
             >
@@ -119,29 +94,29 @@ export function SqlConsolePage() {
             </button>
           </div>
 
-          {write ? (
-            <div
-              className="rounded-sm border border-koi bg-koi-soft px-3 py-2 text-sm text-ink"
-              data-testid="sql-write-warning"
-              role="status"
-            >
-              Modo escritura: las sentencias modifican datos reales.
-            </div>
-          ) : null}
-
           <div
-            className={`overflow-hidden rounded-md border bg-paper ${
-              write ? "border-2 border-koi" : "border-line"
+            className={`overflow-hidden rounded-md bg-paper ${
+              write ? "border-2 border-koi" : "border border-line"
             }`}
             data-testid="sql-editor"
           >
+            {write ? (
+              <div
+                className="border-b border-koi bg-koi-soft px-3 py-2 text-sm text-ink"
+                data-testid="sql-write-warning"
+                role="status"
+              >
+                Modo escritura: las sentencias modifican datos reales.
+              </div>
+            ) : null}
             <CodeMirror
               value={query}
               height="220px"
-              extensions={[sql()]}
-              basicSetup={{ lineNumbers: true, foldGutter: false }}
+              theme={sqlEditorChrome}
+              extensions={[sql(), sqlSyntaxHighlight]}
+              basicSetup={{ lineNumbers: true, foldGutter: false, syntaxHighlighting: false }}
               onChange={setQuery}
-              className="text-sm"
+              aria-label="Editor SQL"
             />
           </div>
 
@@ -163,96 +138,11 @@ export function SqlConsolePage() {
           ) : null}
 
           {outcome.kind === "result" ? (
-            <section
-              className="rounded-md border border-line bg-paper"
-              data-testid="sql-results"
-            >
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-left font-mono text-sm">
-                  <thead className="sticky top-0 bg-bone-sunk text-ink-muted">
-                    <tr>
-                      {outcome.result.columns.map((column) => (
-                        <th key={column} className="px-3 py-2 font-medium">
-                          {column}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {outcome.result.rows.map((row, rowIndex) => (
-                      <tr key={rowIndex} className="border-t border-line">
-                        {row.map((cell, cellIndex) => (
-                          <td key={cellIndex} className="px-3 py-2 text-ink">
-                            {cellText(cell)}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div
-                className="flex flex-wrap gap-3 border-t border-line px-3 py-2 font-mono text-xs text-ink-muted"
-                data-testid="sql-results-meta"
-              >
-                <span>{outcome.result.row_count} filas</span>
-                <span>{outcome.result.duration_ms} ms</span>
-                <span>modo {outcome.mode}</span>
-                <span>truncated = {String(outcome.result.truncated)}</span>
-              </div>
-              {outcome.result.truncated ? (
-                <p
-                  className="border-t border-line bg-bone-sunk px-3 py-2 text-xs text-ink"
-                  data-testid="sql-truncated"
-                >
-                  Resultado truncado: se muestran como máximo 1000 filas.
-                </p>
-              ) : null}
-            </section>
+            <SqlResults result={outcome.result} mode={outcome.mode} />
           ) : null}
         </div>
 
-        <aside
-          className="rounded-md border border-line bg-bone-raised p-4"
-          data-testid="sql-history"
-        >
-          <h3 className="font-display text-lg text-ink">Historial</h3>
-          <p className="mt-1 text-xs text-ink-muted">Tus últimas consultas en este pond.</p>
-
-          {historyQuery.isPending ? (
-            <div className="mt-4 h-24 animate-pulse rounded-sm bg-bone-sunk" />
-          ) : null}
-
-          {historyQuery.isError ? (
-            <p className="mt-4 text-sm text-ink">{problemToMessage(historyQuery.error)}</p>
-          ) : null}
-
-          {historyQuery.data ? (
-            <ul className="mt-4 space-y-3">
-              {historyQuery.data.events.length === 0 ? (
-                <li className="text-sm text-ink-muted">Aún no hay consultas.</li>
-              ) : (
-                historyQuery.data.events.map((event) => (
-                  <li
-                    key={event.id}
-                    className="rounded-sm border border-line bg-paper px-3 py-2"
-                    data-testid="sql-history-item"
-                  >
-                    <p className="truncate font-mono text-xs text-ink" title={event.query_truncated}>
-                      {event.query_truncated}
-                    </p>
-                    <p className="mt-1 flex flex-wrap gap-2 font-mono text-[11px] text-ink-faint">
-                      <span>{formatStamp(event.executed_at)}</span>
-                      <span>{event.mode}</span>
-                      <span>{event.duration_ms} ms</span>
-                      <span>{event.row_count} filas</span>
-                    </p>
-                  </li>
-                ))
-              )}
-            </ul>
-          ) : null}
-        </aside>
+        <SqlHistoryPanel pondId={pondId} />
       </div>
     </div>
   );

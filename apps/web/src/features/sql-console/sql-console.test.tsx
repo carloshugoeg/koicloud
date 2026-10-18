@@ -56,7 +56,14 @@ describe("W2-07 Consola SQL", () => {
     renderConsole();
 
     expect(await screen.findByTestId("sql-console")).toBeInTheDocument();
-    expect(await screen.findAllByTestId("sql-history-item")).not.toHaveLength(0);
+    const history = await screen.findByTestId("sql-history");
+    expect(history).toHaveTextContent("SELECT * FROM invoices");
+    expect(history).toHaveTextContent("read");
+    expect(history).toHaveTextContent("18 ms");
+    expect(history).toHaveTextContent("2026");
+    const longQuery = screen.getByTitle(/generate_series/);
+    expect(longQuery).toHaveClass("truncate");
+    expect(longQuery.textContent?.length).toBeGreaterThan(80);
 
     await user.click(screen.getByTestId("sql-run"));
 
@@ -74,11 +81,18 @@ describe("W2-07 Consola SQL", () => {
 
     await screen.findByTestId("sql-console");
     expect(screen.queryByTestId("sql-write-warning")).not.toBeInTheDocument();
+    expect(screen.getByTestId("sql-editor").className).not.toContain("border-koi");
 
     await user.click(screen.getByTestId("sql-mode-write"));
-    expect(screen.getByTestId("sql-write-warning")).toHaveTextContent(
+    const editor = screen.getByTestId("sql-editor");
+    const warning = screen.getByTestId("sql-write-warning");
+    expect(warning).toHaveTextContent(
       "Modo escritura: las sentencias modifican datos reales.",
     );
+    expect(editor).toContainElement(warning);
+    expect(editor.className).toContain("border-2");
+    expect(editor.className).toContain("border-koi");
+    expect(editor.className).toContain("bg-paper");
   });
 
   it("shows catalog message for sql_readonly_violation", async () => {
@@ -122,5 +136,30 @@ describe("W2-07 Consola SQL", () => {
       expect(screen.getByTestId("sql-truncated")).toBeInTheDocument();
     });
     expect(screen.getByTestId("sql-results-meta")).toHaveTextContent("truncated = true");
+  });
+
+  it("renders duplicate column names without colliding keys", async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.post(`*/api/v1/ponds/${POND_ID}/sql`, () =>
+        HttpResponse.json({
+          columns: ["?column?", "?column?"],
+          rows: [[1, 1]],
+          row_count: 1,
+          duration_ms: 3,
+          truncated: false,
+        }),
+      ),
+    );
+
+    renderConsole();
+    await screen.findByTestId("sql-console");
+    await user.click(screen.getByTestId("sql-run"));
+
+    const results = await screen.findByTestId("sql-results");
+    const headers = results.querySelectorAll("th");
+    expect(headers).toHaveLength(2);
+    expect(headers[0]).toHaveTextContent("?column?");
+    expect(headers[1]).toHaveTextContent("?column?");
   });
 });

@@ -2,7 +2,7 @@
 id: W2-07
 workstream: W2
 persona: Jason
-estado: hecho
+estado: en-revision
 rama: w2-consola-sql
 epica: "E5-01, E5-04, E5-05"
 sprint: S4
