@@ -6,7 +6,7 @@ estado: en_revision
 rama: w4-cli-sql
 epica: "E5-02"
 sprint: S3
-pr: "#TBD"
+pr: "#83"
 ---
 
 # [W4-03] CLI `sql run` (lectura y `--write`) e historial
