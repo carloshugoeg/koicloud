@@ -56,11 +56,6 @@ export function AdminPondsPage() {
   return (
     <div className="space-y-4" data-testid="admin-ponds-page">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-sm text-ink-muted">
-            Vista global de tenants. Filtros locales hasta que W3-12 endurezca la API.
-          </p>
-        </div>
         <div className="flex flex-wrap gap-2" data-testid="admin-ponds-filters">
           <label className="text-xs text-ink-muted">
             Dueño / nombre
@@ -78,11 +73,14 @@ export function AdminPondsPage() {
               onChange={(event) => setStateFilter(event.target.value as StateFilter)}
             >
               <option value="all">Todos</option>
+              <option value="pending">pending</option>
+              <option value="provisioning">provisioning</option>
               <option value="running">running</option>
               <option value="stopped">stopped</option>
-              <option value="failed">failed</option>
               <option value="restoring">restoring</option>
-              <option value="provisioning">provisioning</option>
+              <option value="deleting">deleting</option>
+              <option value="deleted">deleted</option>
+              <option value="failed">failed</option>
             </select>
           </label>
         </div>

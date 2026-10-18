@@ -2,13 +2,6 @@ import { useMemo } from "react";
 import { useAdminAuditQuery, type AuditEvent } from "@/api/hooks/admin";
 import { ApiError, problemToMessage } from "@/lib/errors";
 
-const SENSITIVE_ACTIONS = new Set([
-  "suspend_user",
-  "reveal_agent_access",
-  "delete_pond",
-  "restore_backup",
-]);
-
 function dayKey(iso: string) {
   return iso.slice(0, 10);
 }
@@ -36,9 +29,7 @@ export function AdminAuditPage() {
   const auditQuery = useAdminAuditQuery();
 
   const groups = useMemo(() => {
-    const events = (auditQuery.data?.events ?? []).filter((event) =>
-      SENSITIVE_ACTIONS.has(event.action),
-    );
+    const events = auditQuery.data?.events ?? [];
     const byDay = new Map<string, AuditEvent[]>();
     for (const event of events) {
       const key = dayKey(event.at);
@@ -80,15 +71,11 @@ export function AdminAuditPage() {
 
   return (
     <div className="space-y-4" data-testid="admin-audit-page">
-      <div>
-        <p className="text-sm text-ink-muted">
-          Solo acciones sensibles: suspend_user, reveal_agent_access, delete_pond, restore_backup.
-        </p>
-      </div>
+      <p className="text-sm text-ink-muted">Últimos eventos sensibles del sistema.</p>
 
       {groups.length === 0 ? (
         <div className="rounded-md border border-line bg-bone-raised p-8 text-center" data-testid="admin-audit-empty">
-          <p className="text-sm text-ink-muted">Todavía no hay eventos sensibles.</p>
+          <p className="text-sm text-ink-muted">Todavía no hay eventos en la bitácora.</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -99,15 +86,19 @@ export function AdminAuditPage() {
               </div>
               <ul className="divide-y divide-line font-mono text-xs">
                 {events.map((event) => (
-                  <li key={event.id} className="grid gap-1 px-4 py-3 sm:grid-cols-[7rem_1fr]" data-testid={`audit-row-${event.id}`}>
+                  <li
+                    key={event.id}
+                    className="grid gap-1 px-4 py-3 sm:grid-cols-[7rem_1fr]"
+                    data-testid={`audit-row-${event.id}`}
+                  >
                     <span className="text-ink-faint">{formatStamp(event.at)}Z</span>
                     <span className="text-ink">
                       <span className="text-turquoise-900">{event.action}</span>
                       {" · "}
-                      actor {event.actor_kind}
+                      responsable {event.actor_kind}
                       {event.actor_user_id ? `/${event.actor_user_id.slice(0, 8)}` : ""}
                       {" · "}
-                      target {event.target_kind}/{event.target_id.slice(0, 8)}
+                      objetivo {event.target_kind}/{event.target_id.slice(0, 8)}
                       {" · "}
                       {metadataLine(event)}
                     </span>

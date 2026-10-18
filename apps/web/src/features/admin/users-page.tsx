@@ -1,11 +1,13 @@
 import { useMemo, useState } from "react";
 import {
-  SUSPEND_CONFIRM_TEXT,
+  useAdminPondsQuery,
   useAdminUsersQuery,
   useReactivateUserMutation,
   useSuspendUserMutation,
   type AdminUser,
 } from "@/api/hooks/admin";
+import { ReactivateDialog } from "@/features/admin/reactivate-dialog";
+import { SuspendDialog } from "@/features/admin/suspend-dialog";
 import { ApiError, problemToMessage } from "@/lib/errors";
 
 type StatusFilter = "all" | "active" | "suspended";
@@ -24,6 +26,7 @@ function statusLabel(status: AdminUser["status"]) {
 
 export function AdminUsersPage() {
   const usersQuery = useAdminUsersQuery();
+  const pondsQuery = useAdminPondsQuery();
   const suspend = useSuspendUserMutation();
   const reactivate = useReactivateUserMutation();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -31,6 +34,15 @@ export function AdminUsersPage() {
   const [dialog, setDialog] = useState<DialogState>({ kind: "closed" });
   const [confirmEmail, setConfirmEmail] = useState("");
   const [motivo, setMotivo] = useState("");
+
+  const pondCountByEmail = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const pond of pondsQuery.data?.ponds ?? []) {
+      const key = pond.owner_email.toLowerCase();
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    return counts;
+  }, [pondsQuery.data?.ponds]);
 
   const users = useMemo(() => {
     const rows = usersQuery.data?.users ?? [];
@@ -57,23 +69,21 @@ export function AdminUsersPage() {
     reactivate.reset();
   }
 
-  async function submitSuspend() {
+  function submitSuspend() {
     if (dialog.kind !== "suspend") {
       return;
     }
-    await suspend.mutateAsync(dialog.user.id);
-    closeDialog();
+    suspend.mutate(dialog.user.id, { onSuccess: () => closeDialog() });
   }
 
-  async function submitReactivate() {
+  function submitReactivate() {
     if (dialog.kind !== "reactivate") {
       return;
     }
-    await reactivate.mutateAsync(dialog.user.id);
-    closeDialog();
+    reactivate.mutate(dialog.user.id, { onSuccess: () => closeDialog() });
   }
 
-  if (usersQuery.isPending) {
+  if (usersQuery.isPending || pondsQuery.isPending) {
     return (
       <div className="space-y-4" data-testid="admin-users-loading">
         <div className="h-10 w-56 animate-pulse rounded-sm bg-bone-sunk" />
@@ -102,18 +112,12 @@ export function AdminUsersPage() {
     );
   }
 
-  const actionError = suspend.error ?? reactivate.error;
-  const emailMatches =
-    dialog.kind === "suspend" && confirmEmail.trim().toLowerCase() === dialog.user.email.toLowerCase();
-
   return (
     <div className="space-y-4" data-testid="admin-users-page">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-sm text-ink-muted" data-testid="admin-users-summary">
-            {users.length} cuentas visibles · suspender no detiene ponds ni borra datos.
-          </p>
-        </div>
+        <p className="text-sm text-ink-muted" data-testid="admin-users-summary">
+          {users.length} cuentas visibles · suspender no detiene ponds ni borra datos.
+        </p>
         <div className="flex flex-wrap gap-2" data-testid="admin-users-filters">
           <label className="text-xs text-ink-muted">
             Buscar
@@ -163,8 +167,8 @@ export function AdminUsersPage() {
                     <p className="font-mono text-xs text-ink-muted">{user.email}</p>
                   </td>
                   <td className="px-4 py-3 font-mono text-xs">{planLabel(user)}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-ink-muted" title="pond_count no está en el contrato congelado">
-                    —
+                  <td className="px-4 py-3 font-mono text-xs" data-testid={`pond-count-${user.id}`}>
+                    {pondCountByEmail.get(user.email.toLowerCase()) ?? 0}
                   </td>
                   <td className="px-4 py-3">
                     <span
@@ -210,88 +214,27 @@ export function AdminUsersPage() {
       )}
 
       {dialog.kind === "suspend" ? (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-ink/40 p-4" data-testid="suspend-dialog">
-          <div className="w-full max-w-md rounded-md border border-line bg-bone-raised shadow-lg">
-            <div className="h-1 bg-danger" />
-            <div className="space-y-4 p-5">
-              <h3 className="font-display text-2xl text-ink">Suspender a {dialog.user.full_name}</h3>
-              <div className="rounded-sm border border-danger/40 bg-danger-soft px-3 py-2 text-sm text-ink">
-                La cuenta no podrá iniciar sesión. Sus ponds siguen corriendo y no se borra ningún dato.
-              </div>
-              <label className="block text-xs text-ink-muted">
-                Escribe el correo de la cuenta para confirmar
-                <input
-                  className="mt-1 block h-10 w-full rounded-sm border border-line-control bg-bone px-3 font-mono text-sm"
-                  value={confirmEmail}
-                  onChange={(event) => setConfirmEmail(event.target.value)}
-                  data-testid="suspend-confirm-email"
-                />
-                <span className="mt-1 block font-mono text-[11px]">Esperado: {dialog.user.email}</span>
-              </label>
-              <label className="block text-xs text-ink-muted">
-                Motivo <span className="text-ink-faint">(queda en la bitácora)</span>
-                <input
-                  className="mt-1 block h-10 w-full rounded-sm border border-line-control bg-bone px-3 text-sm"
-                  value={motivo}
-                  onChange={(event) => setMotivo(event.target.value)}
-                  data-testid="suspend-motivo"
-                />
-              </label>
-              <p className="font-mono text-[11px] text-ink-faint">
-                API: confirm_text = {SUSPEND_CONFIRM_TEXT}
-              </p>
-              {actionError ? (
-                <p className="text-sm text-danger" data-testid="suspend-error">
-                  {problemToMessage(actionError)}
-                </p>
-              ) : null}
-            </div>
-            <div className="flex items-center justify-between gap-3 border-t border-line px-5 py-3">
-              <button type="button" className="h-9 px-3 text-sm" onClick={closeDialog}>
-                Cancelar
-              </button>
-              <button
-                type="button"
-                className="h-9 rounded-sm bg-danger px-4 text-sm font-medium text-bone disabled:opacity-40"
-                data-testid="suspend-submit"
-                disabled={!emailMatches || !motivo.trim() || suspend.isPending}
-                onClick={() => void submitSuspend()}
-              >
-                Suspender cuenta
-              </button>
-            </div>
-          </div>
-        </div>
+        <SuspendDialog
+          user={dialog.user}
+          confirmEmail={confirmEmail}
+          motivo={motivo}
+          pending={suspend.isPending}
+          error={suspend.error}
+          onConfirmEmailChange={setConfirmEmail}
+          onMotivoChange={setMotivo}
+          onCancel={closeDialog}
+          onSubmit={submitSuspend}
+        />
       ) : null}
 
       {dialog.kind === "reactivate" ? (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-ink/40 p-4" data-testid="reactivate-dialog">
-          <div className="w-full max-w-md rounded-md border border-line bg-bone-raised">
-            <div className="space-y-4 p-5">
-              <h3 className="font-display text-2xl text-ink">Reactivar a {dialog.user.full_name}</h3>
-              <p className="text-sm text-ink-muted">
-                La cuenta podrá iniciar sesión de nuevo. Confirmá para continuar.
-              </p>
-              {actionError ? (
-                <p className="text-sm text-danger">{problemToMessage(actionError)}</p>
-              ) : null}
-            </div>
-            <div className="flex items-center justify-between gap-3 border-t border-line px-5 py-3">
-              <button type="button" className="h-9 px-3 text-sm" onClick={closeDialog}>
-                Cancelar
-              </button>
-              <button
-                type="button"
-                className="h-9 rounded-sm border border-turquoise-700 bg-turquoise-100 px-4 text-sm font-medium text-turquoise-900 disabled:opacity-40"
-                data-testid="reactivate-submit"
-                disabled={reactivate.isPending}
-                onClick={() => void submitReactivate()}
-              >
-                Reactivar cuenta
-              </button>
-            </div>
-          </div>
-        </div>
+        <ReactivateDialog
+          user={dialog.user}
+          pending={reactivate.isPending}
+          error={reactivate.error}
+          onCancel={closeDialog}
+          onSubmit={submitReactivate}
+        />
       ) : null}
     </div>
   );

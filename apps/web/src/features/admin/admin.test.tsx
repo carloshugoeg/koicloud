@@ -1,5 +1,6 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { HttpResponse, http } from "msw";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { beforeEach, describe, expect, it } from "vitest";
 import { AppProviders } from "@/app/providers";
@@ -13,6 +14,7 @@ import {
   fixtures,
 } from "@/mocks/fixtures";
 import { resetAdminUsersState } from "@/mocks/handlers";
+import { server } from "@/mocks/server";
 
 function sessionUserFromAdmin(user: typeof adminUser) {
   return {
@@ -50,14 +52,16 @@ describe("W2-10 Panel admin", () => {
     resetAdminUsersState();
   });
 
-  it("renders the users table with plan and filters", async () => {
+  it("renders the users table with plan and pond counts by owner_email", async () => {
     renderAdmin("/app/admin/users");
 
     expect(await screen.findByTestId("admin-users-page")).toBeInTheDocument();
     expect(screen.getByText(adminClientUser.full_name)).toBeInTheDocument();
     expect(screen.getByText(adminSuspendedUser.email)).toBeInTheDocument();
     expect(screen.getAllByText("micro").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("—").length).toBeGreaterThan(0);
+    expect(await screen.findByTestId(`pond-count-${adminClientUser.id}`)).toHaveTextContent("1");
+    expect(screen.getByTestId(`pond-count-${adminSuspendedUser.id}`)).toHaveTextContent("1");
+    expect(screen.getByTestId(`pond-count-${adminUser.id}`)).toHaveTextContent("0");
 
     const user = userEvent.setup();
     await user.selectOptions(screen.getByLabelText("Estado"), "suspended");
@@ -73,6 +77,7 @@ describe("W2-10 Panel admin", () => {
     await user.click(screen.getByTestId(`suspend-${adminClientUser.id}`));
     const dialog = await screen.findByTestId("suspend-dialog");
     expect(within(dialog).getByText(/siguen corriendo/i)).toBeInTheDocument();
+    expect(within(dialog).queryByText(/queda en la bitácora/i)).not.toBeInTheDocument();
 
     expect(screen.getByTestId("suspend-submit")).toBeDisabled();
     await user.type(screen.getByTestId("suspend-confirm-email"), adminClientUser.email);
@@ -86,28 +91,62 @@ describe("W2-10 Panel admin", () => {
     expect(await screen.findByTestId(`reactivate-${adminClientUser.id}`)).toBeInTheDocument();
   });
 
-  it("renders ponds with owner/state filters", async () => {
+  it("keeps the suspend dialog open and shows suspend-error on API failure", async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.post("*/api/v1/admin/users/:userId/suspend", () =>
+        HttpResponse.json(
+          {
+            code: "confirmation_action_mismatch",
+            message: "confirmation_action_mismatch",
+          },
+          { status: 409 },
+        ),
+      ),
+    );
+
+    renderAdmin("/app/admin/users");
+    await screen.findByTestId("admin-users-page");
+    await user.click(screen.getByTestId(`suspend-${adminClientUser.id}`));
+    await user.type(screen.getByTestId("suspend-confirm-email"), adminClientUser.email);
+    await user.type(screen.getByTestId("suspend-motivo"), "prueba");
+    await user.click(screen.getByTestId("suspend-submit"));
+
+    expect(await screen.findByTestId("suspend-error")).toHaveTextContent(
+      "La confirmación no corresponde a esta acción.",
+    );
+    expect(screen.getByTestId("suspend-dialog")).toBeInTheDocument();
+  });
+
+  it("renders ponds with owner/state filters including pending and deleted", async () => {
     const user = userEvent.setup();
     renderAdmin("/app/admin/ponds");
     expect(await screen.findByTestId("admin-ponds-page")).toBeInTheDocument();
     expect(screen.getByText("inventario-demo")).toBeInTheDocument();
 
-    await user.selectOptions(screen.getByLabelText("Estado"), "failed");
+    const stateSelect = screen.getByLabelText("Estado");
+    expect(within(stateSelect).getByRole("option", { name: "pending" })).toBeInTheDocument();
+    expect(within(stateSelect).getByRole("option", { name: "deleting" })).toBeInTheDocument();
+    expect(within(stateSelect).getByRole("option", { name: "deleted" })).toBeInTheDocument();
+
+    await user.selectOptions(stateSelect, "failed");
     expect(screen.queryByText("inventario-demo")).not.toBeInTheDocument();
     expect(screen.getByText("analytics-gt")).toBeInTheDocument();
   });
 
-  it("renders audit events in mono grouped by day", async () => {
+  it("renders every audit event the backend returns, including reactivate_user", async () => {
     renderAdmin("/app/admin/audit");
     expect(await screen.findByTestId("admin-audit-page")).toBeInTheDocument();
     expect(screen.getByTestId(`audit-row-${fixtures.adminAuditEvents[0].id}`)).toHaveTextContent(
       "suspend_user",
     );
-    expect(screen.getByTestId(`audit-row-${fixtures.adminAuditEvents[1].id}`)).toHaveTextContent(
-      "reveal_agent_access",
+    expect(screen.getByTestId(`audit-row-${fixtures.adminAuditEvents[4].id}`)).toHaveTextContent(
+      "reactivate_user",
     );
     const firstRow = screen.getByTestId(`audit-row-${fixtures.adminAuditEvents[0].id}`);
     expect(firstRow.closest("ul")?.className ?? "").toContain("font-mono");
+    expect(firstRow).toHaveTextContent("responsable");
+    expect(firstRow).toHaveTextContent("objetivo");
   });
 
   it("shows admin_only forbidden state for non-admins", async () => {

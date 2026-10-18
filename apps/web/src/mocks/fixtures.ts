@@ -129,6 +129,16 @@ export const adminAuditEvents: AuditEvent[] = [
     target_id: "88888888-8888-8888-8888-888888888888",
     metadata: { source: "web" },
   },
+  {
+    id: "ffffffff-ffff-ffff-ffff-ffffffffffff",
+    at: "2026-09-20T11:15:33Z",
+    action: "reactivate_user",
+    actor_kind: "admin",
+    actor_user_id: "22222222-2222-2222-2222-222222222222",
+    target_kind: "user",
+    target_id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    metadata: { source: "web" },
+  },
 ];
 
 export const fixtures = {
