@@ -1,4 +1,4 @@
-import { Navigate, useParams } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { PlaceholderPage } from "@/components/placeholder-page";
 
 export { LoginPage } from "@/features/auth/login-page";
@@ -12,21 +12,7 @@ export { BackupsPage } from "@/features/ponds/backups-page";
 export { PondDetailPage } from "@/features/ponds/detail-page";
 export { CreatePondPage } from "@/features/ponds/create-page";
 
-function usePondRouteLabel(suffix?: string) {
-  const { pondId } = useParams();
-  return pondId ? `/app/ponds/${pondId}${suffix ?? ""}` : "/app/ponds/:pondId";
-}
-
-export function SqlConsolePage() {
-  return (
-    <PlaceholderPage
-      description="Skeleton para consola SQL con editor, resultados y guardas de modo lectura/escritura."
-      route={usePondRouteLabel("/console")}
-      ticket="W2-07"
-      title="Consola SQL"
-    />
-  );
-}
+export { SqlConsolePage } from "@/features/sql-console/sql-console-page";
 
 export { UsoPage, UsoPage as BillingPage } from "@/features/uso/uso-page";
 

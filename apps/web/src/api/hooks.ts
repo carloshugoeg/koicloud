@@ -68,3 +68,13 @@ export {
   type AgentAccess,
   type AgentAccessSecret,
 } from "@/api/hooks/agent-access";
+
+export {
+  useRunSqlMutation,
+  useSqlHistoryQuery,
+  type RunSQLRequest,
+  type SQLHistoryItem,
+  type SQLHistoryResponse,
+  type SQLMode,
+  type SQLResultResponse,
+} from "@/api/hooks/sql-console";

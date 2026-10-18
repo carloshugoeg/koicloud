@@ -127,6 +127,37 @@ export const handlers = [
     return HttpResponse.json({ backups: fixtures.backups, next_cursor: null });
   }),
 
+  http.post(`${API_ROOT}/ponds/:pondId/sql`, async ({ request }) => {
+    const body = (await request.json()) as { query?: string; mode?: string };
+    if (!body?.query?.trim()) {
+      return HttpResponse.json(
+        {
+          code: "internal_error",
+          message: "query required",
+          request_id: "req_sql_empty",
+        },
+        { status: 400 },
+      );
+    }
+    if (body.mode === "write") {
+      return HttpResponse.json({
+        ...fixtures.sqlResult,
+        columns: ["affected"],
+        rows: [[1]],
+        row_count: 1,
+        duration_ms: 31,
+      });
+    }
+    return HttpResponse.json(fixtures.sqlResult);
+  }),
+
+  http.get(`${API_ROOT}/ponds/:pondId/sql/history`, () => {
+    return HttpResponse.json({
+      events: fixtures.sqlHistory,
+      next_cursor: null,
+    });
+  }),
+
   http.post(`${API_ROOT}/ponds/:pondId/restore`, async ({ params }) => {
     return HttpResponse.json(
       {

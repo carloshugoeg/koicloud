@@ -11,6 +11,8 @@ type InvoiceLine = components["schemas"]["InvoiceLineOut"];
 type AgentAccess = components["schemas"]["AgentAccessOut"];
 type PondConnection = components["schemas"]["ConnectionOut"];
 type SubscribeResponse = components["schemas"]["SubscribeResponse"];
+type SQLResultResponse = components["schemas"]["SQLResultResponse"];
+type SQLHistoryItem = components["schemas"]["SQLHistoryItem"];
 
 const invoiceId = "33333333-3333-3333-3333-333333333333";
 const subscriptionId = "22222222-2222-2222-2222-222222222222";
@@ -299,6 +301,43 @@ export const fixtures = {
     enabled: true,
     rotated_at: "2026-09-22T20:00:00Z",
   } satisfies AgentAccess,
+  sqlResult: {
+    columns: ["?column?"],
+    rows: [[1]],
+    row_count: 1,
+    duration_ms: 4,
+    truncated: false,
+  } satisfies SQLResultResponse,
+  sqlResultTruncated: {
+    columns: ["id", "sku"],
+    rows: Array.from({ length: 3 }, (_, index) => [index + 1, `SKU-${index + 1}`]),
+    row_count: 1000,
+    duration_ms: 42,
+    truncated: true,
+  } satisfies SQLResultResponse,
+  sqlHistory: [
+    {
+      id: "99999999-9999-9999-9999-999999999999",
+      pond_id: "66666666-6666-6666-6666-666666666666",
+      query_truncated: "SELECT * FROM invoices ORDER BY issued_at DESC LIMIT 10",
+      mode: "read",
+      duration_ms: 18,
+      row_count: 10,
+      executed_at: "2026-09-22T20:00:00Z",
+    },
+    {
+      id: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+      pond_id: "66666666-6666-6666-6666-666666666666",
+      query_truncated:
+        "SELECT " +
+        "col, ".repeat(200) +
+        "1 FROM generate_series(1, 1)",
+      mode: "read",
+      duration_ms: 9,
+      row_count: 1,
+      executed_at: "2026-09-22T19:55:00Z",
+    },
+  ] satisfies SQLHistoryItem[],
   adminUsers: [adminUser] satisfies AdminUser[],
   subscriptionResponse: {
     subscription: {
