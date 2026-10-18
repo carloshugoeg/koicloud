@@ -9,9 +9,11 @@ from koicloud_cli.commands import (
     YES_TOKEN_OPTION,
     OutputFormat,
     emit_json,
+    emit_mutation_result,
     emit_table,
     exit_for_error,
     get_authenticated_client,
+    is_confirmation,
 )
 from koicloud_cli.errors import ApiError, NotLoggedInError
 
@@ -116,13 +118,6 @@ def extract_pond(payload: object) -> dict[str, object]:
     return {}
 
 
-def is_confirmation(payload: object) -> bool:
-    return isinstance(payload, dict) and (
-        payload.get("status") == "confirmation_required"
-        or payload.get("code") == "confirmation_required"
-    )
-
-
 def sql_result_rows(
     columns: list[object], rows: list[object]
 ) -> tuple[list[dict[str, object]], list[tuple[str, str]]]:
@@ -142,8 +137,7 @@ def sql_result_rows(
 
 def emit_run_result(payload: object, *, output: OutputFormat) -> None:
     if is_confirmation(payload):
-        assert isinstance(payload, dict)
-        emit_confirmation(payload, output=output)
+        emit_mutation_result(payload, output=output, title="Resultado SQL")
         return
 
     if output == OutputFormat.JSON:
@@ -160,10 +154,10 @@ def emit_run_result(payload: object, *, output: OutputFormat) -> None:
         dict_rows, specs = sql_result_rows(columns, rows)
         emit_table(dict_rows, columns=specs, title="Resultado SQL")
 
+    meta_parts: list[str] = []
     row_count = payload.get("row_count")
     duration_ms = payload.get("duration_ms")
     truncated = payload.get("truncated")
-    meta_parts: list[str] = []
     if row_count is not None:
         meta_parts.append(f"filas={row_count}")
     if duration_ms is not None:
@@ -172,20 +166,6 @@ def emit_run_result(payload: object, *, output: OutputFormat) -> None:
         meta_parts.append(f"truncado={'sí' if truncated else 'no'}")
     if meta_parts:
         typer.echo(" · ".join(meta_parts))
-
-
-def emit_confirmation(payload: dict[str, object], *, output: OutputFormat) -> None:
-    if output == OutputFormat.JSON:
-        emit_json(payload)
-        return
-
-    typer.echo(str(payload.get("summary") or "Confirmación requerida."))
-    typer.echo(f"Token: {payload.get('token')}")
-    next_step = payload.get("next") if isinstance(payload.get("next"), dict) else {}
-    assert isinstance(next_step, dict)
-    cli_example = next_step.get("cli_example")
-    if cli_example:
-        typer.echo(f"Confirmá con: {cli_example}")
 
 
 def normalize_history_events(payload: object) -> list[dict[str, object]]:
