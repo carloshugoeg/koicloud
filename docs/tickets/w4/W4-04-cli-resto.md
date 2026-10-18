@@ -6,7 +6,7 @@ estado: en_revision
 rama: w4-cli-resto
 epica: "E9-01, E7-04"
 sprint: S3
-pr: "#pending"
+pr: "#84"
 depends_on: W4-01
 ---
 
