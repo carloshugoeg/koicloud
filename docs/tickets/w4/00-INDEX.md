@@ -11,7 +11,7 @@ el agente lo ignora.
 | W4-03 | CLI `sql run` (lectura y `--write`) e historial | `w4-cli-sql` | abierto |
 | W4-04 | CLI `subscription`, `backup`, `agent`, `usage` | `w4-cli-resto` | abierto |
 | W4-05 | CLI `confirm` / `confirm cancel` y salida `-o json` | `w4-cli-confirm` | abierto |
-| W4-06 | Módulo `sql_console`: router e historial | `w4-sql-console-router` | abierto |
+| W4-06 | Módulo `sql_console`: router e historial | `w4-sql-console-router` | en-revision |
 | W4-07 | Seis tools MCP de **solo lectura** | `w4-mcp-tools-lectura` | abierto |
 | W4-08 | k6: `login`, `list_ponds`, `create_pond` | `w4-k6` | abierto |
 | W4-09 | `scripts/demo-mcp-replay.py` (repetición determinista) | `w4-demo-replay` | abierto |
