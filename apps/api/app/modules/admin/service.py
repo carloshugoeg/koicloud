@@ -2,14 +2,12 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from sqlalchemy import Column, DateTime, MetaData, Table, Text, select
-from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.dialects.postgresql import UUID as PGUUID
+from sqlalchemy import select
 
 from app.commands import admin as admin_commands
 from app.core.db import SessionLocal
 from app.core.enums import ActorKind
-from app.core.models import Pond, PondStatus, User
+from app.core.models import AuditEvent, Pond, PondStatus, User
 from app.schemas import (
     AdminPondListResponse,
     AdminPondOut,
@@ -25,20 +23,6 @@ SENSITIVE_AUDIT_ACTIONS = (
     "reveal_agent_access",
     "delete_pond",
     "restore_backup",
-)
-
-_audit_metadata = MetaData()
-audit_events = Table(
-    "audit_events",
-    _audit_metadata,
-    Column("id", PGUUID(as_uuid=True), primary_key=True),
-    Column("actor_user_id", PGUUID(as_uuid=True), nullable=True),
-    Column("actor_kind", Text, nullable=False),
-    Column("target_kind", Text, nullable=False),
-    Column("target_id", PGUUID(as_uuid=True), nullable=False),
-    Column("action", Text, nullable=False),
-    Column("metadata", JSONB, nullable=False),
-    Column("at", DateTime(timezone=True), nullable=False),
 )
 
 
@@ -87,21 +71,21 @@ class AdminService:
         async with SessionLocal() as session:
             rows = (
                 await session.execute(
-                    select(audit_events)
-                    .where(audit_events.c.action.in_(SENSITIVE_AUDIT_ACTIONS))
-                    .order_by(audit_events.c.at.desc())
+                    select(AuditEvent)
+                    .where(AuditEvent.action.in_(SENSITIVE_AUDIT_ACTIONS))
+                    .order_by(AuditEvent.at.desc())
                 )
-            ).mappings().all()
+            ).scalars().all()
             events = [
                 AuditEventOut(
-                    id=row["id"],
-                    actor_user_id=row["actor_user_id"],
-                    actor_kind=ActorKind(row["actor_kind"]),
-                    target_kind=row["target_kind"],
-                    target_id=str(row["target_id"]),
-                    action=row["action"],
-                    metadata=dict(row["metadata"] or {}),
-                    at=row["at"],
+                    id=row.id,
+                    actor_user_id=row.actor_user_id,
+                    actor_kind=ActorKind(row.actor_kind),
+                    target_kind=row.target_kind,
+                    target_id=str(row.target_id),
+                    action=row.action,
+                    metadata=dict(row.event_metadata or {}),
+                    at=row.at,
                 )
                 for row in rows
             ]

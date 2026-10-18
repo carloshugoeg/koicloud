@@ -11,10 +11,13 @@ pr: https://github.com/carloshugoeg/koicloud/pull/82
 
 # [W1-19] Wire admin_list_ponds / admin_list_audit to AdminService
 
+Carlos aprobó la opción (a): este wire W1 aterriza en el PR #82 (`cross-workstream`).
+
 ## Qué se ve
 
 Los comandos congelados `admin_list_ponds` y `admin_list_audit` dejan de devolver
 `.example()` y delegan en `AdminService` (W3), que lee ponds y `audit_events` de la DB.
+El modelo ORM `AuditEvent` vive en `core/models.py`.
 
 ## Entradas ya decididas (no se cambian)
 

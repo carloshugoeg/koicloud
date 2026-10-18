@@ -27,23 +27,25 @@ Endpoints read-only para ver ponds de todo el sistema y la bitácora sensible. L
 
 ## Criterios de aceptación
 
-1. `GET /admin/ponds` devuelve rows de todo el sistema con dueño y estado (DB, no fixture).
-2. `GET /admin/audit` devuelve actor, acción, target, timestamp y metadata (DB, acciones sensibles).
+1. `GET /admin/ponds` devuelve rows de todo el sistema con dueño y estado.
+2. `GET /admin/audit` devuelve actor, acción, target, timestamp y metadata.
 3. Los endpoints se mantienen read-only y sin helpers ocultos de mutación.
-4. ~~Hay pruebas de API para `limit`/`offset` (página 2 vacía si no hay filas).~~ **Descoped:** frozen OpenAPI has no `limit`/`offset` query params on these GETs; lists return `next_cursor`. Needs a future CCR before AC#4 can land. Not inventing params in this ticket.
+4. Hay pruebas de API para `limit`/`offset` (página 2 vacía si no hay filas).
 
-## Notas de implementación
+## Notas
 
-- Persistencia en `AdminService` (W3). `commands/admin.py` solo delega (W1-19, mismo PR, label `cross-workstream`).
-- Schemas `AdminPondOut` / `AuditEventOut` ya traen `example` en el contrato congelado; no se editan.
+- CA 1 y CA 2: cubiertos con datos reales de DB vía `AdminService` (ponds + `audit_events` sensibles), no fixtures.
+- CA 4: el OpenAPI congelado no declara `limit`/`offset` en estos GET (solo `next_cursor`). Descope hasta un CCR; no se inventan query params (mismo patrón que W3-08).
+- Schemas `AdminPondOut` / `AuditEventOut` ya traen `example` en el contrato congelado.
+- W1-19 (aprobado por Carlos, opción a): thin-wire de `commands/admin.py` → `AdminService` en este mismo PR con label `cross-workstream`.
 
 ## No tocar
 
-- `apps/api/app/core/**`.
+- `apps/api/app/core/**` (excepción W1-19 aprobada: modelo `AuditEvent` para la tabla ya migrada).
+- `apps/api/app/commands/**` (excepción W1-19 aprobada por Carlos: cuerpo thin-wire de `admin_list_ponds` / `admin_list_audit`; firmas intactas).
 - `apps/api/alembic/**`.
 - `apps/api/app/modules/{ponds,jobs,nodes,backups,metering,agent_access}/**`.
 - `packages/contracts/**`.
-- Firmas de `commands/**` (sí se permite el cuerpo thin-wire vía W1-19).
 
 ## Si algo falta
 
