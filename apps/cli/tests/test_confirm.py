@@ -74,6 +74,26 @@ def test_confirm_json_keeps_backend_keys(monkeypatch, runner, write_logged_in_co
     assert payload["pond"]["name"] == "json-pond"
 
 
+def test_confirm_json_option_before_token(monkeypatch, runner, write_logged_in_config) -> None:
+    write_logged_in_config()
+    backend = {"ok": True, "token": "conf-opt-first"}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "POST"
+        assert request.url.path == "/api/v1/confirm/conf-opt-first"
+        return httpx.Response(202, json=backend)
+
+    monkeypatch.setattr(
+        "koicloud_cli.commands.create_client",
+        lambda: ApiClient(transport=httpx.MockTransport(handler)),
+    )
+
+    result = runner.invoke(app, ["confirm", "-o", "json", "conf-opt-first"])
+
+    assert result.exit_code == 0
+    assert json.loads(result.output) == backend
+
+
 def test_confirm_cancel_discards_token(monkeypatch, runner, write_logged_in_config) -> None:
     write_logged_in_config()
     calls: list[str] = []

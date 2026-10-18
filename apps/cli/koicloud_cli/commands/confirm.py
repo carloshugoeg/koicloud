@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import json
-from typing import Any
 
 import typer
+import typer._click as click
 from typer.core import TyperGroup
 
 from koicloud_cli.commands import (
@@ -21,8 +21,10 @@ _RUN = "__run__"
 class ConfirmGroup(TyperGroup):
     """`confirm <token>` falls through when the first arg is not a subcommand."""
 
-    def resolve_command(self, ctx: Any, args: list[str]) -> tuple[Any, ...]:
-        if args and args[0] not in self.commands and not args[0].startswith("-"):
+    def resolve_command(
+        self, ctx: click.Context, args: list[str]
+    ) -> tuple[str | None, click.Command | None, list[str]]:
+        if _should_default_to_confirm(args, known=set(self.commands)):
             args = [_RUN, *args]
         return super().resolve_command(ctx, args)
 
@@ -31,6 +33,7 @@ app = typer.Typer(
     help="Confirmá o descartá una acción pendiente.",
     cls=ConfirmGroup,
     no_args_is_help=True,
+    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
 )
 
 
@@ -78,7 +81,28 @@ def cancel_confirmation(
     typer.echo("Confirmación descartada.")
 
 
-def emit_confirm_result(payload: Any, *, output: OutputFormat) -> None:
+def _should_default_to_confirm(args: list[str], *, known: set[str]) -> bool:
+    """True when argv is `confirm [options] <token> [options]`, not a real subcommand."""
+
+    i = 0
+    while i < len(args):
+        arg = args[i]
+        if arg in known:
+            return False
+        if arg in {"-o", "--output"}:
+            i += 2
+            continue
+        if arg.startswith("--output="):
+            i += 1
+            continue
+        if arg.startswith("-") and arg != "-":
+            i += 1
+            continue
+        return True
+    return False
+
+
+def emit_confirm_result(payload: object, *, output: OutputFormat) -> None:
     if output == OutputFormat.JSON:
         emit_json(payload)
         return
