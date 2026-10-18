@@ -1,4 +1,5 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { AdminForbiddenPage } from "@/features/admin/forbidden-page";
 import { hasRole, useAuthStore } from "@/lib/auth-store";
 
 export function RequireAuth() {
@@ -16,7 +17,7 @@ export function RequireAdmin() {
   const session = useAuthStore((state) => state.session);
 
   if (!hasRole(session?.user, "admin")) {
-    return <Navigate to="/app" replace />;
+    return <AdminForbiddenPage />;
   }
 
   return <Outlet />;

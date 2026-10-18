@@ -2,6 +2,8 @@ import type { components } from "@/api/schema";
 
 type User = components["schemas"]["UserOut"];
 type AdminUser = components["schemas"]["AdminUserOut"];
+type AdminPond = components["schemas"]["AdminPondOut"];
+type AuditEvent = components["schemas"]["AuditEventOut"];
 type Plan = components["schemas"]["PlanOut"];
 type Pond = components["schemas"]["PondOut"];
 type Backup = components["schemas"]["BackupOut"];
@@ -38,6 +40,96 @@ export const adminUser: AdminUser = {
   active_subscription_plan: "pro",
   created_at: "2026-09-22T20:00:00Z",
 };
+
+export const adminClientUser: AdminUser = {
+  id: "11111111-1111-1111-1111-111111111111",
+  email: "demo@koicloud.dev",
+  full_name: "Operador Demo",
+  role: "client",
+  status: "active",
+  email_verified: true,
+  active_subscription_plan: "micro",
+  created_at: "2026-09-22T20:00:00Z",
+};
+
+export const adminSuspendedUser: AdminUser = {
+  id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+  email: "mora@ejemplo.gt",
+  full_name: "Sofía Mora",
+  role: "client",
+  status: "suspended",
+  email_verified: true,
+  active_subscription_plan: "sandbox",
+  created_at: "2026-09-12T14:40:02Z",
+};
+
+export const adminPonds: AdminPond[] = [
+  {
+    id: "66666666-6666-6666-6666-666666666666",
+    name: "inventario-demo",
+    owner_email: "demo@koicloud.dev",
+    plan_id: "micro",
+    node_id: "node-sv-01",
+    host_port: 15007,
+    desired_state: "running",
+    observed_state: "running",
+    created_at: "2026-09-22T20:00:00Z",
+  },
+  {
+    id: "77777777-7777-7777-7777-777777777777",
+    name: "analytics-gt",
+    owner_email: "mora@ejemplo.gt",
+    plan_id: "sandbox",
+    node_id: "node-sv-02",
+    host_port: 15008,
+    desired_state: "running",
+    observed_state: "failed",
+    created_at: "2026-09-18T11:00:00Z",
+  },
+];
+
+export const adminAuditEvents: AuditEvent[] = [
+  {
+    id: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+    at: "2026-09-19T16:30:02Z",
+    action: "suspend_user",
+    actor_kind: "admin",
+    actor_user_id: "22222222-2222-2222-2222-222222222222",
+    target_kind: "user",
+    target_id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    metadata: { motivo: "abuso de recursos", source: "web" },
+  },
+  {
+    id: "cccccccc-cccc-cccc-cccc-cccccccccccc",
+    at: "2026-09-19T17:12:44Z",
+    action: "reveal_agent_access",
+    actor_kind: "user",
+    actor_user_id: "11111111-1111-1111-1111-111111111111",
+    target_kind: "agent_access",
+    target_id: "11111111-1111-1111-1111-111111111111",
+    metadata: { source: "web" },
+  },
+  {
+    id: "dddddddd-dddd-dddd-dddd-dddddddddddd",
+    at: "2026-09-20T09:01:11Z",
+    action: "delete_pond",
+    actor_kind: "admin",
+    actor_user_id: "22222222-2222-2222-2222-222222222222",
+    target_kind: "pond",
+    target_id: "77777777-7777-7777-7777-777777777777",
+    metadata: { source: "cli" },
+  },
+  {
+    id: "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+    at: "2026-09-20T10:44:00Z",
+    action: "restore_backup",
+    actor_kind: "user",
+    actor_user_id: "11111111-1111-1111-1111-111111111111",
+    target_kind: "backup",
+    target_id: "88888888-8888-8888-8888-888888888888",
+    metadata: { source: "web" },
+  },
+];
 
 export const fixtures = {
   session: {
@@ -338,7 +430,9 @@ export const fixtures = {
       executed_at: "2026-09-22T19:55:00Z",
     },
   ] satisfies SQLHistoryItem[],
-  adminUsers: [adminUser] satisfies AdminUser[],
+  adminUsers: [adminClientUser, adminSuspendedUser, adminUser] satisfies AdminUser[],
+  adminPonds,
+  adminAuditEvents,
   subscriptionResponse: {
     subscription: {
       id: "22222222-2222-2222-2222-222222222222",

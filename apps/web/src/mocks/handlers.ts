@@ -1,7 +1,9 @@
 import { HttpResponse, http } from "msw";
+import type { components } from "@/api/schema";
 import { fixtures } from "@/mocks/fixtures";
 
 const API_ROOT = "*/api/v1";
+const SUSPEND_CONFIRM_TEXT = "SUSPENDER";
 
 type AgentAccessMock = {
   slug: string;
@@ -10,16 +12,27 @@ type AgentAccessMock = {
   rotated_at: string;
 };
 
+type AdminUser = components["schemas"]["AdminUserOut"];
+
 function freshAgentAccess(): AgentAccessMock {
   return { ...fixtures.agentAccess };
 }
 
+function freshAdminUsers(): AdminUser[] {
+  return fixtures.adminUsers.map((user) => ({ ...user }));
+}
+
 let agentAccessState = freshAgentAccess();
+let adminUsersState = freshAdminUsers();
 
 export const ROTATED_AGENT_PASSWORD = "rotated-once-secret";
 
 export function resetAgentAccessState() {
   agentAccessState = freshAgentAccess();
+}
+
+export function resetAdminUsersState() {
+  adminUsersState = freshAdminUsers();
 }
 
 export const handlers = [
@@ -257,6 +270,60 @@ export const handlers = [
   }),
 
   http.get(`${API_ROOT}/admin/users`, () => {
-    return HttpResponse.json({ users: fixtures.adminUsers, next_cursor: null });
+    return HttpResponse.json({ users: adminUsersState, next_cursor: null });
+  }),
+
+  http.post(`${API_ROOT}/admin/users/:userId/suspend`, async ({ params, request }) => {
+    const body = (await request.json()) as { confirm_text?: string };
+    if (body.confirm_text !== SUSPEND_CONFIRM_TEXT) {
+      return HttpResponse.json(
+        {
+          code: "confirmation_action_mismatch",
+          message: "confirmation_action_mismatch",
+        },
+        { status: 409 },
+      );
+    }
+    const userId = String(params.userId);
+    const index = adminUsersState.findIndex((user) => user.id === userId);
+    if (index < 0) {
+      return HttpResponse.json(
+        { code: "internal_error", message: "user_not_found" },
+        { status: 404 },
+      );
+    }
+    const updated = { ...adminUsersState[index], status: "suspended" as const };
+    adminUsersState = [
+      ...adminUsersState.slice(0, index),
+      updated,
+      ...adminUsersState.slice(index + 1),
+    ];
+    return HttpResponse.json({ user: updated });
+  }),
+
+  http.post(`${API_ROOT}/admin/users/:userId/reactivate`, ({ params }) => {
+    const userId = String(params.userId);
+    const index = adminUsersState.findIndex((user) => user.id === userId);
+    if (index < 0) {
+      return HttpResponse.json(
+        { code: "internal_error", message: "user_not_found" },
+        { status: 404 },
+      );
+    }
+    const updated = { ...adminUsersState[index], status: "active" as const };
+    adminUsersState = [
+      ...adminUsersState.slice(0, index),
+      updated,
+      ...adminUsersState.slice(index + 1),
+    ];
+    return HttpResponse.json({ user: updated });
+  }),
+
+  http.get(`${API_ROOT}/admin/ponds`, () => {
+    return HttpResponse.json({ ponds: fixtures.adminPonds, next_cursor: null });
+  }),
+
+  http.get(`${API_ROOT}/admin/audit`, () => {
+    return HttpResponse.json({ events: fixtures.adminAuditEvents, next_cursor: null });
   }),
 ];

@@ -15,7 +15,7 @@ el agente lo ignora.
 | W2-07 | Consola SQL (editor y tabla de resultados) | `w2-consola-sql` | en-revision ([PR #81](https://github.com/carloshugoeg/koicloud/pull/81)) |
 | W2-08 | Respaldos: lista y restauración | `w2-respaldos` | hecho ([PR #56](https://github.com/carloshugoeg/koicloud/pull/56)) |
 | W2-09 | Uso del mes e historial de facturas | `w2-uso-y-facturas` | hecho ([PR #51](https://github.com/carloshugoeg/koicloud/pull/51)) |
-| W2-10 | Panel administrador (tres tablas) | `w2-panel-admin` | abierto |
+| W2-10 | Panel administrador (tres tablas) | `w2-panel-admin` | en_revision |
 | W2-11 | Acceso agente: revelar y rotar | `w2-acceso-agente` | hecho ([PR #79](https://github.com/carloshugoeg/koicloud/pull/79)) |
 | W2-12 | Layout, tema, estados vacíos y responsive a 360 px | `w2-tema-y-estados` | abierto |
 

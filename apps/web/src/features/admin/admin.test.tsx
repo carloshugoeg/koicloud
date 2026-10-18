@@ -1,0 +1,119 @@
+import { render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { createMemoryRouter, RouterProvider } from "react-router-dom";
+import { beforeEach, describe, expect, it } from "vitest";
+import { AppProviders } from "@/app/providers";
+import { appRoutes } from "@/app/router";
+import { useAuthStore } from "@/lib/auth-store";
+import {
+  adminClientUser,
+  adminSuspendedUser,
+  adminUser,
+  demoUser,
+  fixtures,
+} from "@/mocks/fixtures";
+import { resetAdminUsersState } from "@/mocks/handlers";
+
+function sessionUserFromAdmin(user: typeof adminUser) {
+  return {
+    id: user.id,
+    email: user.email,
+    full_name: user.full_name,
+    role: user.role,
+    status: user.status,
+    email_verified: user.email_verified,
+    nit: "0614-220999-101-3",
+    created_at: user.created_at,
+  };
+}
+
+function renderAdmin(entry: string, asAdmin = true) {
+  useAuthStore.setState({
+    session: {
+      accessToken: asAdmin ? "access_admin_token" : "access_demo_token",
+      refreshToken: asAdmin ? "refresh_admin_token" : "refresh_demo_token",
+      user: asAdmin ? sessionUserFromAdmin(adminUser) : demoUser,
+    },
+  });
+
+  const router = createMemoryRouter(appRoutes, { initialEntries: [entry] });
+  render(
+    <AppProviders>
+      <RouterProvider router={router} />
+    </AppProviders>,
+  );
+  return router;
+}
+
+describe("W2-10 Panel admin", () => {
+  beforeEach(() => {
+    resetAdminUsersState();
+  });
+
+  it("renders the users table with plan and filters", async () => {
+    renderAdmin("/app/admin/users");
+
+    expect(await screen.findByTestId("admin-users-page")).toBeInTheDocument();
+    expect(screen.getByText(adminClientUser.full_name)).toBeInTheDocument();
+    expect(screen.getByText(adminSuspendedUser.email)).toBeInTheDocument();
+    expect(screen.getAllByText("micro").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("—").length).toBeGreaterThan(0);
+
+    const user = userEvent.setup();
+    await user.selectOptions(screen.getByLabelText("Estado"), "suspended");
+    expect(screen.queryByText(adminClientUser.full_name)).not.toBeInTheDocument();
+    expect(screen.getByText(adminSuspendedUser.full_name)).toBeInTheDocument();
+  });
+
+  it("suspends a user after email confirmation and motivo", async () => {
+    const user = userEvent.setup();
+    renderAdmin("/app/admin/users");
+    await screen.findByTestId("admin-users-page");
+
+    await user.click(screen.getByTestId(`suspend-${adminClientUser.id}`));
+    const dialog = await screen.findByTestId("suspend-dialog");
+    expect(within(dialog).getByText(/siguen corriendo/i)).toBeInTheDocument();
+
+    expect(screen.getByTestId("suspend-submit")).toBeDisabled();
+    await user.type(screen.getByTestId("suspend-confirm-email"), adminClientUser.email);
+    await user.type(screen.getByTestId("suspend-motivo"), "abuso de recursos");
+    expect(screen.getByTestId("suspend-submit")).toBeEnabled();
+
+    await user.click(screen.getByTestId("suspend-submit"));
+    await waitFor(() => {
+      expect(screen.queryByTestId("suspend-dialog")).not.toBeInTheDocument();
+    });
+    expect(await screen.findByTestId(`reactivate-${adminClientUser.id}`)).toBeInTheDocument();
+  });
+
+  it("renders ponds with owner/state filters", async () => {
+    const user = userEvent.setup();
+    renderAdmin("/app/admin/ponds");
+    expect(await screen.findByTestId("admin-ponds-page")).toBeInTheDocument();
+    expect(screen.getByText("inventario-demo")).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText("Estado"), "failed");
+    expect(screen.queryByText("inventario-demo")).not.toBeInTheDocument();
+    expect(screen.getByText("analytics-gt")).toBeInTheDocument();
+  });
+
+  it("renders audit events in mono grouped by day", async () => {
+    renderAdmin("/app/admin/audit");
+    expect(await screen.findByTestId("admin-audit-page")).toBeInTheDocument();
+    expect(screen.getByTestId(`audit-row-${fixtures.adminAuditEvents[0].id}`)).toHaveTextContent(
+      "suspend_user",
+    );
+    expect(screen.getByTestId(`audit-row-${fixtures.adminAuditEvents[1].id}`)).toHaveTextContent(
+      "reveal_agent_access",
+    );
+    const firstRow = screen.getByTestId(`audit-row-${fixtures.adminAuditEvents[0].id}`);
+    expect(firstRow.closest("ul")?.className ?? "").toContain("font-mono");
+  });
+
+  it("shows admin_only forbidden state for non-admins", async () => {
+    renderAdmin("/app/admin/users", false);
+    expect(await screen.findByTestId("admin-forbidden")).toBeInTheDocument();
+    expect(screen.getByText("Esta pantalla es solo para administradores.")).toBeInTheDocument();
+    expect(screen.getByText("admin_only")).toBeInTheDocument();
+  });
+});
