@@ -82,6 +82,31 @@ describe("W2-11 Acceso agente", () => {
     await user.click(screen.getByRole("tab", { name: "Genérico" }));
     expect(screen.getByTestId("agent-snippet")).toHaveTextContent("X-KOI-Agent-Password");
     expect(screen.getByTestId("agent-snippet")).toHaveTextContent("<password>");
+    expect(screen.getByTestId("agent-snippet")).toHaveTextContent("Basic <base64(slug:password)>");
+  });
+
+  it("encodes Basic as base64(slug:password) on every tab after rotation", async () => {
+    const user = userEvent.setup();
+    renderAgentAccess();
+    await screen.findByTestId("agent-slug");
+    await user.click(screen.getByTestId("rotate-agent-password"));
+    await screen.findByTestId("agent-password");
+
+    const expected = `${fixtures.agentAccess.slug}:${ROTATED_AGENT_PASSWORD}`;
+    for (const name of ["Claude Code", "Cursor", "Genérico"] as const) {
+      await user.click(screen.getByRole("tab", { name }));
+      const snippet = screen.getByTestId("agent-snippet").textContent ?? "";
+      const token = snippet.match(/Basic ([A-Za-z0-9+/]+=*)/)?.[1];
+      expect(token, name).toBeTruthy();
+      expect(atob(token as string)).toBe(expected);
+    }
+
+    expect(screen.getByTestId("agent-snippet")).toHaveTextContent("Authorization:");
+    await user.click(screen.getByRole("tab", { name: "Claude Code" }));
+    expect(screen.getByTestId("agent-snippet")).toHaveTextContent("--header");
+    expect(screen.getByTestId("agent-snippet").textContent ?? "").not.toMatch(/# Authorization/);
+    await user.click(screen.getByRole("tab", { name: "Cursor" }));
+    expect(screen.getByTestId("agent-snippet")).toHaveTextContent('"Authorization"');
   });
 
   it("toggles enabled and shows agent_disabled by code", async () => {
