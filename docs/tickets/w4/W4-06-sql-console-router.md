@@ -6,7 +6,7 @@ estado: en-revision
 rama: w4-sql-console-router
 epica: "E5-01, E5-05"
 sprint: S4
-pr:
+pr: "https://github.com/carloshugoeg/koicloud/pull/78"
 ---
 
 # [W4-06] Módulo `sql_console`: router e historial
