@@ -1,9 +1,14 @@
 import { useMemo, useState } from "react";
 import { useAdminPondsQuery, type AdminPond } from "@/api/hooks/admin";
 import { ApiError, problemToMessage } from "@/lib/errors";
-import { pondStateMeta } from "@/features/ponds/pond-state";
+import { POND_STATE_META, pondStateMeta } from "@/features/ponds/pond-state";
 
 type StateFilter = "all" | AdminPond["observed_state"];
+
+const POND_STATE_OPTIONS = Object.entries(POND_STATE_META) as [
+  AdminPond["observed_state"],
+  (typeof POND_STATE_META)[AdminPond["observed_state"]],
+][];
 
 export function AdminPondsPage() {
   const pondsQuery = useAdminPondsQuery();
@@ -73,14 +78,11 @@ export function AdminPondsPage() {
               onChange={(event) => setStateFilter(event.target.value as StateFilter)}
             >
               <option value="all">Todos</option>
-              <option value="pending">pending</option>
-              <option value="provisioning">provisioning</option>
-              <option value="running">running</option>
-              <option value="stopped">stopped</option>
-              <option value="restoring">restoring</option>
-              <option value="deleting">deleting</option>
-              <option value="deleted">deleted</option>
-              <option value="failed">failed</option>
+              {POND_STATE_OPTIONS.map(([state, meta]) => (
+                <option key={state} value={state}>
+                  {meta.label}
+                </option>
+              ))}
             </select>
           </label>
         </div>
@@ -112,7 +114,7 @@ export function AdminPondsPage() {
                     <td className="px-4 py-3 font-mono text-xs">{pond.owner_email}</td>
                     <td className="px-4 py-3">
                       <span className={`rounded-sm px-2 py-1 text-xs ${meta.badgeClass}`}>
-                        {meta.glyph} {pond.observed_state}
+                        {meta.glyph} {meta.label}
                       </span>
                     </td>
                     <td className="px-4 py-3 font-mono text-xs">{pond.node_id}</td>

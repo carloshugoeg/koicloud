@@ -118,20 +118,49 @@ describe("W2-10 Panel admin", () => {
     expect(screen.getByTestId("suspend-dialog")).toBeInTheDocument();
   });
 
-  it("renders ponds with owner/state filters including pending and deleted", async () => {
+  it("renders ponds with Spanish state labels in filters and badges", async () => {
     const user = userEvent.setup();
     renderAdmin("/app/admin/ponds");
     expect(await screen.findByTestId("admin-ponds-page")).toBeInTheDocument();
     expect(screen.getByText("inventario-demo")).toBeInTheDocument();
 
     const stateSelect = screen.getByLabelText("Estado");
-    expect(within(stateSelect).getByRole("option", { name: "pending" })).toBeInTheDocument();
-    expect(within(stateSelect).getByRole("option", { name: "deleting" })).toBeInTheDocument();
-    expect(within(stateSelect).getByRole("option", { name: "deleted" })).toBeInTheDocument();
+    expect(within(stateSelect).getByRole("option", { name: "En cola" })).toBeInTheDocument();
+    expect(within(stateSelect).getByRole("option", { name: "Eliminando…" })).toBeInTheDocument();
+    expect(within(stateSelect).getByRole("option", { name: "Eliminado" })).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("admin-pond-row-66666666-6666-6666-6666-666666666666")).getByText(
+        /En línea/,
+      ),
+    ).toBeInTheDocument();
 
     await user.selectOptions(stateSelect, "failed");
     expect(screen.queryByText("inventario-demo")).not.toBeInTheDocument();
     expect(screen.getByText("analytics-gt")).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("admin-pond-row-77777777-7777-7777-7777-777777777777")).getByText(
+        /Con fallas/,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("shows — for pond counts when GET /admin/ponds fails", async () => {
+    server.use(
+      http.get("*/api/v1/admin/ponds", () =>
+        HttpResponse.json(
+          { code: "internal_error", message: "internal_error" },
+          { status: 500 },
+        ),
+      ),
+    );
+
+    renderAdmin("/app/admin/users");
+    expect(await screen.findByTestId("admin-users-page")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId(`pond-count-${adminClientUser.id}`)).toHaveTextContent("—");
+    });
+    expect(screen.getByTestId(`pond-count-${adminSuspendedUser.id}`)).toHaveTextContent("—");
+    expect(screen.getByTestId(`pond-count-${adminUser.id}`)).toHaveTextContent("—");
   });
 
   it("renders every audit event the backend returns, including reactivate_user", async () => {

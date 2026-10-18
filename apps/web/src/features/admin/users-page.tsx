@@ -83,7 +83,7 @@ export function AdminUsersPage() {
     reactivate.mutate(dialog.user.id, { onSuccess: () => closeDialog() });
   }
 
-  if (usersQuery.isPending || pondsQuery.isPending) {
+  if (usersQuery.isPending) {
     return (
       <div className="space-y-4" data-testid="admin-users-loading">
         <div className="h-10 w-56 animate-pulse rounded-sm bg-bone-sunk" />
@@ -168,7 +168,9 @@ export function AdminUsersPage() {
                   </td>
                   <td className="px-4 py-3 font-mono text-xs">{planLabel(user)}</td>
                   <td className="px-4 py-3 font-mono text-xs" data-testid={`pond-count-${user.id}`}>
-                    {pondCountByEmail.get(user.email.toLowerCase()) ?? 0}
+                    {pondsQuery.isError || !pondsQuery.isSuccess
+                      ? "—"
+                      : (pondCountByEmail.get(user.email.toLowerCase()) ?? 0)}
                   </td>
                   <td className="px-4 py-3">
                     <span
