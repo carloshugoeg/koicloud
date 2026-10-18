@@ -2,11 +2,11 @@
 id: W4-07
 workstream: W4
 persona: Diego
-estado: abierto
+estado: en_revision
 rama: w4-mcp-tools-lectura
 epica: "E9-02, E5-03, E7-04"
 sprint: S4
-pr:
+pr: "#86"
 ---
 
 # [W4-07] Seis tools MCP de **solo lectura**

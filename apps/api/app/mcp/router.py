@@ -17,6 +17,9 @@ READ_ONLY_TOOLS = [
     "whoami",
     "list_ponds",
     "get_pond",
+    "get_connection",
+    "list_subscriptions",
+    "list_backups",
 ]
 MUTABLE_TOOLS = [
     "create_pond",
