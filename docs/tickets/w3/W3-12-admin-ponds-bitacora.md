@@ -2,11 +2,11 @@
 id: W3-12
 workstream: W3
 persona: Jousé
-estado: abierto
+estado: en_revision
 rama: w3-admin-ponds-bitacora
 epica: "E8-02, E8-04"
 sprint: S4
-pr:
+pr: https://github.com/carloshugoeg/koicloud/pull/82
 ---
 
 # [W3-12] Admin: ponds del sistema y bitácora
@@ -30,7 +30,7 @@ Endpoints read-only para ver ponds de todo el sistema y la bitácora sensible. L
 1. `GET /admin/ponds` devuelve rows de todo el sistema con dueño y estado.
 2. `GET /admin/audit` devuelve actor, acción, target, timestamp y metadata.
 3. Los endpoints se mantienen read-only y sin helpers ocultos de mutación.
-4. Hay pruebas de API para `limit`/`offset` (página 2 vacía si no hay filas).
+4. ~~Hay pruebas de API para `limit`/`offset` (página 2 vacía si no hay filas).~~ **Descoped:** frozen OpenAPI has no `limit`/`offset` query params on these GETs; lists return `next_cursor`. Needs a future CCR before AC#4 can land. Not inventing params in this ticket.
 
 ## No tocar
 
