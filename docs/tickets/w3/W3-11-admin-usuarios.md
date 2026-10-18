@@ -2,7 +2,7 @@
 id: W3-11
 workstream: W3
 persona: Jousé
-estado: abierto
+estado: hecho
 rama: w3-admin-usuarios
 epica: "E8-01, E8-03"
 sprint: S4
