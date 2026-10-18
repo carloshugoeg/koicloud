@@ -16,7 +16,7 @@ el agente lo ignora.
 | W3-08 | `GET /subscriptions` y `GET /invoices` | `w3-historiales` | hecho ([PR #55](https://github.com/carloshugoeg/koicloud/pull/55)) |
 | W3-09 | Factura PDF con `fpdf2` e IVA desglosado | `w3-factura-pdf` | hecho ([PR #49](https://github.com/carloshugoeg/koicloud/pull/49)) |
 | W3-10 | `GET /invoices/{id}` y `/pdf` | `w3-facturas-detalle` | en_revision |
-| W3-11 | Admin: usuarios, suspender y reactivar | `w3-admin-usuarios` | abierto |
+| W3-11 | Admin: usuarios, suspender y reactivar | `w3-admin-usuarios` | en_revision ([PR #77](https://github.com/carloshugoeg/koicloud/pull/77)) |
 | W3-12 | Admin: ponds del sistema y bitácora | `w3-admin-ponds-bitacora` | abierto |
 
 **El router transporta; el comando calcula.** W1-15 ya persistió `users` y `email_tokens`.
