@@ -2,11 +2,11 @@
 id: W4-05
 workstream: W4
 persona: Diego
-estado: abierto
+estado: en_revision
 rama: w4-cli-confirm
 epica: "E9-01"
 sprint: S3
-pr:
+pr: "#76"
 ---
 
 # [W4-05] CLI `confirm` / `confirm cancel` y salida `-o json`
