@@ -6,7 +6,7 @@ estado: en_revision
 rama: w2-panel-admin
 epica: "E8-01, E8-02, E8-03, E8-04"
 sprint: S4
-pr:
+pr: https://github.com/carloshugoeg/koicloud/pull/85
 ---
 
 # [W2-10] Panel administrador (tres tablas)
