@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from httpx import ASGITransport, AsyncClient
 
@@ -98,7 +98,7 @@ async def test_suspend_and_reactivate_user() -> None:
         admin_id = await _register_and_verify(client, "admin-suspend@koicloud.dev")
         await _promote(admin_id, UserRole.ADMIN)
         token = await _login(client, "admin-suspend@koicloud.dev")
-        target_id = uuid4()
+        target_id = await _register_and_verify(client, "target-suspend@koicloud.dev")
         headers = {"Authorization": f"Bearer {token}"}
 
         mismatch = await client.post(

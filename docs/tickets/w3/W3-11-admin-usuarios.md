@@ -2,11 +2,11 @@
 id: W3-11
 workstream: W3
 persona: Jousé
-estado: hecho
+estado: en_revision
 rama: w3-admin-usuarios
 epica: "E8-01, E8-03"
 sprint: S4
-pr:
+pr: https://github.com/carloshugoeg/koicloud/pull/77
 ---
 
 # [W3-11] Admin: usuarios, suspender y reactivar
