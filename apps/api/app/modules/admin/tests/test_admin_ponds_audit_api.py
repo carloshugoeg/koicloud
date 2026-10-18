@@ -195,6 +195,39 @@ async def test_admin_list_audit_returns_seeded_sensitive_event() -> None:
     assert any(row.id == event_id for row in listed.events)
 
 
+async def test_admin_list_audit_excludes_non_sensitive_actions() -> None:
+    reset_pond_tables()
+    await _clear_audit_events()
+
+    async with _make_client() as client:
+        admin_id = await _register_and_verify(client, "admin-audit-filter@koicloud.dev")
+        await _promote(admin_id, UserRole.ADMIN)
+        admin_token = await _login(client, "admin-audit-filter@koicloud.dev")
+        sensitive_id = await _seed_audit_event(
+            actor_user_id=admin_id,
+            action="delete_pond",
+            target_id=uuid4(),
+        )
+        non_sensitive_id = await _seed_audit_event(
+            actor_user_id=admin_id,
+            action="login",
+            target_id=uuid4(),
+            target_kind="user",
+        )
+
+        response = await client.get(
+            "/api/v1/admin/audit",
+            headers={"Authorization": f"Bearer {admin_token}"},
+        )
+
+    assert response.status_code == 200
+    events = response.json()["events"]
+    ids = {row["id"] for row in events}
+    assert str(sensitive_id) in ids
+    assert str(non_sensitive_id) not in ids
+    assert all(row["action"] in SENSITIVE_AUDIT_ACTIONS for row in events)
+
+
 async def test_non_admin_cannot_list_ponds_or_audit() -> None:
     reset_pond_tables()
     await _clear_audit_events()

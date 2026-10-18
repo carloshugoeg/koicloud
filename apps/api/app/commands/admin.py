@@ -39,12 +39,14 @@ async def reactivate_user(user_id: UUID) -> AdminUserResponse:
 
 
 async def admin_list_ponds() -> AdminPondListResponse:
+    # Late import: AdminService.list_users still imports this module.
     from app.modules.admin.service import AdminService
 
     return await AdminService.list_ponds()
 
 
 async def admin_list_audit() -> AuditEventListResponse:
+    # Late import: AdminService.list_users still imports this module.
     from app.modules.admin.service import AdminService
 
     return await AdminService.list_audit()
