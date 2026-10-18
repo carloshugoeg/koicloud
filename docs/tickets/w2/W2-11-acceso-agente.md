@@ -2,11 +2,11 @@
 id: W2-11
 workstream: W2
 persona: Jason
-estado: abierto
+estado: hecho
 rama: w2-acceso-agente
 epica: "E9-05"
 sprint: S4
-pr:
+pr: "https://github.com/carloshugoeg/koicloud/pull/79"
 ---
 
 # [W2-11] Acceso agente: revelar y rotar

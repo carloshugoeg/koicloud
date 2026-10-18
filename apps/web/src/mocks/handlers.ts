@@ -3,6 +3,25 @@ import { fixtures } from "@/mocks/fixtures";
 
 const API_ROOT = "*/api/v1";
 
+type AgentAccessMock = {
+  slug: string;
+  url: string;
+  enabled: boolean;
+  rotated_at: string;
+};
+
+function freshAgentAccess(): AgentAccessMock {
+  return { ...fixtures.agentAccess };
+}
+
+let agentAccessState = freshAgentAccess();
+
+export const ROTATED_AGENT_PASSWORD = "rotated-once-secret";
+
+export function resetAgentAccessState() {
+  agentAccessState = freshAgentAccess();
+}
+
 export const handlers = [
   http.post(`${API_ROOT}/auth/register`, () => {
     return HttpResponse.json(
@@ -182,7 +201,28 @@ export const handlers = [
   }),
 
   http.get(`${API_ROOT}/agent-access`, () => {
-    return HttpResponse.json(fixtures.agentAccess);
+    return HttpResponse.json(agentAccessState);
+  }),
+
+  http.post(`${API_ROOT}/agent-access/rotate`, () => {
+    agentAccessState = {
+      ...agentAccessState,
+      rotated_at: "2026-10-18T20:00:00Z",
+    };
+    return HttpResponse.json({
+      slug: agentAccessState.slug,
+      url: agentAccessState.url,
+      password: ROTATED_AGENT_PASSWORD,
+    });
+  }),
+
+  http.post(`${API_ROOT}/agent-access/toggle`, async ({ request }) => {
+    const body = (await request.json()) as { enabled?: boolean };
+    agentAccessState = {
+      ...agentAccessState,
+      enabled: Boolean(body.enabled),
+    };
+    return HttpResponse.json({ enabled: agentAccessState.enabled });
   }),
 
   http.get(`${API_ROOT}/admin/users`, () => {

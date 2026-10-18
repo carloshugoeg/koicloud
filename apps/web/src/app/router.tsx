@@ -9,6 +9,7 @@ import {
   AdminPondsPage,
   AdminSubscriptionsPage,
   AdminUsersPage,
+  AgentAccessAliasPage,
   AgentAccessPage,
   BackupsPage,
   BillingPage,
@@ -134,8 +135,13 @@ export const appRoutes: RouteObject[] = [
             handle: { title: "Uso del mes" } satisfies RouteHandle,
           },
           {
-            path: "agent-access",
+            path: "acceso-agente",
             element: <AgentAccessPage />,
+            handle: { title: "Acceso agente" } satisfies RouteHandle,
+          },
+          {
+            path: "agent-access",
+            element: <AgentAccessAliasPage />,
             handle: { title: "Acceso agente" } satisfies RouteHandle,
           },
           {

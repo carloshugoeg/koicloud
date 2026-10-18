@@ -6,7 +6,7 @@ const primaryLinks = [
   { to: "/app/plans", label: "Planes" },
   { to: "/app/uso", label: "Uso del mes" },
   { to: "/app/billing", label: "Facturación" },
-  { to: "/app/agent-access", label: "Acceso agente" },
+  { to: "/app/acceso-agente", label: "Acceso agente" },
   { to: "/app/account", label: "Cuenta" },
 ];
 

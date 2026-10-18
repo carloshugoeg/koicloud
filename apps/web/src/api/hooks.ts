@@ -60,3 +60,11 @@ export {
   useInvoiceQuery,
   useInvoicesQuery,
 } from "@/api/hooks/invoices";
+
+export {
+  useAgentAccessQuery,
+  useRotateAgentPasswordMutation,
+  useToggleAgentAccessMutation,
+  type AgentAccess,
+  type AgentAccessSecret,
+} from "@/api/hooks/agent-access";

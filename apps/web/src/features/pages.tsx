@@ -45,15 +45,10 @@ export function AccountPage() {
   );
 }
 
-export function AgentAccessPage() {
-  return (
-    <PlaceholderPage
-      description="Ruta lista para revelar la URL MCP, mostrar el slug y rotar la contraseña."
-      route="/app/agent-access"
-      ticket="W2-11"
-      title="Acceso agente"
-    />
-  );
+export { AgentAccessPage } from "@/features/agent-access/agent-access-page";
+
+export function AgentAccessAliasPage() {
+  return <Navigate replace to="/app/acceso-agente" />;
 }
 
 export function AdminUsersPage() {
