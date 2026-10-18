@@ -2,11 +2,11 @@
 id: W4-03
 workstream: W4
 persona: Diego
-estado: abierto
+estado: en_revision
 rama: w4-cli-sql
 epica: "E5-02"
 sprint: S3
-pr:
+pr: "#TBD"
 ---
 
 # [W4-03] CLI `sql run` (lectura y `--write`) e historial
