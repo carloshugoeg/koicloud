@@ -2,11 +2,11 @@
 id: W3-12
 workstream: W3
 persona: Jousé
-estado: abierto
+estado: en_revision
 rama: w3-admin-ponds-bitacora
 epica: "E8-02, E8-04"
 sprint: S4
-pr:
+pr: https://github.com/carloshugoeg/koicloud/pull/82
 ---
 
 # [W3-12] Admin: ponds del sistema y bitácora
@@ -32,10 +32,17 @@ Endpoints read-only para ver ponds de todo el sistema y la bitácora sensible. L
 3. Los endpoints se mantienen read-only y sin helpers ocultos de mutación.
 4. Hay pruebas de API para `limit`/`offset` (página 2 vacía si no hay filas).
 
+## Notas
+
+- CA 1 y CA 2: cubiertos con datos reales de DB vía `AdminService` (ponds + `audit_events` sensibles), no fixtures.
+- CA 4: el OpenAPI congelado no declara `limit`/`offset` en estos GET (solo `next_cursor`). Descope hasta un CCR; no se inventan query params (mismo patrón que W3-08).
+- Schemas `AdminPondOut` / `AuditEventOut` ya traen `example` en el contrato congelado.
+- W1-19 (aprobado por Carlos, opción a): thin-wire de `commands/admin.py` → `AdminService` en este mismo PR con label `cross-workstream`.
+
 ## No tocar
 
-- `apps/api/app/core/**`.
-- `apps/api/app/commands/**`.
+- `apps/api/app/core/**` (excepción W1-19 aprobada: modelo `AuditEvent` para la tabla ya migrada).
+- `apps/api/app/commands/**` (excepción W1-19 aprobada por Carlos: cuerpo thin-wire de `admin_list_ponds` / `admin_list_audit`; firmas intactas).
 - `apps/api/alembic/**`.
 - `apps/api/app/modules/{ponds,jobs,nodes,backups,metering,agent_access}/**`.
 - `packages/contracts/**`.
