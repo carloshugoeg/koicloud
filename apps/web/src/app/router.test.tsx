@@ -45,12 +45,20 @@ describe("app router scaffold", () => {
     renderRoute("/app/admin/users", {
       accessToken: "access_admin_token",
       refreshToken: "refresh_admin_token",
-      user: adminUser,
+      user: {
+        id: adminUser.id,
+        email: adminUser.email,
+        full_name: adminUser.full_name,
+        role: adminUser.role,
+        status: adminUser.status,
+        email_verified: adminUser.email_verified,
+        nit: "0614-220999-101-3",
+        created_at: adminUser.created_at,
+      },
     });
 
-    const userHeadings = await screen.findAllByRole("heading", { name: "Usuarios" });
-
-    expect(userHeadings).toHaveLength(2);
+    expect(await screen.findByRole("heading", { name: "Usuarios" })).toBeInTheDocument();
+    expect(await screen.findByTestId("admin-users-page")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Bitácora" })).toBeInTheDocument();
   });
 });

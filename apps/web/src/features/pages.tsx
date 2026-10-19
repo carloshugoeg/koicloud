@@ -37,16 +37,9 @@ export function AgentAccessAliasPage() {
   return <Navigate replace to="/app/acceso-agente" />;
 }
 
-export function AdminUsersPage() {
-  return (
-    <PlaceholderPage
-      description="Tabla administrativa base para usuarios, suspensión y reactivación."
-      route="/app/admin/users"
-      ticket="W2-10"
-      title="Usuarios"
-    />
-  );
-}
+export { AdminUsersPage } from "@/features/admin/users-page";
+export { AdminPondsPage } from "@/features/admin/ponds-page";
+export { AdminAuditPage } from "@/features/admin/audit-page";
 
 export function AdminSubscriptionsPage() {
   return (
@@ -55,28 +48,6 @@ export function AdminSubscriptionsPage() {
       route="/app/admin/subscriptions"
       ticket="W2-10"
       title="Suscripciones"
-    />
-  );
-}
-
-export function AdminPondsPage() {
-  return (
-    <PlaceholderPage
-      description="Vista base para la tabla administrativa de ponds."
-      route="/app/admin/ponds"
-      ticket="W2-10"
-      title="Ponds"
-    />
-  );
-}
-
-export function AdminAuditPage() {
-  return (
-    <PlaceholderPage
-      description="Bitácora administrativa placeholder para eventos sensibles."
-      route="/app/admin/audit"
-      ticket="W2-10"
-      title="Bitácora"
     />
   );
 }
