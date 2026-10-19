@@ -6,7 +6,7 @@ estado: hecho
 rama: w3-perfil
 epica: "E1-05"
 sprint: S3
-pr:
+pr: "#41"
 depends_on: W1-15
 ---
 

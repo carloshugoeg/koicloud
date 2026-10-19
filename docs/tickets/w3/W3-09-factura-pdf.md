@@ -2,11 +2,11 @@
 id: W3-09
 workstream: W3
 persona: Jousé
-estado: en_revision
+estado: hecho
 rama: w3-factura-pdf
 epica: "E2-03"
 sprint: S3
-pr:
+pr: "#49"
 ---
 
 # [W3-09] Factura PDF con `fpdf2` e IVA desglosado

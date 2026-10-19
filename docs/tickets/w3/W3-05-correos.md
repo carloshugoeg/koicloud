@@ -6,7 +6,7 @@ estado: hecho
 rama: w3-correos
 epica: "E1-01, E1-04, E8-03"
 sprint: S3
-pr:
+pr: "#45"
 depends_on: W3-01
 ---
 

@@ -6,7 +6,7 @@ estado: hecho
 rama: w3-planes
 epica: "E2-01"
 sprint: S2
-pr:
+pr: "#46"
 ---
 
 # [W3-06] `GET /plans` y valores de la semilla

@@ -2,7 +2,7 @@
 id: W3-08
 workstream: W3
 persona: Jousé
-estado: en_revision
+estado: hecho
 rama: w3-historiales
 epica: "E2-06"
 sprint: S3

@@ -2,7 +2,7 @@
 id: W4-04
 workstream: W4
 persona: Diego
-estado: en_revision
+estado: hecho
 rama: w4-cli-resto
 epica: "E9-01, E7-04"
 sprint: S3

@@ -2,11 +2,11 @@
 id: G2
 workstream: W1
 persona: Carlos
-estado: en-revision
+estado: hecho
 rama: w1-g2-daily-renewal
 epica: E2-04
 sprint: S3
-pr:
+pr: "#74"
 depends_on: G1
 ---
 

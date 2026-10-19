@@ -2,7 +2,7 @@
 id: W1-17
 workstream: W1
 persona: Carlos
-estado: en-revision
+estado: hecho
 rama: w1-g3-reconciler
 epica: E4-05
 sprint: S3
