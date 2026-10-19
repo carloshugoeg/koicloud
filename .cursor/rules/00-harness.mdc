@@ -26,3 +26,4 @@ contexto en conversaciones largas.
 - **Commits:** con la cuenta de GitHub real de la persona (`AGENTS.md` §7). **Nunca** añadas
   `Co-authored-by: Cursor`, «Generated with Cursor» ni ningún trailer de herramienta.
 - **GitHub:** solo `gh` CLI. Nunca herramientas de GitHub MCP.
+- **Guardias:** `AGENTS.md` §12. Las corre `scripts/agent_guards.py` (job `guards`). No añadas `cross-workstream` ni un comentario que empiece por `ship review:`.

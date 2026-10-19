@@ -356,3 +356,19 @@ solo W1) · `make check` · `make check-api` · `make check-web` · `make check-
 
 Demo A/B: `bash scripts/demo-vivo.sh` (puntero [`docs/runbooks/demo-vivo.md`](docs/runbooks/demo-vivo.md)).
 Quirks de Mac/VM y worker local: [`docs/agent-onboarding.md`](docs/agent-onboarding.md) §9.
+
+---
+
+## 12. Lo que CI ya rechaza
+
+El job `guards` corre `scripts/agent_guards.py`. El mensaje dice qué escribir en su lugar.
+
+| Error que se repitió | Regla |
+|---|---|
+| Archivos fuera del workstream | Job `ownership` (`scripts/check_ownership.py` en `.github/scripts/`). |
+| El autor del PR añade `cross-workstream` | `guards` mira el evento `labeled`. La etiqueta la pone el dueño del archivo, no el autor. |
+| Comentario del autor que empieza por `ship review:` | `guards` en el PR. Lo escribe otra persona. |
+| `estado` distinto del PR (`hecho` con el PR abierto, `en_curso`, `en_revision`, `pr:` vacío) | `guards` sobre `docs/tickets/w[1-4]/*.md`. Valores en `docs/tickets/README.md`. |
+| Cuerpo del PR sin la plantilla, o sin la salida real de `make check-*` | `guards` en el PR. Plantilla `.github/PULL_REQUEST_TEMPLATE.md`. |
+| Página nueva o crecida por encima de 250 líneas | `guards` y `scripts/page-line-baseline.txt`. Partí la página en componentes. |
+| `Table()` en el CLI | `guards`. Usá `emit_table` en `apps/cli/koicloud_cli/commands/__init__.py`. |

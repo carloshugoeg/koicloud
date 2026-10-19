@@ -87,6 +87,11 @@ Editar generados a mano · migraciones fuera de W1 · SQL por interpolación (ex
 componentes React · español en el código o inglés en la UI · implementar algo fuera de
 alcance · GitHub MCP para push/PR/review (solo `gh` CLI) · trailers de herramienta.
 
+## Guardias
+
+El job `guards` (`scripts/agent_guards.py`) rechaza las repeticiones listadas en `AGENTS.md` §12.
+Archivos ajenos los rechaza el job `ownership`.
+
 ## Antes del PR
 
 Pruebas para todo lo nuevo · `make check-<área>` con la **salida real pegada** ·
