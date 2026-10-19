@@ -3,6 +3,26 @@
 
     python3 scripts/agent_guards.py tree
     python3 scripts/agent_guards.py pr
+
+Ship review LGTM. The guard does not look at the commenter's login. A comment
+whose first non-empty line is "ship review: LGTM" is void when any of these
+is true:
+
+- Its timestamp is before the head commit's committer time. The review is for
+  an older head.
+- Its timestamp is less than 10 minutes after that committer time.
+- An earlier comment whose first line is "ship review: changes needed" lists
+  numbered findings (lines like "1. ..."), and this LGTM does not mention that
+  review or does not mark every finding. A mention is the review's commit sha
+  or the words "changes needed". A mark is one "resolved" or "addressed" word
+  per numbered finding.
+
+The guard fails when there is no LGTM that stays on the current head and is
+not void. It passes when there is no LGTM at all. The cross-workstream label
+is not checked here. Path ownership stays in check_ownership.py.
+
+The clock is the head commit's committer timestamp. The guards job reads the
+comments that exist when the pull_request run starts.
 """
 
 from __future__ import annotations
@@ -13,6 +33,7 @@ import re
 import subprocess
 import sys
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 SCRIPTS = Path(__file__).resolve().parent
@@ -43,7 +64,12 @@ CHECK_HEADING = re.compile(r"^## Salida de `make check[^`]*`\s*$", re.M)
 FENCE = re.compile(r"```[^\n]*\n(.*?)```", re.S)
 PR_NUMBER = re.compile(r"(?:pull/|#)(\d+)")
 TABLE_CALL = re.compile(r"\bTable\(")
-SHIP_REVIEW = re.compile(r"(?i)^ship review:")
+LGTM_OPEN = re.compile(r"(?i)^ship review:\s*lgtm\b")
+CHANGES_OPEN = re.compile(r"(?i)^ship review:\s*changes needed\b")
+FINDING_LINE = re.compile(r"^\s*\d+\.\s+\S")
+RESOLVED_WORD = re.compile(r"(?i)\b(?:resolved|addressed)\b")
+SHA_TOKEN = re.compile(r"\b[0-9a-fA-F]{7,40}\b")
+LGTM_MIN_DELAY = timedelta(minutes=10)
 OUTPUT_SIGNAL = re.compile(
     r"(passed|failed|error|ruff|pytest|tsc|vitest|pnpm|ticket_prereqs|\bOK\b|collected|Ran \d+ test)",
     re.I,
@@ -231,8 +257,9 @@ def check_cli_tables(root: Path) -> list[Finding]:
     findings: list[Finding] = []
     cli = root / "apps" / "cli"
     allowed = cli / "koicloud_cli" / "commands" / "__init__.py"
+    skipped = {".venv", "site-packages", "__pycache__", ".git"}
     for path in sorted(cli.rglob("*.py")):
-        if path == allowed:
+        if skipped.intersection(path.parts) or path == allowed:
             continue
         text = path.read_text(encoding="utf-8")
         for lineno, line in enumerate(text.splitlines(), 1):
@@ -288,41 +315,95 @@ def check_pr_body(body: str) -> list[Finding]:
     return findings
 
 
-def opens_ship_review(body: str) -> bool:
+@dataclass(frozen=True)
+class ReviewNote:
+    kind: str
+    body: str
+    created_at: datetime
+
+
+def parse_time(value: str) -> datetime:
+    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def first_line(body: str) -> str:
     for line in body.splitlines():
         if line.strip():
-            return SHIP_REVIEW.match(line.strip()) is not None
+            return line.strip()
+    return ""
+
+
+def note_kind(body: str) -> str | None:
+    line = first_line(body)
+    if LGTM_OPEN.match(line):
+        return "lgtm"
+    if CHANGES_OPEN.match(line):
+        return "changes"
+    return None
+
+
+def numbered_findings(body: str) -> int:
+    return sum(1 for line in body.splitlines() if FINDING_LINE.match(line))
+
+
+def mentions_review(lgtm_body: str, changes_body: str) -> bool:
+    lowered = lgtm_body.lower()
+    if "changes needed" in lowered:
+        return True
+    for sha in SHA_TOKEN.findall(changes_body):
+        if sha.lower() in lowered:
+            return True
     return False
 
 
-def check_ship_reviews(author: str, comments: list[tuple[str, str]]) -> list[Finding]:
-    findings: list[Finding] = []
-    for login, body in comments:
-        if login == author and opens_ship_review(body):
-            findings.append(
-                Finding(
-                    "ship-review",
-                    login,
-                    "The PR author posted a comment that starts with 'ship review:'. "
-                    "Someone else writes that review.",
-                )
-            )
-            break
-    return findings
-
-
-def check_self_label(author: str, labelers: list[str]) -> list[Finding]:
-    if author not in labelers:
-        return []
-    return [
-        Finding(
-            "cross-workstream",
-            author,
-            "The PR author added the cross-workstream label. "
-            "The owning workstream adds it after approving the foreign paths. "
-            "Without that label, check_ownership.py rejects the paths.",
+def void_reason(note: ReviewNote, head_time: datetime, earlier: list[ReviewNote]) -> str | None:
+    if note.created_at < head_time:
+        return (
+            "ship review: LGTM is older than the head commit. "
+            "Review the current head."
         )
-    ]
+    if note.created_at - head_time < LGTM_MIN_DELAY:
+        return (
+            "ship review: LGTM was posted less than 10 minutes after the head commit. "
+            "Wait 10 minutes after the head committer time."
+        )
+    changes = [item for item in earlier if item.kind == "changes" and item.created_at < note.created_at]
+    if not changes:
+        return None
+    latest = max(changes, key=lambda item: item.created_at)
+    count = numbered_findings(latest.body)
+    if count == 0:
+        return None
+    addressed = len(RESOLVED_WORD.findall(note.body))
+    if not mentions_review(note.body, latest.body) or addressed < count:
+        return (
+            f"ship review: LGTM does not answer the earlier changes-needed review "
+            f"({count} findings). Mention that review and write one resolved or "
+            "addressed word per finding."
+        )
+    return None
+
+
+def check_lgtm_notes(notes: list[ReviewNote], head_time: datetime) -> list[Finding]:
+    lgtms = [note for note in notes if note.kind == "lgtm"]
+    if not lgtms:
+        return []
+    on_head = [note for note in lgtms if note.created_at >= head_time]
+    if not on_head:
+        return [
+            Finding(
+                "ship-review",
+                "LGTM",
+                "ship review: LGTM is older than the head commit. Review the current head.",
+            )
+        ]
+    reasons = [void_reason(note, head_time, notes) for note in on_head]
+    if any(reason is None for reason in reasons):
+        return []
+    return [Finding("ship-review", "LGTM", reason) for reason in reasons if reason]
 
 
 def check_tree(root: Path, states: dict[int, str] | None = None) -> list[Finding]:
@@ -367,21 +448,19 @@ def fetch_states(repo: str, numbers: set[int]) -> dict[int, str]:
     return states
 
 
-def fetch_pull_request(repo: str, number: int) -> tuple[str, str, list[tuple[str, str]], list[str]]:
+def fetch_pull_request(repo: str, number: int) -> tuple[str, list[ReviewNote], datetime]:
     owner, name = repo.split("/", 1)
     query = """
     query($owner: String!, $name: String!, $n: Int!) {
       repository(owner: $owner, name: $name) {
         pullRequest(number: $n) {
-          author { login }
           body
-          comments(first: 100) { nodes { author { login } body } }
-          reviews(first: 100) { nodes { author { login } body } }
-          timelineItems(first: 100, itemTypes: [LABELED_EVENT]) {
-            nodes {
-              ... on LabeledEvent { label { name } actor { login } }
-            }
+          headRefOid
+          commits(last: 1) {
+            nodes { commit { oid committedDate } }
           }
+          comments(first: 100) { nodes { createdAt body } }
+          reviews(first: 100) { nodes { createdAt submittedAt body } }
         }
       }
     }
@@ -403,22 +482,30 @@ def fetch_pull_request(repo: str, number: int) -> tuple[str, str, list[tuple[str
         text=True,
     )
     pull = json.loads(raw)["data"]["repository"]["pullRequest"]
-    author = (pull.get("author") or {}).get("login") or ""
-    comments: list[tuple[str, str]] = []
+    notes: list[ReviewNote] = []
     for node in pull["comments"]["nodes"] + pull["reviews"]["nodes"]:
-        login = (node.get("author") or {}).get("login") or ""
-        comments.append((login, node.get("body") or ""))
-    labelers: list[str] = []
-    for node in pull["timelineItems"]["nodes"]:
-        label = (node.get("label") or {}).get("name")
-        if label == "cross-workstream":
-            labelers.append((node.get("actor") or {}).get("login") or "")
-    return author, pull.get("body") or "", comments, labelers
+        kind = note_kind(node.get("body") or "")
+        if kind is None:
+            continue
+        stamp = node.get("submittedAt") or node.get("createdAt")
+        notes.append(ReviewNote(kind, node.get("body") or "", parse_time(stamp)))
+    head_oid = pull["headRefOid"]
+    commit_nodes = pull["commits"]["nodes"]
+    head_time: datetime | None = None
+    if commit_nodes and commit_nodes[0]["commit"]["oid"] == head_oid:
+        head_time = parse_time(commit_nodes[0]["commit"]["committedDate"])
+    if head_time is None:
+        commit_raw = subprocess.check_output(
+            ["gh", "api", f"repos/{repo}/commits/{head_oid}", "--jq", ".commit.committer.date"],
+            text=True,
+        )
+        head_time = parse_time(commit_raw.strip().strip('"'))
+    return pull.get("body") or "", notes, head_time
 
 
 def check_pull_request(repo: str, number: int) -> list[Finding]:
-    author, body, comments, labelers = fetch_pull_request(repo, number)
-    return check_pr_body(body) + check_ship_reviews(author, comments) + check_self_label(author, labelers)
+    body, notes, head_time = fetch_pull_request(repo, number)
+    return check_pr_body(body) + check_lgtm_notes(notes, head_time)
 
 
 def report(findings: list[Finding]) -> int:

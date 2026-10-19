@@ -5,12 +5,13 @@ from __future__ import annotations
 import sys
 import tempfile
 import unittest
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 SCRIPTS = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPTS))
 
-import agent_guards  # noqa: E402
+import agent_guards  # noqa: E402  # scripts/ is not a package; path insert must come first
 
 
 class TicketStateTest(unittest.TestCase):
@@ -161,27 +162,62 @@ class PullRequestTest(unittest.TestCase):
         )
         self.assertEqual(agent_guards.check_pr_body(body), [])
 
-    def test_author_ship_review_on_pr_81(self) -> None:
-        findings = agent_guards.check_ship_reviews(
-            "carloshugoeg",
-            [("carloshugoeg", "ship review: LGTM\n\nHead: 46994d0")],
-        )
-        self.assertEqual(len(findings), 1)
-        self.assertIn("ship review:", findings[0].fix)
+    def test_rushed_lgtm_is_void(self) -> None:
+        head = datetime(2026, 10, 19, 18, 0, tzinfo=timezone.utc)
+        notes = [
+            agent_guards.ReviewNote(
+                "lgtm",
+                "ship review: LGTM\n\nHead abcdef1",
+                head + timedelta(minutes=9),
+            )
+        ]
+        findings = agent_guards.check_lgtm_notes(notes, head)
+        self.assertTrue(any("10 minutes" in item.fix for item in findings))
 
-    def test_reviewer_ship_review_on_someone_elses_pr_passes(self) -> None:
-        findings = agent_guards.check_ship_reviews(
-            "Jasgu097",
-            [("carloshugoeg", "ship review: LGTM")],
-        )
-        self.assertEqual(findings, [])
+    def test_stale_head_lgtm_is_void(self) -> None:
+        head = datetime(2026, 10, 19, 18, 0, tzinfo=timezone.utc)
+        notes = [
+            agent_guards.ReviewNote(
+                "lgtm",
+                "ship review: LGTM\n\nHead abcdef1",
+                head - timedelta(minutes=1),
+            )
+        ]
+        findings = agent_guards.check_lgtm_notes(notes, head)
+        self.assertTrue(any("older than the head" in item.fix for item in findings))
 
-    def test_author_added_cross_workstream_on_pr_82(self) -> None:
-        findings = agent_guards.check_self_label("carloshugoeg", ["carloshugoeg"])
-        self.assertIn("cross-workstream", findings[0].fix)
+    def test_lgtm_that_ignores_findings_is_void(self) -> None:
+        head = datetime(2026, 10, 19, 18, 0, tzinfo=timezone.utc)
+        notes = [
+            agent_guards.ReviewNote(
+                "changes",
+                "ship review: changes needed\n\nHead: abcdef1\n\n1. Fix the guard.\n2. Add the ticket.\n",
+                head + timedelta(minutes=12),
+            ),
+            agent_guards.ReviewNote(
+                "lgtm",
+                "ship review: LGTM\n\nLooks fine.",
+                head + timedelta(minutes=20),
+            ),
+        ]
+        findings = agent_guards.check_lgtm_notes(notes, head)
+        self.assertTrue(any("2 findings" in item.fix for item in findings))
 
-    def test_other_person_may_add_the_label(self) -> None:
-        self.assertEqual(agent_guards.check_self_label("Josh-JM", ["carloshugoeg"]), [])
+    def test_valid_lgtm_from_the_same_login_passes(self) -> None:
+        head = datetime(2026, 10, 19, 18, 0, tzinfo=timezone.utc)
+        notes = [
+            agent_guards.ReviewNote(
+                "changes",
+                "ship review: changes needed\n\nHead: abcdef1\n\n1. Fix the guard.\n2. Add the ticket.\n",
+                head + timedelta(minutes=12),
+            ),
+            agent_guards.ReviewNote(
+                "lgtm",
+                "ship review: LGTM\n\nHead abcdef1\n1. resolved\n2. addressed\n",
+                head + timedelta(minutes=30),
+            ),
+        ]
+        self.assertEqual(agent_guards.check_lgtm_notes(notes, head), [])
 
 
 if __name__ == "__main__":

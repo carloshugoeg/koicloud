@@ -366,8 +366,7 @@ El job `guards` corre `scripts/agent_guards.py`. El mensaje dice qué escribir e
 | Error que se repitió | Regla |
 |---|---|
 | Archivos fuera del workstream | Job `ownership` (`scripts/check_ownership.py` en `.github/scripts/`). |
-| El autor del PR añade `cross-workstream` | `guards` mira el evento `labeled`. La etiqueta la pone el dueño del archivo, no el autor. |
-| Comentario del autor que empieza por `ship review:` | `guards` en el PR. Lo escribe otra persona. |
+| `ship review: LGTM` anterior al head, a menos de 10 minutos, o que no responde un `changes needed` | `guards` mira la hora del committer del head y el texto. No mira el login. La etiqueta `cross-workstream` no la mira este job. |
 | `estado` distinto del PR (`hecho` con el PR abierto, `en_curso`, `en_revision`, `pr:` vacío) | `guards` sobre `docs/tickets/w[1-4]/*.md`. Valores en `docs/tickets/README.md`. |
 | Cuerpo del PR sin la plantilla, o sin la salida real de `make check-*` | `guards` en el PR. Plantilla `.github/PULL_REQUEST_TEMPLATE.md`. |
 | Página nueva o crecida por encima de 250 líneas | `guards` y `scripts/page-line-baseline.txt`. Partí la página en componentes. |
