@@ -366,7 +366,7 @@ El job `guards` corre `scripts/agent_guards.py`. El mensaje dice qué escribir e
 | Error que se repitió | Regla |
 |---|---|
 | Archivos fuera del workstream | Job `ownership` (`scripts/check_ownership.py` en `.github/scripts/`). |
-| `ship review: LGTM` a menos de 10 minutos del head, o que no responde un `changes needed` | `guards` cuenta solo un LGTM con hora igual o posterior al `created_at` del primer workflow run `pull_request` o `push` de ese sha. Uno anterior no cuenta y no falla el job. Un comentario `ship review:` vuelve a evaluar ese sha. No mira el login. La etiqueta `cross-workstream` no la mira este job. |
+| `ship review: LGTM` a menos de 10 minutos del head, o que no responde un `changes needed` | `guards` cuenta solo un LGTM con hora igual o posterior al `created_at` del primer run `pull_request` de ese sha, o de un `push` cuya `head_branch` es la rama del PR. Uno anterior no cuenta y no falla el job. Un comentario `ship review:` espera a que el run `ci` termine y vuelve a lanzar el job. No mira el login. La etiqueta `cross-workstream` no la mira este job. |
 | `estado` distinto del PR (`hecho` con el PR abierto, `en_curso`, `en_revision`, `pr:` vacío) | `guards` sobre `docs/tickets/w[1-4]/*.md`. Valores en `docs/tickets/README.md`. |
 | Cuerpo del PR sin la plantilla, o sin la salida real de `make check-*` | `guards` en el PR. Plantilla `.github/PULL_REQUEST_TEMPLATE.md`. |
 | Página nueva o crecida por encima de 250 líneas | `guards` y `scripts/page-line-baseline.txt`. Partí la página en componentes. |

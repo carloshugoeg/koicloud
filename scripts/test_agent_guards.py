@@ -228,18 +228,31 @@ class PullRequestTest(unittest.TestCase):
         self.assertEqual(agent_guards.check_lgtm_notes(notes, head), [])
 
     def test_head_clock_is_the_earliest_github_run(self) -> None:
+        branch = "w1-agent-mistake-guards"
         runs = [
             {
                 "event": "push",
+                "head_branch": branch,
                 "created_at": "2026-10-19T21:12:31Z",
                 "head_commit": {"committer": {"date": "2026-10-19T20:00:00Z"}},
             },
             {"event": "pull_request", "created_at": "2026-10-19T21:12:33Z"},
             {"event": "issue_comment", "created_at": "2026-10-19T21:00:00Z"},
+            {"event": "push", "head_branch": "other", "created_at": "2026-10-19T21:00:00Z"},
         ]
         self.assertEqual(
-            agent_guards.earliest_head_clock(runs),
+            agent_guards.earliest_head_clock(runs, branch),
             datetime(2026, 10, 19, 21, 12, 31, tzinfo=timezone.utc),
+        )
+
+    def test_head_clock_ignores_a_push_on_another_branch(self) -> None:
+        runs = [
+            {"event": "push", "head_branch": "other", "created_at": "2026-10-19T21:00:00Z"},
+            {"event": "pull_request", "created_at": "2026-10-19T21:12:33Z"},
+        ]
+        self.assertEqual(
+            agent_guards.earliest_head_clock(runs, "w1-agent-mistake-guards"),
+            datetime(2026, 10, 19, 21, 12, 33, tzinfo=timezone.utc),
         )
 
     def test_head_clock_ignores_committer_date(self) -> None:
@@ -259,17 +272,14 @@ class PullRequestTest(unittest.TestCase):
         completed = {"name": "guards", "status": "completed", "id": 10, "completed_at": "2026-10-19T21:13:14Z"}
         newer = {"name": "guards", "status": "completed", "id": 11, "completed_at": "2026-10-19T21:20:00Z"}
         pending = {"name": "guards", "status": "in_progress", "id": 12, "completed_at": None}
-        self.assertEqual(agent_guards.choose_recheck([completed, newer]), ("rerun", 11))
-        self.assertEqual(agent_guards.choose_recheck([completed, pending]), ("wait", None))
-        self.assertEqual(agent_guards.choose_recheck([]), ("post", None))
+        ci_done = [{"event": "pull_request", "name": "ci", "status": "completed"}]
+        ci_open = [{"event": "pull_request", "name": "ci", "status": "in_progress"}]
+        self.assertEqual(agent_guards.choose_recheck([completed, newer], ci_done), ("rerun", 11))
+        self.assertEqual(agent_guards.choose_recheck([completed, pending], ci_done), ("wait", None))
+        self.assertEqual(agent_guards.choose_recheck([completed], ci_open), ("wait", None))
+        self.assertEqual(agent_guards.choose_recheck([], ci_done), ("post", None))
+        self.assertEqual(agent_guards.choose_recheck([]), ("wait", None))
         self.assertEqual(agent_guards.choose_recheck([], []), ("wait", None))
-        self.assertEqual(
-            agent_guards.choose_recheck(
-                [],
-                [{"event": "push", "status": "completed", "created_at": "2026-10-19T21:12:31Z"}],
-            ),
-            ("post", None),
-        )
 
     def test_ship_review_recheck_is_not_part_of_ci(self) -> None:
         root = Path(__file__).resolve().parents[1]

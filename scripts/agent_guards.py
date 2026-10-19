@@ -22,16 +22,19 @@ A counted LGTM is void when either of these is true:
 The guard fails when every counted LGTM is void. The cross-workstream label
 is not checked here. Path ownership stays in check_ownership.py.
 
-The head clock is the earliest created_at among GitHub Actions workflow runs
-for that sha whose event is pull_request or push. It is not the committer
-date. If no such run exists, the guard fails closed.
+The head clock is the earliest created_at among GitHub Actions runs for that
+sha whose event is pull_request, plus push runs whose head_branch is the
+pull request branch. A push of the same sha on another branch does not start
+the clock. If no such run exists, the guard fails closed.
 
 A pull_request run only sees comments that already exist. A later comment
 whose first non-empty line starts with "ship review:" runs
 `python3 scripts/agent_guards.py comment` from
-.github/workflows/guards-comment.yml. That reruns the completed guards job
-on the head sha, or posts a check run named guards on that sha when the job
-is not there. GitHub reads issue_comment workflows from the default branch.
+.github/workflows/guards-comment.yml. That waits until the pull_request ci
+run for the sha is completed, then reruns the guards job. It posts its own
+check run only when that ci run has completed and no guards job exists.
+A failed rerun does not post a second check. GitHub reads issue_comment
+workflows from the default branch.
 """
 
 from __future__ import annotations
@@ -80,7 +83,6 @@ FINDING_LINE = re.compile(r"^\s*\d+\.\s+\S")
 RESOLVED_WORD = re.compile(r"(?i)\b(?:resolved|addressed)\b")
 SHA_TOKEN = re.compile(r"\b[0-9a-fA-F]{7,40}\b")
 LGTM_MIN_DELAY = timedelta(minutes=10)
-HEAD_CLOCK_EVENTS = frozenset({"pull_request", "push"})
 GUARDS_JOB_PENDING = frozenset({"queued", "in_progress", "waiting", "pending", "requested"})
 RECHECK_WAIT_SECONDS = 300
 RECHECK_POLL_SECONDS = 15
@@ -377,15 +379,17 @@ def ship_review_comment(body: str) -> bool:
     return first_line(body).lower().startswith("ship review:")
 
 
-def earliest_head_clock(runs: list[dict]) -> datetime | None:
+def earliest_head_clock(runs: list[dict], branch: str | None = None) -> datetime | None:
     stamps: list[datetime] = []
     for run in runs:
-        if run.get("event") not in HEAD_CLOCK_EVENTS:
-            continue
         stamp = run.get("created_at")
         if not stamp:
             continue
-        stamps.append(parse_time(stamp))
+        event = run.get("event")
+        if event == "pull_request":
+            stamps.append(parse_time(stamp))
+        elif event == "push" and branch and run.get("head_branch") == branch:
+            stamps.append(parse_time(stamp))
     if not stamps:
         return None
     return min(stamps)
@@ -413,23 +417,24 @@ def guards_job_pending(jobs: list[dict]) -> bool:
     )
 
 
+def pull_request_ci_runs(runs: list[dict]) -> list[dict]:
+    return [
+        run
+        for run in runs
+        if run.get("event") == "pull_request" and run.get("name") == "ci"
+    ]
+
+
 def choose_recheck(jobs: list[dict], runs: list[dict] | None = None) -> tuple[str, int | None]:
+    ci_runs = pull_request_ci_runs(runs or [])
+    if not ci_runs or any(run.get("status") != "completed" for run in ci_runs):
+        return "wait", None
     if guards_job_pending(jobs):
         return "wait", None
     job_id = latest_completed_guards_job(jobs)
     if job_id is not None:
         return "rerun", job_id
-    if runs is None:
-        return "post", None
-    if earliest_head_clock(runs) is None:
-        return "wait", None
-    ci_still_open = any(
-        run.get("event") == "pull_request"
-        and run.get("name") == "ci"
-        and run.get("status") != "completed"
-        for run in runs
-    )
-    if ci_still_open:
+    if any(job.get("name") == "guards" for job in jobs):
         return "wait", None
     return "post", None
 
@@ -529,6 +534,7 @@ def fetch_pull_request(repo: str, number: int) -> tuple[str, list[ReviewNote], d
         pullRequest(number: $n) {
           body
           headRefOid
+          headRefName
           comments(first: 100) { nodes { createdAt body } }
           reviews(first: 100) { nodes { createdAt submittedAt body } }
         }
@@ -560,7 +566,7 @@ def fetch_pull_request(repo: str, number: int) -> tuple[str, list[ReviewNote], d
         stamp = node.get("submittedAt") or node.get("createdAt")
         notes.append(ReviewNote(kind, node.get("body") or "", parse_time(stamp)))
     head_oid = pull["headRefOid"]
-    return pull.get("body") or "", notes, fetch_head_clock(repo, head_oid)
+    return pull.get("body") or "", notes, fetch_head_clock(repo, head_oid, pull["headRefName"])
 
 
 def fetch_workflow_runs(repo: str, sha: str) -> list[dict]:
@@ -584,12 +590,13 @@ def fetch_workflow_runs(repo: str, sha: str) -> list[dict]:
     return runs
 
 
-def fetch_head_clock(repo: str, sha: str) -> datetime:
-    clock = earliest_head_clock(fetch_workflow_runs(repo, sha))
+def fetch_head_clock(repo: str, sha: str, branch: str) -> datetime:
+    clock = earliest_head_clock(fetch_workflow_runs(repo, sha), branch)
     if clock is None:
         raise SystemExit(
-            "::error::No GitHub Actions pull_request or push run for the head. "
-            "The guard clock is that run's created_at, not the committer date."
+            "::error::No GitHub Actions pull_request run for the head, "
+            "and no push run on the pull request branch. "
+            "The guard clock is that run's created_at."
         )
     return clock
 
@@ -685,16 +692,16 @@ def recheck_comment(repo: str, number: int, body: str) -> int:
             time.sleep(RECHECK_POLL_SECONDS)
             continue
         if action == "wait":
-            print("::error::The guards job did not finish in time. Not posting a second check.")
+            print("::error::The pull_request ci run did not finish in time. Not posting a second check.")
             return 1
-        if action == "rerun" and job_id is not None and rerun_guards_job(repo, job_id):
-            print(f"guards rerun {job_id} {head_sha}")
-            return 0
-        if earliest_head_clock(runs) is None:
-            print(
-                "::error::No GitHub Actions pull_request or push run for the head. "
-                "Not posting a check."
-            )
+        if action == "rerun" and job_id is not None:
+            if rerun_guards_job(repo, job_id):
+                print(f"guards rerun {job_id} {head_sha}")
+                return 0
+            print("::error::Could not rerun the guards job. Not posting a second check.")
+            return 1
+        if any(job.get("name") == "guards" for job in jobs):
+            print("::error::A guards job already exists for this sha. Not posting a second check.")
             return 1
         findings = check_pull_request(repo, number)
         post_check_run(repo, head_sha, findings)

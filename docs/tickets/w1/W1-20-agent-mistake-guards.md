@@ -16,11 +16,11 @@ depends_on:
 
 El job `guards` corre `scripts/agent_guards.py`. Falla si un ticket no coincide con su PR, si el cuerpo del PR no trae la plantilla con salida real de `make check-*`, si una página nueva pasa de 250 líneas, o si el CLI llama `Table()` fuera de `emit_table`.
 
-Un `ship review: LGTM` anterior al head no cuenta y no hace fallar el job. Uno sobre el head queda anulado cuando se publicó a menos de 10 minutos del reloj de GitHub, o cuando no responde un `ship review: changes needed` anterior. El job no mira el login ni la etiqueta `cross-workstream`. Un comentario cuya primera línea empieza por `ship review:` vuelve a correr la evaluación sobre el sha del head.
+Un `ship review: LGTM` anterior al head no cuenta y no hace fallar el job. Uno sobre el head queda anulado cuando se publicó a menos de 10 minutos del reloj de GitHub, o cuando no responde un `ship review: changes needed` anterior. El job no mira el login ni la etiqueta `cross-workstream`. Un comentario cuya primera línea empieza por `ship review:` espera a que el run `ci` del `pull_request` esté `completed` y vuelve a lanzar el job `guards`. Publica un check propio solo si ese run terminó y no hay job `guards` para el sha.
 
 ## Entradas ya decididas (no se cambian)
 
-- El reloj es el `created_at` más temprano de un workflow run de GitHub con evento `pull_request` o `push` para ese sha. No es el `committer.date`.
+- El reloj es el `created_at` más temprano de un workflow run `pull_request` para ese sha, o de un `push` cuya `head_branch` es la rama del PR. Un `push` en otra rama no cuenta.
 - Una mención del review anterior es su sha o el texto `changes needed`.
 - Cada hallazgo numerado (`1.`, `2.`, …) fuera de un bloque de código pide una palabra `resolved` o `addressed`.
 - `ownership` sigue siendo el job que mira las rutas. Este ticket no lo reemplaza.
