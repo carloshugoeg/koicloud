@@ -1,17 +1,15 @@
 from __future__ import annotations
 
 import typer
-from rich.console import Console
-from rich.table import Table
 
 from koicloud_cli import commands
 from koicloud_cli.commands import (
     OUTPUT_OPTION,
     OutputFormat,
     emit_json,
+    emit_table,
     exit_for_error,
     get_authenticated_client,
-    render_cell,
 )
 from koicloud_cli.config import CliConfig, clear_config, save_config
 from koicloud_cli.errors import ApiError, NotLoggedInError
@@ -97,17 +95,17 @@ def whoami(output: OutputFormat = OUTPUT_OPTION) -> None:
     if not isinstance(user, dict):
         user = {}
 
-    table = Table(title="Usuario actual")
-    table.add_column("Campo", style="bold")
-    table.add_column("Valor")
-    table.add_row("Email", render_cell(user.get("email")))
-    table.add_row("Nombre", render_cell(user.get("full_name")))
-    table.add_row("Rol", render_cell(user.get("role")))
     subscription = payload.get("subscription") if isinstance(payload, dict) else None
     plan = subscription.get("plan_id") if isinstance(subscription, dict) else None
-    table.add_row("Plan", render_cell(plan))
-    table.add_row(
-        "Ponds",
-        render_cell(payload.get("ponds_count") if isinstance(payload, dict) else None),
+    ponds = payload.get("ponds_count") if isinstance(payload, dict) else None
+    emit_table(
+        [
+            {"campo": "Email", "valor": user.get("email")},
+            {"campo": "Nombre", "valor": user.get("full_name")},
+            {"campo": "Rol", "valor": user.get("role")},
+            {"campo": "Plan", "valor": plan},
+            {"campo": "Ponds", "valor": ponds},
+        ],
+        columns=[("campo", "Campo"), ("valor", "Valor")],
+        title="Usuario actual",
     )
-    Console().print(table)
