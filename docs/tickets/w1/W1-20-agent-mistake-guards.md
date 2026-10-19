@@ -16,21 +16,21 @@ depends_on:
 
 El job `guards` corre `scripts/agent_guards.py`. Falla si un ticket no coincide con su PR, si el cuerpo del PR no trae la plantilla con salida real de `make check-*`, si una página nueva pasa de 250 líneas, o si el CLI llama `Table()` fuera de `emit_table`.
 
-Un `ship review: LGTM` queda anulado, y el job falla si es el único sobre el head, cuando se publicó antes del committer time del head, cuando se publicó a menos de 10 minutos, o cuando no responde un `ship review: changes needed` anterior. El job no mira el login ni la etiqueta `cross-workstream`.
+Un `ship review: LGTM` anterior al head no cuenta y no hace fallar el job. Uno sobre el head queda anulado cuando se publicó a menos de 10 minutos del reloj de GitHub, o cuando no responde un `ship review: changes needed` anterior. El job no mira el login ni la etiqueta `cross-workstream`. Un comentario cuya primera línea empieza por `ship review:` vuelve a correr la evaluación sobre el sha del head.
 
 ## Entradas ya decididas (no se cambian)
 
-- El reloj es el `committer.date` del commit en la punta del PR.
+- El reloj es el `created_at` más temprano de un workflow run de GitHub con evento `pull_request` o `push` para ese sha. No es el `committer.date`.
 - Una mención del review anterior es su sha o el texto `changes needed`.
-- Cada hallazgo numerado (`1.`, `2.`, …) pide una palabra `resolved` o `addressed`.
+- Cada hallazgo numerado (`1.`, `2.`, …) fuera de un bloque de código pide una palabra `resolved` o `addressed`.
 - `ownership` sigue siendo el job que mira las rutas. Este ticket no lo reemplaza.
 - Sin cambios a OpenAPI, `schema.d.ts`, ni firmas de `commands/`.
 
 ## Criterios de aceptación
 
-1. `python3 -m unittest scripts/test_agent_guards.py` cubre LGTM apurado, LGTM de un head viejo, LGTM que ignora hallazgos, y LGTM válido.
+1. `python3 -m unittest scripts/test_agent_guards.py` cubre LGTM apurado, LGTM de un head viejo que no falla, LGTM que ignora hallazgos, LGTM válido, hallazgos dentro de cercas, el reloj de GitHub, y el rechequeo por comentario.
 2. `python3 scripts/agent_guards.py tree` pasa con este ticket en `en-revision` y `pr` apuntando a #88.
-3. El docstring de `scripts/agent_guards.py` describe las tres condiciones del LGTM.
+3. El docstring de `scripts/agent_guards.py` describe qué LGTM cuenta, el reloj, y el rechequeo por comentario.
 
 ## No tocar
 

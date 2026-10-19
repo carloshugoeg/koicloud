@@ -174,7 +174,7 @@ class PullRequestTest(unittest.TestCase):
         findings = agent_guards.check_lgtm_notes(notes, head)
         self.assertTrue(any("10 minutes" in item.fix for item in findings))
 
-    def test_stale_head_lgtm_is_void(self) -> None:
+    def test_stale_lgtm_does_not_count(self) -> None:
         head = datetime(2026, 10, 19, 18, 0, tzinfo=timezone.utc)
         notes = [
             agent_guards.ReviewNote(
@@ -183,8 +183,103 @@ class PullRequestTest(unittest.TestCase):
                 head - timedelta(minutes=1),
             )
         ]
+        self.assertEqual(agent_guards.check_lgtm_notes(notes, head), [])
+
+    def test_stale_lgtm_does_not_hide_a_rushed_one(self) -> None:
+        head = datetime(2026, 10, 19, 18, 0, tzinfo=timezone.utc)
+        notes = [
+            agent_guards.ReviewNote(
+                "lgtm",
+                "ship review: LGTM\n\nHead abcdef1",
+                head - timedelta(minutes=30),
+            ),
+            agent_guards.ReviewNote(
+                "lgtm",
+                "ship review: LGTM\n\nHead abcdef1",
+                head + timedelta(minutes=2),
+            ),
+        ]
         findings = agent_guards.check_lgtm_notes(notes, head)
-        self.assertTrue(any("older than the head" in item.fix for item in findings))
+        self.assertTrue(any("10 minutes" in item.fix for item in findings))
+
+    def test_numbered_findings_skip_code_fences(self) -> None:
+        body = "\n".join(
+            [
+                "ship review: changes needed",
+                "",
+                "1. Fix the guard.",
+                "```",
+                "1. not a finding",
+                "2. still inside",
+                "```",
+                "2. Add the ticket.",
+            ]
+        )
+        self.assertEqual(agent_guards.numbered_findings(body), 2)
+        head = datetime(2026, 10, 19, 18, 0, tzinfo=timezone.utc)
+        notes = [
+            agent_guards.ReviewNote("changes", body, head + timedelta(minutes=12)),
+            agent_guards.ReviewNote(
+                "lgtm",
+                "ship review: LGTM\n\nchanges needed\n1. resolved\n2. addressed\n",
+                head + timedelta(minutes=20),
+            ),
+        ]
+        self.assertEqual(agent_guards.check_lgtm_notes(notes, head), [])
+
+    def test_head_clock_is_the_earliest_github_run(self) -> None:
+        runs = [
+            {
+                "event": "push",
+                "created_at": "2026-10-19T21:12:31Z",
+                "head_commit": {"committer": {"date": "2026-10-19T20:00:00Z"}},
+            },
+            {"event": "pull_request", "created_at": "2026-10-19T21:12:33Z"},
+            {"event": "issue_comment", "created_at": "2026-10-19T21:00:00Z"},
+        ]
+        self.assertEqual(
+            agent_guards.earliest_head_clock(runs),
+            datetime(2026, 10, 19, 21, 12, 31, tzinfo=timezone.utc),
+        )
+
+    def test_head_clock_ignores_committer_date(self) -> None:
+        runs = [
+            {"event": "issue_comment", "created_at": "2026-10-19T21:00:00Z"},
+            {"event": "pull_request", "committer": {"date": "2026-10-19T20:00:00Z"}},
+        ]
+        self.assertIsNone(agent_guards.earliest_head_clock(runs))
+
+    def test_ship_review_comment_uses_the_first_line(self) -> None:
+        self.assertTrue(agent_guards.ship_review_comment("ship review: LGTM\n"))
+        self.assertTrue(agent_guards.ship_review_comment("\nShip review: changes needed\n"))
+        self.assertFalse(agent_guards.ship_review_comment("Please see ship review: LGTM"))
+        self.assertFalse(agent_guards.ship_review_comment("thanks"))
+
+    def test_recheck_reruns_a_completed_guards_job(self) -> None:
+        completed = {"name": "guards", "status": "completed", "id": 10, "completed_at": "2026-10-19T21:13:14Z"}
+        newer = {"name": "guards", "status": "completed", "id": 11, "completed_at": "2026-10-19T21:20:00Z"}
+        pending = {"name": "guards", "status": "in_progress", "id": 12, "completed_at": None}
+        self.assertEqual(agent_guards.choose_recheck([completed, newer]), ("rerun", 11))
+        self.assertEqual(agent_guards.choose_recheck([completed, pending]), ("wait", None))
+        self.assertEqual(agent_guards.choose_recheck([]), ("post", None))
+        self.assertEqual(agent_guards.choose_recheck([], []), ("wait", None))
+        self.assertEqual(
+            agent_guards.choose_recheck(
+                [],
+                [{"event": "push", "status": "completed", "created_at": "2026-10-19T21:12:31Z"}],
+            ),
+            ("post", None),
+        )
+
+    def test_ship_review_recheck_is_not_part_of_ci(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        comment = (root / ".github" / "workflows" / "guards-comment.yml").read_text()
+        ci = (root / ".github" / "workflows" / "ci.yml").read_text()
+        self.assertIn("issue_comment:", comment)
+        self.assertIn("python3 scripts/agent_guards.py comment", comment)
+        self.assertIn("checks: write", comment)
+        self.assertNotIn("issue_comment:", ci)
+        self.assertNotIn("deploy.yml", comment)
 
     def test_lgtm_that_ignores_findings_is_void(self) -> None:
         head = datetime(2026, 10, 19, 18, 0, tzinfo=timezone.utc)

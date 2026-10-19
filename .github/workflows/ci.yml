@@ -187,6 +187,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: read
+      actions: read
     steps:
       - uses: actions/checkout@v4
       - name: Guard unit tests

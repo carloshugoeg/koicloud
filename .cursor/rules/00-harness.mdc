@@ -26,4 +26,4 @@ contexto en conversaciones largas.
 - **Commits:** con la cuenta de GitHub real de la persona (`AGENTS.md` §7). **Nunca** añadas
   `Co-authored-by: Cursor`, «Generated with Cursor» ni ningún trailer de herramienta.
 - **GitHub:** solo `gh` CLI. Nunca herramientas de GitHub MCP.
-- **Guardias:** `AGENTS.md` §12. `scripts/agent_guards.py` anula un `ship review: LGTM` si es anterior al head, si tiene menos de 10 minutos, o si no responde un `changes needed`. No mira el login.
+- **Guardias:** `AGENTS.md` §12. `scripts/agent_guards.py` ignora un `ship review: LGTM` anterior al head. Anula uno del head si tiene menos de 10 minutos o si no responde un `changes needed`. No mira el login.

@@ -3,26 +3,35 @@
 
     python3 scripts/agent_guards.py tree
     python3 scripts/agent_guards.py pr
+    python3 scripts/agent_guards.py comment
 
 Ship review LGTM. The guard does not look at the commenter's login. A comment
-whose first non-empty line is "ship review: LGTM" is void when any of these
-is true:
+whose first non-empty line is "ship review: LGTM" counts only when its
+timestamp is at or after the head clock. An older LGTM does not count and
+does not fail the job. With no LGTM on the current head, the guard passes.
 
-- Its timestamp is before the head commit's committer time. The review is for
-  an older head.
-- Its timestamp is less than 10 minutes after that committer time.
+A counted LGTM is void when either of these is true:
+
+- Its timestamp is less than 10 minutes after the head clock.
 - An earlier comment whose first line is "ship review: changes needed" lists
-  numbered findings (lines like "1. ..."), and this LGTM does not mention that
+  numbered findings outside code fences, and this LGTM does not mention that
   review or does not mark every finding. A mention is the review's commit sha
   or the words "changes needed". A mark is one "resolved" or "addressed" word
   per numbered finding.
 
-The guard fails when there is no LGTM that stays on the current head and is
-not void. It passes when there is no LGTM at all. The cross-workstream label
+The guard fails when every counted LGTM is void. The cross-workstream label
 is not checked here. Path ownership stays in check_ownership.py.
 
-The clock is the head commit's committer timestamp. The guards job reads the
-comments that exist when the pull_request run starts.
+The head clock is the earliest created_at among GitHub Actions workflow runs
+for that sha whose event is pull_request or push. It is not the committer
+date. If no such run exists, the guard fails closed.
+
+A pull_request run only sees comments that already exist. A later comment
+whose first non-empty line starts with "ship review:" runs
+`python3 scripts/agent_guards.py comment` from
+.github/workflows/guards-comment.yml. That reruns the completed guards job
+on the head sha, or posts a check run named guards on that sha when the job
+is not there. GitHub reads issue_comment workflows from the default branch.
 """
 
 from __future__ import annotations
@@ -32,6 +41,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -70,6 +80,10 @@ FINDING_LINE = re.compile(r"^\s*\d+\.\s+\S")
 RESOLVED_WORD = re.compile(r"(?i)\b(?:resolved|addressed)\b")
 SHA_TOKEN = re.compile(r"\b[0-9a-fA-F]{7,40}\b")
 LGTM_MIN_DELAY = timedelta(minutes=10)
+HEAD_CLOCK_EVENTS = frozenset({"pull_request", "push"})
+GUARDS_JOB_PENDING = frozenset({"queued", "in_progress", "waiting", "pending", "requested"})
+RECHECK_WAIT_SECONDS = 300
+RECHECK_POLL_SECONDS = 15
 OUTPUT_SIGNAL = re.compile(
     r"(passed|failed|error|ruff|pytest|tsc|vitest|pnpm|ticket_prereqs|\bOK\b|collected|Ran \d+ test)",
     re.I,
@@ -346,7 +360,78 @@ def note_kind(body: str) -> str | None:
 
 
 def numbered_findings(body: str) -> int:
-    return sum(1 for line in body.splitlines() if FINDING_LINE.match(line))
+    count = 0
+    inside_fence = False
+    for line in body.splitlines():
+        if line.strip().startswith("```"):
+            inside_fence = not inside_fence
+            continue
+        if inside_fence:
+            continue
+        if FINDING_LINE.match(line):
+            count += 1
+    return count
+
+
+def ship_review_comment(body: str) -> bool:
+    return first_line(body).lower().startswith("ship review:")
+
+
+def earliest_head_clock(runs: list[dict]) -> datetime | None:
+    stamps: list[datetime] = []
+    for run in runs:
+        if run.get("event") not in HEAD_CLOCK_EVENTS:
+            continue
+        stamp = run.get("created_at")
+        if not stamp:
+            continue
+        stamps.append(parse_time(stamp))
+    if not stamps:
+        return None
+    return min(stamps)
+
+
+def latest_completed_guards_job(jobs: list[dict]) -> int | None:
+    found: list[tuple[datetime, int]] = []
+    for job in jobs:
+        if job.get("name") != "guards" or job.get("status") != "completed":
+            continue
+        stamp = job.get("completed_at")
+        job_id = job.get("id")
+        if not stamp or job_id is None:
+            continue
+        found.append((parse_time(stamp), int(job_id)))
+    if not found:
+        return None
+    return max(found)[1]
+
+
+def guards_job_pending(jobs: list[dict]) -> bool:
+    return any(
+        job.get("name") == "guards" and job.get("status") in GUARDS_JOB_PENDING
+        for job in jobs
+    )
+
+
+def choose_recheck(jobs: list[dict], runs: list[dict] | None = None) -> tuple[str, int | None]:
+    if guards_job_pending(jobs):
+        return "wait", None
+    job_id = latest_completed_guards_job(jobs)
+    if job_id is not None:
+        return "rerun", job_id
+    if runs is None:
+        return "post", None
+    if earliest_head_clock(runs) is None:
+        return "wait", None
+    ci_still_open = any(
+        run.get("event") == "pull_request"
+        and run.get("name") == "ci"
+        and run.get("status") != "completed"
+        for run in runs
+    )
+    if ci_still_open:
+        return "wait", None
+    return "post", None
 
 
 def mentions_review(lgtm_body: str, changes_body: str) -> bool:
@@ -360,15 +445,10 @@ def mentions_review(lgtm_body: str, changes_body: str) -> bool:
 
 
 def void_reason(note: ReviewNote, head_time: datetime, earlier: list[ReviewNote]) -> str | None:
-    if note.created_at < head_time:
-        return (
-            "ship review: LGTM is older than the head commit. "
-            "Review the current head."
-        )
     if note.created_at - head_time < LGTM_MIN_DELAY:
         return (
-            "ship review: LGTM was posted less than 10 minutes after the head commit. "
-            "Wait 10 minutes after the head committer time."
+            "ship review: LGTM was posted less than 10 minutes after GitHub recorded the head. "
+            "Wait 10 minutes after the earliest pull_request or push workflow run."
         )
     changes = [item for item in earlier if item.kind == "changes" and item.created_at < note.created_at]
     if not changes:
@@ -388,18 +468,11 @@ def void_reason(note: ReviewNote, head_time: datetime, earlier: list[ReviewNote]
 
 
 def check_lgtm_notes(notes: list[ReviewNote], head_time: datetime) -> list[Finding]:
-    lgtms = [note for note in notes if note.kind == "lgtm"]
-    if not lgtms:
-        return []
-    on_head = [note for note in lgtms if note.created_at >= head_time]
+    on_head = [
+        note for note in notes if note.kind == "lgtm" and note.created_at >= head_time
+    ]
     if not on_head:
-        return [
-            Finding(
-                "ship-review",
-                "LGTM",
-                "ship review: LGTM is older than the head commit. Review the current head.",
-            )
-        ]
+        return []
     reasons = [void_reason(note, head_time, notes) for note in on_head]
     if any(reason is None for reason in reasons):
         return []
@@ -456,9 +529,6 @@ def fetch_pull_request(repo: str, number: int) -> tuple[str, list[ReviewNote], d
         pullRequest(number: $n) {
           body
           headRefOid
-          commits(last: 1) {
-            nodes { commit { oid committedDate } }
-          }
           comments(first: 100) { nodes { createdAt body } }
           reviews(first: 100) { nodes { createdAt submittedAt body } }
         }
@@ -490,17 +560,146 @@ def fetch_pull_request(repo: str, number: int) -> tuple[str, list[ReviewNote], d
         stamp = node.get("submittedAt") or node.get("createdAt")
         notes.append(ReviewNote(kind, node.get("body") or "", parse_time(stamp)))
     head_oid = pull["headRefOid"]
-    commit_nodes = pull["commits"]["nodes"]
-    head_time: datetime | None = None
-    if commit_nodes and commit_nodes[0]["commit"]["oid"] == head_oid:
-        head_time = parse_time(commit_nodes[0]["commit"]["committedDate"])
-    if head_time is None:
-        commit_raw = subprocess.check_output(
-            ["gh", "api", f"repos/{repo}/commits/{head_oid}", "--jq", ".commit.committer.date"],
+    return pull.get("body") or "", notes, fetch_head_clock(repo, head_oid)
+
+
+def fetch_workflow_runs(repo: str, sha: str) -> list[dict]:
+    runs: list[dict] = []
+    page = 1
+    while page <= 20:
+        raw = subprocess.check_output(
+            [
+                "gh",
+                "api",
+                f"repos/{repo}/actions/runs?head_sha={sha}&per_page=100&page={page}",
+            ],
             text=True,
         )
-        head_time = parse_time(commit_raw.strip().strip('"'))
-    return pull.get("body") or "", notes, head_time
+        payload = json.loads(raw)
+        batch = payload.get("workflow_runs") or []
+        runs.extend(batch)
+        if len(batch) < 100:
+            break
+        page += 1
+    return runs
+
+
+def fetch_head_clock(repo: str, sha: str) -> datetime:
+    clock = earliest_head_clock(fetch_workflow_runs(repo, sha))
+    if clock is None:
+        raise SystemExit(
+            "::error::No GitHub Actions pull_request or push run for the head. "
+            "The guard clock is that run's created_at, not the committer date."
+        )
+    return clock
+
+
+def pull_request_ci_jobs(repo: str, runs: list[dict]) -> list[dict]:
+    jobs: list[dict] = []
+    for run in runs:
+        if run.get("event") != "pull_request" or run.get("name") != "ci" or run.get("id") is None:
+            continue
+        raw = subprocess.check_output(
+            ["gh", "api", f"repos/{repo}/actions/runs/{run['id']}/jobs?per_page=100"],
+            text=True,
+        )
+        jobs.extend(json.loads(raw).get("jobs") or [])
+    return jobs
+
+
+def fetch_head_identity(repo: str, number: int) -> tuple[str, str]:
+    raw = subprocess.check_output(
+        [
+            "gh",
+            "pr",
+            "view",
+            str(number),
+            "--repo",
+            repo,
+            "--json",
+            "headRefOid,headRepository,headRepositoryOwner",
+        ],
+        text=True,
+    )
+    payload = json.loads(raw)
+    owner = payload["headRepositoryOwner"]["login"]
+    name = payload["headRepository"]["name"]
+    return payload["headRefOid"], f"{owner}/{name}"
+
+
+def post_check_run(repo: str, sha: str, findings: list[Finding]) -> None:
+    if findings:
+        conclusion = "failure"
+        title = "guards FAIL"
+        summary = "\n".join(item.format() for item in findings)
+    else:
+        conclusion = "success"
+        title = "guards OK"
+        summary = "guards OK"
+    subprocess.check_call(
+        [
+            "gh",
+            "api",
+            "--method",
+            "POST",
+            f"repos/{repo}/check-runs",
+            "-f",
+            "name=guards",
+            "-f",
+            f"head_sha={sha}",
+            "-f",
+            "status=completed",
+            "-f",
+            f"conclusion={conclusion}",
+            "-f",
+            f"output[title]={title}",
+            "-f",
+            f"output[summary]={summary}",
+        ]
+    )
+
+
+def rerun_guards_job(repo: str, job_id: int) -> bool:
+    result = subprocess.run(
+        ["gh", "api", "--method", "POST", f"repos/{repo}/actions/jobs/{job_id}/rerun"],
+        text=True,
+        capture_output=True,
+    )
+    return result.returncode == 0
+
+
+def recheck_comment(repo: str, number: int, body: str) -> int:
+    if not ship_review_comment(body):
+        print("guards comment skipped")
+        return 0
+    head_sha, head_repo = fetch_head_identity(repo, number)
+    if head_repo != repo:
+        print("guards comment skipped")
+        return 0
+    deadline = time.monotonic() + RECHECK_WAIT_SECONDS
+    while True:
+        runs = fetch_workflow_runs(repo, head_sha)
+        jobs = pull_request_ci_jobs(repo, runs)
+        action, job_id = choose_recheck(jobs, runs)
+        if action == "wait" and time.monotonic() < deadline:
+            time.sleep(RECHECK_POLL_SECONDS)
+            continue
+        if action == "wait":
+            print("::error::The guards job did not finish in time. Not posting a second check.")
+            return 1
+        if action == "rerun" and job_id is not None and rerun_guards_job(repo, job_id):
+            print(f"guards rerun {job_id} {head_sha}")
+            return 0
+        if earliest_head_clock(runs) is None:
+            print(
+                "::error::No GitHub Actions pull_request or push run for the head. "
+                "Not posting a check."
+            )
+            return 1
+        findings = check_pull_request(repo, number)
+        post_check_run(repo, head_sha, findings)
+        print(f"guards check posted {head_sha}")
+        return 0
 
 
 def check_pull_request(repo: str, number: int) -> list[Finding]:
@@ -525,7 +724,13 @@ def main(argv: list[str]) -> int:
     if command == "pr":
         number = int(os.environ.get("PR_NUMBER") or argv[2])
         return report(check_tree(ROOT) + check_pull_request(repo_slug(), number))
-    print("Uso: python3 scripts/agent_guards.py tree|pr", file=sys.stderr)
+    if command == "comment":
+        number = os.environ.get("PR_NUMBER")
+        if not number:
+            print("PR_NUMBER is required", file=sys.stderr)
+            return 2
+        return recheck_comment(repo_slug(), int(number), os.environ.get("COMMENT_BODY", ""))
+    print("Uso: python3 scripts/agent_guards.py tree|pr|comment", file=sys.stderr)
     return 2
 
 

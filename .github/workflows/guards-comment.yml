@@ -1,0 +1,29 @@
+name: guards-comment
+
+on:
+  issue_comment:
+    types: [created]
+
+concurrency:
+  group: guards-comment-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  recheck:
+    name: guards-comment
+    if: github.event.issue.pull_request != null
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      actions: write
+      checks: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Re-evaluate ship review on the head
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+        run: python3 scripts/agent_guards.py comment
