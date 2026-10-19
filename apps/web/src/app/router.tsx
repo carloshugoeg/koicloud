@@ -100,6 +100,11 @@ export const appRoutes: RouteObject[] = [
             handle: { title: "Consola SQL" } satisfies RouteHandle,
           },
           {
+            path: "ponds/:pondId/consola",
+            element: <SqlConsolePage />,
+            handle: { title: "Consola SQL" } satisfies RouteHandle,
+          },
+          {
             path: "ponds/:pondId/backups",
             element: <BackupsPage />,
             handle: { title: "Respaldos" } satisfies RouteHandle,
