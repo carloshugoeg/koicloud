@@ -172,6 +172,7 @@ button:disabled {
 @keyframes koi-swim { to { background-position-x: -512px; } }
 @keyframes koi-swim-x2 { to { background-position-x: -1024px; } }
 @keyframes pond-pan-auth { to { background-position-x: -400px; } }
+@keyframes pond-pan-hero { to { background-position-x: -480px; } }
 @keyframes koi-drift {
   0%, 100% { transform: translate(0, 0) scaleX(1); }
   45% { transform: translate(48px, -16px) scaleX(1); }
@@ -183,6 +184,12 @@ button:disabled {
   background: url("/koi/pond-water-auth.png") 0 0 / 400px 520px repeat;
   image-rendering: pixelated;
   animation: pond-pan-auth 110s linear infinite;
+}
+
+.pond-water-hero {
+  background: url("/koi/pond-water-hero.png") 0 0 / 480px 320px repeat;
+  image-rendering: pixelated;
+  animation: pond-pan-hero 72s linear infinite;
 }
 .koi {
   width: 64px; height: 64px;
