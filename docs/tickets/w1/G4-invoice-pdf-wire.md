@@ -2,7 +2,7 @@
 id: G4
 workstream: W1
 persona: Carlos
-estado: en_revision
+estado: hecho
 rama: w1-g4-invoice-pdf-wire
 epica: "E2-03"
 sprint: S3

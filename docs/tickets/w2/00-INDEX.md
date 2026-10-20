@@ -12,10 +12,10 @@ el agente lo ignora.
 | W2-04 | Dashboard de ponds (lista y estados) | `w2-dashboard-ponds` | hecho ([PR #52](https://github.com/carloshugoeg/koicloud/pull/52)) |
 | W2-05 | Crear pond (diálogo de configuración) | `w2-crear-pond` | hecho ([PR #63](https://github.com/carloshugoeg/koicloud/pull/63)) |
 | W2-06 | Detalle del pond y cadena de conexión | `w2-detalle-pond` | hecho ([PR #57](https://github.com/carloshugoeg/koicloud/pull/57)) |
-| W2-07 | Consola SQL (editor y tabla de resultados) | `w2-consola-sql` | en-revision ([PR #81](https://github.com/carloshugoeg/koicloud/pull/81)) |
+| W2-07 | Consola SQL (editor y tabla de resultados) | `w2-consola-sql` | hecho ([PR #81](https://github.com/carloshugoeg/koicloud/pull/81)) |
 | W2-08 | Respaldos: lista y restauración | `w2-respaldos` | hecho ([PR #56](https://github.com/carloshugoeg/koicloud/pull/56)) |
 | W2-09 | Uso del mes e historial de facturas | `w2-uso-y-facturas` | hecho ([PR #51](https://github.com/carloshugoeg/koicloud/pull/51)) |
-| W2-10 | Panel administrador (tres tablas) | `w2-panel-admin` | en_revision ([PR #85](https://github.com/carloshugoeg/koicloud/pull/85)) |
+| W2-10 | Panel administrador (tres tablas) | `w2-panel-admin` | hecho ([PR #85](https://github.com/carloshugoeg/koicloud/pull/85)) |
 | W2-11 | Acceso agente: revelar y rotar | `w2-acceso-agente` | hecho ([PR #79](https://github.com/carloshugoeg/koicloud/pull/79)) |
 | W2-12 | Layout, tema, estados vacíos y responsive a 360 px | `w2-tema-y-estados` | abierto |
 | W2-13 | Landing pública y catálogo de planes | `w2-landing-publica` | en-revision ([PR #89](https://github.com/carloshugoeg/koicloud/pull/89); dueño Jousé `@Josh-JM`, excepción `apps/web` aprobada por Carlos) |

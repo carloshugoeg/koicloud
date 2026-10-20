@@ -6,7 +6,7 @@ estado: hecho
 rama: w3-recuperar-password
 epica: "E1-04"
 sprint: S3
-pr:
+pr: "#40"
 depends_on: W1-15 W3-01
 ---
 

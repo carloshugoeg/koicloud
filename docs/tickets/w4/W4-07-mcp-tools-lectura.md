@@ -2,7 +2,7 @@
 id: W4-07
 workstream: W4
 persona: Diego
-estado: en_revision
+estado: hecho
 rama: w4-mcp-tools-lectura
 epica: "E9-02, E5-03, E7-04"
 sprint: S4

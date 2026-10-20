@@ -2,7 +2,7 @@
 id: W3-10
 workstream: W3
 persona: Jousé
-estado: en_revision
+estado: hecho
 rama: w3-facturas-detalle
 epica: "E2-03"
 sprint: S4

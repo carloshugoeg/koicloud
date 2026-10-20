@@ -2,7 +2,7 @@
 id: W3-12
 workstream: W3
 persona: Jousé
-estado: en_revision
+estado: hecho
 rama: w3-admin-ponds-bitacora
 epica: "E8-02, E8-04"
 sprint: S4
