@@ -2,7 +2,7 @@
 id: W4-10
 workstream: W4
 persona: Diego
-estado: en-revision
+estado: hecho
 rama: w4-manual-usuario
 epica: "E10-05"
 sprint: S5
