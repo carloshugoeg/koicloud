@@ -2,11 +2,11 @@
 id: W4-10
 workstream: W4
 persona: Diego
-estado: abierto
+estado: en-revision
 rama: w4-manual-usuario
 epica: "E10-05"
 sprint: S5
-pr:
+pr: "https://github.com/carloshugoeg/koicloud/pull/92"
 ---
 
 # [W4-10] Manual de usuario (PDF)
