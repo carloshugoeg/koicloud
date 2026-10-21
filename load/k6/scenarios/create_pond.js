@@ -1,43 +1,42 @@
 import http from "k6/http";
 import { check } from "k6";
-import { baseUrl, demoCredentials, rnf01Thresholds, twentyVu } from "../lib/config.js";
+import { config, recordSample, scenarioMetrics, scenarioOptions } from "../lib/config.js";
+import { accessToken, postLogin } from "../lib/session.js";
 
-export const options = {
-  ...twentyVu,
-  thresholds: rnf01Thresholds,
-};
+const metrics = scenarioMetrics("create_pond");
+
+export const options = scenarioOptions("create_pond");
+
+const ACCEPTED = [200, 201, 202, 409];
 
 export function setup() {
-  const creds = demoCredentials();
-  const res = http.post(
-    `${baseUrl()}/api/v1/auth/login`,
-    JSON.stringify({ email: creds.email, password: creds.password }),
-    { headers: { "Content-Type": "application/json", "X-KOI-Surface": "web" } },
-  );
-  if (res.status !== 200) {
-    throw new Error(`setup login failed: ${res.status} ${res.body}`);
-  }
-  return { token: JSON.parse(res.body).access_token };
+  return { token: accessToken(postLogin("setup_login")) };
 }
 
-/**
- * Measures POST /api/v1/ponds (propose). 202 (created) or 409 (confirmation_required)
- * are success for latency. Does not confirm or provision.
- */
+function pondName() {
+  const vu = String(__VU).padStart(2, "0");
+  const iter = String(__ITER).padStart(4, "0");
+  const tick = Date.now().toString(36);
+  return `k6-${vu}-${iter}-${tick}`.slice(0, 40);
+}
+
 export default function (data) {
-  const name = `k6-${__VU}-${__ITER}-${Date.now()}`;
   const res = http.post(
-    `${baseUrl()}/api/v1/ponds`,
-    JSON.stringify({ name, engine_version: "16" }),
+    `${config.origin}/api/v1/ponds`,
+    JSON.stringify({ name: pondName(), engine_version: "16" }),
     {
       headers: {
         Authorization: `Bearer ${data.token}`,
         "Content-Type": "application/json",
-        "X-KOI-Surface": "web",
+        "X-KOI-Surface": "cli",
       },
+      tags: { step: "create_pond" },
+      responseCallback: http.expectedStatuses(200, 201, 202, 409),
     },
   );
+  const ok = ACCEPTED.includes(res.status);
+  recordSample(metrics, res, ok);
   check(res, {
-    "create_pond propose 202 or 409": (r) => r.status === 202 || r.status === 409,
+    "create_pond 200, 201, 202, or 409": () => ok,
   });
 }

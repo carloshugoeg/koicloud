@@ -13,7 +13,7 @@ el agente lo ignora.
 | W4-05 | CLI `confirm` / `confirm cancel` y salida `-o json` | `w4-cli-confirm` | hecho ([PR #76](https://github.com/carloshugoeg/koicloud/pull/76)) |
 | W4-06 | Módulo `sql_console`: router e historial | `w4-sql-console-router` | hecho ([PR #78](https://github.com/carloshugoeg/koicloud/pull/78)) |
 | W4-07 | Seis tools MCP de **solo lectura** | `w4-mcp-tools-lectura` | hecho ([PR #86](https://github.com/carloshugoeg/koicloud/pull/86)) |
-| W4-08 | k6: `login`, `list_ponds`, `create_pond` | `w4-k6` | abierto |
+| W4-08 | k6: `login`, `list_ponds`, `create_pond` | `w4-k6` | en-revision ([PR #91](https://github.com/carloshugoeg/koicloud/pull/91)) |
 | W4-09 | `scripts/demo-mcp-replay.py` (repetición determinista) | `w4-demo-replay` | abierto |
 | W4-10 | Manual de usuario (PDF) | `w4-manual-usuario` | abierto |
 | W4-11 | Manual técnico (PDF) | `w4-manual-tecnico` | hecho ([PR #60](https://github.com/carloshugoeg/koicloud/pull/60)) |

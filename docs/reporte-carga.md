@@ -1,48 +1,38 @@
-# Reporte de carga (k6)
+# Reporte de carga
 
-Documento de evidencia para **E10-04 / W4-08**. Los scripts viven en [`load/k6/`](../load/k6/).
+La fecha del documento es 2026-10-21.
 
-## Contexto de ejecución
+## Ambiente
 
-| Campo | Valor |
-|-------|--------|
-| Fecha (UTC) | 2026-10-21 (scripts aterrizados; **corrida VPS pendiente**) |
-| Commit de los scripts | `075b97e` (actualizar tras la corrida real) |
-| Escenarios | `login`, `list_ponds`, `create_pond` |
-| Umbral RNF-01 | p95 `< 500 ms` con **20** VUs; `http_req_failed < 1%` |
-| Target | `BASE_URL` (VPS demo o API local) |
+No hay corrida contra la API. En esta máquina `http://127.0.0.1:8000` no respondió. La corrida del VPS no se hizo.
 
-## Bloqueo: corrida sobre VPS
+blocked: VPS URL+secrets Carlos
 
-La evidencia numérica contra el VPS de demo **espera a Carlos** (host, dominio y secretos de W1-13).
-Este PR no despliega ni inventa percentiles.
+Este archivo no inventa percentiles. El commit de una corrida no existe porque no hubo corrida.
 
-Cuando el VPS esté listo:
+Umbral RNF-01, sin relajarlo. p95 de la métrica del escenario menor que 500 ms, 20 VUs, 30 s, y tasa de error del escenario igual a 0. Hace falta al menos una muestra. Los estados 200, 201, 202 y 409 de `create_pond` no cuentan como error. El script no envía token de confirmación.
 
-```bash
-export BASE_URL=https://<KOICLOUD_DOMAIN>
-export KOI_EMAIL=demo@koicloud.dev
-export KOI_PASSWORD='…'   # seed / secreto de demo, no en el repo
-bash load/k6/run-all.sh
-```
-
-Pegá debajo los `*.summary.json` de `load/k6/results/<stamp>-<commit>/`.
-
-## Resultados (pendientes de VPS)
-
-| Escenario | p95 (ms) | errores | threshold |
-|-----------|----------|---------|-----------|
-| login | — | — | pendiente VPS |
-| list_ponds | — | — | pendiente VPS |
-| create_pond | — | — | pendiente VPS |
-
-Si RNF-01 falla en la corrida real, **no** se relajan umbrales: se deja la salida cruda aquí.
-
-## Runbooks operativos (W4-12)
-
-El ticket W4-12 pide además `docs/runbooks/free-disk.md`, `restart-agent.md` y `rollback-migration.md`.
-`restart-agent.md` ya está en `main`. Las otras dos rutas son **propiedad W1** en el job `ownership`; una rama `w4-` no puede crearlas sin etiqueta `cross-workstream` (prohibida en este corte). Quedan como seguimiento W1 / Carlos.
+| Escenario | Métrica | p95 | Errores | Umbral |
+|-----------|---------|-----|---------|--------|
+| login | `login_duration` | sin corrida | sin corrida | sin corrida |
+| list_ponds | `list_ponds_duration` | sin corrida | sin corrida | sin corrida |
+| create_pond | `create_pond_duration` | sin corrida | sin corrida | sin corrida |
 
 ## Cómo regenerar
 
-Ver [`load/k6/README.md`](../load/k6/README.md).
+Contra la API local, con el stack ya levantado:
+
+```bash
+export BASE_URL=http://127.0.0.1:8000
+export KOI_EMAIL=demo@koicloud.dev
+export KOI_PASSWORD='Sup3rSegura!2026'
+bash load/k6/run-all.sh
+```
+
+Para el VPS, Carlos define `BASE_URL`. Pega aquí el `p(95)` de cada `summary.json`, la tasa de error y si el umbral pasó. Si RNF-01 falla, deja la salida cruda y no bajes el límite de 500 ms.
+
+El detalle de las métricas está en [`load/k6/README.md`](../load/k6/README.md).
+
+## Runbooks
+
+W4-12 pide `docs/runbooks/free-disk.md`, ampliar `docs/runbooks/restart-agent.md` y crear `docs/runbooks/rollback-migration.md`. Esas rutas esperan un PR `w1-`. `docs/runbooks/**` es ownership de W1. Esta rama no las crea.

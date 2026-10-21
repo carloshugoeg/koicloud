@@ -1,37 +1,59 @@
-# k6 load scenarios (W4-08)
+# Cómo correr los escenarios k6
 
-Three demo-path scenarios against a configured API origin:
+Tres escenarios miden las rutas de demo y dejan un JSON con percentiles y el resultado del umbral.
 
-| Script | Route | Success |
-|--------|-------|---------|
-| `scenarios/login.js` | `POST /api/v1/auth/login` | 200 + `access_token` |
-| `scenarios/list_ponds.js` | `GET /api/v1/ponds` | 200 |
-| `scenarios/create_pond.js` | `POST /api/v1/ponds` | 202 or 409 (propose only) |
+| Escenario | Ruta | Métrica | Muestra válida |
+|-----------|------|---------|----------------|
+| `login` | `POST /api/v1/auth/login` | `login_duration` | 200 con `access_token` |
+| `list_ponds` | `GET /api/v1/ponds` | `list_ponds_duration` | 200 |
+| `create_pond` | `POST /api/v1/ponds` | `create_pond_duration` | 200, 201, 202 o 409 |
 
-## Thresholds (RNF-01)
+El percentil para el reporte está en `metrics.<métrica>.values` del `summary.json`, campo `p(95)`.
 
-- 20 VUs for 30 s
-- `http_req_duration` p95 `< 500` ms
-- `http_req_failed` rate `< 1%`
+## Umbral
 
-Do not relax thresholds if they fail. Capture the summary and record the failure in `docs/reporte-carga.md`.
+RNF-01 pide p95 menor que 500 ms con 20 VUs. El valor por defecto es 20 VUs durante 30 s. La tasa de error del escenario tiene que ser 0. No bajes el límite de 500 ms si la corrida falla.
 
-## Environment
+`K6_VUS` y `K6_DURATION` cambian el tamaño de la corrida. No cambian el límite de 500 ms. Una corrida con otros valores no sirve como evidencia de RNF-01.
 
-| Variable | Required | Default |
-|----------|----------|---------|
-| `BASE_URL` | yes | — (e.g. `http://127.0.0.1:8000`) |
+Sin `BASE_URL` el script aborta al arrancar. Una corrida sin muestras también falla el umbral `count>0` de `<escenario>_samples`.
+
+## Variables
+
+| Variable | Obligatoria | Si falta |
+|----------|-------------|----------|
+| `BASE_URL` | sí | la corrida aborta |
 | `KOI_EMAIL` | no | `demo@koicloud.dev` |
-| `KOI_PASSWORD` | no | seed password from README |
+| `KOI_PASSWORD` | no | la contraseña demo de `README.md` |
 
-## Run
+`BASE_URL` es el origen. Un ejemplo es `http://127.0.0.1:8000`. El script quita la barra final. Si el valor termina en `/api/v1`, el script también lo quita.
+
+## Correr los tres
 
 ```bash
-# one scenario
-BASE_URL=http://127.0.0.1:8000 k6 run load/k6/scenarios/login.js
-
-# all three + JSON under load/k6/results/<stamp>-<commit>/
-BASE_URL=http://127.0.0.1:8000 bash load/k6/run-all.sh
+export BASE_URL=http://127.0.0.1:8000
+export KOI_EMAIL=demo@koicloud.dev
+export KOI_PASSWORD='Sup3rSegura!2026'
+bash load/k6/run-all.sh
 ```
 
-VPS demo URL and secrets are owned by W1 (ticket W1-13). Agents do not deploy.
+Un escenario solo:
+
+```bash
+export BASE_URL=http://127.0.0.1:8000
+k6 run load/k6/scenarios/login.js
+```
+
+`run-all.sh` escribe `load/k6/results/<fecha>-<commit>/`. Cada escenario deja `<escenario>.summary.json` y el directorio deja `commit.txt` con el SHA completo. Si un umbral falla, k6 sale con error y el script sigue con el siguiente escenario. Al final el script sale con error si alguno falló.
+
+Commitea ese directorio solo después de una corrida contra la API real. No commitees la salida de un stub.
+
+## create_pond
+
+El escenario envía `X-KOI-Surface: cli`. La API responde 409 `confirmation_required` y no crea el pond. El script no envía `X-KOI-Confirm-Token` y no llama a confirm. 200, 201, 202 y 409 cuentan como muestra de latencia. Cualquier otro estado cuenta como error.
+
+`list_ponds` y `create_pond` hacen login una vez en `setup`. Esa llamada no entra en la métrica del escenario.
+
+## VPS
+
+No despliegues desde este directorio. La URL del VPS y los secretos los tiene Carlos.
