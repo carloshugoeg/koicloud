@@ -15,7 +15,7 @@ el agente lo ignora.
 | W4-07 | Seis tools MCP de **solo lectura** | `w4-mcp-tools-lectura` | hecho ([PR #86](https://github.com/carloshugoeg/koicloud/pull/86)) |
 | W4-08 | k6: `login`, `list_ponds`, `create_pond` | `w4-k6` | abierto |
 | W4-09 | `scripts/demo-mcp-replay.py` (repetición determinista) | `w4-demo-replay` | abierto |
-| W4-10 | Manual de usuario (PDF) | `w4-manual-usuario` | en-revision ([PR #92](https://github.com/carloshugoeg/koicloud/pull/92)) |
+| W4-10 | Manual de usuario (PDF) | `w4-manual-usuario` | abierto |
 | W4-11 | Manual técnico (PDF) | `w4-manual-tecnico` | hecho ([PR #60](https://github.com/carloshugoeg/koicloud/pull/60)) |
 | W4-12 | Reporte de carga y tres runbooks | `w4-reporte-carga` | abierto |
 
