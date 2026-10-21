@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Replay the sealed MCP demo for inventario-natural against POST /mcp."""
+"""Replay the sealed MCP demo for inventario-natural against POST /mcp.
+
+Speaks FastMCP streamable HTTP: initialize → notifications/initialized,
+Mcp-Session-Id, Accept: application/json, text/event-stream, and unwraps
+CallToolResult.structuredContent.
+"""
 
 from __future__ import annotations
 
@@ -16,7 +21,10 @@ from typing import Any
 
 POND_NAME = "inventario-natural"
 READ_SQL = "SELECT now()"
-ACTIVE_OBSERVED = frozenset({"pending", "provisioning", "restoring", "deleting"})
+PROTOCOL_VERSION = "2024-11-05"
+RUNNING = "running"
+GONE = frozenset({None})
+BUSY = frozenset({"pending", "provisioning", "restoring", "deleting"})
 
 
 class ReplayError(Exception):
@@ -103,7 +111,7 @@ def load_settings(argv: list[str] | None) -> Settings:
         password=_env("KOICLOUD_MCP_PASSWORD", "koicloud-demo"),
         simulate=args.simulate_chat,
         poll_s=_float_env("KOICLOUD_REPLAY_POLL_S", "2"),
-        wait_s=_float_env("KOICLOUD_REPLAY_WAIT_S", "45"),
+        wait_s=_float_env("KOICLOUD_REPLAY_WAIT_S", "90"),
     )
 
 
@@ -126,53 +134,155 @@ def _float_env(name: str, default: str) -> float:
 
 
 class McpClient:
+    """Minimal streamable-HTTP MCP client for tools/call."""
+
     def __init__(self, settings: Settings) -> None:
         self.url = mcp_url(settings.base_url)
         token = base64.b64encode(f"{settings.slug}:{settings.password}".encode()).decode("ascii")
         self._auth = f"Basic {token}"
         self._id = 0
+        self._session: str | None = None
+        self._opened = False
+
+    def open(self) -> None:
+        if self._opened:
+            return
+        result = self._rpc(
+            "initialize",
+            {
+                "protocolVersion": PROTOCOL_VERSION,
+                "capabilities": {},
+                "clientInfo": {"name": "koicloud-demo-mcp-replay", "version": "1"},
+            },
+            notification=False,
+        )
+        if not isinstance(result, dict) or "serverInfo" not in result:
+            raise ReplayError("bad_initialize", "initialize no devolvió serverInfo")
+        self._rpc("notifications/initialized", {}, notification=True)
+        self._opened = True
 
     def call(self, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
-        self._id += 1
-        payload = {
-            "jsonrpc": "2.0",
-            "id": self._id,
-            "method": "tools/call",
-            "params": {"name": name, "arguments": arguments},
+        self.open()
+        result = self._rpc(
+            "tools/call",
+            {"name": name, "arguments": arguments},
+            notification=False,
+        )
+        return unwrap_tool_result(result)
+
+    def _rpc(self, method: str, params: dict[str, Any], *, notification: bool) -> Any:
+        payload: dict[str, Any] = {"jsonrpc": "2.0", "method": method, "params": params}
+        if not notification:
+            self._id += 1
+            payload["id"] = self._id
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json, text/event-stream",
+            "Authorization": self._auth,
+            "MCP-Protocol-Version": PROTOCOL_VERSION,
         }
+        if self._session:
+            headers["Mcp-Session-Id"] = self._session
         request = urllib.request.Request(
             self.url,
             data=json.dumps(payload).encode(),
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": self._auth,
-            },
+            headers=headers,
             method="POST",
         )
         try:
-            with urllib.request.urlopen(request, timeout=30) as response:
-                raw = response.read().decode()
+            with urllib.request.urlopen(request, timeout=60) as response:
                 status = response.status
+                ctype = response.headers.get("Content-Type", "")
+                session = response.headers.get("Mcp-Session-Id") or response.headers.get(
+                    "mcp-session-id"
+                )
+                if isinstance(session, str) and session:
+                    self._session = session
+                raw = response.read().decode()
         except urllib.error.HTTPError as exc:
             detail = exc.read().decode(errors="replace")
             raise _http_error(exc.code, detail) from exc
         except urllib.error.URLError as exc:
             raise ReplayError("unreachable", f"no pude conectar con {self.url}") from exc
-        if status != 200:
+        if status not in {200, 202}:
             raise _http_error(status, raw)
-        try:
-            body = json.loads(raw)
-        except json.JSONDecodeError as exc:
-            raise ReplayError("bad_json", "POST /mcp no devolvió JSON") from exc
-        if not isinstance(body, dict):
-            raise ReplayError("bad_json", "POST /mcp no devolvió un objeto")
+        if notification:
+            return None
+        body = _decode_rpc_body(raw, ctype)
         error = body.get("error")
         if error is not None:
             raise ReplayError("jsonrpc", _error_text(error))
-        result = body.get("result")
-        if not isinstance(result, dict):
-            raise ReplayError("bad_result", "el result de /mcp no es un objeto")
+        return body.get("result")
+
+
+def unwrap_tool_result(result: Any) -> dict[str, Any]:
+    """Turn a CallToolResult into the tool dict (structuredContent or parsed text)."""
+    if not isinstance(result, dict):
+        raise ReplayError("bad_result", "tools/call no devolvió un objeto")
+    if result.get("isError") is True:
+        raise ReplayError("tool_error", _tool_error_text(result))
+    structured = result.get("structuredContent")
+    if isinstance(structured, dict):
+        return structured
+    # Already unwrapped (legacy OpenAPI /mcp) — treat as tool payload if it looks like one.
+    if "content" not in result and "structuredContent" not in result:
         return result
+    content = result.get("content")
+    if isinstance(content, list):
+        for item in content:
+            if not isinstance(item, dict) or item.get("type") != "text":
+                continue
+            text = item.get("text")
+            if not isinstance(text, str) or text == "":
+                continue
+            try:
+                parsed = json.loads(text)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(parsed, dict):
+                return parsed
+        texts = [
+            item.get("text")
+            for item in content
+            if isinstance(item, dict) and isinstance(item.get("text"), str)
+        ]
+        if texts:
+            raise ReplayError("bad_result", f"no pude parsear structuredContent: {texts[0][:200]}")
+    raise ReplayError("bad_result", "CallToolResult sin structuredContent usable")
+
+
+def _tool_error_text(result: dict[str, Any]) -> str:
+    content = result.get("content")
+    if isinstance(content, list):
+        for item in content:
+            if isinstance(item, dict) and isinstance(item.get("text"), str):
+                return item["text"]
+    return "tools/call isError=true"
+
+
+def _decode_rpc_body(raw: str, ctype: str) -> dict[str, Any]:
+    text = raw.strip()
+    if "text/event-stream" in ctype or text.startswith("event:") or text.startswith("data:"):
+        text = _sse_json(text)
+    try:
+        body = json.loads(text)
+    except json.JSONDecodeError as exc:
+        raise ReplayError("bad_json", "POST /mcp no devolvió JSON") from exc
+    if not isinstance(body, dict):
+        raise ReplayError("bad_json", "POST /mcp no devolvió un objeto")
+    return body
+
+
+def _sse_json(raw: str) -> str:
+    data_lines: list[str] = []
+    for line in raw.splitlines():
+        if line.startswith("data:"):
+            data_lines.append(line[5:].lstrip())
+        elif line == "" and data_lines:
+            break
+    if not data_lines:
+        raise ReplayError("bad_sse", "SSE sin data")
+    return "\n".join(data_lines)
 
 
 def _http_error(status: int, raw: str) -> ReplayError:
@@ -239,12 +349,64 @@ def observed_state(pond: dict[str, Any]) -> str:
     return state
 
 
+def wait_until_running(settings: Settings, client: McpClient) -> dict[str, Any]:
+    deadline = time.monotonic() + settings.wait_s
+    told = False
+    while True:
+        pond = find_pond(client)
+        if pond is not None and observed_state(pond) == RUNNING:
+            return pond
+        state = observed_state(pond) if pond is not None else "missing"
+        if not told:
+            say(
+                settings,
+                "Asistente",
+                (
+                    f"El pond {POND_NAME} está en {state}. "
+                    "Espero a que quede running antes del SELECT."
+                ),
+            )
+            told = True
+        if time.monotonic() >= deadline:
+            raise ReplayError(
+                "pond_not_ready",
+                f"{POND_NAME} no llegó a running (último estado: {state})",
+            )
+        time.sleep(settings.poll_s)
+
+
+def wait_until_gone(settings: Settings, client: McpClient) -> None:
+    deadline = time.monotonic() + settings.wait_s
+    told = False
+    while True:
+        pond = find_pond(client)
+        if pond is None:
+            return
+        state = observed_state(pond)
+        if not told:
+            say(
+                settings,
+                "Asistente",
+                (
+                    f"El pond {POND_NAME} sigue en {state} tras el confirm de borrado. "
+                    "Espero a que desaparezca."
+                ),
+            )
+            told = True
+        if time.monotonic() >= deadline:
+            raise ReplayError(
+                "pond_left",
+                f"{POND_NAME} sigue existiendo después de borrarlo (estado {state})",
+            )
+        time.sleep(settings.poll_s)
+
+
 def wait_until_quiet(settings: Settings, client: McpClient) -> dict[str, Any] | None:
     deadline = time.monotonic() + settings.wait_s
     told = False
     while True:
         pond = find_pond(client)
-        if pond is None or observed_state(pond) not in ACTIVE_OBSERVED:
+        if pond is None or observed_state(pond) not in BUSY:
             return pond
         if not told:
             say(
@@ -326,6 +488,7 @@ def play_create(settings: Settings, client: McpClient, turn: Turn) -> None:
     for attempt in range(2):
         try:
             exchange(settings, client, turn.tool, arguments)
+            wait_until_running(settings, client)
             return
         except ReplayError as exc:
             if exc.code != "pond_name_taken" or attempt == 1:
@@ -339,6 +502,7 @@ def play_create(settings: Settings, client: McpClient, turn: Turn) -> None:
 
 
 def play_read(settings: Settings, client: McpClient, turn: Turn) -> None:
+    wait_until_running(settings, client)
     announce(settings, turn)
     arguments = dict(turn.arguments)
     say_tool(turn.tool, arguments)
@@ -363,6 +527,7 @@ def play_delete(settings: Settings, client: McpClient, turn: Turn, *, intro: boo
             return
         try:
             exchange(settings, client, turn.tool, arguments)
+            wait_until_gone(settings, client)
             return
         except ReplayError as exc:
             if exc.code != "pond_busy" or attempt == 1:
@@ -389,18 +554,16 @@ def drop_leftover(settings: Settings, client: McpClient, *, announce_reason: boo
         )
     delete = DEMO[2]
     play_delete(settings, client, delete, intro=False)
-    if find_pond(client) is not None:
-        raise ReplayError("pond_left", f"{POND_NAME} sigue existiendo después de borrarlo")
 
 
 def run(settings: Settings) -> None:
     client = McpClient(settings)
+    client.open()
     drop_leftover(settings, client, announce_reason=True)
     play_create(settings, client, DEMO[0])
     play_read(settings, client, DEMO[1])
     play_delete(settings, client, DEMO[2], intro=True)
-    if find_pond(client) is not None:
-        raise ReplayError("pond_left", f"{POND_NAME} sigue existiendo al final del guion")
+    wait_until_gone(settings, client)
 
 
 def main(argv: list[str] | None = None) -> int:

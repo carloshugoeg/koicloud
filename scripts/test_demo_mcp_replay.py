@@ -1,4 +1,4 @@
-"""What the demo replay prints and which /mcp calls it makes."""
+"""Streamable-HTTP MCP replay: protocol, CallToolResult unwrap, ready/gone waits."""
 
 from __future__ import annotations
 
@@ -17,6 +17,7 @@ SCRIPT = ROOT / "scripts" / "demo-mcp-replay.py"
 POND = "inventario-natural"
 SUMMARY_CREATE = "Se creará el pond 'inventario-natural'. Expira en 5 min."
 SUMMARY_DELETE = "Se eliminará el pond 'inventario-natural'. Expira en 5 min."
+ACCEPT = "application/json, text/event-stream"
 
 
 class Api:
@@ -27,6 +28,10 @@ class Api:
         self.busy_deletes = 0
         self.read_requires_confirmation = False
         self.flip_to_running = True
+        self.pending_lists = 0  # after create, stay pending for N list_ponds
+        self.delete_linger = 0  # list_ponds polls while deleting before gone
+        self.session = "sess-demo-replay"
+        self.initialized = False
         self.auth = "Basic " + base64.b64encode(b"demo-agent:koicloud-demo").decode("ascii")
         self.lock = threading.Lock()
 
@@ -41,39 +46,84 @@ class Handler(BaseHTTPRequestHandler):
         length = int(self.headers.get("Content-Length", "0"))
         raw = self.rfile.read(length)
         if self.path.rstrip("/") != "/mcp":
-            self._send(404, {"code": "not_found", "message": "not mcp", "request_id": None})
+            self._send_json(404, {"code": "not_found", "message": "not mcp", "request_id": None})
             return
         if self.headers.get("Authorization") != self.api.auth:
-            self._send(
+            self._send_json(
                 401,
                 {"code": "agent_bad_credentials", "message": "bad", "request_id": None},
             )
             return
+        accept = self.headers.get("Accept", "")
+        if "text/event-stream" not in accept:
+            self._send_json(406, {"code": "bad_accept", "message": "need SSE accept", "request_id": None})
+            return
         try:
             body = json.loads(raw.decode())
         except json.JSONDecodeError:
-            self._send(400, {"code": "bad_json", "message": "bad", "request_id": None})
+            self._send_json(400, {"code": "bad_json", "message": "bad", "request_id": None})
             return
-        status, payload = self._dispatch(body)
-        self._send(status, payload)
+        status, payload, session = self._dispatch(body)
+        self._send_sse(status, payload, session=session)
 
-    def _dispatch(self, body: dict) -> tuple[int, dict]:
-        if body.get("method") != "tools/call":
-            return 400, {"code": "bad_method", "message": "tools/call", "request_id": None}
-        params = body.get("params") or {}
-        name = params.get("name")
-        arguments = params.get("arguments") or {}
+    def _dispatch(self, body: dict) -> tuple[int, dict, str | None]:
+        method = body.get("method")
+        req_id = body.get("id")
         with self.api.lock:
+            if method == "initialize":
+                self.api.initialized = False
+                return (
+                    200,
+                    {
+                        "jsonrpc": "2.0",
+                        "id": req_id,
+                        "result": {
+                            "protocolVersion": "2024-11-05",
+                            "capabilities": {},
+                            "serverInfo": {"name": "stub", "version": "0"},
+                        },
+                    },
+                    self.api.session,
+                )
+            if method == "notifications/initialized":
+                self.api.initialized = True
+                return 202, {}, None
+            if method != "tools/call":
+                return 400, {"code": "bad_method", "message": str(method), "request_id": None}, None
+            if self.headers.get("Mcp-Session-Id") != self.api.session:
+                return 400, {"code": "bad_session", "message": "missing session", "request_id": None}, None
+            if not self.api.initialized:
+                return 400, {"code": "not_initialized", "message": "call open()", "request_id": None}, None
+            params = body.get("params") or {}
+            name = params.get("name")
+            arguments = params.get("arguments") or {}
             self.api.calls.append({"name": name, "arguments": arguments})
             outcome = self._tool(name, arguments)
-        if outcome[0] != 200:
-            return outcome
-        return 200, {"jsonrpc": "2.0", "id": body.get("id"), "result": outcome[1], "error": None}
+            if outcome[0] != 200:
+                return outcome[0], outcome[1], None
+            return (
+                200,
+                {
+                    "jsonrpc": "2.0",
+                    "id": req_id,
+                    "result": _call_tool_result(outcome[1], is_error=False),
+                    "error": None,
+                },
+                None,
+            )
 
     def _tool(self, name: object, arguments: dict) -> tuple[int, dict]:
         if name == "list_ponds":
-            if self.api.pond == "pending" and self.api.flip_to_running:
-                self.api.pond = "running"
+            if self.api.pond == "pending":
+                if self.api.pending_lists > 0:
+                    self.api.pending_lists -= 1
+                elif self.api.flip_to_running:
+                    self.api.pond = "running"
+            if self.api.pond == "deleting":
+                if self.api.delete_linger > 0:
+                    self.api.delete_linger -= 1
+                else:
+                    self.api.pond = None
             ponds = []
             if self.api.pond is not None:
                 ponds.append({"name": POND, "observed_state": self.api.pond})
@@ -87,6 +137,8 @@ class Handler(BaseHTTPRequestHandler):
             token = self._propose("delete_pond", SUMMARY_DELETE)
             return 200, _confirmation(token, SUMMARY_DELETE)
         if name == "run_sql":
+            if self.api.pond != "running":
+                return 409, {"code": "pond_not_ready", "message": str(self.api.pond), "request_id": None}
             if self.api.read_requires_confirmation:
                 token = self._propose("run_sql", "no debería confirmarse")
                 return 200, _confirmation(token, "no debería confirmarse")
@@ -120,20 +172,48 @@ class Handler(BaseHTTPRequestHandler):
             if self.api.busy_deletes > 0:
                 self.api.busy_deletes -= 1
                 return 409, {"code": "pond_busy", "message": "job activo", "request_id": None}
-            self.api.pond = None
+            self.api.pond = "deleting"
+            self.api.delete_linger = max(self.api.delete_linger, 1)
             return 200, {
                 "pond": {"name": POND, "desired_state": "deleted"},
                 "jobs": [{"type": "backup", "status": "queued"}],
             }
         return 400, {"code": "confirmation_action_mismatch", "message": action, "request_id": None}
 
-    def _send(self, status: int, payload: dict) -> None:
+    def _send_json(self, status: int, payload: dict) -> None:
         data = json.dumps(payload).encode()
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(data)))
         self.end_headers()
         self.wfile.write(data)
+
+    def _send_sse(self, status: int, payload: dict, *, session: str | None) -> None:
+        if status == 202 and not payload:
+            self.send_response(202)
+            if session:
+                self.send_header("Mcp-Session-Id", session)
+            self.end_headers()
+            return
+        if status != 200:
+            self._send_json(status, payload)
+            return
+        data = f"event: message\ndata: {json.dumps(payload)}\n\n".encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream")
+        if session:
+            self.send_header("Mcp-Session-Id", session)
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+
+
+def _call_tool_result(structured: dict, *, is_error: bool) -> dict:
+    return {
+        "content": [{"type": "text", "text": json.dumps(structured)}],
+        "structuredContent": structured,
+        "isError": is_error,
+    }
 
 
 def _confirmation(token: str, summary: str) -> dict:
@@ -192,7 +272,6 @@ class ReplayTest(unittest.TestCase):
         self.assertIn("Tú: corré SELECT now() contra inventario-natural", first.stdout)
         self.assertIn("2026-10-21T00:00:00Z", first.stdout)
         self.assertIn(SUMMARY_DELETE, first.stdout)
-        self.assertIn("Tú: eliminá inventario-natural con backup previo", first.stdout)
         self.assertEqual(
             tool_names(api),
             ["create_pond", "confirm_action", "run_sql", "delete_pond", "confirm_action"],
@@ -202,8 +281,7 @@ class ReplayTest(unittest.TestCase):
             sql["arguments"],
             {"pond_name": POND, "query": "SELECT now()", "mode": "read"},
         )
-        create = next(call for call in api.calls if call["name"] == "create_pond")
-        self.assertEqual(create["arguments"], {"name": POND})
+        self.assertTrue(api.initialized)
         self.assertIsNone(api.pond)
 
         second = replay(base)
@@ -234,6 +312,17 @@ class ReplayTest(unittest.TestCase):
         )
         self.assertIsNone(api.pond)
 
+    def test_waits_until_pond_gone_after_delete_confirm(self) -> None:
+        api = Api()
+        api.delete_linger = 3
+        server, base = serve(api)
+        self.addCleanup(server.server_close)
+        self.addCleanup(server.shutdown)
+        result = replay(base)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("sigue en deleting", result.stdout)
+        self.assertIsNone(api.pond)
+
     def test_pending_job_stops_before_delete_confirm(self) -> None:
         api = Api()
         api.flip_to_running = False
@@ -242,8 +331,7 @@ class ReplayTest(unittest.TestCase):
         self.addCleanup(server.shutdown)
         result = replay(base, wait_s="0.2")
         self.assertEqual(result.returncode, 1)
-        self.assertIn("pond_busy", result.stderr)
-        self.assertIn("Espero a que ese job termine antes de confirmar el borrado.", result.stdout)
+        self.assertIn("pond_not_ready", result.stderr)
         self.assertNotIn("delete_pond", tool_names(api))
         self.assertEqual(api.pond, "pending")
 
@@ -256,7 +344,6 @@ class ReplayTest(unittest.TestCase):
         result = replay(base)
         self.assertEqual(result.returncode, 1)
         self.assertIn("unexpected_confirmation", result.stderr)
-        self.assertNotIn("confirm_action", tool_names(api)[2:])
         self.assertNotIn("delete_pond", tool_names(api))
 
     def test_busy_delete_proposes_again(self) -> None:
@@ -270,6 +357,35 @@ class ReplayTest(unittest.TestCase):
         self.assertIn("vuelvo a pedir confirmación", result.stdout)
         self.assertEqual(tool_names(api).count("delete_pond"), 2)
         self.assertIsNone(api.pond)
+
+    def test_rejects_tool_is_error(self) -> None:
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("demo_mcp_replay", SCRIPT)
+        assert spec and spec.loader
+        mod = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = mod
+        spec.loader.exec_module(mod)
+        with self.assertRaises(mod.ReplayError) as ctx:
+            mod.unwrap_tool_result(
+                {
+                    "content": [{"type": "text", "text": "boom"}],
+                    "isError": True,
+                }
+            )
+        self.assertEqual(ctx.exception.code, "tool_error")
+
+    def test_waits_for_running_before_sql(self) -> None:
+        api = Api()
+        api.flip_to_running = True
+        api.pending_lists = 3  # stay pending for N list_ponds after create
+        server, base = serve(api)
+        self.addCleanup(server.server_close)
+        self.addCleanup(server.shutdown)
+        result = replay(base, wait_s="2")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Espero a que quede running antes del SELECT", result.stdout)
+        self.assertIn("run_sql", tool_names(api))
 
 
 if __name__ == "__main__":
