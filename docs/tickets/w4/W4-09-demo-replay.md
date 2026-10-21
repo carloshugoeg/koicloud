@@ -2,11 +2,11 @@
 id: W4-09
 workstream: W4
 persona: Diego
-estado: en-curso
+estado: en-revision
 rama: w4-demo-replay
 epica: "E9-07"
 sprint: S4
-pr:
+pr: "https://github.com/carloshugoeg/koicloud/pull/93"
 ---
 
 # [W4-09] `scripts/demo-mcp-replay.py` (repetición determinista)
