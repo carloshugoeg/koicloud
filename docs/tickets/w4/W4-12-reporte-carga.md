@@ -46,7 +46,3 @@ Las tres rutas ya están en *Entradas*.
 ## Referencia
 
 Imitá el PR #1 (`[W2-01] Pantalla de login`): misma estructura de archivos, mismo estilo de pruebas y misma forma de cerrar criterios en el PR.
-
-## Nota de bloqueo
-
-`estado` sigue en `abierto`. `docs/runbooks/free-disk.md`, la ampliación de `docs/runbooks/restart-agent.md` y `docs/runbooks/rollback-migration.md` esperan un PR `w1-`. `docs/runbooks/**` es ownership de W1. La rama `w4-k6` no los crea.

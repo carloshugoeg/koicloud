@@ -4,13 +4,13 @@ La fecha del documento es 2026-10-21.
 
 ## Ambiente
 
-No hay corrida contra la API. En esta máquina `http://127.0.0.1:8000` no respondió. La corrida del VPS no se hizo.
+Hubo una corrida local contra `http://127.0.0.1:8000` (API en host + Postgres de `docker compose`, seed `demo@koicloud.dev`). Los percentiles de esa corrida viven en el cuerpo del PR #91; este archivo no los convierte en evidencia RNF-01 de demo.
 
 blocked: VPS URL+secrets Carlos
 
-Este archivo no inventa percentiles. El commit de una corrida no existe porque no hubo corrida.
+El commit de una corrida VPS no existe porque esa corrida no se hizo. La tabla de abajo queda en `sin corrida` hasta que Carlos pegue números del VPS.
 
-Umbral RNF-01, sin relajarlo. p95 de la métrica del escenario menor que 500 ms, 20 VUs, 30 s, y tasa de error del escenario igual a 0. Hace falta al menos una muestra. Los estados 200, 201, 202 y 409 de `create_pond` no cuentan como error. El script no envía token de confirmación.
+Umbral RNF-01, sin relajarlo. p95 de la métrica del escenario menor que 500 ms, 20 VUs, 30 s, y tasa de error del escenario igual a 0. Hace falta al menos una muestra. Los estados 200, 201, 202 y 409 de `create_pond` no cuentan como error. El script no envía token de confirmación. `create_pond` usa `X-KOI-Surface: cli` (propose → 409 `confirmation_required`).
 
 | Escenario | Métrica | p95 | Errores | Umbral |
 |-----------|---------|-----|---------|--------|
@@ -32,7 +32,3 @@ bash load/k6/run-all.sh
 Para el VPS, Carlos define `BASE_URL`. Pega aquí el `p(95)` de cada `summary.json`, la tasa de error y si el umbral pasó. Si RNF-01 falla, deja la salida cruda y no bajes el límite de 500 ms.
 
 El detalle de las métricas está en [`load/k6/README.md`](../load/k6/README.md).
-
-## Runbooks
-
-W4-12 pide `docs/runbooks/free-disk.md`, ampliar `docs/runbooks/restart-agent.md` y crear `docs/runbooks/rollback-migration.md`. Esas rutas esperan un PR `w1-`. `docs/runbooks/**` es ownership de W1. Esta rama no las crea.

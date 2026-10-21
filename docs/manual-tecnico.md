@@ -369,6 +369,3 @@ No inventes el comando que “debería” existir.
 | Deploy | [`runbooks/deploy.md`](./runbooks/deploy.md) |
 | Onboarding de agentes | [`agent-onboarding.md`](./agent-onboarding.md) |
 | Workstreams | [`WORKSTREAMS.md`](./WORKSTREAMS.md) |
-| Carga k6, RNF-01 | [`reporte-carga.md`](./reporte-carga.md) |
-
-Los runbooks `free-disk`, la ampliación de `restart-agent` y `rollback-migration` esperan un PR de W1. Este manual enlaza el reporte de carga. No enlaza runbooks que esta rama no puede crear.
