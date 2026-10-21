@@ -2,7 +2,7 @@
 id: W1-20
 workstream: W1
 persona: Carlos
-estado: en-revision
+estado: hecho
 rama: w1-agent-mistake-guards
 epica: harness
 sprint: S4
