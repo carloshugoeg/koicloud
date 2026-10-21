@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#e8f6f4"/>
+      <stop offset="100%" stop-color="#f7f4ef"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="540" fill="url(#bg)"/>
+  <rect x="48" y="48" width="864" height="444" rx="8" fill="#fff" stroke="#1a3a3a" stroke-opacity="0.12"/>
+  <text x="80" y="110" font-family="Georgia, serif" font-size="36" fill="#1a2e2e">Uso del mes</text>
+  <text x="80" y="160" font-family="system-ui, sans-serif" font-size="18" fill="#3d5a5a">Facturas e IVA</text>
+  <text x="80" y="196" font-family="system-ui, sans-serif" font-size="16" fill="#5a7070">Descarga de PDF de factura desde la vista de uso.</text>
+  <text x="80" y="460" font-family="system-ui, sans-serif" font-size="12" fill="#7a8a8a">Referencia UI · strings de apps/web en main · no es captura de runtime</text>
+</svg>
