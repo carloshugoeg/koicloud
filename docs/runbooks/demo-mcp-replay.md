@@ -1,30 +1,36 @@
-# Demo MCP replay (fallback sin LLM)
+# Correr la demo MCP sin un LLM
 
-Script: [`scripts/demo-mcp-replay.py`](../../scripts/demo-mcp-replay.py).
-Plan sellado: [`../architecture/risks-and-demo-plan.md`](../architecture/risks-and-demo-plan.md) §4.
+El guion sellado está en la sección 4 de `docs/architecture/risks-and-demo-plan.md`. El script llama a `POST /mcp` y usa la misma confirmación que el IDE. No crea ni borra el pond en el paso en que lo propone.
 
-## Invocación
+## Correr el guion
+
+La API y el node-agent tienen que estar en marcha. Desde la raíz del repo:
 
 ```bash
-# API local tras make up + seed
-python3 scripts/demo-mcp-replay.py \
-  --base-url http://127.0.0.1:8000 \
-  --slug demo-agent \
-  --password koicloud-demo \
-  --simulate-chat
+python3 scripts/demo-mcp-replay.py --simulate-chat
 ```
 
-Credenciales demo por defecto: slug `demo-agent`, password `koicloud-demo`
-(settings `MCP_DEMO_*` / seed). Contra VPS usá el slug+password del usuario demo.
+Por defecto habla con `http://127.0.0.1:8000`, slug `demo-agent` y contraseña `koicloud-demo`.
 
-## Salida feliz
+Para otro host, exportá las variables y volvé a correr el mismo comando.
 
-Con `--simulate-chat`, una transcripción `user:` / `assistant:` que recorre:
+```bash
+export KOICLOUD_API_URL=https://koicloud.example
+export KOICLOUD_MCP_SLUG=el-slug
+export KOICLOUD_MCP_PASSWORD=la-contraseña
+python3 scripts/demo-mcp-replay.py --simulate-chat
+```
 
-1. `create_pond` → summary + token  
-2. `confirm_action`  
-3. `run_sql` read `SELECT now()`  
-4. `delete_pond` → summary + token  
-5. `confirm_action`  
+## Leer la transcripción
 
-Termina con `replay OK`. Una segunda ejecución limpia residuos de `inventario-natural` antes de repetir.
+Con `--simulate-chat` vas a ver estas líneas, en este orden.
+
+1. `Tú` pide el pond `inventario-natural`.
+2. `Asistente` repite el `summary` que devolvió `create_pond`, sin cambiarlo.
+3. `Tú` dice `confírmalo` y el script llama a `confirm_action`.
+4. `Tú` pide `SELECT now()` y `run_sql` corre en modo `read`.
+5. `Tú` pide borrar el pond. `delete_pond` muestra su `summary` y hace falta otro `confírmalo`.
+
+Si `inventario-natural` ya existe, el script lo borra con `delete_pond` y `confirm_action` antes de repetir el guion. Una segunda corrida termina igual que la primera.
+
+Si el pond sigue en `pending` o en `provisioning`, el script espera. El tope es `KOICLOUD_REPLAY_WAIT_S`, 45 segundos si no lo exportás. Si el node-agent no termina el job, el script corta con `pond_busy` y no confirma el borrado.

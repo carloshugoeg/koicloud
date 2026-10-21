@@ -88,7 +88,7 @@ En su lugar: “demostración académica”, “gate mínima para el aula”, �
 
 `scripts/demo-mcp-replay.py` (W4) es un CLI local que emula la conversación del §3.2 minutos 8:00-10:30 sin necesitar un LLM. Su diseño:
 
-1. Se conecta al endpoint `/mcp` con la misma URL slug + password (o al proceso local con `AGENT_MODE=mock`).
+1. Se conecta a `POST /mcp` con Authorization Basic del slug y la contraseña del agente.
 2. Ejecuta secuencia hardcodeada:
    - `create_pond({name:"inventario-natural"})` → recibe token → imprime summary.
    - `confirm_action({token})` → imprime respuesta.

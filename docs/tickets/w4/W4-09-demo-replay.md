@@ -3,7 +3,7 @@ id: W4-09
 workstream: W4
 persona: Diego
 estado: en-revision
-rama: w4-demo-replay
+rama: w1-adr-demo-replay
 epica: "E9-07"
 sprint: S4
 pr: "https://github.com/carloshugoeg/koicloud/pull/93"

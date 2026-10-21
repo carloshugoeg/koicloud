@@ -156,6 +156,7 @@ alcance».
 
 - Configuración: panel «Acceso agente» en Web (slug + password).
 - Si el LLM no responde en 15 s: `scripts/demo-mcp-replay.py --simulate-chat` (W4-09).
+- Invocación y salida feliz: `docs/runbooks/demo-mcp-replay.md`.
 - Detalle del fallback: `risks-and-demo-plan.md` §4.
 
 ### Plan B — sin control plane
