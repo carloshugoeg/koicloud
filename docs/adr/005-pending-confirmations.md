@@ -1,23 +1,17 @@
-# ADR-005: Cola de confirmaciones (pending_confirmations) para CLI/MCP
+# Cola de confirmaciones
 
-- **Status:** Accepted
-- **Date:** 2026-10-21
-- **Pack ref:** A-05 in `docs/architecture/system-architecture.md` §8
+## Status
+
+Accepted. A-05.
 
 ## Context
 
-KoiCloud es un DBaaS académico con un equipo pequeño y un solo VPS de demo.
-Había que fijar la forma del sistema antes de repartir workstreams.
+La CLI y el MCP pueden borrar un pond o escribir SQL. Pedir "eres tú" en el mismo request no deja una fila, no expira y se mezcla con la cookie del navegador.
 
 ## Decision
 
-**Cola de confirmaciones (pending_confirmations) para CLI/MCP.**
-
-## Alternatives considered
-
-- Enviar “eres tú” en cada request
+Cada mutación que llega por CLI o por MCP inserta una fila en `pending_confirmations`. El cliente muestra el `summary`. En un paso posterior llama a `confirm_action` con el token. El token expira a los 5 minutos.
 
 ## Consequences
 
-- La confirmación es explícita, no depende de sesiones ni cookies; se puede expirar y auditar
-- Cualquier propuesta que contradiga esta decisión abre un ADR nuevo o un CCR; no se “arregla” en silencio en un PR de feature.
+La mutación no corre en el turno en que se propone. La fila se puede auditar y se puede descartar. La web no usa esta cola, porque el usuario ya confirmó al usar la pantalla.

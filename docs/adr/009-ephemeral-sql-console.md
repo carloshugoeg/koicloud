@@ -1,23 +1,17 @@
-# ADR-009: Consola SQL con conexión efímera por consulta
+# Conexión SQL efímera por consulta
 
-- **Status:** Accepted
-- **Date:** 2026-10-21
-- **Pack ref:** A-09 in `docs/architecture/system-architecture.md` §8
+## Status
+
+Accepted. A-09.
 
 ## Context
 
-KoiCloud es un DBaaS académico con un equipo pequeño y un solo VPS de demo.
-Había que fijar la forma del sistema antes de repartir workstreams.
+La consola corre la consulta de un usuario y después la de otro. Un pool persistente se queda con `statement_timeout` y con el modo de la transacción anterior. El aula no pide throughput de consola.
 
 ## Decision
 
-**Consola SQL con conexión efímera por consulta.**
-
-## Alternatives considered
-
-- Pool persistente por pond
+Cada consulta abre una conexión y la cierra al terminar. La sesión de lectura aplica `SET TRANSACTION READ ONLY` y `statement_timeout`.
 
 ## Consequences
 
-- Aísla fallos; permite SET TRANSACTION READ ONLY + statement_timeout sin manchar otras requests
-- Cualquier propuesta que contradiga esta decisión abre un ADR nuevo o un CCR; no se “arregla” en silencio en un PR de feature.
+Un fallo queda en esa conexión y no pasa a la siguiente. No hay un pool que ajustar. El costo es abrir una conexión por consulta.

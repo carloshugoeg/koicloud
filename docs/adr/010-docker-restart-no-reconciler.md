@@ -1,23 +1,17 @@
-# ADR-010: docker --restart=no y reconciler propio
+# Reinicio de contenedores a cargo del reconciler
 
-- **Status:** Accepted
-- **Date:** 2026-10-21
-- **Pack ref:** A-10 in `docs/architecture/system-architecture.md` §8
+## Status
+
+Accepted. A-10.
 
 ## Context
 
-KoiCloud es un DBaaS académico con un equipo pequeño y un solo VPS de demo.
-Había que fijar la forma del sistema antes de repartir workstreams.
+Con `docker --restart=always`, Docker vuelve a levantar un contenedor que el usuario pausó. El estado deseado deja de mandar.
 
 ## Decision
 
-**docker --restart=no y reconciler propio.**
-
-## Alternatives considered
-
-- docker --restart=always
+Los ponds usan `docker --restart=no`. El reconciler vuelve a encolar `start_pond` solo cuando el estado deseado es `running` y el observado es `stopped`. El reconciler no se presenta como reparación automática.
 
 ## Consequences
 
-- El curador de estado somos nosotros; permite pausar/reiniciar sin que Docker levante contenedores a espaldas
-- Cualquier propuesta que contradiga esta decisión abre un ADR nuevo o un CCR; no se “arregla” en silencio en un PR de feature.
+Pausar un pond se mantiene. El reconciler no compite con esa pausa. Si el reconciler está caído, un contenedor parado sigue parado.

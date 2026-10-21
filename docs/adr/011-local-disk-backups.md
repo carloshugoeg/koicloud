@@ -1,23 +1,17 @@
-# ADR-011: Backups como archivos en disco local
+# Respaldos en disco local
 
-- **Status:** Accepted
-- **Date:** 2026-10-21
-- **Pack ref:** A-11 in `docs/architecture/system-architecture.md` §8
+## Status
+
+Accepted. A-11.
 
 ## Context
 
-KoiCloud es un DBaaS académico con un equipo pequeño y un solo VPS de demo.
-Había que fijar la forma del sistema antes de repartir workstreams.
+La demo necesita respaldos. S3 o MinIO agregan una cuenta y un servicio que el alcance no incluye.
 
 ## Decision
 
-**Backups como archivos en disco local.**
-
-## Alternatives considered
-
-- S3 / MinIO
+Cada respaldo es un archivo `.dump` en el disco del VPS. El respaldo de la base interna lo hace un cron del host, y se conserva 7 días.
 
 ## Consequences
 
-- Fuera de alcance añadir almacenamiento externo; el respaldo local basta para la demo
-- Cualquier propuesta que contradiga esta decisión abre un ADR nuevo o un CCR; no se “arregla” en silencio en un PR de feature.
+Alcanza para la demo y para el aula. Si se pierde el disco, se pierden los respaldos. Moverlos a un almacén externo exige un ADR.

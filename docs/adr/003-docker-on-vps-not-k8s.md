@@ -1,23 +1,17 @@
-# ADR-003: Docker directo en un VPS (no Kubernetes)
+# Docker en un VPS
 
-- **Status:** Accepted
-- **Date:** 2026-10-21
-- **Pack ref:** A-03 in `docs/architecture/system-architecture.md` §8
+## Status
+
+Accepted. A-03.
 
 ## Context
 
-KoiCloud es un DBaaS académico con un equipo pequeño y un solo VPS de demo.
-Había que fijar la forma del sistema antes de repartir workstreams.
+El curso evalúa que el equipo entienda cómo nace un pond. Kubernetes y Nomad esconden el `docker run`. También agregan un clúster que la materia no pide operar.
 
 ## Decision
 
-**Docker directo en un VPS (no Kubernetes).**
-
-## Alternatives considered
-
-- K8s / Nomad
+Cada pond es un contenedor Docker en un VPS de un solo nodo.
 
 ## Consequences
 
-- El curso evalúa entender el provisioning; K8s lo esconde y añade operación sin beneficio de aprendizaje
-- Cualquier propuesta que contradiga esta decisión abre un ADR nuevo o un CCR; no se “arregla” en silencio en un PR de feature.
+Hay un solo nodo. Si el VPS cae, cae el servicio. El plan de demo cubre ese día con un video y con `AGENT_MODE=mock` en la laptop del expositor.

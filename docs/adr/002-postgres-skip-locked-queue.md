@@ -1,23 +1,17 @@
-# ADR-002: Cola en PostgreSQL con SKIP LOCKED
+# Cola de jobs en PostgreSQL
 
-- **Status:** Accepted
-- **Date:** 2026-10-21
-- **Pack ref:** A-02 in `docs/architecture/system-architecture.md` §8
+## Status
+
+Accepted. A-02.
 
 ## Context
 
-KoiCloud es un DBaaS académico con un equipo pequeño y un solo VPS de demo.
-Había que fijar la forma del sistema antes de repartir workstreams.
+El node-agent reclama jobs de creación, borrado y respaldo. El aula mueve decenas de jobs por minuto. Kafka, RabbitMQ o Redis Streams sumarían un servicio que el equipo tendría que operar. El equipo ya escribe SQL.
 
 ## Decision
 
-**Cola en PostgreSQL con SKIP LOCKED.**
-
-## Alternatives considered
-
-- Kafka / RabbitMQ / Redis Streams
+La cola vive en PostgreSQL. El reclamo usa `SELECT ... FOR UPDATE SKIP LOCKED`.
 
 ## Consequences
 
-- Una dependencia menos; el volumen del aula (decenas de jobs/min) sobra; el equipo ya sabe SQL
-- Cualquier propuesta que contradiga esta decisión abre un ADR nuevo o un CCR; no se “arregla” en silencio en un PR de feature.
+No hay un broker aparte que vigilar. El tope es el de esa consulta sobre la base del control plane. Si hacen falta más que decenas de jobs por minuto, la cola se cambia con un ADR.

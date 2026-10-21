@@ -1,23 +1,17 @@
-# ADR-008: Superficies delgadas sin dominio
+# Superficies sin reglas de dominio
 
-- **Status:** Accepted
-- **Date:** 2026-10-21
-- **Pack ref:** A-08 in `docs/architecture/system-architecture.md` §8
+## Status
+
+Accepted. A-08.
 
 ## Context
 
-KoiCloud es un DBaaS académico con un equipo pequeño y un solo VPS de demo.
-Había que fijar la forma del sistema antes de repartir workstreams.
+Web, CLI y MCP tienen que demostrar la misma regla. Si cada superficie copia la regla, la demo deja de ser una prueba en tres canales.
 
 ## Decision
 
-**Superficies delgadas sin dominio.**
-
-## Alternatives considered
-
-- Duplicar reglas en cada superficie
+Las superficies no deciden dominio. Llaman a los comandos del control plane. La regla vive en `app/commands`.
 
 ## Consequences
 
-- Una sola fuente de verdad en app/commands evita divergencia; la misma prueba cubre Web, CLI y MCP
-- Cualquier propuesta que contradiga esta decisión abre un ADR nuevo o un CCR; no se “arregla” en silencio en un PR de feature.
+Un cambio de regla se hace en el comando, y las tres superficies lo heredan. Si una superficie empieza a decidir por su cuenta, hay que volver a alinearla con el comando.

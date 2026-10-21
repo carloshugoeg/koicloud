@@ -1,23 +1,17 @@
-# ADR-007: Autenticación de agente = URL secreta + password
+# Acceso de agente con slug y contraseña
 
-- **Status:** Accepted
-- **Date:** 2026-10-21
-- **Pack ref:** A-07 in `docs/architecture/system-architecture.md` §8
+## Status
+
+Accepted. A-07.
 
 ## Context
 
-KoiCloud es un DBaaS académico con un equipo pequeño y un solo VPS de demo.
-Había que fijar la forma del sistema antes de repartir workstreams.
+Un IDE se conecta al MCP en nombre del usuario. OAuth 2.1 con scopes finos está fuera del alcance sellado. Este acceso no es ese OAuth, y no se presenta como equivalente.
 
 ## Decision
 
-**Autenticación de agente = URL secreta + password.**
-
-## Alternatives considered
-
-- OAuth 2.1 con scopes finos
+El agente se autentica con el slug secreto y una contraseña. El gate de `/mcp` acepta `Authorization` con el esquema Basic y el valor `slug:password`. También acepta el header `X-KOI-Agent-Password`. La contraseña se guarda con argon2 en `agent_access`. La versión con scopes queda etiquetada como V2.
 
 ## Consequences
 
-- Alcance sellado; seguridad completa queda como V2. No se pretende equivalencia con OAuth
-- Cualquier propuesta que contradiga esta decisión abre un ADR nuevo o un CCR; no se “arregla” en silencio en un PR de feature.
+Quien tiene el slug y la contraseña actúa como el dueño. Las mutaciones siguen exigiendo `pending_confirmations`. Rotar la contraseña revoca este acceso.

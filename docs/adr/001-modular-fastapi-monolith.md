@@ -1,23 +1,17 @@
-# ADR-001: Monolito modular FastAPI (no microservicios)
+# Monolito modular en FastAPI
 
-- **Status:** Accepted
-- **Date:** 2026-10-21
-- **Pack ref:** A-01 in `docs/architecture/system-architecture.md` §8
+## Status
+
+Accepted. A-01.
 
 ## Context
 
-KoiCloud es un DBaaS académico con un equipo pequeño y un solo VPS de demo.
-Había que fijar la forma del sistema antes de repartir workstreams.
+Auth, billing y ponds tienen que quedar comprometidos en la misma operación. Un pond no se crea si no hay suscripción, y la suscripción vive en la misma base. Microservicios por dominio exigirían una transacción distribuida. El equipo de la materia no opera microservicios.
 
 ## Decision
 
-**Monolito modular FastAPI (no microservicios).**
-
-## Alternatives considered
-
-- Microservicios por dominio
+El control plane es un proceso FastAPI partido en módulos. Auth, billing y ponds comparten la sesión de PostgreSQL.
 
 ## Consequences
 
-- Ciclo de despliegue simple; transacciones compartidas entre auth/billing/ponds; el equipo no ha operado microservicios
-- Cualquier propuesta que contradiga esta decisión abre un ADR nuevo o un CCR; no se “arregla” en silencio en un PR de feature.
+Un deploy publica la API completa. Si el proceso cae, `/mcp` cae con él, porque el servidor MCP vive ahí. Separar un módulo exige un ADR nuevo.
