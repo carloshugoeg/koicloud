@@ -2,7 +2,7 @@
 id: W4-09
 workstream: W4
 persona: Diego
-estado: abierto
+estado: en-curso
 rama: w4-demo-replay
 epica: "E9-07"
 sprint: S4
