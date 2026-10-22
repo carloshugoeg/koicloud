@@ -6,7 +6,7 @@ estado: en-revision
 rama: infra-deploy-yml-fix
 epica: "E10-02, E10-03"
 sprint: S4
-pr: ""
+pr: "https://github.com/carloshugoeg/koicloud/pull/97"
 depends_on:
 ---
 
