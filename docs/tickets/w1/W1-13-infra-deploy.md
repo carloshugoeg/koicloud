@@ -2,11 +2,11 @@
 id: W1-13
 workstream: W1
 persona: Carlos
-estado: abierto
+estado: en-revision
 rama: w1-infra-deploy
 epica: "E10-02, E10-03"
 sprint: S4
-pr: "https://github.com/carloshugoeg/koicloud/pull/39"
+pr: "#39; follow-up (this PR TBD)"
 depends_on:
 ---
 
