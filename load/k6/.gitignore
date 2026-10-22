@@ -1,0 +1,3 @@
+# Per-run summary directories written by run-all.sh
+results/*/
+!results/.gitkeep
