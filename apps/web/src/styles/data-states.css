@@ -1,0 +1,83 @@
+/* Data states — visual-guidelines.md §6.5 (loading / empty / error) */
+
+@keyframes data-skeleton-sweep {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+@keyframes pond-pan-panel {
+  to {
+    background-position-x: -320px;
+  }
+}
+
+.data-skeleton {
+  background-color: var(--bone-sunk);
+  background-image: linear-gradient(
+    90deg,
+    var(--bone-sunk) 0%,
+    var(--bone-raised) 45%,
+    var(--bone-sunk) 90%
+  );
+  background-size: 200% 100%;
+  animation: data-skeleton-sweep 1.2s var(--ease) infinite;
+}
+
+.pond-water-panel {
+  background: url("/koi/pond-water-panel.png") 0 0 / 320px 200px repeat;
+  image-rendering: pixelated;
+  animation: pond-pan-panel 90s linear infinite;
+}
+
+.data-state-empty__pond {
+  position: relative;
+  width: 240px;
+  height: 160px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+
+.data-state-empty__pond--lg {
+  width: 320px;
+  height: 200px;
+}
+
+.data-state-empty__pond .koi {
+  position: absolute;
+  left: 24px;
+  top: 48px;
+  animation:
+    koi-swim 0.8s steps(8) infinite,
+    koi-drift 18s var(--ease) infinite;
+}
+
+.data-state-empty__pond--lg .koi--x2 {
+  position: absolute;
+  left: 48px;
+  top: 36px;
+  animation:
+    koi-swim-x2 0.8s steps(8) infinite,
+    koi-drift 24s var(--ease) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .data-skeleton {
+    animation: none;
+    background-image: none;
+  }
+
+  .pond-water-panel {
+    animation: none;
+  }
+
+  .data-state-empty__pond .koi,
+  .data-state-empty__pond--lg .koi--x2 {
+    animation: none;
+    background-position-x: 0;
+  }
+}
