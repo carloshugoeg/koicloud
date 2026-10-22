@@ -6,7 +6,7 @@ estado: en-revision
 rama: w1-infra-deploy
 epica: "E10-02, E10-03"
 sprint: S4
-pr: "#39; follow-up (this PR TBD)"
+pr: "#39; follow-up #100"
 depends_on:
 ---
 
