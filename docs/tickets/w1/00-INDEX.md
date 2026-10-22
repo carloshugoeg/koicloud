@@ -32,7 +32,7 @@ no existe todavía. `00-INDEX.md` no es un ticket y el agente lo ignora.
 | W1-21 | Partir `PondService` (SRP / DIP) | `w1-pond-service-srp` | abierto · desde P7 solid-review |
 | W1-22 | Transiciones de job explícitas (OCP) | `w1-job-transitions-ocp` | abierto · depende W1-21 |
 | W1-23 | Historial SQL vía commands (DIP) | `w1-sql-history-dip` | abierto · desde P7 solid-review |
-| W1-24 | Revisión SOLID del control plane (P7 / #96) | `w1-solid-review` | en-revision |
+| W1-24 | Revisión SOLID del control plane (P7 / #96) | `w1-solid-review` | en-revision ([PR #101](https://github.com/carloshugoeg/koicloud/pull/101)) |
 
 W1 es el único workstream que puede tocar cualquier ruta, y el único que escribe migraciones,
 regenera contratos (`make contracts`) y edita el harness de agentes.

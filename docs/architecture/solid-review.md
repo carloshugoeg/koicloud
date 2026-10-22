@@ -142,4 +142,4 @@ Dos caminos de ingesta (`ingest_samples` por id, `ingest_heartbeat_samples` por 
 2. Si el arreglo cabe en <30 min y no toca contrato congelado, se puede hacer en un PR de higiene W1 sin ticket nuevo.
 3. Si supera ~30 min o cruza ownership, abrir/usar el ticket enlazado; no mezclar con entregas de producto.
 
-**PR de esta revisión:** (se rellena al abrir el PR de W1-24).
+**PR de esta revisión:** [#101](https://github.com/carloshugoeg/koicloud/pull/101).
