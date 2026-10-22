@@ -6,7 +6,7 @@ estado: en-revision
 rama: w1-infra-deploy
 epica: "E10-02, E10-03"
 sprint: S4
-pr: "#39; follow-up #100"
+pr: "#100; earlier groundwork PR 39"
 depends_on:
 ---
 
