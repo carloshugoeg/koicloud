@@ -6,7 +6,7 @@ estado: en-revision
 rama: w1-solid-review
 epica: E10-01
 sprint: S5
-pr: "https://github.com/carloshugoeg/koicloud/pull/101"
+pr: "#101"
 depends_on:
 ---
 
