@@ -2,7 +2,7 @@
 id: W4-12
 workstream: W4
 persona: Diego
-estado: en-revision
+estado: abierto
 rama: w4-reporte-carga
 epica: "E10-04, E10-05"
 sprint: S5
