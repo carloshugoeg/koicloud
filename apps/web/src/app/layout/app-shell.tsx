@@ -45,13 +45,17 @@ export function AppShell() {
   const currentTitle = readTitle(matches[matches.length - 1]?.handle);
 
   return (
-    <div className="min-h-screen bg-bone text-ink lg:grid" style={{ gridTemplateColumns: "var(--sidebar-w) 1fr" }}>
+    <div
+      className="min-h-screen overflow-x-hidden bg-bone text-ink lg:grid"
+      style={{ gridTemplateColumns: "minmax(0, var(--sidebar-w)) minmax(0, 1fr)" }}
+    >
       <aside className="border-b border-line bg-bone-sunk px-4 py-5 lg:border-b-0 lg:border-r">
         <div className="space-y-1 border-b border-line pb-4">
-          <p className="font-display text-3xl text-ink">KoiCloud</p>
-          <p className="text-sm text-ink-muted">
-            Scaffold base para W2 sobre el contrato congelado.
-          </p>
+          <div className="flex items-center gap-2">
+            <span className="koi-mark-32 shrink-0" aria-hidden />
+            <p className="font-display text-3xl text-ink">KoiCloud</p>
+          </div>
+          <p className="text-sm text-ink-muted">Panel de control del estanque.</p>
         </div>
 
         <nav className="mt-5 space-y-6">
@@ -114,7 +118,7 @@ export function AppShell() {
           </div>
         </header>
 
-        <main className="mx-auto max-w-content px-4 py-6 lg:px-8">
+        <main className="mx-auto max-w-content overflow-x-hidden px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
           <Outlet />
         </main>
       </div>
