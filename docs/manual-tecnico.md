@@ -169,6 +169,10 @@ Si falta un paso de install no listado arriba, abrí issue o CCR. No inventes fl
 No hay VPS del equipo cableado todavía.
 El dominio de arquitectura `koicloud.example` **no** es un dominio nuestro.
 Runbook canónico: [`runbooks/deploy.md`](./runbooks/deploy.md).
+Operación en el host: [`runbooks/free-disk.md`](./runbooks/free-disk.md),
+[`runbooks/restart-agent.md`](./runbooks/restart-agent.md),
+[`runbooks/rollback-migration.md`](./runbooks/rollback-migration.md).
+Evidencia de carga: [`reporte-carga.md`](./reporte-carga.md).
 Diagrama: [`architecture/diagrams/14-deploy.mmd`](./architecture/diagrams/14-deploy.mmd).
 Flujo narrado: [`architecture/interconnections.md`](./architecture/interconnections.md) §11.
 
@@ -367,5 +371,9 @@ No inventes el comando que “debería” existir.
 | Dependencias | [`architecture/dependencies.md`](./architecture/dependencies.md) |
 | Diagramas Mermaid | [`architecture/diagrams/`](./architecture/diagrams/) |
 | Deploy | [`runbooks/deploy.md`](./runbooks/deploy.md) |
+| Liberar disco (`disk_full`) | [`runbooks/free-disk.md`](./runbooks/free-disk.md) |
+| Reiniciar node-agent | [`runbooks/restart-agent.md`](./runbooks/restart-agent.md) |
+| Rollback de migración Alembic | [`runbooks/rollback-migration.md`](./runbooks/rollback-migration.md) |
+| Reporte de carga (k6) | [`reporte-carga.md`](./reporte-carga.md) |
 | Onboarding de agentes | [`agent-onboarding.md`](./agent-onboarding.md) |
 | Workstreams | [`WORKSTREAMS.md`](./WORKSTREAMS.md) |
