@@ -1,5 +1,6 @@
 dist/
 node_modules/
 coverage/
+.chrome-for-testing/
 .DS_Store
 .env

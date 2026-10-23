@@ -55,9 +55,9 @@ export function LandingPlans() {
   return (
     <section id="planes" className="space-y-6">
       <div className="border-t-2 border-turquoise-700 pt-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-muted">
+        <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-muted">
           Planes · precio y vigencia
-        </p>
+        </h2>
       </div>
 
       {isPending ? (

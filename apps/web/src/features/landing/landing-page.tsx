@@ -4,7 +4,7 @@ import { LandingPlans } from "@/features/landing/landing-plans";
 
 export function LandingPage() {
   return (
-    <div className="min-h-screen bg-bone text-ink">
+    <div className="min-h-screen bg-bone text-ink" data-landing-prerender>
       <header className="border-b border-line bg-bone">
         <div className="mx-auto flex h-14 max-w-content items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link to="/" className="inline-flex items-center gap-2.5 no-underline">
@@ -50,9 +50,9 @@ export function LandingPage() {
 
         <section id="como-funciona" className="space-y-6">
           <div className="border-t-2 border-green-700 pt-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-muted">
+            <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-muted">
               Cómo funciona
-            </p>
+            </h2>
           </div>
 
           <div className="grid gap-6 md:grid-cols-3">
