@@ -51,3 +51,7 @@ No inventes comandos, flags, payloads, tools ni atajos al flujo de confirmación
 ## Referencia
 
 Imitá el PR #1 (`[W2-01] Pantalla de login`): misma estructura de archivos, mismo estilo de pruebas y misma forma de cerrar criterios en el PR. Implementación de referencia (no mergear aquí): [#93](https://github.com/carloshugoeg/koicloud/pull/93).
+
+## Nota de tamaño (PR #110)
+
+`scripts/demo-mcp-replay.py` + `scripts/test_demo_mcp_replay.py` superan el techo de ~500 líneas netas del protocolo de PR (§9). Queda como **excepción aceptada** para este ticket: un solo entregable (cliente streamable + stub FastMCP + retries) sin partir el script.

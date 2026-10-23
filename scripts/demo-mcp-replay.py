@@ -23,8 +23,14 @@ POND_NAME = "inventario-natural"
 READ_SQL = "SELECT now()"
 PROTOCOL_VERSION = "2024-11-05"
 RUNNING = "running"
-GONE = frozenset({None})
 BUSY = frozenset({"pending", "provisioning", "restoring", "deleting"})
+# Catalog messages FastMCP embeds in CallToolResult isError text (AppError → ToolError).
+_DOMAIN_BY_MESSAGE = {
+    "Ya existe un pond con ese nombre": "pond_name_taken",
+    "El pond ya tiene un job activo": "pond_busy",
+    "No existe el pond solicitado": "pond_not_found",
+}
+_DOMAIN_CODES = frozenset(_DOMAIN_BY_MESSAGE.values())
 
 
 class ReplayError(Exception):
@@ -220,7 +226,7 @@ def unwrap_tool_result(result: Any) -> dict[str, Any]:
     if not isinstance(result, dict):
         raise ReplayError("bad_result", "tools/call no devolvió un objeto")
     if result.get("isError") is True:
-        raise ReplayError("tool_error", _tool_error_text(result))
+        raise _replay_error_from_tool_failure(result)
     structured = result.get("structuredContent")
     if isinstance(structured, dict):
         return structured
@@ -249,6 +255,39 @@ def unwrap_tool_result(result: Any) -> dict[str, Any]:
         if texts:
             raise ReplayError("bad_result", f"no pude parsear structuredContent: {texts[0][:200]}")
     raise ReplayError("bad_result", "CallToolResult sin structuredContent usable")
+
+
+def _replay_error_from_tool_failure(result: dict[str, Any]) -> ReplayError:
+    """Map FastMCP isError CallToolResult to a catalog ReplayError code.
+
+    Real /mcp returns HTTP 200 + isError=true; the text is typically
+    ``Error calling tool 'name': <AppError.message>``. Retries key off ``code``.
+    """
+    structured = result.get("structuredContent")
+    if isinstance(structured, dict):
+        code = structured.get("code")
+        if isinstance(code, str) and code:
+            message = structured.get("message")
+            text = message if isinstance(message, str) and message else code
+            return ReplayError(code, text)
+    text = _tool_error_text(result)
+    try:
+        parsed = json.loads(text)
+    except json.JSONDecodeError:
+        parsed = None
+    if isinstance(parsed, dict):
+        code = parsed.get("code")
+        if isinstance(code, str) and code:
+            message = parsed.get("message")
+            msg = message if isinstance(message, str) and message else code
+            return ReplayError(code, msg)
+    for message, code in _DOMAIN_BY_MESSAGE.items():
+        if message in text:
+            return ReplayError(code, message)
+    for code in _DOMAIN_CODES:
+        if code in text:
+            return ReplayError(code, text)
+    return ReplayError("tool_error", text)
 
 
 def _tool_error_text(result: dict[str, Any]) -> str:

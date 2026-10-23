@@ -100,6 +100,21 @@ class Handler(BaseHTTPRequestHandler):
             self.api.calls.append({"name": name, "arguments": arguments})
             outcome = self._tool(name, arguments)
             if outcome[0] != 200:
+                # FastMCP: domain AppErrors become HTTP 200 CallToolResult isError=true.
+                err = outcome[1]
+                if isinstance(err, dict) and isinstance(err.get("code"), str):
+                    message = err.get("message")
+                    text = message if isinstance(message, str) and message else err["code"]
+                    return (
+                        200,
+                        {
+                            "jsonrpc": "2.0",
+                            "id": req_id,
+                            "result": _tool_error_result(str(name), text),
+                            "error": None,
+                        },
+                        None,
+                    )
                 return outcome[0], outcome[1], None
             return (
                 200,
@@ -133,12 +148,20 @@ class Handler(BaseHTTPRequestHandler):
             return 200, _confirmation(token, SUMMARY_CREATE)
         if name == "delete_pond":
             if self.api.pond is None:
-                return 404, {"code": "pond_not_found", "message": "missing", "request_id": None}
+                return 404, {
+                    "code": "pond_not_found",
+                    "message": "No existe el pond solicitado",
+                    "request_id": None,
+                }
             token = self._propose("delete_pond", SUMMARY_DELETE)
             return 200, _confirmation(token, SUMMARY_DELETE)
         if name == "run_sql":
             if self.api.pond != "running":
-                return 409, {"code": "pond_not_ready", "message": str(self.api.pond), "request_id": None}
+                return 409, {
+                    "code": "pond_not_ready",
+                    "message": f"pond state {self.api.pond}",
+                    "request_id": None,
+                }
             if self.api.read_requires_confirmation:
                 token = self._propose("run_sql", "no debería confirmarse")
                 return 200, _confirmation(token, "no debería confirmarse")
@@ -171,7 +194,11 @@ class Handler(BaseHTTPRequestHandler):
         if action == "delete_pond":
             if self.api.busy_deletes > 0:
                 self.api.busy_deletes -= 1
-                return 409, {"code": "pond_busy", "message": "job activo", "request_id": None}
+                return 409, {
+                    "code": "pond_busy",
+                    "message": "El pond ya tiene un job activo",
+                    "request_id": None,
+                }
             self.api.pond = "deleting"
             self.api.delete_linger = max(self.api.delete_linger, 1)
             return 200, {
@@ -213,6 +240,14 @@ def _call_tool_result(structured: dict, *, is_error: bool) -> dict:
         "content": [{"type": "text", "text": json.dumps(structured)}],
         "structuredContent": structured,
         "isError": is_error,
+    }
+
+
+def _tool_error_result(tool_name: str, message: str) -> dict:
+    """Match FastMCP: ToolError(f\"Error calling tool {name!r}: {e}\")."""
+    return {
+        "content": [{"type": "text", "text": f"Error calling tool {tool_name!r}: {message}"}],
+        "isError": True,
     }
 
 
@@ -375,6 +410,31 @@ class ReplayTest(unittest.TestCase):
                 }
             )
         self.assertEqual(ctx.exception.code, "tool_error")
+
+    def test_maps_domain_code_from_fastmcp_is_error_text(self) -> None:
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("demo_mcp_replay", SCRIPT)
+        assert spec and spec.loader
+        mod = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = mod
+        spec.loader.exec_module(mod)
+        with self.assertRaises(mod.ReplayError) as ctx:
+            mod.unwrap_tool_result(
+                {
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": (
+                                "Error calling tool 'confirm_action': "
+                                "El pond ya tiene un job activo"
+                            ),
+                        }
+                    ],
+                    "isError": True,
+                }
+            )
+        self.assertEqual(ctx.exception.code, "pond_busy")
 
     def test_waits_for_running_before_sql(self) -> None:
         api = Api()
