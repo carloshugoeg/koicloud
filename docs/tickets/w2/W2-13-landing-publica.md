@@ -2,7 +2,7 @@
 id: W2-13
 workstream: W2
 persona: Jousé
-estado: en-revision
+estado: abierto
 rama: w2-landing-catalogo
 epica: "E2-01"
 sprint: S4
