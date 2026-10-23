@@ -29,6 +29,7 @@ beforeAll(() => {
 
 beforeEach(() => {
   useAuthStore.getState().clearSession();
+  sessionStorage.clear();
   resetAgentAccessState();
   resetAdminUsersState();
 });
