@@ -50,9 +50,9 @@ export function LandingPage() {
 
         <section id="como-funciona" className="space-y-6">
           <div className="border-t-2 border-green-700 pt-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-muted">
+            <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-muted">
               Cómo funciona
-            </p>
+            </h2>
           </div>
 
           <div className="grid gap-6 md:grid-cols-3">
