@@ -6,7 +6,7 @@ estado: en-revision
 rama: w4-reporte-carga
 epica: "E10-04, E10-05"
 sprint: S5
-pr:
+pr: https://github.com/carloshugoeg/koicloud/pull/112
 ---
 
 # [W4-12] Reporte de carga y tres runbooks
