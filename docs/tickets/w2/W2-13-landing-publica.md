@@ -2,11 +2,11 @@
 id: W2-13
 workstream: W2
 persona: Jousé
-estado: abierto
-rama: w2-landing-catalogo
+estado: en-revision
+rama: w2-landing-prerender
 epica: "E2-01"
 sprint: S4
-pr: "https://github.com/carloshugoeg/koicloud/pull/108"
+pr: "https://github.com/carloshugoeg/koicloud/pull/115"
 ---
 
 # [W2-13] Landing pública y catálogo de planes
@@ -16,11 +16,11 @@ pr: "https://github.com/carloshugoeg/koicloud/pull/108"
 **Excepción cross-workstream (aprobada por Carlos):** aunque `apps/web/**` es superficie de W2
 ([`docs/WORKSTREAMS.md`](../../WORKSTREAMS.md) §2), Carlos autoriza a Jousé a implementar y
 mantener **solo** la landing pública de este ticket en `apps/web`. La autorización no se
-extiende a otras pantallas de la SPA ni a rutas fuera del alcance de abajo. El PR de
-implementación activo es el de la rama `w2-landing-catalogo` (supersede de
+extiende a otras pantallas de la SPA ni a rutas fuera del alcance de abajo. UI de landing
+en `main` vía [#108](https://github.com/carloshugoeg/koicloud/pull/108) (supersede de
 [#89](https://github.com/carloshugoeg/koicloud/pull/89), que queda abierto y sin tocar).
-Este ticket no se declara `hecho` mientras queden CAs incompletos (prerender y
-Lighthouse/preview).
+Closeout CA8/CA10 en rama `w2-landing-prerender`. [#111](https://github.com/carloshugoeg/koicloud/pull/111)
+(status → abierto) no se pelea.
 
 ## Qué se ve
 
