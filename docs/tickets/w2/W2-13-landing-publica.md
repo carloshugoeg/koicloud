@@ -3,10 +3,10 @@ id: W2-13
 workstream: W2
 persona: Jousé
 estado: en-revision
-rama: w2-landing-publica
+rama: w2-landing-catalogo
 epica: "E2-01"
 sprint: S4
-pr: "https://github.com/carloshugoeg/koicloud/pull/89"
+pr: "https://github.com/carloshugoeg/koicloud/pull/108"
 ---
 
 # [W2-13] Landing pública y catálogo de planes
@@ -17,8 +17,10 @@ pr: "https://github.com/carloshugoeg/koicloud/pull/89"
 ([`docs/WORKSTREAMS.md`](../../WORKSTREAMS.md) §2), Carlos autoriza a Jousé a implementar y
 mantener **solo** la landing pública de este ticket en `apps/web`. La autorización no se
 extiende a otras pantallas de la SPA ni a rutas fuera del alcance de abajo. El PR de
-implementación es [#89](https://github.com/carloshugoeg/koicloud/pull/89) (abierto; este
-ticket no lo declara hecho).
+implementación activo es el de la rama `w2-landing-catalogo` (supersede de
+[#89](https://github.com/carloshugoeg/koicloud/pull/89), que queda abierto y sin tocar).
+Este ticket no se declara `hecho` mientras queden CAs incompletos (prerender y
+Lighthouse/preview).
 
 ## Qué se ve
 
@@ -66,8 +68,8 @@ Secciones obligatorias, en este orden:
   aprobación de Carlos (W1 / CODEOWNERS). Sin otras dependencias nuevas.
 - Tema claro. Fuentes Fraunces + Instrument Sans. Sin dark mode y sin `Inter`.
 - Textos de UI en español. Copy del hero y facts alineados al mockup citado.
-- Rama de implementación: `w2-landing-publica` (prefijo W2 para el job `ownership` sobre
-  `apps/web/**`).
+- Rama de implementación: `w2-landing-catalogo` (prefijo W2 para el job `ownership` sobre
+  `apps/web/**`). Trae los commits de Jousé desde #89 y cierra la revisión encima.
 
 ## Criterios de aceptación
 
@@ -126,4 +128,5 @@ No inventes endpoints, campos ni pantallas.
 
 Imitá el PR #1 (`[W2-01] Pantalla de login`): misma estructura de archivos, mismo estilo de
 pruebas y misma forma de cerrar criterios en el PR. El PR de implementación de este ticket
-es [#89](https://github.com/carloshugoeg/koicloud/pull/89).
+arrancó en [#89](https://github.com/carloshugoeg/koicloud/pull/89); el PR activo es el de
+`w2-landing-catalogo`.
