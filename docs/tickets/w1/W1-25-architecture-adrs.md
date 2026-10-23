@@ -2,7 +2,7 @@
 id: W1-25
 workstream: W1
 persona: Carlos
-estado: en-revision
+estado: hecho
 rama: w1-architecture-adrs
 epica: E10-02
 sprint: S5
