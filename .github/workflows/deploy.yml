@@ -2,6 +2,7 @@ name: deploy
 
 # W1-13 groundwork. Does nothing until repository variables and secrets exist.
 # Never invents a VPS. See docs/runbooks/deploy.md.
+# secrets cannot appear in job-level `if:` — probe them via env in the gate job.
 
 on:
   workflow_dispatch:
@@ -18,14 +19,41 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  missing-host:
+  gate:
+    name: check-config
+    runs-on: ubuntu-latest
+    outputs:
+      ready: ${{ steps.probe.outputs.ready }}
+    steps:
+      - name: Probe vars and SSH secret
+        id: probe
+        env:
+          KOICLOUD_DEPLOY_HOST: ${{ vars.KOICLOUD_DEPLOY_HOST }}
+          KOICLOUD_DEPLOY_USER: ${{ vars.KOICLOUD_DEPLOY_USER }}
+          KOICLOUD_DOMAIN: ${{ vars.KOICLOUD_DOMAIN }}
+          KOICLOUD_DEPLOY_SSH_KNOWN_HOSTS: ${{ vars.KOICLOUD_DEPLOY_SSH_KNOWN_HOSTS }}
+          KOICLOUD_DEPLOY_SSH_KEY: ${{ secrets.KOICLOUD_DEPLOY_SSH_KEY }}
+        run: |
+          missing=()
+          [ -n "$KOICLOUD_DEPLOY_HOST" ] || missing+=("KOICLOUD_DEPLOY_HOST (var)")
+          [ -n "$KOICLOUD_DEPLOY_USER" ] || missing+=("KOICLOUD_DEPLOY_USER (var)")
+          [ -n "$KOICLOUD_DOMAIN" ] || missing+=("KOICLOUD_DOMAIN (var)")
+          [ -n "$KOICLOUD_DEPLOY_SSH_KNOWN_HOSTS" ] || missing+=("KOICLOUD_DEPLOY_SSH_KNOWN_HOSTS (var)")
+          [ -n "$KOICLOUD_DEPLOY_SSH_KEY" ] || missing+=("KOICLOUD_DEPLOY_SSH_KEY (secret)")
+          if [ "${#missing[@]}" -eq 0 ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+            echo "Deploy config is complete."
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "ESPERA: deploy skipped — missing config:"
+            printf '  - %s\n' "${missing[@]}"
+            echo "Checklist: docs/runbooks/deploy.md"
+          fi
+
+  waiting-for-host:
     name: waiting-for-host
-    if: >-
-      vars.KOICLOUD_DEPLOY_HOST == '' ||
-      vars.KOICLOUD_DEPLOY_USER == '' ||
-      vars.KOICLOUD_DOMAIN == '' ||
-      vars.KOICLOUD_DEPLOY_SSH_KNOWN_HOSTS == '' ||
-      secrets.KOICLOUD_DEPLOY_SSH_KEY == ''
+    needs: gate
+    if: needs.gate.outputs.ready != 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Document the wait
@@ -38,12 +66,8 @@ jobs:
 
   deploy:
     name: deploy
-    if: >-
-      vars.KOICLOUD_DEPLOY_HOST != '' &&
-      vars.KOICLOUD_DEPLOY_USER != '' &&
-      vars.KOICLOUD_DOMAIN != '' &&
-      vars.KOICLOUD_DEPLOY_SSH_KNOWN_HOSTS != '' &&
-      secrets.KOICLOUD_DEPLOY_SSH_KEY != ''
+    needs: gate
+    if: needs.gate.outputs.ready == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

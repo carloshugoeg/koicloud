@@ -2,7 +2,11 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { usePlansQuery, useUsageQuery } from "@/api/hooks";
 import { usePondsQuery, type Pond } from "@/api/hooks/ponds";
-import { problemToMessage } from "@/lib/errors";
+import {
+  DataStateEmpty,
+  DataStateError,
+  DataStateLoading,
+} from "@/components/data-state";
 import { pondStateMeta } from "@/features/ponds/pond-state";
 
 const FREE_CELLS = 10;
@@ -78,54 +82,34 @@ export function DashboardPage() {
   const ponds = pondsQuery.data ?? [];
 
   if (pondsQuery.isPending) {
-    return (
-      <div className="space-y-4" data-testid="ponds-loading">
-        <div className="h-10 w-48 animate-pulse rounded-sm bg-bone-sunk" />
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {Array.from({ length: 4 }, (_, i) => (
-            <div key={i} className="h-28 animate-pulse rounded-md border border-line bg-bone-sunk" />
-          ))}
-        </div>
-        <div className="h-40 animate-pulse rounded-md border border-line bg-bone-sunk" />
-      </div>
-    );
+    return <DataStateLoading blocks={5} testId="ponds-loading" />;
   }
 
   if (pondsQuery.isError) {
     return (
-      <div className="rounded-md border border-line bg-bone-raised p-5" data-testid="ponds-error">
-        <div className="border-l-[3px] border-danger pl-3">
-          <p className="text-sm text-ink">{problemToMessage(pondsQuery.error)}</p>
-          <p className="mt-1 font-mono text-xs text-ink-faint">
-            {(pondsQuery.error as { problem?: { code?: string } })?.problem?.code ?? "error"}
-          </p>
-        </div>
-        <button
-          type="button"
-          className="mt-4 h-9 rounded-sm border border-line-control bg-bone-raised px-4 text-sm font-medium text-ink hover:border-turquoise-700"
-          onClick={() => void pondsQuery.refetch()}
-        >
-          Reintentar
-        </button>
-      </div>
+      <DataStateError
+        testId="ponds-error"
+        error={pondsQuery.error}
+        onRetry={() => void pondsQuery.refetch()}
+      />
     );
   }
 
   if (ponds.length === 0) {
     return (
-      <div className="rounded-md border border-line bg-bone-raised p-8 text-center" data-testid="ponds-empty">
-        <div className="mx-auto mb-4 koi" aria-hidden />
-        <h2 className="font-display text-2xl text-ink">Todavía no tenés ponds</h2>
-        <p className="mt-2 text-sm text-ink-muted">
-          Creá el primero para ver la rejilla del estanque y el estado observado.
-        </p>
-        <Link
-          to="/app/ponds/new"
-          className="mt-5 inline-flex h-9 items-center rounded-sm bg-turquoise-700 px-4 text-sm font-medium text-bone-raised hover:bg-turquoise-900"
-        >
-          Crear pond
-        </Link>
-      </div>
+      <DataStateEmpty
+        testId="ponds-empty"
+        title="Todavía no tenés ponds"
+        description="Creá el primero para ver la rejilla del estanque y el estado observado."
+        action={
+          <Link
+            to="/app/ponds/new"
+            className="inline-flex h-9 items-center rounded-sm bg-turquoise-700 px-4 text-sm font-medium text-bone-raised transition-colors duration-instant ease-brand-out hover:bg-turquoise-900"
+          >
+            Crear pond
+          </Link>
+        }
+      />
     );
   }
 
