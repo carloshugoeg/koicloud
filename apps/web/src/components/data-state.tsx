@@ -123,3 +123,32 @@ export function DataStateError({
     </div>
   );
 }
+
+export interface DataStateSessionBootProps {
+  testId?: string;
+  label?: string;
+}
+
+/**
+ * Arranque de sesión — estanque quieto 160×120, solo nado sin deriva (§6.5 / §7.3).
+ * Única carga a pantalla completa permitida.
+ */
+export function DataStateSessionBoot({
+  testId = "data-state-session-boot",
+  label = "Iniciando sesión…",
+}: DataStateSessionBootProps) {
+  return (
+    <div
+      className="flex min-h-screen flex-col items-center justify-center gap-4 bg-bone px-4"
+      data-testid={testId}
+      role="status"
+      aria-busy="true"
+      aria-label={label}
+    >
+      <div className="pond-water-panel data-state-session-boot__pond" aria-hidden>
+        <div className="koi data-state-session-boot__koi" />
+      </div>
+      <p className="text-sm text-ink-muted">{label}</p>
+    </div>
+  );
+}
