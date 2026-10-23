@@ -7,9 +7,10 @@ import {
   DataStateEmpty,
   DataStateError,
   DataStateLoading,
+  DataStateSessionBoot,
 } from "@/components/data-state";
 
-describe("DataState — loading / empty / error", () => {
+describe("DataState — loading / empty / error / session boot", () => {
   it("renders loading skeletons with busy status", () => {
     render(<DataStateLoading blocks={5} />);
 
@@ -67,5 +68,18 @@ describe("DataState — loading / empty / error", () => {
 
     await user.click(screen.getByRole("button", { name: "Reintentar" }));
     expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders quiet session-boot pond at 160×120 without drift", () => {
+    render(<DataStateSessionBoot />);
+
+    const boot = screen.getByTestId("data-state-session-boot");
+    expect(boot).toHaveAttribute("role", "status");
+    expect(boot).toHaveAttribute("aria-busy", "true");
+    expect(screen.getByText("Iniciando sesión…")).toBeInTheDocument();
+
+    const pond = boot.querySelector(".data-state-session-boot__pond");
+    expect(pond).not.toBeNull();
+    expect(boot.querySelector(".data-state-session-boot__koi")).not.toBeNull();
   });
 });

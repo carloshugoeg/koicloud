@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { type PropsWithChildren, useState } from "react";
+import { SessionBootGate } from "@/app/session-boot-gate";
 
 function createQueryClient() {
   return new QueryClient({
@@ -20,6 +21,8 @@ export function AppProviders({ children }: PropsWithChildren) {
   const [queryClient] = useState(createQueryClient);
 
   return (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <QueryClientProvider client={queryClient}>
+      <SessionBootGate>{children}</SessionBootGate>
+    </QueryClientProvider>
   );
 }

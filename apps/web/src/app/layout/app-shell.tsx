@@ -1,30 +1,9 @@
-import { NavLink, Outlet, useMatches } from "react-router-dom";
+import { useCallback, useRef, useState } from "react";
+import { Outlet, useMatches } from "react-router-dom";
+import { AppHeader } from "@/app/layout/app-header";
+import { SidebarRail, SidebarSheet } from "@/app/layout/sidebar";
+import { useSidebarMode } from "@/app/layout/use-sidebar-mode";
 import { useAuthStore } from "@/lib/auth-store";
-
-const primaryLinks = [
-  { to: "/app/ponds", label: "Ponds" },
-  { to: "/app/plans", label: "Planes" },
-  { to: "/app/uso", label: "Uso del mes" },
-  { to: "/app/billing", label: "Facturación" },
-  { to: "/app/acceso-agente", label: "Acceso agente" },
-  { to: "/app/account", label: "Cuenta" },
-];
-
-const adminLinks = [
-  { to: "/app/admin/users", label: "Usuarios" },
-  { to: "/app/admin/subscriptions", label: "Suscripciones" },
-  { to: "/app/admin/ponds", label: "Ponds" },
-  { to: "/app/admin/audit", label: "Bitácora" },
-];
-
-function linkClassName(isActive: boolean) {
-  return [
-    "block rounded-sm border px-3 py-2 text-sm transition-colors duration-fast ease-brand-out",
-    isActive
-      ? "border-turquoise-700 bg-turquoise-100 text-turquoise-900"
-      : "border-transparent text-ink hover:border-line-control hover:bg-bone",
-  ].join(" ");
-}
 
 function readTitle(handle: unknown) {
   if (
@@ -43,82 +22,38 @@ export function AppShell() {
   const clearSession = useAuthStore((state) => state.clearSession);
   const matches = useMatches();
   const currentTitle = readTitle(matches[matches.length - 1]?.handle);
+  const mode = useSidebarMode();
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const closeSheet = useCallback(() => setSheetOpen(false), []);
+  const openSheet = useCallback(() => setSheetOpen(true), []);
+  const isAdmin = session?.user.role === "admin";
+  const collapsed = mode === "rail";
 
   return (
-    <div
-      className="min-h-screen overflow-x-hidden bg-bone text-ink lg:grid"
-      style={{ gridTemplateColumns: "minmax(0, var(--sidebar-w)) minmax(0, 1fr)" }}
-    >
-      <aside className="border-b border-line bg-bone-sunk px-4 py-5 lg:border-b-0 lg:border-r">
-        <div className="space-y-1 border-b border-line pb-4">
-          <div className="flex items-center gap-2">
-            <span className="koi-mark-32 shrink-0" aria-hidden />
-            <p className="font-display text-3xl text-ink">KoiCloud</p>
-          </div>
-          <p className="text-sm text-ink-muted">Panel de control del estanque.</p>
-        </div>
+    <div className="flex min-h-screen overflow-x-hidden bg-bone text-ink">
+      {mode === "sheet" ? null : (
+        <SidebarRail isAdmin={Boolean(isAdmin)} collapsed={collapsed} />
+      )}
+      <SidebarSheet
+        isAdmin={Boolean(isAdmin)}
+        open={mode === "sheet" && sheetOpen}
+        onClose={closeSheet}
+        returnFocusRef={menuButtonRef}
+      />
 
-        <nav className="mt-5 space-y-6">
-          <div className="space-y-2">
-            <p className="text-xs font-medium uppercase tracking-[0.18em] text-ink-muted">
-              Estanque
-            </p>
-            <div className="space-y-1">
-              {primaryLinks.map((link) => (
-                <NavLink key={link.to} className={({ isActive }) => linkClassName(isActive)} to={link.to}>
-                  {link.label}
-                </NavLink>
-              ))}
-            </div>
-          </div>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <AppHeader
+          title={currentTitle}
+          userName={session?.user.full_name ?? "Operador"}
+          userEmail={session?.user.email ?? ""}
+          onLogout={clearSession}
+          onOpenNav={openSheet}
+          showMenuButton={mode === "sheet"}
+          menuButtonRef={menuButtonRef}
+        />
 
-          {session?.user.role === "admin" ? (
-            <div className="space-y-2">
-              <p className="text-xs font-medium uppercase tracking-[0.18em] text-ink-muted">
-                Administración
-              </p>
-              <div className="space-y-1">
-                {adminLinks.map((link) => (
-                  <NavLink key={link.to} className={({ isActive }) => linkClassName(isActive)} to={link.to}>
-                    {link.label}
-                  </NavLink>
-                ))}
-              </div>
-            </div>
-          ) : null}
-        </nav>
-      </aside>
-
-      <div className="min-w-0">
-        <header
-          className="flex flex-wrap items-center justify-between gap-4 border-b border-line bg-bone px-4 py-4 lg:px-8"
-          style={{ minHeight: "var(--header-h)" }}
-        >
-          <div>
-            <p className="text-xs font-medium uppercase tracking-[0.16em] text-ink-muted">
-              Control plane
-            </p>
-            <h1 className="font-display text-3xl text-ink">{currentTitle}</h1>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="text-right">
-              <p className="text-sm font-medium text-ink">
-                {session?.user.full_name ?? "Operador"}
-              </p>
-              <p className="text-xs text-ink-muted">{session?.user.email}</p>
-            </div>
-            <button
-              className="rounded-sm border border-line-control bg-bone-raised px-3 py-2 text-sm font-medium text-ink transition-colors duration-instant ease-brand-out hover:border-turquoise-700 hover:text-turquoise-700"
-              onClick={clearSession}
-              type="button"
-            >
-              Cerrar sesión
-            </button>
-          </div>
-        </header>
-
-        <main className="mx-auto max-w-content overflow-x-hidden px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        <main className="mx-auto w-full max-w-content flex-1 overflow-x-hidden px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
           <Outlet />
         </main>
       </div>
