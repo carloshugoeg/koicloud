@@ -65,8 +65,9 @@ describe("W2-04 Dashboard de ponds", () => {
     );
     renderPonds();
 
-    expect(await screen.findByTestId("ponds-empty")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Crear pond" })).toHaveAttribute(
+    const empty = await screen.findByTestId("ponds-empty");
+    expect(empty).toBeInTheDocument();
+    expect(within(empty).getByRole("link", { name: "Crear pond" })).toHaveAttribute(
       "href",
       "/app/ponds/new",
     );

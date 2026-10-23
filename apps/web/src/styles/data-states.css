@@ -65,6 +65,26 @@
     koi-drift 24s var(--ease) infinite;
 }
 
+/* Arranque de sesión: 160×120, quieto (nado sin deriva, agua sin paneo) §7.3 */
+.data-state-session-boot__pond {
+  position: relative;
+  width: 160px;
+  height: 120px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  animation: none;
+  background-position: 0 0;
+}
+
+.data-state-session-boot__koi {
+  position: absolute;
+  left: 48px;
+  top: 28px;
+  /* Solo ciclo de nado — sin koi-drift */
+  animation: koi-swim 0.8s steps(8) infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .data-skeleton {
     animation: none;
@@ -76,7 +96,8 @@
   }
 
   .data-state-empty__pond .koi,
-  .data-state-empty__pond--lg .koi--x2 {
+  .data-state-empty__pond--lg .koi--x2,
+  .data-state-session-boot__koi {
     animation: none;
     background-position-x: 0;
   }
