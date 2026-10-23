@@ -32,7 +32,7 @@ no existe todavía. `00-INDEX.md` no es un ticket y el agente lo ignora.
 | W1-21 | Partir `PondService` (SRP / DIP) | `w1-pond-service-srp` | abierto · desde P7 solid-review |
 | W1-22 | Transiciones de job explícitas (OCP) | `w1-job-transitions-ocp` | abierto · depende W1-21 |
 | W1-23 | Historial SQL vía commands (DIP) | `w1-sql-history-dip` | abierto · desde P7 solid-review |
-| W1-24 | Revisión SOLID del control plane (P7 / #96) | `w1-solid-review` | hecho ([PR #101](https://github.com/carloshugoeg/koicloud/pull/101)) |
+| W1-24 | Revisión SOLID del control plane (P7 / #96) | `w1-solid-review` | en-revision ([PR #101](https://github.com/carloshugoeg/koicloud/pull/101)) |
 | W1-25 | ADRs A-01..A-12 en `docs/adr/` | `w1-architecture-adrs` | hecho ([PR #106](https://github.com/carloshugoeg/koicloud/pull/106)) |
 | W1-26 | `scripts/demo-mcp-replay.py` (antes W4-09) | `w1-demo-replay` | abierto |
 
