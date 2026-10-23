@@ -2,7 +2,7 @@
 id: W2-12
 workstream: W2
 persona: Jason
-estado: en-revision
+estado: hecho
 rama: w2-tema-y-estados
 epica: "RNF-08"
 sprint: S4
