@@ -18,7 +18,7 @@ el agente lo ignora.
 | W2-10 | Panel administrador (tres tablas) | `w2-panel-admin` | hecho ([PR #85](https://github.com/carloshugoeg/koicloud/pull/85)) |
 | W2-11 | Acceso agente: revelar y rotar | `w2-acceso-agente` | hecho ([PR #79](https://github.com/carloshugoeg/koicloud/pull/79)) |
 | W2-12 | Layout, tema, estados vacíos y responsive a 360 px | `w2-tema-y-estados` | abierto |
-| W2-13 | Landing pública y catálogo de planes | `w2-landing-catalogo` | hecho ([PR #108](https://github.com/carloshugoeg/koicloud/pull/108) supersede [#89](https://github.com/carloshugoeg/koicloud/pull/89); dueño Jousé `@Josh-JM`, excepción `apps/web` aprobada por Carlos) |
+| W2-13 | Landing pública y catálogo de planes | `w2-landing-catalogo` | en-revision ([PR #108](https://github.com/carloshugoeg/koicloud/pull/108) supersede [#89](https://github.com/carloshugoeg/koicloud/pull/89); dueño Jousé `@Josh-JM`, excepción `apps/web` aprobada por Carlos) |
 
 **Dos fuentes por pantalla, y no se confunden:** la arquitectura de información (qué campos,
 qué tablas, qué pasos) sale de los mockups de `docs/entrega-2/mockups/`; la piel (color,
