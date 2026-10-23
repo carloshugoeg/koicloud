@@ -2,7 +2,7 @@
 id: W1-24
 workstream: W1
 persona: Carlos Hugo Escobar
-estado: en-revision
+estado: hecho
 rama: w1-solid-review
 epica: E10-01
 sprint: S5
