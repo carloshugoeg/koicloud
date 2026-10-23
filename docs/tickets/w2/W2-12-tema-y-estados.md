@@ -6,7 +6,7 @@ estado: en-revision
 rama: w2-tema-y-estados
 epica: "RNF-08"
 sprint: S4
-pr:
+pr: https://github.com/carloshugoeg/koicloud/pull/113
 ---
 
 # [W2-12] Layout, tema, estados vacíos y responsive a 360 px
