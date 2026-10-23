@@ -28,11 +28,13 @@ function resolveChromeForPrerender(): string | undefined {
 
 export default defineConfig(({ command }) => {
   const chromePath = resolveChromeForPrerender();
+  const skipPlugin =
+    process.env.KOICLOUD_SKIP_PRERENDER_PLUGIN === "1" || !chromePath;
 
   return {
     plugins: [
       react(),
-      ...(command === "build"
+      ...(command === "build" && !skipPlugin
         ? [
             vitePrerender({
               staticDir: path.join(rootDir, "dist"),
@@ -47,7 +49,7 @@ export default defineConfig(({ command }) => {
                 ],
                 // Bundled puppeteer@1 (via vite-plugin-prerender) ships Chromium too
                 // old for this Vite 8 / React 19 bundle. Prefer a modern system Chrome.
-                ...(chromePath ? { executablePath: chromePath } : {}),
+                executablePath: chromePath,
               }),
               postProcess(renderedRoute: { html: string }) {
                 if (!renderedRoute.html.includes("Tu Postgres en línea")) {
