@@ -1,15 +1,18 @@
 ---
-id: W4-09
-workstream: W4
-persona: Diego
+id: W1-26
+workstream: W1
+persona: Carlos
 estado: abierto
-rama: w4-demo-replay
+rama: w1-demo-replay
 epica: "E9-07"
 sprint: S4
 pr:
+depends_on:
 ---
 
-# [W4-09] `scripts/demo-mcp-replay.py` (repetici贸n determinista)
+# [W1-26] `scripts/demo-mcp-replay.py` (repetici贸n determinista)
+
+Antes **W4-09** (Diego). Carlos asumi贸 el ticket: `scripts/**` es zona W1 y la rama debe ser `w1-*` (issue [#96](https://github.com/carloshugoeg/koicloud/issues/96) P4 + decisi贸n en #93). Archivo movido de `docs/tickets/w4/W4-09-demo-replay.md`.
 
 ## Qu茅 se ve
 
@@ -22,6 +25,8 @@ Script determinista para repetir el happy path MCP sin LLM. Lo visible es una 鈥
 - Nombre fijo del pond: `inventario-natural`.
 - Se conecta a `/mcp` con slug + password y acepta `--simulate-chat`.
 - El replay debe poder correrse m谩s de una vez sin dejar el entorno roto.
+- Rama: `w1-demo-replay` (no `w4-demo-replay`).
+- El trabajo de implementaci贸n sigue abierto en [#93](https://github.com/carloshugoeg/koicloud/pull/93); este PR solo mueve el ticket. Tras merge de #93 (sin ADRs), marcar `hecho`.
 
 ## Criterios de aceptaci贸n
 
@@ -36,6 +41,7 @@ Script determinista para repetir el happy path MCP sin LLM. Lo visible es una 鈥
 - `apps/api/app/commands/**`.
 - `apps/node-agent/**`.
 - `infra/**`.
+- `docs/adr/**` (ticket W1-25).
 
 ## Si algo falta
 
@@ -44,4 +50,4 @@ No inventes comandos, flags, payloads, tools ni atajos al flujo de confirmaci贸n
 
 ## Referencia
 
-Imit谩 el PR #1 (`[W2-01] Pantalla de login`): misma estructura de archivos, mismo estilo de pruebas y misma forma de cerrar criterios en el PR.
+Imit谩 el PR #1 (`[W2-01] Pantalla de login`): misma estructura de archivos, mismo estilo de pruebas y misma forma de cerrar criterios en el PR. Implementaci贸n en curso: [#93](https://github.com/carloshugoeg/koicloud/pull/93).
