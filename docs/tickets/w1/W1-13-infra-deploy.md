@@ -2,7 +2,7 @@
 id: W1-13
 workstream: W1
 persona: Carlos
-estado: en-revision
+estado: abierto
 rama: w1-infra-deploy
 epica: "E10-02, E10-03"
 sprint: S4
