@@ -155,7 +155,8 @@ alcance».
 ### MCP y fallback LLM
 
 - Configuración: panel «Acceso agente» en Web (slug + password).
-- Si el LLM no responde en 15 s: `scripts/demo-mcp-replay.py --simulate-chat` (W4-09).
+- Si el LLM no responde en 15 s: `scripts/demo-mcp-replay.py --simulate-chat` (W1-26).
+- Invocación y salida feliz: `docs/runbooks/demo-mcp-replay.md` · manual: `docs/manual-usuario/demo-mcp.md`.
 - Detalle del fallback: `risks-and-demo-plan.md` §4.
 
 ### Plan B — sin control plane
@@ -189,8 +190,8 @@ bash scripts/demo-vivo.sh entrega
 # S3 / Avance 50 % — billing + usage + PDF + backup/restore
 bash scripts/demo-vivo.sh s3-entrega
 
-# E2 — mismo + fallback MCP (cuando exista W4-09)
-python scripts/demo-mcp-replay.py --simulate-chat
+# E2 — mismo + fallback MCP (W1-26)
+python3 scripts/demo-mcp-replay.py --simulate-chat
 
 # E3 — contra VPS (Carlos)
 export API_BASE="https://${KOICLOUD_DOMAIN}/api/v1"

@@ -2,11 +2,11 @@
 id: W1-26
 workstream: W1
 persona: Carlos
-estado: abierto
+estado: hecho
 rama: w1-demo-replay
 epica: "E9-07"
 sprint: S4
-pr:
+pr: "#110"
 depends_on:
 ---
 
@@ -26,7 +26,7 @@ Script determinista para repetir el happy path MCP sin LLM. Lo visible es una �
 - Se conecta a `/mcp` con slug + password y acepta `--simulate-chat`.
 - El replay debe poder correrse más de una vez sin dejar el entorno roto.
 - Rama: `w1-demo-replay` (no `w4-demo-replay`).
-- El trabajo de implementación sigue abierto en [#93](https://github.com/carloshugoeg/koicloud/pull/93); este PR solo mueve el ticket. Tras merge de #93 (sin ADRs), marcar `hecho`.
+- Implementación recomendada en [#93](https://github.com/carloshugoeg/koicloud/pull/93); este ticket aterriza el replay en una rama nueva desde `main` (sin pelear ADRs ya en #106). #93 queda abierto como referencia.
 
 ## Criterios de aceptación
 
@@ -50,4 +50,8 @@ No inventes comandos, flags, payloads, tools ni atajos al flujo de confirmación
 
 ## Referencia
 
-Imitá el PR #1 (`[W2-01] Pantalla de login`): misma estructura de archivos, mismo estilo de pruebas y misma forma de cerrar criterios en el PR. Implementación en curso: [#93](https://github.com/carloshugoeg/koicloud/pull/93).
+Imitá el PR #1 (`[W2-01] Pantalla de login`): misma estructura de archivos, mismo estilo de pruebas y misma forma de cerrar criterios en el PR. Implementación de referencia (no mergear aquí): [#93](https://github.com/carloshugoeg/koicloud/pull/93).
+
+## Nota de tamaño (PR #110)
+
+`scripts/demo-mcp-replay.py` + `scripts/test_demo_mcp_replay.py` superan el techo de ~500 líneas netas del protocolo de PR (§9). Queda como **excepción aceptada** para este ticket: un solo entregable (cliente streamable + stub FastMCP + retries) sin partir el script.
