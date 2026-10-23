@@ -1,14 +1,9 @@
+import { useEffect, useRef, type RefObject } from "react";
 import { SidebarNav } from "@/app/layout/sidebar-nav";
 import { CloseIcon } from "@/app/layout/nav-icons";
 
-export interface SidebarProps {
-  isAdmin: boolean;
-  /** Icon-only rail between 768 px and 1023 px. */
-  collapsed: boolean;
-  /** Mobile sheet (< 768 px). */
-  sheetOpen: boolean;
-  onSheetClose: () => void;
-}
+const FOCUSABLE =
+  'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 function Brand({ collapsed }: { collapsed: boolean }) {
   return (
@@ -53,7 +48,6 @@ export function SidebarRail({
       ].join(" ")}
       style={{ minHeight: "100vh" }}
     >
-      {/* collapsed prop follows viewport: rail below lg, full at lg+ */}
       <Brand collapsed={collapsed} />
       <div className="mt-5 flex-1">
         <SidebarNav isAdmin={isAdmin} collapsed={collapsed} />
@@ -62,16 +56,80 @@ export function SidebarRail({
   );
 }
 
-/** Sheet drawer for < 768 px. */
+/** Sheet drawer for < 768 px — Escape, focus in/out, Tab containment (CA4). */
 export function SidebarSheet({
   isAdmin,
   open,
   onClose,
+  returnFocusRef,
 }: {
   isAdmin: boolean;
   open: boolean;
   onClose: () => void;
+  returnFocusRef: RefObject<HTMLElement | null>;
 }) {
+  const dialogRef = useRef<HTMLElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const dialog = dialogRef.current;
+    if (!dialog) {
+      return;
+    }
+
+    closeButtonRef.current?.focus();
+    const returnTarget = returnFocusRef.current;
+
+    function focusables(): HTMLElement[] {
+      if (!dialogRef.current) return [];
+      return Array.from(dialogRef.current.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
+        (el) => !el.hasAttribute("disabled") && el.tabIndex !== -1,
+      );
+    }
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+
+      if (event.key !== "Tab") {
+        return;
+      }
+
+      const items = focusables();
+      if (items.length === 0) {
+        event.preventDefault();
+        return;
+      }
+
+      const first = items[0];
+      const last = items[items.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+
+      if (event.shiftKey) {
+        if (active === first || !dialogRef.current?.contains(active)) {
+          event.preventDefault();
+          last.focus();
+        }
+      } else if (active === last || !dialogRef.current?.contains(active)) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      returnTarget?.focus();
+    };
+  }, [open, onClose, returnFocusRef]);
+
   if (!open) {
     return null;
   }
@@ -82,9 +140,11 @@ export function SidebarSheet({
         type="button"
         className="dialog-veil absolute inset-0 border-0"
         aria-label="Cerrar fondo del menú"
+        tabIndex={-1}
         onClick={onClose}
       />
       <aside
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label="Navegación"
@@ -92,6 +152,7 @@ export function SidebarSheet({
       >
         <div className="mb-2 flex items-start justify-end">
           <button
+            ref={closeButtonRef}
             type="button"
             className="rounded-sm border border-line-control bg-bone-raised p-2 text-ink transition-colors duration-instant ease-brand-out hover:border-turquoise-700 hover:text-turquoise-700"
             aria-label="Cerrar menú"

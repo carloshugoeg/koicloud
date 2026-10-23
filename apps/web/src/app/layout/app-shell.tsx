@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Outlet, useMatches } from "react-router-dom";
 import { AppHeader } from "@/app/layout/app-header";
 import { SidebarRail, SidebarSheet } from "@/app/layout/sidebar";
@@ -24,6 +24,7 @@ export function AppShell() {
   const currentTitle = readTitle(matches[matches.length - 1]?.handle);
   const mode = useSidebarMode();
   const [sheetOpen, setSheetOpen] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
   const isAdmin = session?.user.role === "admin";
   const collapsed = mode === "rail";
 
@@ -36,6 +37,7 @@ export function AppShell() {
         isAdmin={Boolean(isAdmin)}
         open={mode === "sheet" && sheetOpen}
         onClose={() => setSheetOpen(false)}
+        returnFocusRef={menuButtonRef}
       />
 
       <div className="flex min-w-0 flex-1 flex-col">
@@ -46,6 +48,7 @@ export function AppShell() {
           onLogout={clearSession}
           onOpenNav={() => setSheetOpen(true)}
           showMenuButton={mode === "sheet"}
+          menuButtonRef={menuButtonRef}
         />
 
         <main className="mx-auto w-full max-w-content flex-1 overflow-x-hidden px-4 py-6 sm:px-6 lg:px-8 lg:py-8">

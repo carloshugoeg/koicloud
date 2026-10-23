@@ -1,3 +1,4 @@
+import type { RefObject } from "react";
 import { MenuIcon } from "@/app/layout/nav-icons";
 
 export interface AppHeaderProps {
@@ -7,6 +8,7 @@ export interface AppHeaderProps {
   onLogout: () => void;
   onOpenNav: () => void;
   showMenuButton: boolean;
+  menuButtonRef?: RefObject<HTMLButtonElement | null>;
 }
 
 export function AppHeader({
@@ -16,6 +18,7 @@ export function AppHeader({
   onLogout,
   onOpenNav,
   showMenuButton,
+  menuButtonRef,
 }: AppHeaderProps) {
   return (
     <header
@@ -26,6 +29,7 @@ export function AppHeader({
       <div className="flex min-w-0 items-center gap-3">
         {showMenuButton ? (
           <button
+            ref={menuButtonRef}
             type="button"
             className="rounded-sm border border-line-control bg-bone-raised p-2 text-ink transition-colors duration-instant ease-brand-out hover:border-turquoise-700 hover:text-turquoise-700"
             aria-label="Abrir menú"

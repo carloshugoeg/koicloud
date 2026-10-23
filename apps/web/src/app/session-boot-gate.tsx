@@ -1,27 +1,29 @@
 import { type PropsWithChildren, useEffect, useState } from "react";
 import { DataStateSessionBoot } from "@/components/data-state";
-import {
-  restoreSessionFromStorage,
-  subscribeSessionPersistence,
-} from "@/lib/session-boot";
 
-const isTest = import.meta.env.MODE === "test";
+const isVitest = import.meta.env.MODE === "test";
+
+export interface SessionBootGateProps extends PropsWithChildren {
+  /**
+   * When true, skip the boot frame (default in Vitest so existing screens
+   * do not need findBy waits). Pass false to assert the boot UI.
+   */
+  skipBoot?: boolean;
+}
 
 /**
- * Shows the quiet-pond DataState while restoring session (arranque §6.5 / CA3).
- * Does not modify auth-store.ts — persistence lives in lib/session-boot.ts.
- *
- * In Vitest the boot frame is skipped so existing screens don't need findBy waits.
+ * Arranque de sesión (§6.5 / CA3): one quiet-pond DataState frame, then children.
+ * No token persistence — auth stays in-memory (auth-store.ts is No tocar).
  */
-export function SessionBootGate({ children }: PropsWithChildren) {
-  const [ready, setReady] = useState(isTest);
+export function SessionBootGate({
+  children,
+  skipBoot = isVitest,
+}: SessionBootGateProps) {
+  const [ready, setReady] = useState(skipBoot);
 
   useEffect(() => {
-    restoreSessionFromStorage();
-    const unsubscribe = subscribeSessionPersistence();
-
-    if (isTest) {
-      return unsubscribe;
+    if (skipBoot) {
+      return;
     }
 
     const frame = window.requestAnimationFrame(() => {
@@ -29,9 +31,8 @@ export function SessionBootGate({ children }: PropsWithChildren) {
     });
     return () => {
       window.cancelAnimationFrame(frame);
-      unsubscribe();
     };
-  }, []);
+  }, [skipBoot]);
 
   if (!ready) {
     return <DataStateSessionBoot />;
