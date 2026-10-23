@@ -33,6 +33,7 @@ Lee en este orden si nunca has visto el pack; luego usa cualquier documento como
 | 9 | [`agent-docs.md`](./agent-docs.md) | Reglas de trabajo con Cursor y otros agentes: quién posee qué, `AGENTS.md`, límites del harness, DoD por superficie, política de publicación (`gh` + autoría personal de cada integrante, sin GitHub MCP) |
 | 10 | [`risks-and-demo-plan.md`](./risks-and-demo-plan.md) | Modos de falla, fallback si el LLM se cae en vivo, qué recortar si el semestre se atrasa |
 | — | [`diagrams/`](./diagrams/) | Fuentes Mermaid opcionales de los diagramas embebidos en los otros documentos |
+| — | [`solid-review.md`](./solid-review.md) | Revisión SOLID del código actual (billing, ponds, jobs, sql_console, metering); tickets para refactors >30 min |
 | — | [`../visual-guidelines.md`](../visual-guidelines.md) | **Piel del producto web**: color, tipografía, espaciado, movimiento, marca. Normativo para apariencia en `apps/web/**` |
 
 **Regla de dos fuentes para la Web:** **piel = [`visual-guidelines.md`](../visual-guidelines.md); IA de pantallas = [`entrega-2/mockups/pantallas-principales.html`](../entrega-2/mockups/pantallas-principales.html)** (qué campos, qué tablas, qué pasos) + [`feature-breakdown.md`](./feature-breakdown.md). El tema oscuro de esos mockups quedó superado como apariencia; su estructura sigue vigente. Bloque listo para pegar en un agente de Cursor: [`../visual-guidelines-agent-prompt.md`](../visual-guidelines-agent-prompt.md).
