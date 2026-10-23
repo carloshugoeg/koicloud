@@ -2,13 +2,8 @@
 id: W2-13
 workstream: W2
 persona: Jousé
-<<<<<<< HEAD
 estado: en-revision
 rama: w2-landing-prerender
-=======
-estado: abierto
-rama: w2-landing-catalogo
->>>>>>> origin/main
 epica: "E2-01"
 sprint: S4
 pr: "https://github.com/carloshugoeg/koicloud/pull/115"
