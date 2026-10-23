@@ -2,7 +2,7 @@
 id: W2-13
 workstream: W2
 persona: Jousé
-estado: en-revision
+estado: hecho
 rama: w2-landing-prerender
 epica: "E2-01"
 sprint: S4
