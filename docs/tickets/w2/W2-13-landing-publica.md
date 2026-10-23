@@ -6,7 +6,7 @@ estado: en-revision
 rama: w2-landing-prerender
 epica: "E2-01"
 sprint: S4
-pr: ""
+pr: "https://github.com/carloshugoeg/koicloud/pull/115"
 ---
 
 # [W2-13] Landing pública y catálogo de planes
