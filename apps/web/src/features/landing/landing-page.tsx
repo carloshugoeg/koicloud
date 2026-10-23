@@ -1,118 +1,121 @@
 import { Link } from "react-router-dom";
-
-const planCards = [
-  {
-    name: "Sandbox",
-    detail: "Espacio de pruebas contra mocks y contratos generados.",
-    tone: "border-turquoise-700",
-  },
-  {
-    name: "Micro",
-    detail: "Plan base de la demo: un pond real y consumo controlado.",
-    tone: "border-green-700",
-  },
-  {
-    name: "Pro",
-    detail: "Capacidad ampliada para la administración y el agente.",
-    tone: "border-marigold",
-  },
-];
+import { LandingHero } from "@/features/landing/landing-hero";
+import { LandingPlans } from "@/features/landing/landing-plans";
 
 export function LandingPage() {
   return (
-    <main className="mx-auto flex min-h-screen max-w-content flex-col gap-10 px-4 py-8 lg:px-8">
-      <header className="flex flex-wrap items-center justify-between gap-4 border-b border-line pb-5">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-[0.18em] text-ink-muted">
-            Equipo KoiCloud
-          </p>
-          <h1 className="font-display text-5xl text-ink">KoiCloud</h1>
+    <div className="min-h-screen bg-bone text-ink">
+      <header className="border-b border-line bg-bone">
+        <div className="mx-auto flex h-14 max-w-content items-center justify-between px-4 sm:px-6 lg:px-8">
+          <Link to="/" className="inline-flex items-center gap-2.5 no-underline">
+            <span aria-hidden="true" className="koi-mark-32 shrink-0" />
+            <span className="font-display text-2xl font-semibold tracking-tight text-ink">
+              KoiCloud
+            </span>
+          </Link>
+
+          <nav className="flex items-center gap-3 text-sm sm:gap-5">
+            <a
+              href="#planes"
+              className="hidden font-medium text-ink-muted transition-colors duration-instant hover:text-ink sm:inline"
+            >
+              Planes
+            </a>
+            <a
+              href="#como-funciona"
+              className="hidden font-medium text-ink-muted transition-colors duration-instant hover:text-ink sm:inline"
+            >
+              Cómo funciona
+            </a>
+            <Link
+              to="/login"
+              className="rounded-sm border border-line-control bg-paper px-3 py-1.5 text-xs font-medium text-ink transition-colors duration-instant hover:border-turquoise-700 hover:text-turquoise-700"
+            >
+              Iniciar sesión
+            </Link>
+            <Link
+              to="/register"
+              className="hidden rounded-sm bg-turquoise-700 px-3 py-1.5 text-xs font-medium text-bone-raised transition-colors duration-instant hover:bg-turquoise-900 sm:inline-block"
+            >
+              Crear cuenta
+            </Link>
+          </nav>
         </div>
-        <nav className="flex flex-wrap items-center gap-3">
-          <Link
-            className="rounded-sm border border-line-control bg-bone-raised px-4 py-2 text-sm font-medium text-ink transition-colors duration-instant ease-brand-out hover:border-turquoise-700 hover:text-turquoise-700"
-            to="/login"
-          >
-            Iniciar sesión
-          </Link>
-          <Link
-            className="rounded-sm bg-turquoise-700 px-4 py-2 text-sm font-medium text-bone-raised transition-colors duration-instant ease-brand-out hover:bg-turquoise-900"
-            to="/register"
-          >
-            Crear cuenta
-          </Link>
-        </nav>
       </header>
 
-      <section className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
-        <article className="space-y-4 rounded-md border border-line bg-bone-raised p-6">
-          <p className="text-xs font-medium uppercase tracking-[0.18em] text-ink-muted">
-            Scaffold fase 0
-          </p>
-          <h2 className="font-display text-5xl leading-tight text-ink">
-            Un panel editorial y denso para operar ponds de PostgreSQL.
-          </h2>
-          <p className="max-w-measure text-base leading-7 text-ink-muted">
-            Esta base deja listas las rutas, el shell, la tipografía,
-            el cliente API y los placeholders principales para que W2 pueda
-            construir pantallas reales sin inventar contrato ni paleta.
-          </p>
-          <div className="flex flex-wrap gap-3">
-            <Link
-              className="rounded-sm bg-turquoise-700 px-4 py-2 text-sm font-medium text-bone-raised transition-colors duration-instant ease-brand-out hover:bg-turquoise-900"
-              to="/app"
-            >
-              Entrar al dashboard
-            </Link>
-            <Link
-              className="rounded-sm border border-line-control bg-paper px-4 py-2 text-sm font-medium text-ink transition-colors duration-instant ease-brand-out hover:border-turquoise-700 hover:text-turquoise-700"
-              to="/app/plans"
-            >
-              Ver planes
-            </Link>
-          </div>
-        </article>
+      <main className="mx-auto flex max-w-content flex-col gap-14 px-4 py-8 pb-24 sm:px-6 lg:px-8 lg:pb-8">
+        <LandingHero />
 
-        <aside className="rounded-md border border-line bg-paper p-6">
-          <p className="text-xs font-medium uppercase tracking-[0.18em] text-ink-muted">
-            Piel base
-          </p>
-          <div className="mt-4 space-y-3">
-            <div className="h-8 rounded-sm border border-line bg-bone" />
-            <div className="h-24 rounded-md border border-line bg-bone-raised" />
-            <div className="grid grid-cols-2 gap-3">
-              <div className="h-20 rounded-md border border-line bg-turquoise-100" />
-              <div className="h-20 rounded-md border border-line bg-green-100" />
+        <LandingPlans />
+
+        <section id="como-funciona" className="space-y-6">
+          <div className="border-t-2 border-green-700 pt-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-muted">
+              Cómo funciona
+            </p>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-3">
+            <div className="rounded-b-sm border-x border-b border-t-4 border-line border-t-turquoise-700 bg-bone-raised p-5 shadow-print">
+              <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
+                Paso 1
+              </p>
+              <h3 className="mt-2 font-display text-xl font-semibold text-ink">
+                Contratas un plan
+              </h3>
+              <p className="mt-1 text-xs leading-5 text-ink-muted">
+                El pago es simulado y queda registrado con su factura. Tu suscripción define
+                cuántos ponds puedes tener.
+              </p>
+            </div>
+
+            <div className="rounded-b-sm border-x border-b border-t-4 border-line border-t-green-700 bg-bone-raised p-5 shadow-print">
+              <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
+                Paso 2
+              </p>
+              <h3 className="mt-2 font-display text-xl font-semibold text-ink">
+                Creas tu pond
+              </h3>
+              <p className="mt-1 text-xs leading-5 text-ink-muted">
+                Encolamos el trabajo, el nodo levanta un contenedor PostgreSQL 16 real y te
+                devolvemos host, puerto y credenciales.
+              </p>
+            </div>
+
+            <div className="rounded-b-sm border-x border-b border-t-4 border-line border-t-marigold bg-bone-raised p-5 shadow-print">
+              <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
+                Paso 3
+              </p>
+              <h3 className="mt-2 font-display text-xl font-semibold text-ink">
+                Te conectas
+              </h3>
+              <p className="mt-1 text-xs leading-5 text-ink-muted">
+                Desde tu app con la URI, desde la consola SQL del navegador, desde la CLI o
+                desde tu agente por MCP.
+              </p>
             </div>
           </div>
-          <p className="mt-4 text-sm leading-6 text-ink-muted">
-            Los tokens salen de <code className="font-mono">src/index.css</code>;
-            esta vista solo demuestra la dirección visual del scaffold.
-          </p>
-        </aside>
-      </section>
+        </section>
 
-      <section className="space-y-4">
-        <div className="border-t-4 border-turquoise-700 pt-3">
-          <p className="text-xs font-medium uppercase tracking-[0.18em] text-ink-muted">
-            Planes
+        <footer className="flex flex-wrap items-center justify-between gap-4 border-t border-line py-6 text-xs text-ink-muted">
+          <p>
+            Equipo KoiCloud — Hugo Escobar, Jason Gutiérrez, Jousé Menendez, Diego Joachin.
           </p>
-        </div>
+          <p>Universidad Rafael Landívar · 2026</p>
+        </footer>
+      </main>
 
-        <div className="grid gap-4 lg:grid-cols-3">
-          {planCards.map((plan) => (
-            <article
-              key={plan.name}
-              className={`rounded-md border border-line bg-bone-raised p-5 ${plan.tone}`}
-            >
-              <h3 className="font-display text-3xl text-ink">{plan.name}</h3>
-              <p className="mt-3 text-sm leading-6 text-ink-muted">
-                {plan.detail}
-              </p>
-            </article>
-          ))}
-        </div>
-      </section>
-    </main>
+      <div
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-bone-raised p-3 shadow-print md:hidden"
+        data-testid="landing-sticky-cta"
+      >
+        <Link
+          to="/register"
+          className="block w-full rounded-sm bg-turquoise-700 px-4 py-2.5 text-center text-sm font-medium text-bone-raised transition-colors duration-instant hover:bg-turquoise-900"
+        >
+          Crear cuenta
+        </Link>
+      </div>
+    </div>
   );
 }
