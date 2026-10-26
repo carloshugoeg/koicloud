@@ -35,6 +35,8 @@ no existe todavía. `00-INDEX.md` no es un ticket y el agente lo ignora.
 | W1-24 | Revisión SOLID del control plane (P7 / #96) | `w1-solid-review` | hecho ([PR #101](https://github.com/carloshugoeg/koicloud/pull/101)) |
 | W1-25 | ADRs A-01..A-12 en `docs/adr/` | `w1-architecture-adrs` | hecho ([PR #106](https://github.com/carloshugoeg/koicloud/pull/106)) |
 | W1-26 | `scripts/demo-mcp-replay.py` (antes W4-09) | `w1-demo-replay` | hecho ([PR #110](https://github.com/carloshugoeg/koicloud/pull/110)) |
+| W1-28 | NIT en checkout → factura (#96 A2) | `w1-nit-checkout-invoice` | bloqueado · CCR [#127](https://github.com/carloshugoeg/koicloud/issues/127) · **money — no implement without CCR** |
+| W1-29 | Admin subscriptions (#96 A7) | `w1-admin-subscriptions` | bloqueado · CCR [#128](https://github.com/carloshugoeg/koicloud/issues/128) · **money — no implement without CCR** |
 
 W1 es el único workstream que puede tocar cualquier ruta, y el único que escribe migraciones,
 regenera contratos (`make contracts`) y edita el harness de agentes.
