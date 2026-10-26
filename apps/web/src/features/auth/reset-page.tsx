@@ -13,7 +13,7 @@ export function ResetPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [localError, setLocalError] = useState<ApiError | null>(null);
+  const [localError, setLocalError] = useState<Error | null>(null);
 
   const missingTokenError = !token
     ? new ApiError({
@@ -38,13 +38,7 @@ export function ResetPage() {
       return;
     }
     if (!isPasswordLongEnough(password)) {
-      setLocalError(
-        new ApiError({
-          code: "password_too_weak",
-          message: "La contraseña no cumple los requisitos mínimos.",
-          request_id: "client_password_too_short",
-        }),
-      );
+      setLocalError(new Error("La contraseña no cumple los requisitos mínimos."));
       return;
     }
     try {

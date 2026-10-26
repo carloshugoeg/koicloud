@@ -1,4 +1,3 @@
-/** Minimum password length shared by register and reset screens. */
 export const MIN_PASSWORD_LENGTH = 10;
 
 export function passwordMinHelp(extra?: string): string {
