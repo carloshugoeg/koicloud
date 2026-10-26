@@ -2,11 +2,11 @@
 id: W4-12
 workstream: W4
 persona: Diego
-estado: en-revision
+estado: hecho
 rama: w4-reporte-carga
 epica: "E10-04, E10-05"
 sprint: S5
-pr: https://github.com/carloshugoeg/koicloud/pull/112
+pr: "#112"
 ---
 
 # [W4-12] Reporte de carga y tres runbooks
