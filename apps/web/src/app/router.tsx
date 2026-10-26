@@ -13,8 +13,6 @@ import {
   AgentAccessPage,
   BackupsPage,
   BillingPage,
-  ConfirmAliasPage,
-  ConfirmPage,
   CreatePondPage,
   DashboardPage,
   ForgotPage,
@@ -130,16 +128,6 @@ export const appRoutes: RouteObject[] = [
             path: "billing",
             element: <BillingPage />,
             handle: { title: "Facturación" } satisfies RouteHandle,
-          },
-          {
-            path: "confirm",
-            element: <ConfirmPage />,
-            handle: { title: "Confirmación" } satisfies RouteHandle,
-          },
-          {
-            path: "confirmacion",
-            element: <ConfirmAliasPage />,
-            handle: { title: "Confirmación" } satisfies RouteHandle,
           },
           {
             path: "uso",

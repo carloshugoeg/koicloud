@@ -1,6 +1,5 @@
 import { useCallback, useRef, useState } from "react";
-import { Outlet, useLocation, useMatches, useNavigate } from "react-router-dom";
-import { readAppNotice } from "@/app/layout/app-notice";
+import { Outlet, useMatches } from "react-router-dom";
 import { AppHeader } from "@/app/layout/app-header";
 import { SidebarRail, SidebarSheet } from "@/app/layout/sidebar";
 import { useSidebarMode } from "@/app/layout/use-sidebar-mode";
@@ -22,8 +21,6 @@ export function AppShell() {
   const session = useAuthStore((state) => state.session);
   const clearSession = useAuthStore((state) => state.clearSession);
   const matches = useMatches();
-  const location = useLocation();
-  const navigate = useNavigate();
   const currentTitle = readTitle(matches[matches.length - 1]?.handle);
   const mode = useSidebarMode();
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -32,7 +29,6 @@ export function AppShell() {
   const openSheet = useCallback(() => setSheetOpen(true), []);
   const isAdmin = session?.user.role === "admin";
   const collapsed = mode === "rail";
-  const notice = readAppNotice(location.state);
 
   return (
     <div className="flex min-h-screen overflow-x-hidden bg-bone text-ink">
@@ -70,24 +66,6 @@ export function AppShell() {
         ) : null}
 
         <main className="mx-auto w-full max-w-content flex-1 overflow-x-hidden px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-          {notice ? (
-            <div
-              className="mb-4 border-l-[3px] border-green-700 bg-bone-raised px-4 py-3 text-sm text-ink shadow-print"
-              role="status"
-              data-testid="app-notice"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <p>{notice.text}</p>
-                <button
-                  type="button"
-                  className="text-xs font-medium text-ink-muted"
-                  onClick={() => navigate(location.pathname, { replace: true, state: null })}
-                >
-                  Cerrar
-                </button>
-              </div>
-            </div>
-          ) : null}
           <Outlet />
         </main>
       </div>

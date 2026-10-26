@@ -1,4 +1,4 @@
-import { Navigate, useLocation } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { PlaceholderPage } from "@/components/placeholder-page";
 
 export { LoginPage } from "@/features/auth/login-page";
@@ -16,19 +16,6 @@ export { SqlConsolePage } from "@/features/sql-console/sql-console-page";
 
 export { BillingPage } from "@/features/billing/billing-page";
 export { UsoPage } from "@/features/uso/uso-page";
-export { ConfirmPage } from "@/features/confirm/confirm-page";
-
-export function ConfirmAliasPage() {
-  const location = useLocation();
-  return (
-    <Navigate
-      replace
-      to={`/app/confirm${location.search}`}
-      state={location.state}
-    />
-  );
-}
-
 export function UsagePage() {
   return <Navigate replace to="/app/uso" />;
 }

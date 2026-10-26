@@ -34,12 +34,6 @@ export {
   useSubscriptionsQuery,
   type Subscription,
 } from "@/api/hooks/subscriptions";
-
-export {
-  useConfirmActionMutation,
-  useDiscardConfirmationMutation,
-} from "@/api/hooks/confirmations";
-
 export {
   useCreatePondMutation,
   useGetConnection,
