@@ -22,6 +22,7 @@ SEEDED_PLANS: dict[str, dict[str, Any]] = {
         "validity_minutes": 10,
         "postpaid": False,
         "active": True,
+        "backup_retention_days": 0,
     },
     "micro": {
         "id": "micro",
@@ -33,6 +34,7 @@ SEEDED_PLANS: dict[str, dict[str, Any]] = {
         "validity_minutes": 43200,
         "postpaid": False,
         "active": True,
+        "backup_retention_days": 7,
     },
     "pro": {
         "id": "pro",
@@ -44,6 +46,7 @@ SEEDED_PLANS: dict[str, dict[str, Any]] = {
         "validity_minutes": 43200,
         "postpaid": True,
         "active": True,
+        "backup_retention_days": 30,
     },
 }
 
@@ -95,6 +98,7 @@ async def test_billing_service_list_plans() -> None:
         assert plan.validity_minutes == expected["validity_minutes"]
         assert plan.postpaid == expected["postpaid"]
         assert plan.active == expected["active"]
+        assert plan.backup_retention_days == expected["backup_retention_days"]
 
 
 def test_plan_schemas_have_openapi_examples() -> None:
@@ -109,6 +113,8 @@ def test_plan_schemas_have_openapi_examples() -> None:
     assert example["name"] == "Micro"
     assert example["price_monthly_usd"] == 5.0
     assert example["active"] is True
+    assert example["backup_retention_days"] == 7
+    assert "backup_retention_days" in plan_out_schema.get("properties", {})
 
     assert "PlanListResponse" in schemas
     plan_list_schema = schemas["PlanListResponse"]

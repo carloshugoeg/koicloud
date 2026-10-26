@@ -12,6 +12,7 @@ from app.core.enums import AppSurface
 from app.core.errors import AppError, ErrorCode
 from app.core.models import Plan
 from app.modules.billing.payments import get_payment_provider
+from app.modules.billing.plan_retention import backup_retention_days_for
 from app.modules.billing.service import BillingService
 from app.schemas import (
     CancelSubscriptionResponse,
@@ -47,6 +48,7 @@ def _plan_to_out(plan: Plan) -> PlanOut:
         validity_minutes=plan.validity_minutes,
         postpaid=plan.postpaid,
         active=plan.active,
+        backup_retention_days=backup_retention_days_for(plan.id),
     )
 
 

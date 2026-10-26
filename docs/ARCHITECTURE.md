@@ -66,7 +66,7 @@ flowchart TB
 | Crear pond (Web) | `POST /api/v1/ponds` → `create_pond` → fila en `ponds` + job `provision` → node-agent `claim` → `docker run` → heartbeat actualiza `observed` |
 | Mutar (CLI/MCP) | Primera llamada → `409 confirmation_required` + token; `POST /confirm/{token}` ejecuta el comando |
 | Respaldos | Worker agenda backup diario; restore encola job y pasa por confirmación en superficies no-Web |
-| Facturación | Planes y suscripciones en `billing`; pago simulado; PDF de factura con IVA |
+| Facturación | Planes y suscripciones en `billing`; pago simulado; PDF de factura con IVA. `GET /plans` expone `backup_retention_days` desde una constante de servidor (sin columna en `plans`) |
 | Admin | Rutas bajo dependencia `get_admin_user`; listados de usuarios/ponds/auditoría |
 
 ---

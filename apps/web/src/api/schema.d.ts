@@ -1852,6 +1852,7 @@ export interface components {
          *       "plans": [
          *         {
          *           "active": true,
+         *           "backup_retention_days": 0,
          *           "description": "Pruebas internas (10 min)",
          *           "id": "sandbox",
          *           "max_ponds": 1,
@@ -1863,6 +1864,7 @@ export interface components {
          *         },
          *         {
          *           "active": true,
+         *           "backup_retention_days": 7,
          *           "description": "1 pond, 1 GB, backups 7 días",
          *           "id": "micro",
          *           "max_ponds": 1,
@@ -1874,6 +1876,7 @@ export interface components {
          *         },
          *         {
          *           "active": true,
+         *           "backup_retention_days": 30,
          *           "description": "Hasta 10 ponds, post-pago por uso",
          *           "id": "pro",
          *           "max_ponds": 10,
@@ -1896,6 +1899,7 @@ export interface components {
          * PlanOut
          * @example {
          *       "active": true,
+         *       "backup_retention_days": 7,
          *       "description": "1 pond, 1 GB, backups 7 días",
          *       "id": "micro",
          *       "max_ponds": 1,
@@ -1909,6 +1913,8 @@ export interface components {
         PlanOut: {
             /** Active */
             active: boolean;
+            /** Backup Retention Days */
+            backup_retention_days: number;
             /** Description */
             description: string;
             /** Id */

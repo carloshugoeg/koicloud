@@ -16,10 +16,16 @@ function formatPeriod(plan: PlanOut): string {
   return "al mes";
 }
 
+function formatBackupRetention(days: number): string {
+  if (days <= 0) return "No";
+  return `Diarios (${days} días)`;
+}
+
 export function PlansPage() {
   const { data: plans, isPending, isError, error, refetch } = usePlansQuery();
   const [selectedPlan, setSelectedPlan] = useState<PlanOut | null>(null);
   const [subscriptionSuccess, setSubscriptionSuccess] = useState<SubscribeResponse | null>(null);
+  const planById = (id: string) => plans?.find((plan) => plan.id === id);
 
   return (
     <div className="space-y-8 p-4 lg:p-8">
@@ -112,7 +118,11 @@ export function PlansPage() {
                       <li className="flex items-center gap-2">
                         <span className="text-xs text-turquoise-700">●</span>
                         <span>
-                          {plan.id === "sandbox" ? "Validez 10 minutos" : plan.id === "micro" ? "Respaldos diarios (7 d)" : "Hasta 10 ponds y 20 GB"}
+                          {plan.id === "sandbox"
+                            ? "Validez 10 minutos"
+                            : plan.backup_retention_days > 0
+                              ? `Respaldos diarios (${plan.backup_retention_days} d)`
+                              : `Hasta ${plan.max_ponds} ponds y ${plan.max_storage_gb} GB`}
                         </span>
                       </li>
                     </ul>
@@ -159,9 +169,15 @@ export function PlansPage() {
                 </tr>
                 <tr className="hover:bg-bone-raised">
                   <td className="px-4 py-2.5 font-medium text-ink">Respaldos automáticos</td>
-                  <td className="px-4 py-2.5 text-right text-ink">No</td>
-                  <td className="px-4 py-2.5 text-right text-ink">Diarios (7 días)</td>
-                  <td className="px-4 py-2.5 text-right text-ink">Diarios (30 días)</td>
+                  <td className="px-4 py-2.5 text-right text-ink tabular-nums">
+                    {formatBackupRetention(planById("sandbox")?.backup_retention_days ?? 0)}
+                  </td>
+                  <td className="px-4 py-2.5 text-right text-ink tabular-nums">
+                    {formatBackupRetention(planById("micro")?.backup_retention_days ?? 0)}
+                  </td>
+                  <td className="px-4 py-2.5 text-right text-ink tabular-nums">
+                    {formatBackupRetention(planById("pro")?.backup_retention_days ?? 0)}
+                  </td>
                 </tr>
                 <tr className="hover:bg-bone-raised">
                   <td className="px-4 py-2.5 font-medium text-ink">Precio base</td>

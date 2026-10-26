@@ -50,6 +50,8 @@ describe("W2-03 Planes y Checkout flow", () => {
     expect(screen.getByText("Ponds simultáneos")).toBeInTheDocument();
     expect(screen.getByText("Almacenamiento por pond")).toBeInTheDocument();
     expect(screen.getByText("Respaldos automáticos")).toBeInTheDocument();
+    expect(screen.getByText("Diarios (7 días)")).toBeInTheDocument();
+    expect(screen.getByText("Diarios (30 días)")).toBeInTheDocument();
   });
 
   it("opens checkout modal with fixed simulated payment notice and helper copy", async () => {

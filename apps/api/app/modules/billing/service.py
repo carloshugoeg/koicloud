@@ -17,6 +17,7 @@ from app.core.models import Invoice, InvoiceLine, Payment, Plan, Subscription
 from app.core.time import utc_now
 from app.modules.billing.invoice_pdf import render_invoice_pdf, split_iva
 from app.modules.billing.payments.port import PaymentProvider
+from app.modules.billing.plan_retention import backup_retention_days_for
 from app.schemas import (
     InvoiceDetailResponse,
     InvoiceLineOut,
@@ -98,6 +99,7 @@ class BillingService:
                     validity_minutes=row.validity_minutes,
                     postpaid=row.postpaid,
                     active=row.active,
+                    backup_retention_days=backup_retention_days_for(row.id),
                 )
                 for row in rows
             ],

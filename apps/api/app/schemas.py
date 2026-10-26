@@ -203,6 +203,7 @@ class PlanOut(SchemaModel):
     validity_minutes: int
     postpaid: bool
     active: bool
+    backup_retention_days: int
 
     model_config = config_with_example(
         {
@@ -215,6 +216,7 @@ class PlanOut(SchemaModel):
             "validity_minutes": 43200,
             "postpaid": False,
             "active": True,
+            "backup_retention_days": 7,
         }
     )
 
@@ -236,6 +238,7 @@ class PlanListResponse(SchemaModel):
                     "validity_minutes": 10,
                     "postpaid": False,
                     "active": True,
+                    "backup_retention_days": 0,
                 },
                 PlanOut.example_data(),
                 {
@@ -248,6 +251,7 @@ class PlanListResponse(SchemaModel):
                     "validity_minutes": 43200,
                     "postpaid": True,
                     "active": True,
+                    "backup_retention_days": 30,
                 },
             ],
             "next_cursor": None,

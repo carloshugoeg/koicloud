@@ -154,6 +154,7 @@ export const fixtures = {
   plans: [
     {
       active: true,
+      backup_retention_days: 0,
       description: "Pruebas internas (10 min)",
       id: "sandbox",
       max_ponds: 1,
@@ -165,6 +166,7 @@ export const fixtures = {
     },
     {
       active: true,
+      backup_retention_days: 7,
       description: "1 pond, 1 GB, backups 7 días",
       id: "micro",
       max_ponds: 1,
@@ -176,6 +178,7 @@ export const fixtures = {
     },
     {
       active: true,
+      backup_retention_days: 30,
       description: "Hasta 10 ponds, post-pago por uso",
       id: "pro",
       max_ponds: 10,
