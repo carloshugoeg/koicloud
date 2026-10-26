@@ -98,7 +98,9 @@ describe("E2-01 Landing pública y catálogo", () => {
     expect(screen.getByText("2 ponds · 3 GB")).toBeInTheDocument();
     expect(screen.getByText("4 ponds · 8 GB")).toBeInTheDocument();
     expect(screen.getByText("12 ponds · 30 GB")).toBeInTheDocument();
-    expect(screen.getByText("USD 7")).toBeInTheDocument();
+    expect(screen.getByText("$7")).toBeInTheDocument();
+    expect(screen.getByText("Pospago")).toBeInTheDocument();
+    expect(screen.queryByText(/0\.02/)).not.toBeInTheDocument();
     expect(screen.getByText("Recomendado")).toBeInTheDocument();
 
     expect(screen.getByText(/Pago simulado\./i)).toBeInTheDocument();

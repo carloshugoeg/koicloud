@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { HttpResponse, http } from "msw";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
@@ -41,8 +41,11 @@ describe("W2-03 Planes y Checkout flow", () => {
 
     // Valores dinámicos en tarjetas
     expect(screen.getByText("$0")).toBeInTheDocument();
-    expect(screen.getByText("$5")).toBeInTheDocument();
-    expect(screen.getAllByText("$0.02·h")).toHaveLength(2);
+    expect(screen.getAllByText("$5").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Pospago").length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByText("$0.02·h")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Diarios \(\d+ días\)/)).not.toBeInTheDocument();
+    expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(3);
     expect(screen.getByText("Recomendado")).toBeInTheDocument();
 
     // Tabla comparativa densa
@@ -61,14 +64,47 @@ describe("W2-03 Planes y Checkout flow", () => {
 
     // Diálogo y aviso fijo en marigold
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByText("Pago simulado: no se realiza ningún cobro real.")).toBeInTheDocument();
-    expect(screen.getByText("CF si no tienes NIT")).toBeInTheDocument();
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText("Pago simulado: no se realiza ningún cobro real.")).toBeInTheDocument();
+    expect(within(dialog).getByText("CF si no tienes NIT")).toBeInTheDocument();
+    expect(within(dialog).getByTestId("checkout-preview")).toHaveTextContent("$5");
+    expect(within(dialog).queryByText(/IVA/)).not.toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Confirmar contratación" })).toBeDisabled();
+  });
 
-    // Desglose de factura previa Micro según fixture sellado
-    expect(screen.getByText("Vista previa de factura")).toBeInTheDocument();
-    expect(screen.getByText("$4.4643")).toBeInTheDocument();
-    expect(screen.getByText("$0.5357")).toBeInTheDocument();
-    expect(screen.getByText("$5.0000")).toBeInTheDocument();
+  it("keeps Contratar disabled until the simulated charge is acknowledged", async () => {
+    let posts = 0;
+    server.use(
+      http.post("*/api/v1/subscriptions", () => {
+        posts += 1;
+        return HttpResponse.json(fixtures.subscriptionResponse, { status: 202 });
+      }),
+    );
+    const user = userEvent.setup();
+    renderPlansRoute("/app/planes");
+
+    await user.click(await screen.findByRole("button", { name: "Elegir plan Micro" }));
+    const dialog = await screen.findByRole("dialog");
+    const submit = within(dialog).getByRole("button", { name: "Confirmar contratación" });
+    expect(submit).toBeDisabled();
+    await user.click(submit);
+    expect(posts).toBe(0);
+
+    await user.click(
+      within(dialog).getByRole("checkbox", { name: /Entiendo que el cobro es simulado/ }),
+    );
+    expect(submit).toBeEnabled();
+  });
+
+  it("shows Pospago for the postpaid plan and does not invent IVA", async () => {
+    const user = userEvent.setup();
+    renderPlansRoute("/app/planes");
+
+    await user.click(await screen.findByRole("button", { name: "Elegir plan Pro" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByTestId("checkout-preview")).toHaveTextContent("Pospago");
+    expect(within(dialog).queryByText(/IVA/)).not.toBeInTheDocument();
+    expect(within(dialog).queryByText(/0\.02/)).not.toBeInTheDocument();
   });
 
   it("submits checkout successfully, displays success feedback, and navigates toward pond creation", async () => {
@@ -84,6 +120,7 @@ describe("W2-03 Planes y Checkout flow", () => {
     await user.type(screen.getByLabelText("Número de tarjeta simulada"), "4242 4242 4242 4242");
     await user.type(screen.getByLabelText("Expiración"), "12/28");
     await user.type(screen.getByLabelText("CVC"), "123");
+    await user.click(screen.getByRole("checkbox", { name: /Entiendo que el cobro es simulado/ }));
 
     await user.click(screen.getByRole("button", { name: "Confirmar contratación" }));
 
@@ -128,6 +165,7 @@ describe("W2-03 Planes y Checkout flow", () => {
     await user.type(screen.getByLabelText("Número de tarjeta simulada"), "4242 4242 4242 4242");
     await user.type(screen.getByLabelText("Expiración"), "12/28");
     await user.type(screen.getByLabelText("CVC"), "123");
+    await user.click(screen.getByRole("checkbox", { name: /Entiendo que el cobro es simulado/ }));
 
     await user.click(screen.getByRole("button", { name: "Confirmar contratación" }));
 
@@ -171,6 +209,7 @@ describe("W2-03 Planes y Checkout flow", () => {
     await user.type(screen.getByLabelText("Número de tarjeta simulada"), "4242 4242 4242 4242");
     await user.type(screen.getByLabelText("Expiración"), "12/28");
     await user.type(screen.getByLabelText("CVC"), "123");
+    await user.click(screen.getByRole("checkbox", { name: /Entiendo que el cobro es simulado/ }));
 
     await user.click(screen.getByRole("button", { name: "Confirmar contratación" }));
 

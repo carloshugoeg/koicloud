@@ -16,13 +16,13 @@ function setViewport(width: number) {
   window.dispatchEvent(new Event("resize"));
 }
 
-function renderApp(width: number) {
+function renderApp(width: number, status: "active" | "suspended" = "active") {
   setViewport(width);
   useAuthStore.setState({
     session: {
       accessToken: "access_demo_token",
       refreshToken: "refresh_demo_token",
-      user: demoUser,
+      user: { ...demoUser, status },
     },
   });
 
@@ -76,6 +76,15 @@ describe("AppShell sidebar — groups, active, collapse (§5.1)", () => {
     expect(groupLabel).toHaveClass("sr-only");
     expect(within(rail).getByRole("link", { name: "Ponds" })).toBeInTheDocument();
     expect(screen.queryByTestId("nav-menu-button")).not.toBeInTheDocument();
+  });
+
+  it("shows the suspended banner for a suspended account", async () => {
+    renderApp(1280, "suspended");
+
+    const banner = await screen.findByTestId("suspended-banner");
+    expect(banner).toHaveTextContent("Tu cuenta está suspendida.");
+    expect(banner.className).toContain("border-danger");
+    expect(banner).toHaveTextContent("No puedes crear ponds ni ejecutar SQL.");
   });
 
   it("uses Sheet + hamburger below 768 px", async () => {

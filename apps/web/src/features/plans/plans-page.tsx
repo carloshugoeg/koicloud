@@ -1,20 +1,9 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { usePlansQuery, type PlanOut, type SubscribeResponse } from "@/api/hooks";
+import { formatPeriod, formatPrice } from "@/lib/format-price";
 import { problemToMessage } from "@/lib/errors";
 import { CheckoutModal } from "@/features/plans/checkout-modal";
-
-function formatPrice(plan: PlanOut): string {
-  if (plan.id === "pro") return "$0.02·h";
-  if (plan.price_monthly_usd === 0) return "$0";
-  return `$${plan.price_monthly_usd}`;
-}
-
-function formatPeriod(plan: PlanOut): string {
-  if (plan.id === "sandbox") return "10 min";
-  if (plan.id === "pro") return "pospago por hora";
-  return "al mes";
-}
 
 export function PlansPage() {
   const { data: plans, isPending, isError, error, refetch } = usePlansQuery();
@@ -76,7 +65,8 @@ export function PlansPage() {
       ) : (
         <>
           <div className="grid gap-6 md:grid-cols-3">
-            {plans?.map((plan) => {
+            {(plans ?? []).map((plan) => {
+              const period = formatPeriod(plan);
               const isRecommended = plan.id === "micro";
               return (
                 <div
@@ -98,7 +88,7 @@ export function PlansPage() {
                     <p className="mt-2 text-sm text-ink-muted">{plan.description}</p>
                     <div className="mt-4 flex items-baseline gap-1">
                       <span className="font-display text-4xl text-ink tabular-nums">{formatPrice(plan)}</span>
-                      <span className="text-xs text-ink-muted">/ {formatPeriod(plan)}</span>
+                      {period ? <span className="text-xs text-ink-muted">/ {period}</span> : null}
                     </div>
                     <ul className="mt-6 space-y-2 text-sm text-ink">
                       <li className="flex items-center gap-2">
@@ -108,12 +98,6 @@ export function PlansPage() {
                       <li className="flex items-center gap-2">
                         <span className="text-xs text-turquoise-700">●</span>
                         <span>{plan.max_storage_gb} GB de almacenamiento</span>
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <span className="text-xs text-turquoise-700">●</span>
-                        <span>
-                          {plan.id === "sandbox" ? "Validez 10 minutos" : plan.id === "micro" ? "Respaldos diarios (7 d)" : "Hasta 10 ponds y 20 GB"}
-                        </span>
                       </li>
                     </ul>
                   </div>
@@ -135,39 +119,53 @@ export function PlansPage() {
                 Comparativa de características
               </h2>
             </div>
-            <table className="w-full text-left text-sm" role="table">
+            <table className="w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-line-control bg-bone-sunk text-xs text-ink-muted">
                   <th className="px-4 py-2.5 font-medium">Característica</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Sandbox</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Micro</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Pro</th>
+                  {(plans ?? []).map((plan) => (
+                    <th key={plan.id} className="px-4 py-2.5 text-right font-medium">
+                      {plan.name}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
-                <tr className="hover:bg-bone-raised">
+                <tr>
                   <td className="px-4 py-2.5 font-medium text-ink">Ponds simultáneos</td>
-                  <td className="px-4 py-2.5 text-right font-mono tabular-nums text-ink">1</td>
-                  <td className="px-4 py-2.5 text-right font-mono tabular-nums text-ink">1</td>
-                  <td className="px-4 py-2.5 text-right font-mono tabular-nums text-ink">10</td>
+                  {(plans ?? []).map((plan) => (
+                    <td key={plan.id} className="px-4 py-2.5 text-right font-mono tabular-nums text-ink">
+                      {plan.max_ponds}
+                    </td>
+                  ))}
                 </tr>
-                <tr className="hover:bg-bone-raised">
+                <tr>
                   <td className="px-4 py-2.5 font-medium text-ink">Almacenamiento por pond</td>
-                  <td className="px-4 py-2.5 text-right font-mono tabular-nums text-ink">1 GB</td>
-                  <td className="px-4 py-2.5 text-right font-mono tabular-nums text-ink">1 GB</td>
-                  <td className="px-4 py-2.5 text-right font-mono tabular-nums text-ink">20 GB</td>
+                  {(plans ?? []).map((plan) => (
+                    <td key={plan.id} className="px-4 py-2.5 text-right font-mono tabular-nums text-ink">
+                      {plan.max_storage_gb} GB
+                    </td>
+                  ))}
                 </tr>
-                <tr className="hover:bg-bone-raised">
+                <tr>
                   <td className="px-4 py-2.5 font-medium text-ink">Respaldos automáticos</td>
-                  <td className="px-4 py-2.5 text-right text-ink">No</td>
-                  <td className="px-4 py-2.5 text-right text-ink">Diarios (7 días)</td>
-                  <td className="px-4 py-2.5 text-right text-ink">Diarios (30 días)</td>
+                  {(plans ?? []).map((plan) => (
+                    <td key={plan.id} className="px-4 py-2.5 text-right text-ink">
+                      —
+                    </td>
+                  ))}
                 </tr>
-                <tr className="hover:bg-bone-raised">
+                <tr>
                   <td className="px-4 py-2.5 font-medium text-ink">Precio base</td>
-                  <td className="px-4 py-2.5 text-right font-mono tabular-nums text-ink">$0 / 10 min</td>
-                  <td className="px-4 py-2.5 text-right font-mono tabular-nums text-ink">$5 / mes</td>
-                  <td className="px-4 py-2.5 text-right font-mono tabular-nums text-ink">$0.02·h</td>
+                  {(plans ?? []).map((plan) => {
+                    const period = formatPeriod(plan);
+                    const price = formatPrice(plan);
+                    return (
+                      <td key={plan.id} className="px-4 py-2.5 text-right font-mono tabular-nums text-ink">
+                        {period ? `${price} / ${period}` : price}
+                      </td>
+                    );
+                  })}
                 </tr>
               </tbody>
             </table>

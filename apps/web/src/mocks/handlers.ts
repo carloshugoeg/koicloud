@@ -2,6 +2,8 @@ import { HttpResponse, http } from "msw";
 import type { components } from "@/api/schema";
 import { fixtures } from "@/mocks/fixtures";
 
+type Subscription = components["schemas"]["SubscriptionOut"];
+
 const API_ROOT = "*/api/v1";
 const SUSPEND_CONFIRM_TEXT = "SUSPENDER";
 
@@ -22,8 +24,13 @@ function freshAdminUsers(): AdminUser[] {
   return fixtures.adminUsers.map((user) => ({ ...user }));
 }
 
+function freshSubscriptions(): Subscription[] {
+  return [{ ...fixtures.subscriptionResponse.subscription }];
+}
+
 let agentAccessState = freshAgentAccess();
 let adminUsersState = freshAdminUsers();
+let subscriptionsState = freshSubscriptions();
 
 export const ROTATED_AGENT_PASSWORD = "rotated-once-secret";
 
@@ -33,6 +40,10 @@ export function resetAgentAccessState() {
 
 export function resetAdminUsersState() {
   adminUsersState = freshAdminUsers();
+}
+
+export function resetSubscriptionsState() {
+  subscriptionsState = freshSubscriptions();
 }
 
 export const handlers = [
@@ -71,6 +82,28 @@ export const handlers = [
 
   http.get(`${API_ROOT}/plans`, () => {
     return HttpResponse.json({ plans: fixtures.plans, next_cursor: null });
+  }),
+
+  http.get(`${API_ROOT}/subscriptions`, () => {
+    return HttpResponse.json({ subscriptions: subscriptionsState, next_cursor: null });
+  }),
+
+  http.post(`${API_ROOT}/subscriptions/:subscriptionId/cancel`, ({ params }) => {
+    const subscriptionId = String(params.subscriptionId);
+    const index = subscriptionsState.findIndex((item) => item.id === subscriptionId);
+    if (index < 0) {
+      return HttpResponse.json(
+        { code: "internal_error", message: "missing", request_id: "req_sub_missing" },
+        { status: 404 },
+      );
+    }
+    const updated: Subscription = { ...subscriptionsState[index], cancel_at_period_end: true };
+    subscriptionsState = [
+      ...subscriptionsState.slice(0, index),
+      updated,
+      ...subscriptionsState.slice(index + 1),
+    ];
+    return HttpResponse.json({ subscription: updated }, { status: 202 });
   }),
 
   http.post(`${API_ROOT}/subscriptions`, async ({ request }) => {
@@ -325,5 +358,82 @@ export const handlers = [
 
   http.get(`${API_ROOT}/admin/audit`, () => {
     return HttpResponse.json({ events: fixtures.adminAuditEvents, next_cursor: null });
+  }),
+
+  http.post(`${API_ROOT}/confirm/:token`, ({ params }) => {
+    const token = String(params.token);
+    if (token === "conf_not_found") {
+      return HttpResponse.json(
+        {
+          code: "confirmation_not_found",
+          message: "confirmation_not_found",
+          request_id: "req_conf_404",
+        },
+        { status: 404 },
+      );
+    }
+    if (token === "conf_expired") {
+      return HttpResponse.json(
+        {
+          code: "confirmation_expired",
+          message: "confirmation_expired",
+          request_id: "req_conf_410",
+        },
+        { status: 410 },
+      );
+    }
+    if (token === "conf_mismatch") {
+      return HttpResponse.json(
+        {
+          code: "confirmation_action_mismatch",
+          message: "confirmation_action_mismatch",
+          request_id: "req_conf_409",
+        },
+        { status: 409 },
+      );
+    }
+    return HttpResponse.json({}, { status: 200 });
+  }),
+
+  http.delete(`${API_ROOT}/confirm/:token`, () => {
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  http.post(`${API_ROOT}/ponds/:pondId/retry`, () => {
+    return HttpResponse.json(
+      {
+        job: {
+          id: "job_retry_01",
+          type: "create_pond",
+          status: "queued",
+          attempts: 1,
+          created_at: "2026-09-22T20:00:00Z",
+        },
+      },
+      { status: 202 },
+    );
+  }),
+
+  http.post(`${API_ROOT}/ponds/:pondId/backups`, () => {
+    return HttpResponse.json(
+      {
+        backup: {
+          ...fixtures.backups[0],
+          id: "backup_on_demand_01",
+          kind: "on_demand",
+          status: "queued",
+          sha256: "",
+          size_bytes: 0,
+        },
+        job: {
+          id: "job_backup_01",
+          type: "backup_pond",
+          status: "queued",
+          attempts: 0,
+          created_at: "2026-09-22T20:00:00Z",
+        },
+      },
+      { status: 202 },
+    );
   }),
 ];

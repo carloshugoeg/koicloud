@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { usePlansQuery, type PlanOut } from "@/api/hooks";
+import { formatPeriod, formatPrice } from "@/lib/format-price";
 import { problemToMessage } from "@/lib/errors";
 
 const PLAN_PRESENTATION: Record<
@@ -20,17 +21,6 @@ const PLAN_PRESENTATION: Record<
     ctaText: "Contratar Pro",
   },
 };
-
-function formatPrice(plan: PlanOut): string {
-  if (plan.id === "pro") return "USD 0.02";
-  return `USD ${plan.price_monthly_usd}`;
-}
-
-function formatPeriod(plan: PlanOut): string | undefined {
-  if (plan.id === "sandbox") return undefined;
-  if (plan.id === "pro") return "/ hora";
-  return "/ mes";
-}
 
 function formatValidity(plan: PlanOut): string {
   if (plan.id === "sandbox") {
@@ -100,6 +90,7 @@ export function LandingPlans() {
               bandColor: "bg-turquoise-700",
               ctaText: "Crear cuenta",
             };
+            const price = formatPrice(plan);
             const period = formatPeriod(plan);
             return (
               <article
@@ -126,11 +117,11 @@ export function LandingPlans() {
                     </div>
 
                     <div className="font-display text-4xl font-semibold tracking-tight tabular-nums text-ink">
-                      {formatPrice(plan)}
+                      {price}
                       {period ? (
                         <small className="font-sans text-sm font-normal text-ink-muted">
                           {" "}
-                          {period}
+                          / {period}
                         </small>
                       ) : null}
                     </div>

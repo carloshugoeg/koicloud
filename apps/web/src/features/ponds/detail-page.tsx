@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { useGetConnection, useGetPond } from "@/api/hooks/ponds";
+import { useGetConnection, useGetPond, useRetryPondMutation } from "@/api/hooks/ponds";
 import { ApiError, problemToMessage } from "@/lib/errors";
+import { pushToast } from "@/lib/toast";
 import { pondStateMeta } from "@/features/ponds/pond-state";
 
 const MASK = "••••••••";
@@ -10,6 +11,7 @@ export function PondDetailPage() {
   const { pondId = "" } = useParams();
   const pondQuery = useGetPond(pondId || undefined);
   const connectionQuery = useGetConnection(pondId || undefined);
+  const retryMutation = useRetryPondMutation(pondId);
   const [revealed, setRevealed] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -65,9 +67,18 @@ export function PondDetailPage() {
 
   async function copyUri() {
     if (!connection?.uri) return;
-    await navigator.clipboard.writeText(connection.uri);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1_200);
+    try {
+      await navigator.clipboard.writeText(connection.uri);
+      setCopied(true);
+      pushToast({ title: "URI copiada", detail: "La contraseña va incluida.", tone: "ok" });
+      window.setTimeout(() => setCopied(false), 1_200);
+    } catch (error) {
+      pushToast({
+        title: "No se pudo copiar la URI",
+        detail: problemToMessage(error),
+        tone: "danger",
+      });
+    }
   }
 
   return (
@@ -97,6 +108,34 @@ export function PondDetailPage() {
             </Link>
           </nav>
         </div>
+        {pond.observed_state === "failed" ? (
+          <button
+            type="button"
+            className="h-9 rounded-sm bg-turquoise-700 px-4 text-sm font-medium text-bone-raised disabled:bg-bone-sunk disabled:text-ink-faint"
+            data-testid="retry-provision"
+            disabled={retryMutation.isPending}
+            onClick={() => {
+              void retryMutation
+                .mutateAsync()
+                .then((result) => {
+                  pushToast({
+                    title: "Reintento encolado",
+                    detail: `Job ${result.job.id}`,
+                    tone: "ok",
+                  });
+                })
+                .catch((error: unknown) => {
+                  pushToast({
+                    title: "No se pudo reintentar",
+                    detail: problemToMessage(error),
+                    tone: "danger",
+                  });
+                });
+            }}
+          >
+            {retryMutation.isPending ? "Encolando…" : "Reintentar"}
+          </button>
+        ) : null}
       </div>
 
       <section className="rounded-md border border-line bg-paper p-5" data-testid="connection-card">

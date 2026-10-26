@@ -1,13 +1,8 @@
 import { type FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSubscribeMutation, type PlanOut, type SubscribeResponse } from "@/api/hooks";
+import { formatPrice } from "@/lib/format-price";
 import { ApiError, problemToMessage } from "@/lib/errors";
-
-const INVOICE_BREAKDOWN: Record<string, { subtotal: string; iva: string; total: string }> = {
-  micro: { subtotal: "4.4643", iva: "0.5357", total: "5.0000" },
-  sandbox: { subtotal: "0.0000", iva: "0.0000", total: "0.0000" },
-  pro: { subtotal: "0.0000", iva: "0.0000", total: "0.0000" },
-};
 
 export interface CheckoutModalProps {
   plan: PlanOut;
@@ -22,12 +17,9 @@ export function CheckoutModal({ plan, onClose, onSuccess }: CheckoutModalProps) 
   const [cardNumber, setCardNumber] = useState("");
   const [cardExpiry, setCardExpiry] = useState("");
   const [cardCvc, setCardCvc] = useState("");
-
-  const breakdown = INVOICE_BREAKDOWN[plan.id] ?? {
-    subtotal: (plan.price_monthly_usd * 0.8929).toFixed(4),
-    iva: (plan.price_monthly_usd * 0.1071).toFixed(4),
-    total: plan.price_monthly_usd.toFixed(4),
-  };
+  const [acknowledged, setAcknowledged] = useState(false);
+  const priceLabel = formatPrice(plan);
+  const postpaid = plan.postpaid && plan.price_monthly_usd === 0;
 
   async function handleCheckout(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -59,22 +51,16 @@ export function CheckoutModal({ plan, onClose, onSuccess }: CheckoutModalProps) 
           Pago simulado: no se realiza ningún cobro real.
         </div>
 
-        <div className="mt-4 rounded-sm border border-line bg-paper p-4">
-          <p className="text-xs font-medium uppercase tracking-[0.16em] text-ink-muted">Vista previa de factura</p>
-          <div className="mt-2 space-y-1 text-sm">
-            <div className="flex justify-between">
-              <span className="text-ink-muted">Subtotal:</span>
-              <span className="font-mono tabular-nums text-ink">${breakdown.subtotal}</span>
+        <div className="mt-4 rounded-sm border border-line bg-paper p-4" data-testid="checkout-preview">
+          <p className="text-xs font-medium uppercase tracking-[0.16em] text-ink-muted">Vista previa</p>
+          {postpaid ? (
+            <p className="mt-2 text-sm text-ink">Pospago. El importe se cierra con el período.</p>
+          ) : (
+            <div className="mt-2 flex justify-between text-sm">
+              <span className="text-ink-muted">Total del período</span>
+              <span className="font-mono tabular-nums text-ink">{priceLabel}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-ink-muted">IVA (12%):</span>
-              <span className="font-mono tabular-nums text-ink">${breakdown.iva}</span>
-            </div>
-            <div className="flex justify-between border-t border-line pt-1 font-medium">
-              <span className="text-ink">Total a pagar:</span>
-              <span className="font-mono tabular-nums text-ink">${breakdown.total}</span>
-            </div>
-          </div>
+          )}
         </div>
 
         <form onSubmit={handleCheckout} className="mt-4 space-y-4">
@@ -152,6 +138,16 @@ export function CheckoutModal({ plan, onClose, onSuccess }: CheckoutModalProps) 
             </div>
           </div>
 
+          <label className="flex items-start gap-2 text-sm text-ink">
+            <input
+              type="checkbox"
+              className="mt-1"
+              checked={acknowledged}
+              onChange={(event) => setAcknowledged(event.target.checked)}
+            />
+            <span>Entiendo que el cobro es simulado y que la factura es un documento de demostración.</span>
+          </label>
+
           <div className="mt-6 flex justify-end gap-3 pt-2">
             <button
               type="button"
@@ -163,8 +159,8 @@ export function CheckoutModal({ plan, onClose, onSuccess }: CheckoutModalProps) 
             </button>
             <button
               type="submit"
-              disabled={subscribeMutation.isPending}
-              className="h-9 rounded-sm bg-turquoise-700 px-4 text-sm font-medium text-bone-raised transition-colors duration-instant hover:bg-turquoise-900 disabled:opacity-50"
+              disabled={!acknowledged || subscribeMutation.isPending}
+              className="h-9 rounded-sm bg-turquoise-700 px-4 text-sm font-medium text-bone-raised transition-colors duration-instant hover:bg-turquoise-900 disabled:bg-bone-sunk disabled:text-ink-faint"
             >
               {subscribeMutation.isPending ? "Contratando…" : "Confirmar contratación"}
             </button>

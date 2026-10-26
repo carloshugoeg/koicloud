@@ -30,12 +30,25 @@ export {
 } from "@/api/hooks/plans";
 
 export {
+  useCancelSubscriptionMutation,
+  useSubscriptionsQuery,
+  type Subscription,
+} from "@/api/hooks/subscriptions";
+
+export {
+  useConfirmActionMutation,
+  useDiscardConfirmationMutation,
+} from "@/api/hooks/confirmations";
+
+export {
   useCreatePondMutation,
   useGetConnection,
   useGetPond,
   useListBackups,
   usePondsQuery,
   useRestoreBackupMutation,
+  useRetryPondMutation,
+  useTriggerBackupMutation,
   type Backup,
   type Connection,
   type Pond,
