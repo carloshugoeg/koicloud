@@ -113,3 +113,37 @@ export function useRestoreBackupMutation(pondId: string) {
     },
   });
 }
+
+export function useTriggerBackupMutation(pondId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { data, error } = await apiClient.POST("/api/v1/ponds/{pond_id}/backups", {
+        params: { path: { pond_id: pondId } },
+      });
+      if (error || !data) throw new ApiError(error);
+      return data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["ponds", pondId, "backups"] });
+      void queryClient.invalidateQueries({ queryKey: ["ponds", pondId] });
+    },
+  });
+}
+
+export function useRetryFailedJobMutation(pondId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { data, error } = await apiClient.POST("/api/v1/ponds/{pond_id}/retry", {
+        params: { path: { pond_id: pondId } },
+      });
+      if (error || !data) throw new ApiError(error);
+      return data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["ponds", pondId] });
+      void queryClient.invalidateQueries({ queryKey: ["ponds"] });
+    },
+  });
+}

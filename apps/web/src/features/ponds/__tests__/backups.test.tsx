@@ -6,6 +6,7 @@ import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { afterEach, vi } from "vitest";
 import { appRoutes } from "@/app/router";
 import { useAuthStore } from "@/lib/auth-store";
+import { ToastHost } from "@/lib/toast-host";
 import { fixtures } from "@/mocks/fixtures";
 import { server } from "@/mocks/server";
 
@@ -33,6 +34,7 @@ function renderBackups(entry = `/app/ponds/${POND_ID}/backups`) {
   render(
     <QueryClientProvider client={client}>
       <RouterProvider router={router} />
+      <ToastHost />
     </QueryClientProvider>,
   );
 }
@@ -119,6 +121,7 @@ describe("W2-08 Respaldos y restauración", () => {
     });
     expect(postedBody).toEqual({ backup_id: fixtures.backups[0].id });
     expect(screen.getByText("job_restore_01")).toBeInTheDocument();
+    expect(screen.queryByTestId("toast")).not.toBeInTheDocument();
   });
 
   it("shows empty and error data states", async () => {
@@ -129,5 +132,62 @@ describe("W2-08 Respaldos y restauración", () => {
     );
     renderBackups();
     expect(await screen.findByTestId("backups-empty")).toBeInTheDocument();
+  });
+
+  it("posts backup now as 202 and toasts Respaldo encolado", async () => {
+    const user = userEvent.setup();
+    let status = 0;
+    let confirmToken: string | null = "unset";
+    server.use(
+      http.post(`*/api/v1/ponds/${POND_ID}/backups`, ({ request }) => {
+        status = 202;
+        confirmToken = request.headers.get("X-KOI-Confirm-Token");
+        return HttpResponse.json(
+          {
+            backup: {
+              ...fixtures.backups[1],
+              completed_at: null,
+              expires_at: null,
+              status: "queued",
+            },
+            job: {
+              attempts: 0,
+              created_at: "2026-10-26T15:00:00Z",
+              id: "job_backup_01",
+              node_id: "node-sv-01",
+              pond_id: POND_ID,
+              status: "queued",
+              type: "backup_pond",
+            },
+          },
+          { status: 202 },
+        );
+      }),
+    );
+
+    renderBackups();
+    await user.click(await screen.findByTestId("backup-now"));
+
+    expect(await screen.findByText("Respaldo encolado")).toBeInTheDocument();
+    expect(status).toBe(202);
+    expect(confirmToken).toBeNull();
+  });
+
+  it("toasts the catalog message when backup now fails", async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.post(`*/api/v1/ponds/${POND_ID}/backups`, () =>
+        HttpResponse.json(
+          { code: "pond_busy", message: "busy", request_id: "req_busy" },
+          { status: 409 },
+        ),
+      ),
+    );
+
+    renderBackups();
+    await user.click(await screen.findByTestId("backup-now"));
+
+    expect(await screen.findByText("Ese pond ya tiene una operación en curso.")).toBeInTheDocument();
+    expect(screen.queryByText("Respaldo encolado")).not.toBeInTheDocument();
   });
 });

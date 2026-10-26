@@ -171,6 +171,49 @@ export const handlers = [
     });
   }),
 
+  http.post(`${API_ROOT}/ponds/:pondId/backups`, ({ params }) => {
+    return HttpResponse.json(
+      {
+        backup: {
+          ...fixtures.backups[1],
+          completed_at: null,
+          expires_at: null,
+          id: "bbbbbbbb-2222-2222-2222-bbbbbbbbbbbb",
+          kind: "on_demand",
+          pond_id: String(params.pondId),
+          status: "queued",
+        },
+        job: {
+          attempts: 0,
+          created_at: "2026-10-26T15:00:00Z",
+          id: "job_backup_01",
+          node_id: "node-sv-01",
+          pond_id: String(params.pondId),
+          status: "queued",
+          type: "backup_pond",
+        },
+      },
+      { status: 202 },
+    );
+  }),
+
+  http.post(`${API_ROOT}/ponds/:pondId/retry`, ({ params }) => {
+    return HttpResponse.json(
+      {
+        job: {
+          attempts: 1,
+          created_at: "2026-10-26T15:00:00Z",
+          id: "job_retry_01",
+          node_id: "node-sv-01",
+          pond_id: String(params.pondId),
+          status: "queued",
+          type: "backup_pond",
+        },
+      },
+      { status: 202 },
+    );
+  }),
+
   http.post(`${API_ROOT}/ponds/:pondId/restore`, async ({ params }) => {
     return HttpResponse.json(
       {

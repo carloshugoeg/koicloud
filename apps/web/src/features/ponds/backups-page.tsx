@@ -4,18 +4,21 @@ import {
   useGetPond,
   useListBackups,
   useRestoreBackupMutation,
+  useTriggerBackupMutation,
   type Backup,
 } from "@/api/hooks/ponds";
 import { BackupsTable } from "@/features/ponds/backups-table";
 import { pondStateMeta } from "@/features/ponds/pond-state";
 import { RestoreDialog } from "@/features/ponds/restore-dialog";
 import { problemToMessage } from "@/lib/errors";
+import { toast } from "@/lib/toast";
 
 export function BackupsPage() {
   const { pondId = "" } = useParams();
   const pondQuery = useGetPond(pondId || undefined);
   const backupsQuery = useListBackups(pondId || undefined);
   const restoreMutation = useRestoreBackupMutation(pondId);
+  const backupMutation = useTriggerBackupMutation(pondId);
   const [selected, setSelected] = useState<Backup | null>(null);
   const [confirmName, setConfirmName] = useState("");
   const [queuedJobId, setQueuedJobId] = useState<string | null>(null);
@@ -54,6 +57,15 @@ export function BackupsPage() {
   const backups = backupsQuery.data ?? [];
   const meta = pond ? pondStateMeta(pond.observed_state) : null;
 
+  async function handleBackupNow() {
+    try {
+      await backupMutation.mutateAsync();
+      toast({ tone: "ok", message: "Respaldo encolado" });
+    } catch (error) {
+      toast({ tone: "danger", message: problemToMessage(error) });
+    }
+  }
+
   async function handleRestore() {
     if (!selected || !pond || confirmName !== pond.name) return;
     try {
@@ -91,6 +103,15 @@ export function BackupsPage() {
             <span className="font-medium text-ink">Respaldos</span>
           </nav>
         </div>
+        <button
+          type="button"
+          className="h-9 rounded-sm bg-turquoise-700 px-4 text-sm font-medium text-bone-raised hover:bg-turquoise-900 disabled:bg-bone-sunk disabled:text-ink-faint"
+          data-testid="backup-now"
+          disabled={backupMutation.isPending}
+          onClick={() => void handleBackupNow()}
+        >
+          {backupMutation.isPending ? "Respaldando…" : "Respaldar ahora"}
+        </button>
       </div>
 
       {queuedJobId ? (

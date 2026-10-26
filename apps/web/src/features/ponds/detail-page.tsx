@@ -1,6 +1,11 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { useGetConnection, useGetPond } from "@/api/hooks/ponds";
+import {
+  useGetConnection,
+  useGetPond,
+  useRetryFailedJobMutation,
+  useTriggerBackupMutation,
+} from "@/api/hooks/ponds";
 import { pondStateMeta } from "@/features/ponds/pond-state";
 import { ApiError, problemToMessage } from "@/lib/errors";
 import { toast } from "@/lib/toast";
@@ -11,6 +16,8 @@ export function PondDetailPage() {
   const { pondId = "" } = useParams();
   const pondQuery = useGetPond(pondId || undefined);
   const connectionQuery = useGetConnection(pondId || undefined);
+  const backupMutation = useTriggerBackupMutation(pondId);
+  const retryMutation = useRetryFailedJobMutation(pondId);
   const [revealed, setRevealed] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -64,6 +71,24 @@ export function PondDetailPage() {
   const connectionPending = connectionQuery.isPending;
   const connectionError = connectionQuery.isError;
 
+  async function handleBackupNow() {
+    try {
+      await backupMutation.mutateAsync();
+      toast({ tone: "ok", message: "Respaldo encolado" });
+    } catch (error) {
+      toast({ tone: "danger", message: problemToMessage(error) });
+    }
+  }
+
+  async function handleRetry() {
+    try {
+      await retryMutation.mutateAsync();
+      toast({ tone: "ok", message: "Reintento encolado" });
+    } catch (error) {
+      toast({ tone: "danger", message: problemToMessage(error) });
+    }
+  }
+
   async function copyUri() {
     if (!connection?.uri) return;
     await navigator.clipboard.writeText(connection.uri);
@@ -98,6 +123,30 @@ export function PondDetailPage() {
               Consola
             </Link>
           </nav>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {pond.observed_state === "running" ? (
+            <button
+              type="button"
+              className="h-9 rounded-sm bg-turquoise-700 px-4 text-sm font-medium text-bone-raised hover:bg-turquoise-900 disabled:bg-bone-sunk disabled:text-ink-faint"
+              data-testid="backup-now"
+              disabled={backupMutation.isPending}
+              onClick={() => void handleBackupNow()}
+            >
+              {backupMutation.isPending ? "Respaldando…" : "Respaldar ahora"}
+            </button>
+          ) : null}
+          {pond.observed_state === "failed" ? (
+            <button
+              type="button"
+              className="h-9 rounded-sm bg-turquoise-700 px-4 text-sm font-medium text-bone-raised hover:bg-turquoise-900 disabled:bg-bone-sunk disabled:text-ink-faint"
+              data-testid="retry-failed"
+              disabled={retryMutation.isPending}
+              onClick={() => void handleRetry()}
+            >
+              {retryMutation.isPending ? "Reintentando…" : "Reintentar"}
+            </button>
+          ) : null}
         </div>
       </div>
 
