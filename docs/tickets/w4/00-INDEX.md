@@ -17,7 +17,7 @@ el agente lo ignora.
 | W4-09 | *(movido a W1-26)* `scripts/demo-mcp-replay.py` | ver `docs/tickets/w1/W1-26-demo-replay.md` | cerrado (traslado a W1) |
 | W4-10 | Manual de usuario (PDF) | `w4-manual-usuario` | abierto |
 | W4-11 | Manual técnico (PDF) | `w4-manual-tecnico` | hecho ([PR #60](https://github.com/carloshugoeg/koicloud/pull/60)) |
-| W4-12 | Reporte de carga y tres runbooks | `w4-reporte-carga` | abierto |
+| W4-12 | Reporte de carga y tres runbooks | `w4-reporte-carga` | hecho ([PR #112](https://github.com/carloshugoeg/koicloud/pull/112)) |
 
 **El montaje de `/mcp`, el gate y todas las tools mutantes son de W1.** W4 implementa solo
 tools de lectura, copiando las dos de referencia, con ≤ 25 líneas cada una. Es la única
