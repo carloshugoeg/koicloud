@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import select, text
@@ -230,3 +230,40 @@ async def test_login_rejects_suspended_account() -> None:
 
     assert suspended.status_code == 403
     assert suspended.json()["code"] == "account_suspended"
+
+
+async def test_suspend_user_rejects_reason_over_500_chars() -> None:
+    reset_auth_tables()
+
+    async with _make_client() as client:
+        admin_id = await _register_and_verify(client, "admin-longreason@koicloud.dev")
+        await _promote(admin_id, UserRole.ADMIN)
+        token = await _login(client, "admin-longreason@koicloud.dev")
+        target_id = await _register_and_verify(client, "target-longreason@koicloud.dev")
+
+        response = await client.post(
+            f"/api/v1/admin/users/{target_id}/suspend",
+            headers={"Authorization": f"Bearer {token}"},
+            json={"confirm_text": "SUSPENDER", "reason": "x" * 501},
+        )
+
+    assert response.status_code == 422
+
+
+async def test_suspend_missing_user_returns_user_not_found() -> None:
+    reset_auth_tables()
+
+    async with _make_client() as client:
+        admin_id = await _register_and_verify(client, "admin-missing@koicloud.dev")
+        await _promote(admin_id, UserRole.ADMIN)
+        token = await _login(client, "admin-missing@koicloud.dev")
+        missing_id = uuid4()
+
+        response = await client.post(
+            f"/api/v1/admin/users/{missing_id}/suspend",
+            headers={"Authorization": f"Bearer {token}"},
+            json={"confirm_text": "SUSPENDER", "reason": "cuenta fantasma"},
+        )
+
+    assert response.status_code == 404
+    assert response.json()["code"] == "user_not_found"

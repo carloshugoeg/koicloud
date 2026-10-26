@@ -68,7 +68,7 @@ async def suspend_user(
     async with SessionLocal() as session:
         user = await session.get(User, user_id)
         if user is None:
-            raise AppError(ErrorCode.INTERNAL_ERROR, http_status=404)
+            raise AppError(ErrorCode.USER_NOT_FOUND)
 
         user.status = UserStatus.SUSPENDED
         session.add(
@@ -91,7 +91,7 @@ async def reactivate_user(user_id: UUID) -> AdminUserResponse:
     async with SessionLocal() as session:
         user = await session.get(User, user_id)
         if user is None:
-            raise AppError(ErrorCode.INTERNAL_ERROR, http_status=404)
+            raise AppError(ErrorCode.USER_NOT_FOUND)
 
         user.status = UserStatus.ACTIVE
         await session.commit()

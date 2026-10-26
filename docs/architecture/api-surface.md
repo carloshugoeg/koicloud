@@ -120,7 +120,7 @@ Todas requieren `role=admin`.
 | M | Ruta | Command | Descripción | Response |
 |---|------|---------|-------------|----------|
 | GET | `/admin/users` | `admin_list_users` | Paginado | `[{admin_user}]` |
-| POST | `/admin/users/{id}/suspend` | `suspend_user` (siempre requiere confirm textual del admin en Web) | Suspende | `{user}` |
+| POST | `/admin/users/{id}/suspend` | `suspend_user` (confirm textual `SUSPENDER`; body opcional `reason` trim≤500 → `audit_events.metadata.reason`) | Suspende | `{user}` |
 | POST | `/admin/users/{id}/reactivate` | `reactivate_user` | Reactiva | `{user}` |
 | GET | `/admin/ponds` | `admin_list_ponds` | Todos los ponds; filtros | `[{admin_pond}]` |
 | GET | `/admin/audit` | `admin_list_audit` | Últimos eventos sensibles | `[{event}]` |
@@ -323,6 +323,7 @@ Códigos estables (fuente única para clientes). El backend lanza `AppError(code
 | `agent_bad_credentials` | 401 | /mcp | — |
 | `not_owner` | 403 | cualquier recurso ajeno | — |
 | `admin_only` | 403 | rutas admin | — |
+| `user_not_found` | 404 | admin users/{id}/… | “No existe el usuario solicitado” |
 | `rate_limited` | 429 | login/register/forgot/mcp | “Muchos intentos, esperá un momento” |
 | `disk_full` | 507 | create_pond / backup | — |
 | `internal_error` | 500 | genérico | “Algo salió mal, revisá los logs” |

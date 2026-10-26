@@ -298,7 +298,7 @@ export const handlers = [
     const index = adminUsersState.findIndex((user) => user.id === userId);
     if (index < 0) {
       return HttpResponse.json(
-        { code: "internal_error", message: "user_not_found" },
+        { code: "user_not_found", message: "user_not_found" },
         { status: 404 },
       );
     }
@@ -332,7 +332,7 @@ export const handlers = [
     const index = adminUsersState.findIndex((user) => user.id === userId);
     if (index < 0) {
       return HttpResponse.json(
-        { code: "internal_error", message: "user_not_found" },
+        { code: "user_not_found", message: "user_not_found" },
         { status: 404 },
       );
     }
