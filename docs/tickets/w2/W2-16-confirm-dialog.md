@@ -1,5 +1,5 @@
 ---
-id: W2-14
+id: W2-16
 workstream: W2
 persona: Jason
 estado: en-curso
@@ -10,7 +10,7 @@ pr:
 depends_on:
 ---
 
-# [W2-14] Diálogo web propose → confirm (A9 / E9-04)
+# [W2-16] Diálogo web propose → confirm (A9 / E9-04)
 
 ## Qué se ve
 
