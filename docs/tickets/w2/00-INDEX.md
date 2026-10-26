@@ -20,7 +20,7 @@ el agente lo ignora.
 | W2-12 | Layout, tema, estados vacíos y responsive a 360 px | `w2-tema-y-estados` | hecho ([PR #113](https://github.com/carloshugoeg/koicloud/pull/113)) |
 | W2-13 | Landing pública y catálogo de planes | `w2-landing-prerender` | hecho ([PR #115](https://github.com/carloshugoeg/koicloud/pull/115)) |
 | W2-14 | Screen-map fixes (password min, plan API, poll) | `w2-screen-map-fixes` | en_revision ([PR #122](https://github.com/carloshugoeg/koicloud/pull/122)) |
-| W2-15 | Wave A2 web gaps (historial, confirm, toasts, retry) | `w2-a2-web-gaps` | en-curso |
+| W2-15 | Wave A2 web gaps (billing, confirm, precios, banner) | `w2-a2-web-gaps` | en_curso |
 
 **Dos fuentes por pantalla, y no se confunden:** la arquitectura de información (qué campos,
 qué tablas, qué pasos) sale de los mockups de `docs/entrega-2/mockups/`; la piel (color,

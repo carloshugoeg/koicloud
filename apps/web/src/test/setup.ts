@@ -2,7 +2,6 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, beforeEach } from "vitest";
 import { useAuthStore } from "@/lib/auth-store";
-import { resetToasts } from "@/lib/toast";
 import { resetAdminUsersState, resetAgentAccessState, resetSubscriptionsState } from "@/mocks/handlers";
 import { server } from "@/mocks/server";
 
@@ -33,7 +32,6 @@ beforeEach(() => {
   resetAgentAccessState();
   resetAdminUsersState();
   resetSubscriptionsState();
-  resetToasts();
 });
 
 afterEach(() => {
