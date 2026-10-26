@@ -6,7 +6,7 @@ estado: en-curso
 rama: w1-pond-stop-start
 epica: E4-04
 sprint: S4
-pr:
+pr: "https://github.com/carloshugoeg/koicloud/pull/130"
 depends_on: W1-17 W1-10
 ---
 
