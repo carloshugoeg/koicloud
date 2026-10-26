@@ -1,5 +1,5 @@
 ---
-id: W1-28
+id: W1-30
 workstream: W1
 persona: Carlos
 estado: en-revision
@@ -11,7 +11,7 @@ depends_on:
 ccr: https://github.com/carloshugoeg/koicloud/issues/125
 ---
 
-# [W1-28] Motivo de suspensión en bitácora + `user_not_found`
+# [W1-30] Motivo de suspensión en bitácora + `user_not_found`
 
 CCR [#125](https://github.com/carloshugoeg/koicloud/issues/125) aprobado por Carlos Hugo Escobar:
 
