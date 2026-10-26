@@ -35,7 +35,7 @@ no existe todavía. `00-INDEX.md` no es un ticket y el agente lo ignora.
 | W1-24 | Revisión SOLID del control plane (P7 / #96) | `w1-solid-review` | hecho ([PR #101](https://github.com/carloshugoeg/koicloud/pull/101)) |
 | W1-25 | ADRs A-01..A-12 en `docs/adr/` | `w1-architecture-adrs` | hecho ([PR #106](https://github.com/carloshugoeg/koicloud/pull/106)) |
 | W1-26 | `scripts/demo-mcp-replay.py` (antes W4-09) | `w1-demo-replay` | hecho ([PR #110](https://github.com/carloshugoeg/koicloud/pull/110)) |
-| W1-27 | Columna Expira y toasts de 1.2 s | `w1-a11-expira-toasts` | en-revision ([PR #134](https://github.com/carloshugoeg/koicloud/pull/134)) |
+| W1-35 | Columna Expira / `BackupOut.expires_at` (A11) | `w1-a11-expira-toasts` | bloqueado · CCR [#135](https://github.com/carloshugoeg/koicloud/issues/135) · [PR #134](https://github.com/carloshugoeg/koicloud/pull/134) |
 
 W1 es el único workstream que puede tocar cualquier ruta, y el único que escribe migraciones,
 regenera contratos (`make contracts`) y edita el harness de agentes.
