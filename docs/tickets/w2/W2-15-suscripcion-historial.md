@@ -1,5 +1,5 @@
 ---
-id: W2-14
+id: W2-15
 workstream: W2
 persona: Jason
 estado: en-curso
@@ -11,7 +11,7 @@ depends_on:
 issue: "https://github.com/carloshugoeg/koicloud/issues/96#issuecomment-6428918452"
 ---
 
-# [W2-14] Historial de suscripciones y cancelar al corte
+# [W2-15] Historial de suscripciones y cancelar al corte
 
 ## Qué se ve
 
@@ -58,6 +58,7 @@ diálogo, la fila muestra que se cancelará al fin del período.
 - `src/components/ui/*` salvo tema si el ticket lo permite.
 - Cualquier archivo fuera de `apps/web/` y `docs/tickets/w2/**`.
 - OpenAPI, comandos, módulos de billing en API, migraciones.
+- `docs/tickets/w2/W2-14-screen-map-fixes.md` (pertenece a PR #122).
 
 ## Si algo falta
 
@@ -68,4 +69,4 @@ No inventes endpoints, campos, hooks, rutas ni códigos de error.
 
 Imitá el PR #1 (`[W2-01] Pantalla de login`): misma estructura de archivos, mismo
 estilo de pruebas y misma forma de cerrar criterios en el PR. Amendment A8 en
-issue #96.
+issue #96. **ID correcto: W2-15** (W2-14 es screen-map en PR #122).
