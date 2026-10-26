@@ -19,6 +19,7 @@ el agente lo ignora.
 | W2-11 | Acceso agente: revelar y rotar | `w2-acceso-agente` | hecho ([PR #79](https://github.com/carloshugoeg/koicloud/pull/79)) |
 | W2-12 | Layout, tema, estados vacíos y responsive a 360 px | `w2-tema-y-estados` | hecho ([PR #113](https://github.com/carloshugoeg/koicloud/pull/113)) |
 | W2-13 | Landing pública y catálogo de planes | `w2-landing-prerender` | hecho ([PR #115](https://github.com/carloshugoeg/koicloud/pull/115)) |
+| W2-14 | Historial de suscripciones y cancelar al corte | `w2-suscripcion-historial` | en-curso (issue #96 A8) |
 
 **Dos fuentes por pantalla, y no se confunden:** la arquitectura de información (qué campos,
 qué tablas, qué pasos) sale de los mockups de `docs/entrega-2/mockups/`; la piel (color,
