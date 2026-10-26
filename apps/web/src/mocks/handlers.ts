@@ -334,4 +334,12 @@ export const handlers = [
   http.get(`${API_ROOT}/admin/audit`, () => {
     return HttpResponse.json({ events: fixtures.adminAuditEvents, next_cursor: null });
   }),
+
+  http.post(`${API_ROOT}/confirm/:token`, () => {
+    return HttpResponse.json({});
+  }),
+
+  http.delete(`${API_ROOT}/confirm/:token`, () => {
+    return new HttpResponse(null, { status: 204 });
+  }),
 ];

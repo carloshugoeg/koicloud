@@ -73,6 +73,11 @@ export {
 } from "@/api/hooks/agent-access";
 
 export {
+  useConfirmActionMutation,
+  useDiscardConfirmationMutation,
+} from "@/api/hooks/confirmations";
+
+export {
   useRunSqlMutation,
   useSqlHistoryQuery,
   type RunSQLRequest,

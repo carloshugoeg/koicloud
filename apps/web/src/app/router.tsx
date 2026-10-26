@@ -13,6 +13,8 @@ import {
   AgentAccessPage,
   BackupsPage,
   BillingPage,
+  ConfirmAliasPage,
+  ConfirmPage,
   CreatePondPage,
   DashboardPage,
   ForgotPage,
@@ -148,6 +150,16 @@ export const appRoutes: RouteObject[] = [
             path: "agent-access",
             element: <AgentAccessAliasPage />,
             handle: { title: "Acceso agente" } satisfies RouteHandle,
+          },
+          {
+            path: "confirm",
+            element: <ConfirmPage />,
+            handle: { title: "Confirmación" } satisfies RouteHandle,
+          },
+          {
+            path: "confirmacion",
+            element: <ConfirmAliasPage />,
+            handle: { title: "Confirmación" } satisfies RouteHandle,
           },
           {
             path: "account",
