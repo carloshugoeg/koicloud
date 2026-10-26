@@ -6,7 +6,15 @@ A pull request that touches any high-risk path is high-risk.
 
 A path that matches no glob is high-risk.
 
-A pull request from a human teammate does not auto-merge on either lane. The teammate logins are `@carloshugoeg`, `@Jasgu097`, `@Josh-JM`, and `@diegojoachin07`.
+## Authors
+
+`@Jasgu097`, `@Josh-JM`, and `@diegojoachin07` do not auto-merge on either lane.
+
+The agent markers are `<!-- CURSOR_AGENT_PR_BODY_BEGIN -->` and `<!-- CURSOR_AGENT_PR_BODY_END -->`.
+
+A pull request from `@carloshugoeg` is an agent pull request when the body contains both markers. Lane rules apply to that pull request.
+
+A pull request from `@carloshugoeg` that lacks either marker is Carlos's own pull request. It does not auto-merge.
 
 ## How a path gets a lane
 
@@ -26,7 +34,7 @@ Rule 1 is the only reason a path inside a high-risk directory stays low-risk. A 
 
 The label is `lane:low`.
 
-A low-risk pull request auto-merges only when CI is green, Bugbot is clean, and gate, the QA bot, passes. A human teammate's pull request does not auto-merge.
+A low-risk pull request auto-merges only when CI is green, Bugbot is clean, and gate, the QA bot, passes. That auto-merge runs only for an author the Authors section allows.
 
 | Area | Paths |
 | --- | --- |
