@@ -1,5 +1,5 @@
 ---
-id: W1-27
+id: W1-28
 workstream: W1
 persona: Carlos
 estado: en-curso
@@ -10,7 +10,7 @@ pr:
 depends_on:
 ---
 
-# [W1-27] A10 — Uso y facturas en web, CLI y MCP
+# [W1-28] A10 — Uso y facturas en web, CLI y MCP
 
 Issue #96 amendment A10 (low). Paridad de uso e historial de facturas en las tres superficies.
 
@@ -47,6 +47,7 @@ Issue #96 amendment A10 (low). Paridad de uso e historial de facturas en las tre
 - Firmas de `app/commands/*`.
 - NIT, pricing, suscripciones admin, stop/start de ponds (otros amendments HIGH/LOW).
 - Migraciones Alembic.
+- `docs/tickets/w1/W1-27-plans-pricing.md` (PR #123). No reuses W1-27.
 
 ## Si algo falta
 
