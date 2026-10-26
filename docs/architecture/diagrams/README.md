@@ -25,6 +25,7 @@ Este directorio contiene las fuentes editables (`.mmd`) de los diagramas embebid
 | `17-pond-state-machine.mmd` | `data-model.md` §4.1 |
 | `18-job-state-machine.mmd` | `data-model.md` §4.2 |
 | `19-subscription-state-machine.mmd` | `data-model.md` §4.3 |
+| `20-pond-lifecycle-stop-start-delete.mmd` | Wave B1 agreed lifecycle (stop/start + delete with pre_delete backup). PNG beside the `.mmd`. Spec under `docs/architecture/statecharts/pond-lifecycle/`. |
 
 ## Cómo regenerar SVG
 
