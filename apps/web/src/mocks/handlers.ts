@@ -13,6 +13,7 @@ type AgentAccessMock = {
 };
 
 type AdminUser = components["schemas"]["AdminUserOut"];
+type AuditEvent = components["schemas"]["AuditEventOut"];
 
 function freshAgentAccess(): AgentAccessMock {
   return { ...fixtures.agentAccess };
@@ -22,8 +23,16 @@ function freshAdminUsers(): AdminUser[] {
   return fixtures.adminUsers.map((user) => ({ ...user }));
 }
 
+function freshAdminAudit(): AuditEvent[] {
+  return fixtures.adminAuditEvents.map((event) => ({
+    ...event,
+    metadata: { ...event.metadata },
+  }));
+}
+
 let agentAccessState = freshAgentAccess();
 let adminUsersState = freshAdminUsers();
+let adminAuditState = freshAdminAudit();
 
 export const ROTATED_AGENT_PASSWORD = "rotated-once-secret";
 
@@ -33,6 +42,7 @@ export function resetAgentAccessState() {
 
 export function resetAdminUsersState() {
   adminUsersState = freshAdminUsers();
+  adminAuditState = freshAdminAudit();
 }
 
 export const handlers = [
@@ -274,7 +284,7 @@ export const handlers = [
   }),
 
   http.post(`${API_ROOT}/admin/users/:userId/suspend`, async ({ params, request }) => {
-    const body = (await request.json()) as { confirm_text?: string };
+    const body = (await request.json()) as { confirm_text?: string; reason?: string };
     if (body.confirm_text !== SUSPEND_CONFIRM_TEXT) {
       return HttpResponse.json(
         {
@@ -298,6 +308,22 @@ export const handlers = [
       updated,
       ...adminUsersState.slice(index + 1),
     ];
+    const reason = body.reason?.trim();
+    if (reason) {
+      adminAuditState = [
+        {
+          id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa01",
+          actor_user_id: "11111111-1111-1111-1111-111111111111",
+          actor_kind: "admin",
+          target_kind: "user",
+          target_id: userId,
+          action: "suspend_user",
+          metadata: { reason },
+          at: "2026-09-22T20:00:00Z",
+        },
+        ...adminAuditState,
+      ];
+    }
     return HttpResponse.json({ user: updated });
   }),
 
@@ -324,6 +350,6 @@ export const handlers = [
   }),
 
   http.get(`${API_ROOT}/admin/audit`, () => {
-    return HttpResponse.json({ events: fixtures.adminAuditEvents, next_cursor: null });
+    return HttpResponse.json({ events: adminAuditState, next_cursor: null });
   }),
 ];

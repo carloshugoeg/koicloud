@@ -77,7 +77,7 @@ describe("W2-10 Panel admin", () => {
     await user.click(screen.getByTestId(`suspend-${adminClientUser.id}`));
     const dialog = await screen.findByTestId("suspend-dialog");
     expect(within(dialog).getByText(/siguen corriendo/i)).toBeInTheDocument();
-    expect(within(dialog).queryByText(/queda en la bitácora/i)).not.toBeInTheDocument();
+    expect(within(dialog).getByText(/queda en la bitácora/i)).toBeInTheDocument();
 
     expect(screen.getByTestId("suspend-submit")).toBeDisabled();
     await user.type(screen.getByTestId("suspend-confirm-email"), adminClientUser.email);
@@ -89,6 +89,11 @@ describe("W2-10 Panel admin", () => {
       expect(screen.queryByTestId("suspend-dialog")).not.toBeInTheDocument();
     });
     expect(await screen.findByTestId(`reactivate-${adminClientUser.id}`)).toBeInTheDocument();
+
+    renderAdmin("/app/admin/audit");
+    const reasonRow = await screen.findByTestId("audit-row-aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa01");
+    expect(reasonRow).toHaveTextContent("suspend_user");
+    expect(reasonRow).toHaveTextContent("reason=abuso de recursos");
   });
 
   it("keeps the suspend dialog open and shows suspend-error on API failure", async () => {

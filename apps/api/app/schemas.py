@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict, Field, field_validator
 
 from app.core.base import SchemaModel
 from app.core.enums import (
@@ -828,8 +828,19 @@ class AdminUserResponse(SchemaModel):
 
 class SuspendUserRequest(SchemaModel):
     confirm_text: str
+    reason: str | None = Field(default=None, max_length=500)
 
-    model_config = config_with_example({"confirm_text": "SUSPENDER"})
+    @field_validator("reason")
+    @classmethod
+    def _trim_reason(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        trimmed = value.strip()
+        return trimmed or None
+
+    model_config = config_with_example(
+        {"confirm_text": "SUSPENDER", "reason": "abuso de recursos"}
+    )
 
 
 class AdminPondOut(SchemaModel):

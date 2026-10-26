@@ -46,11 +46,12 @@ export function SuspendDialog({
             <span className="mt-1 block font-mono text-[11px]">Esperado: {user.email}</span>
           </label>
           <label className="block text-xs text-ink-muted">
-            Motivo
+            Motivo (queda en la bitácora)
             <input
               className="mt-1 block h-10 w-full rounded-sm border border-line-control bg-bone px-3 text-sm"
               value={motivo}
               onChange={(event) => onMotivoChange(event.target.value)}
+              maxLength={500}
               data-testid="suspend-motivo"
             />
           </label>

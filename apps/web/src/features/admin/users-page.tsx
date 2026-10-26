@@ -73,7 +73,10 @@ export function AdminUsersPage() {
     if (dialog.kind !== "suspend") {
       return;
     }
-    suspend.mutate(dialog.user.id, { onSuccess: () => closeDialog() });
+    suspend.mutate(
+      { userId: dialog.user.id, reason: motivo },
+      { onSuccess: () => closeDialog() },
+    );
   }
 
   function submitReactivate() {

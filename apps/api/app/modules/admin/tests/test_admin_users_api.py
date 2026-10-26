@@ -3,10 +3,11 @@ from __future__ import annotations
 from uuid import UUID
 
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import select, text
 
 from app.core.db import SessionLocal
 from app.core.enums import EmailTokenKind, UserRole, UserStatus
-from app.core.models import User
+from app.core.models import AuditEvent, User
 from app.main import app
 from app.modules.admin import AdminService
 from app.modules.auth import AuthService
@@ -132,6 +133,83 @@ async def test_suspend_and_reactivate_user() -> None:
     assert via_service.user.status == UserStatus.SUSPENDED
     cleared = await AdminService.reactivate_user(target_id)
     assert cleared.user.status == UserStatus.ACTIVE
+
+
+async def test_suspend_user_stores_trimmed_reason_in_audit_metadata() -> None:
+    reset_auth_tables()
+    async with SessionLocal() as session:
+        await session.execute(text("DELETE FROM audit_events"))
+        await session.commit()
+
+    async with _make_client() as client:
+        admin_id = await _register_and_verify(client, "admin-reason@koicloud.dev")
+        await _promote(admin_id, UserRole.ADMIN)
+        token = await _login(client, "admin-reason@koicloud.dev")
+        target_id = await _register_and_verify(client, "target-reason@koicloud.dev")
+
+        response = await client.post(
+            f"/api/v1/admin/users/{target_id}/suspend",
+            headers={"Authorization": f"Bearer {token}"},
+            json={"confirm_text": "SUSPENDER", "reason": "  abuso de recursos  "},
+        )
+        assert response.status_code == 200
+        assert response.json()["user"]["status"] == "suspended"
+
+        audit = await client.get(
+            "/api/v1/admin/audit",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert audit.status_code == 200
+        match = next(
+            event
+            for event in audit.json()["events"]
+            if event["action"] == "suspend_user" and event["target_id"] == str(target_id)
+        )
+        assert match["metadata"]["reason"] == "abuso de recursos"
+        assert match["actor_user_id"] == str(admin_id)
+        assert match["actor_kind"] == "admin"
+
+    async with SessionLocal() as session:
+        row = (
+            await session.execute(
+                select(AuditEvent).where(
+                    AuditEvent.action == "suspend_user",
+                    AuditEvent.target_id == target_id,
+                )
+            )
+        ).scalar_one()
+        assert row.event_metadata == {"reason": "abuso de recursos"}
+
+
+async def test_suspend_user_omits_reason_from_metadata_when_absent() -> None:
+    reset_auth_tables()
+    async with SessionLocal() as session:
+        await session.execute(text("DELETE FROM audit_events"))
+        await session.commit()
+
+    async with _make_client() as client:
+        admin_id = await _register_and_verify(client, "admin-noreason@koicloud.dev")
+        await _promote(admin_id, UserRole.ADMIN)
+        token = await _login(client, "admin-noreason@koicloud.dev")
+        target_id = await _register_and_verify(client, "target-noreason@koicloud.dev")
+
+        response = await client.post(
+            f"/api/v1/admin/users/{target_id}/suspend",
+            headers={"Authorization": f"Bearer {token}"},
+            json={"confirm_text": "SUSPENDER"},
+        )
+        assert response.status_code == 200
+
+    async with SessionLocal() as session:
+        row = (
+            await session.execute(
+                select(AuditEvent).where(
+                    AuditEvent.action == "suspend_user",
+                    AuditEvent.target_id == target_id,
+                )
+            )
+        ).scalar_one()
+        assert row.event_metadata == {}
 
 
 async def test_login_rejects_suspended_account() -> None:
