@@ -2,7 +2,7 @@
 id: W1-28
 workstream: W1
 persona: Carlos
-estado: en-curso
+estado: bloqueado
 rama: w1-a10-usage-invoices
 epica: "E7-03, E7-04, E9-01, E9-02"
 sprint: S4
@@ -11,6 +11,8 @@ depends_on:
 ---
 
 # [W1-28] A10 — Uso y facturas en web, CLI y MCP
+
+**Pausado / superseded:** MCP `get_usage` y CLI `usage` / `invoice list` pasan a la Wave A1 API lane (`bc-12530722`). No abrir PR desde esta rama para ese alcance. Historial web de facturas queda fuera hasta reasignación.
 
 Issue #96 amendment A10 (low). Paridad de uso e historial de facturas en las tres superficies.
 
