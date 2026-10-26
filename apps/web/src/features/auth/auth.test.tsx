@@ -1,10 +1,11 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { HttpResponse, http } from "msw";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { AppProviders } from "@/app/providers";
 import { appRoutes } from "@/app/router";
 import { useAuthStore } from "@/lib/auth-store";
+import { MIN_PASSWORD_LENGTH } from "@/lib/password";
 import { server } from "@/mocks/server";
 
 function renderAuthRoute(initialEntry: string) {
@@ -109,6 +110,29 @@ describe("W2-01 Auth flows (register, verify, login)", () => {
   });
 });
 
+describe("Screen-map password length (register + reset)", () => {
+  it(`shows the same minimum of ${MIN_PASSWORD_LENGTH} on register and reset`, async () => {
+    renderAuthRoute("/register");
+    expect(
+      await screen.findByText(new RegExp(`Mínimo ${MIN_PASSWORD_LENGTH} caracteres`)),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Contraseña")).toHaveAttribute(
+      "minLength",
+      String(MIN_PASSWORD_LENGTH),
+    );
+
+    cleanup();
+    renderAuthRoute("/reset?token=reset_token_123");
+    expect(
+      await screen.findByText(new RegExp(`^Mínimo ${MIN_PASSWORD_LENGTH} caracteres\\.?$`)),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Nueva contraseña")).toHaveAttribute(
+      "minLength",
+      String(MIN_PASSWORD_LENGTH),
+    );
+  });
+});
+
 describe("W2-02 Forgot and reset password flows", () => {
   it("shows a neutral confirmation after forgot submit regardless of email existence", async () => {
     const user = userEvent.setup();
@@ -166,8 +190,9 @@ describe("W2-02 Forgot and reset password flows", () => {
     const user = userEvent.setup();
     renderAuthRoute("/reset?token=reset_token_weak");
 
-    await user.type(screen.getByLabelText("Nueva contraseña"), "short");
-    await user.type(screen.getByLabelText("Confirmar contraseña"), "short");
+    const longEnough = "a".repeat(MIN_PASSWORD_LENGTH);
+    await user.type(screen.getByLabelText("Nueva contraseña"), longEnough);
+    await user.type(screen.getByLabelText("Confirmar contraseña"), longEnough);
     await user.click(screen.getByRole("button", { name: "Guardar contraseña" }));
 
     expect(await screen.findByText("La contraseña no cumple los requisitos mínimos.")).toBeInTheDocument();

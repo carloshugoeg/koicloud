@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useResetPasswordMutation } from "@/api/hooks";
 import { AuthErrorBanner, AuthField, AuthLayout } from "@/features/auth/auth-layout";
 import { ApiError } from "@/lib/errors";
+import { isPasswordLongEnough, MIN_PASSWORD_LENGTH, passwordMinHelp } from "@/lib/password";
 
 export function ResetPage() {
   const [searchParams] = useSearchParams();
@@ -32,6 +33,16 @@ export function ResetPage() {
           code: "password_too_weak",
           message: "Las contraseñas no coinciden.",
           request_id: "client_password_mismatch",
+        }),
+      );
+      return;
+    }
+    if (!isPasswordLongEnough(password)) {
+      setLocalError(
+        new ApiError({
+          code: "password_too_weak",
+          message: "La contraseña no cumple los requisitos mínimos.",
+          request_id: "client_password_too_short",
         }),
       );
       return;
@@ -123,11 +134,12 @@ export function ResetPage() {
             name="new_password"
             type={showPassword ? "text" : "password"}
             required
+            minLength={MIN_PASSWORD_LENGTH}
             autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••••"
-            help="Mínimo 8 caracteres."
+            help={passwordMinHelp()}
             suffix={
               <button
                 type="button"
@@ -144,6 +156,7 @@ export function ResetPage() {
             name="confirm_password"
             type={showPassword ? "text" : "password"}
             required
+            minLength={MIN_PASSWORD_LENGTH}
             autoComplete="new-password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}

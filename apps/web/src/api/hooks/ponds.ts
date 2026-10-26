@@ -9,10 +9,13 @@ export type Backup = components["schemas"]["BackupOut"];
 export type Connection = components["schemas"]["ConnectionOut"];
 
 const TRANSIENT_STATES = new Set<PondObservedState>([
+  "pending",
   "provisioning",
   "restoring",
   "deleting",
 ]);
+
+const POLL_MS = 4_000;
 
 async function listPonds(): Promise<Pond[]> {
   const { data, error } = await apiClient.GET("/api/v1/ponds", {});
@@ -22,15 +25,19 @@ async function listPonds(): Promise<Pond[]> {
   return data?.ponds ?? [];
 }
 
+export function pondIsTransient(state: PondObservedState | undefined): boolean {
+  return Boolean(state && TRANSIENT_STATES.has(state));
+}
+
 function pondsNeedPolling(ponds: Pond[] | undefined): boolean {
-  return Boolean(ponds?.some((pond) => TRANSIENT_STATES.has(pond.observed_state)));
+  return Boolean(ponds?.some((pond) => pondIsTransient(pond.observed_state)));
 }
 
 export function usePondsQuery() {
   return useQuery({
     queryKey: ["ponds"],
     queryFn: listPonds,
-    refetchInterval: (query) => (pondsNeedPolling(query.state.data) ? 4_000 : false),
+    refetchInterval: (query) => (pondsNeedPolling(query.state.data) ? POLL_MS : false),
   });
 }
 
@@ -45,6 +52,8 @@ export function useGetPond(pondId: string | undefined) {
       if (error || !data) throw new ApiError(error);
       return data.pond;
     },
+    refetchInterval: (query) =>
+      pondIsTransient(query.state.data?.observed_state) ? POLL_MS : false,
   });
 }
 
