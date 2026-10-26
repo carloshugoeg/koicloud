@@ -171,9 +171,11 @@ select {
   min-height: 100vh;
 }
 
-a {
-  color: var(--turquoise-700);
-  text-decoration-color: var(--turquoise-300);
+@layer base {
+  a {
+    color: var(--turquoise-700);
+    text-decoration-color: var(--turquoise-300);
+  }
 }
 
 button {
