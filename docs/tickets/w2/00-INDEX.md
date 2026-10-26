@@ -22,6 +22,7 @@ el agente lo ignora.
 | W2-14 | Ajustes del screen map: password, plan y detalle | `w2-screen-map-fixes` | hecho ([PR #122](https://github.com/carloshugoeg/koicloud/pull/122)) |
 | W2-16 | Diálogo web propose → confirm (A9 / E9-04) | `w2-confirm-dialog` | en-revision ([PR #138](https://github.com/carloshugoeg/koicloud/pull/138)) |
 
+
 **Dos fuentes por pantalla, y no se confunden:** la arquitectura de información (qué campos,
 qué tablas, qué pasos) sale de los mockups de `docs/entrega-2/mockups/`; la piel (color,
 tipografía, densidad, movimiento) sale de `docs/visual-guidelines.md` y manda siempre.
