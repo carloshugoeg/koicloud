@@ -7,6 +7,7 @@ from app.core.enums import UserStatus
 from app.core.errors import AppError, ErrorCode
 from app.schemas import (
     AdminPondListResponse,
+    AdminTotalsResponse,
     AdminUserListResponse,
     AdminUserResponse,
     AuditEventListResponse,
@@ -43,6 +44,12 @@ async def admin_list_ponds() -> AdminPondListResponse:
     from app.modules.admin.service import AdminService
 
     return await AdminService.list_ponds()
+
+
+async def admin_get_totals() -> AdminTotalsResponse:
+    from app.modules.admin.service import AdminService
+
+    return await AdminService.totals()
 
 
 async def admin_list_audit() -> AuditEventListResponse:
