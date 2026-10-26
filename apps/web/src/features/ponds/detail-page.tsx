@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useGetConnection, useGetPond } from "@/api/hooks/ponds";
-import { ApiError, problemToMessage } from "@/lib/errors";
 import { pondStateMeta } from "@/features/ponds/pond-state";
+import { ApiError, problemToMessage } from "@/lib/errors";
+import { toast } from "@/lib/toast";
 
 const MASK = "••••••••";
 
@@ -68,6 +69,7 @@ export function PondDetailPage() {
     await navigator.clipboard.writeText(connection.uri);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1_200);
+    toast({ tone: "ok", message: "URI copiada" });
   }
 
   return (

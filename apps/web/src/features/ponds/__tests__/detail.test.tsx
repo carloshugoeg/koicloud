@@ -6,6 +6,7 @@ import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { vi } from "vitest";
 import { appRoutes } from "@/app/router";
 import { useAuthStore } from "@/lib/auth-store";
+import { ToastHost } from "@/lib/toast-host";
 import { fixtures } from "@/mocks/fixtures";
 import { server } from "@/mocks/server";
 
@@ -33,6 +34,7 @@ function renderDetail(entry = `/app/ponds/${POND_ID}`) {
   render(
     <QueryClientProvider client={client}>
       <RouterProvider router={router} />
+      <ToastHost />
     </QueryClientProvider>,
   );
 }
@@ -69,6 +71,8 @@ describe("W2-06 Detalle del pond y conexión", () => {
     await waitFor(() => {
       expect(writeText).toHaveBeenCalledWith(fixtures.connection.uri);
     });
+    expect(screen.getByTestId("copy-uri")).toHaveTextContent("URI copiada");
+    expect(screen.getByTestId("toast")).toHaveTextContent("URI copiada");
   });
 
   it("shows catalog message for pond_not_found without a stack", async () => {
