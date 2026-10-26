@@ -35,7 +35,7 @@ no existe todavía. `00-INDEX.md` no es un ticket y el agente lo ignora.
 | W1-24 | Revisión SOLID del control plane (P7 / #96) | `w1-solid-review` | hecho ([PR #101](https://github.com/carloshugoeg/koicloud/pull/101)) |
 | W1-25 | ADRs A-01..A-12 en `docs/adr/` | `w1-architecture-adrs` | hecho ([PR #106](https://github.com/carloshugoeg/koicloud/pull/106)) |
 | W1-26 | `scripts/demo-mcp-replay.py` (antes W4-09) | `w1-demo-replay` | hecho ([PR #110](https://github.com/carloshugoeg/koicloud/pull/110)) |
-| W1-33 | Pond lifecycle statechart (stop/start/delete) | `w1-pond-stop-start` | en-curso · Wave B1 HIGH · CA1 diagrama only · CCR [#131](https://github.com/carloshugoeg/koicloud/issues/131) blocks impl |
+| W1-33 | Pond lifecycle statechart (stop/start/delete) | `w1-pond-stop-start` | en-revision · [#130](https://github.com/carloshugoeg/koicloud/pull/130) · CA1 diagrama only · CCR [#131](https://github.com/carloshugoeg/koicloud/issues/131) blocks impl |
 
 W1 es el único workstream que puede tocar cualquier ruta, y el único que escribe migraciones,
 regenera contratos (`make contracts`) y edita el harness de agentes.

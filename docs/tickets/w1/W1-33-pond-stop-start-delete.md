@@ -2,7 +2,7 @@
 id: W1-33
 workstream: W1
 persona: Carlos
-estado: en-curso
+estado: en-revision
 rama: w1-pond-stop-start
 epica: E4-04
 sprint: S4
