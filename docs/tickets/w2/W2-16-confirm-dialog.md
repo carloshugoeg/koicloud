@@ -6,7 +6,7 @@ estado: en-revision
 rama: w2-confirm-dialog
 epica: E9-04
 sprint: S4
-pr:
+pr: "https://github.com/carloshugoeg/koicloud/pull/138"
 depends_on:
 ---
 
