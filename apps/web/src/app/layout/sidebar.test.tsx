@@ -83,7 +83,7 @@ describe("AppShell sidebar — groups, active, collapse (§5.1)", () => {
 
     const banner = await screen.findByTestId("suspended-banner");
     expect(banner).toHaveTextContent("Tu cuenta está suspendida.");
-    expect(banner.className).toContain("border-danger");
+    expect(banner.className).toContain("border-marigold");
     expect(banner).toHaveTextContent("No puedes crear ponds ni ejecutar SQL.");
   });
 

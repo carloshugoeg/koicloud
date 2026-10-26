@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { HttpResponse, http } from "msw";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { appRoutes } from "@/app/router";
+import { ToastHost } from "@/components/toast-host";
 import { useAuthStore } from "@/lib/auth-store";
 import { fixtures } from "@/mocks/fixtures";
 import { server } from "@/mocks/server";
@@ -31,6 +32,7 @@ function renderBackups(entry = `/app/ponds/${POND_ID}/backups`) {
   const router = createMemoryRouter(appRoutes, { initialEntries: [entry] });
   render(
     <QueryClientProvider client={client}>
+      <ToastHost />
       <RouterProvider router={router} />
     </QueryClientProvider>,
   );
@@ -44,6 +46,37 @@ describe("W2-08 Respaldos y restauración", () => {
     expect(page.querySelector('[data-kind="pre_delete"]')).not.toBeNull();
     expect(page.querySelector('[data-kind="daily"]')).not.toBeNull();
     expect(page.querySelector('[data-kind="on_demand"]')).not.toBeNull();
+    expect(screen.getByRole("columnheader", { name: "Expira" })).toBeInTheDocument();
+    expect(within(page).getAllByRole("cell", { name: "—" }).length).toBeGreaterThan(0);
+  });
+
+  it("queues a backup from Respaldar ahora", async () => {
+    let posts = 0;
+    server.use(
+      http.post(`*/api/v1/ponds/${POND_ID}/backups`, () => {
+        posts += 1;
+        return HttpResponse.json(
+          {
+            backup: { ...fixtures.backups[0], status: "queued" },
+            job: {
+              id: "job_backup_01",
+              type: "backup_pond",
+              status: "queued",
+              attempts: 0,
+              created_at: "2026-09-22T20:00:00Z",
+            },
+          },
+          { status: 202 },
+        );
+      }),
+    );
+    const user = userEvent.setup();
+    renderBackups();
+    await user.click(await screen.findByRole("button", { name: "Respaldar ahora" }));
+    await waitFor(() => {
+      expect(posts).toBe(1);
+    });
+    expect(await screen.findByTestId("toast")).toHaveTextContent("Respaldo encolado");
   });
 
   it("keeps Restaurar disabled until the pond name matches exactly", async () => {

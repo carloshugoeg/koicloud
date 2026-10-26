@@ -45,6 +45,7 @@ describe("W2-06 Detalle del pond y conexión", () => {
 
     expect(await screen.findByTestId("pond-detail")).toBeInTheDocument();
     expect(screen.getByTestId("pond-status-badge")).toHaveTextContent("En línea");
+    expect(screen.queryByTestId("retry-provision")).not.toBeInTheDocument();
     expect(await screen.findByTestId("conn-host")).toHaveTextContent(fixtures.connection.host);
     expect(screen.getByTestId("conn-port")).toHaveTextContent(String(fixtures.connection.port));
     expect(screen.getByTestId("conn-user")).toHaveTextContent(fixtures.connection.username);
@@ -89,5 +90,38 @@ describe("W2-06 Detalle del pond y conexión", () => {
     expect(screen.getByText("No encontramos ese pond.")).toBeInTheDocument();
     expect(screen.getByText("pond_not_found")).toBeInTheDocument();
     expect(screen.queryByText(/at Object|TypeError|stack/i)).not.toBeInTheDocument();
+  });
+
+  it("queues a retry when the pond failed", async () => {
+    let posts = 0;
+    server.use(
+      http.get(`*/api/v1/ponds/${POND_ID}`, () =>
+        HttpResponse.json({ pond: { ...fixtures.pond, observed_state: "failed" } }),
+      ),
+      http.post(`*/api/v1/ponds/${POND_ID}/retry`, () => {
+        posts += 1;
+        return HttpResponse.json(
+          {
+            job: {
+              id: "job_retry_01",
+              type: "create_pond",
+              status: "queued",
+              attempts: 1,
+              created_at: "2026-09-22T20:00:00Z",
+            },
+          },
+          { status: 202 },
+        );
+      }),
+    );
+    const user = userEvent.setup();
+    renderDetail();
+
+    expect(await screen.findByTestId("pond-status-badge")).toHaveTextContent("Con fallas");
+    await user.click(screen.getByRole("button", { name: "Reintentar" }));
+    await waitFor(() => {
+      expect(posts).toBe(1);
+    });
+    expect(await screen.findByTestId("toast")).toHaveTextContent("Reintento encolado");
   });
 });
