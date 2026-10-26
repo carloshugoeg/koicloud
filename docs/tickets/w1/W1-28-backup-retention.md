@@ -1,16 +1,18 @@
 ---
-id: W1-27
+id: W1-28
 workstream: W1
 persona: Carlos
-estado: en-curso
+estado: cerrado
 rama: w1-backup-retention
 epica: "E2-01"
 sprint: S4
-pr:
+pr: "https://github.com/carloshugoeg/koicloud/pull/124"
 depends_on:
 ---
 
-# [W1-27] `PlanOut.backup_retention_days` (constante, A3)
+> **ID note:** briefly mislabeled as W1-27; that ID belongs to [#123](https://github.com/carloshugoeg/koicloud/pull/123) plans pricing. Renumbered to W1-28. PR #124 stays **closed**; Wave A1 owns retention + hourly.
+
+# [W1-28] `PlanOut.backup_retention_days` (constante, A3)
 
 Issue [#96](https://github.com/carloshugoeg/koicloud/issues/96) amendment A3
 ([comment](https://github.com/carloshugoeg/koicloud/issues/96#issuecomment-6428918452)).
