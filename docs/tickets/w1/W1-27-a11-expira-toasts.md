@@ -2,11 +2,11 @@
 id: W1-27
 workstream: W1
 persona: Carlos
-estado: en-curso
+estado: en-revision
 rama: w1-a11-expira-toasts
 epica: "#96 A11"
 sprint:
-pr:
+pr: "https://github.com/carloshugoeg/koicloud/pull/134"
 depends_on:
 ---
 
