@@ -13,6 +13,7 @@ type AgentAccessMock = {
 };
 
 type AdminUser = components["schemas"]["AdminUserOut"];
+type SubscriptionRow = components["schemas"]["SubscriptionOut"];
 
 function freshAgentAccess(): AgentAccessMock {
   return { ...fixtures.agentAccess };
@@ -22,8 +23,13 @@ function freshAdminUsers(): AdminUser[] {
   return fixtures.adminUsers.map((user) => ({ ...user }));
 }
 
+function freshSubscriptions(): SubscriptionRow[] {
+  return fixtures.subscriptionList.map((row) => ({ ...row }));
+}
+
 let agentAccessState = freshAgentAccess();
 let adminUsersState = freshAdminUsers();
+let subscriptionsState = freshSubscriptions();
 
 export const ROTATED_AGENT_PASSWORD = "rotated-once-secret";
 
@@ -33,6 +39,10 @@ export function resetAgentAccessState() {
 
 export function resetAdminUsersState() {
   adminUsersState = freshAdminUsers();
+}
+
+export function resetSubscriptionsState() {
+  subscriptionsState = freshSubscriptions();
 }
 
 export const handlers = [
@@ -95,6 +105,32 @@ export const handlers = [
       },
       { status: 202 },
     );
+  }),
+
+  http.get(`${API_ROOT}/subscriptions`, () => {
+    return HttpResponse.json({ subscriptions: subscriptionsState, next_cursor: null });
+  }),
+
+  http.post(`${API_ROOT}/subscriptions/:subscriptionId/cancel`, ({ params }) => {
+    const subscriptionId = String(params.subscriptionId);
+    const index = subscriptionsState.findIndex((row) => row.id === subscriptionId);
+    if (index < 0) {
+      return HttpResponse.json(
+        {
+          code: "internal_error",
+          message: "subscription_not_found",
+          request_id: "req_subscription_404",
+        },
+        { status: 404 },
+      );
+    }
+    const updated = { ...subscriptionsState[index], cancel_at_period_end: true };
+    subscriptionsState = [
+      ...subscriptionsState.slice(0, index),
+      updated,
+      ...subscriptionsState.slice(index + 1),
+    ];
+    return HttpResponse.json({ subscription: updated }, { status: 202 });
   }),
 
   http.get(`${API_ROOT}/ponds`, () => {

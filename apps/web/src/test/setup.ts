@@ -2,7 +2,11 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, beforeEach } from "vitest";
 import { useAuthStore } from "@/lib/auth-store";
-import { resetAdminUsersState, resetAgentAccessState } from "@/mocks/handlers";
+import {
+  resetAdminUsersState,
+  resetAgentAccessState,
+  resetSubscriptionsState,
+} from "@/mocks/handlers";
 import { server } from "@/mocks/server";
 
 const NativeRequest = globalThis.Request;
@@ -31,6 +35,7 @@ beforeEach(() => {
   useAuthStore.getState().clearSession();
   resetAgentAccessState();
   resetAdminUsersState();
+  resetSubscriptionsState();
 });
 
 afterEach(() => {

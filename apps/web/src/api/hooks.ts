@@ -62,6 +62,12 @@ export {
 } from "@/api/hooks/invoices";
 
 export {
+  useCancelSubscriptionMutation,
+  useSubscriptionsQuery,
+  type SubscriptionOut,
+} from "@/api/hooks/subscriptions";
+
+export {
   useAgentAccessQuery,
   useRotateAgentPasswordMutation,
   useToggleAgentAccessMutation,

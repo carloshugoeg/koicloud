@@ -13,6 +13,7 @@ type InvoiceLine = components["schemas"]["InvoiceLineOut"];
 type AgentAccess = components["schemas"]["AgentAccessOut"];
 type PondConnection = components["schemas"]["ConnectionOut"];
 type SubscribeResponse = components["schemas"]["SubscribeResponse"];
+type Subscription = components["schemas"]["SubscriptionOut"];
 type SQLResultResponse = components["schemas"]["SQLResultResponse"];
 type SQLHistoryItem = components["schemas"]["SQLHistoryItem"];
 
@@ -140,6 +141,26 @@ export const adminAuditEvents: AuditEvent[] = [
     metadata: { source: "web" },
   },
 ];
+
+const activeSubscription = {
+  id: subscriptionId,
+  user_id: demoUser.id,
+  plan_id: "micro",
+  status: "active",
+  current_period_start: "2026-09-22T20:00:00Z",
+  current_period_end: "2026-10-22T20:00:00Z",
+  cancel_at_period_end: false,
+} satisfies Subscription;
+
+const expiredSubscription = {
+  id: "44444444-4444-4444-4444-444444444444",
+  user_id: demoUser.id,
+  plan_id: "sandbox",
+  status: "expired",
+  current_period_start: "2026-09-02T14:00:00Z",
+  current_period_end: "2026-09-02T14:10:00Z",
+  cancel_at_period_end: false,
+} satisfies Subscription;
 
 export const fixtures = {
   session: {
@@ -443,16 +464,9 @@ export const fixtures = {
   adminUsers: [adminClientUser, adminSuspendedUser, adminUser] satisfies AdminUser[],
   adminPonds,
   adminAuditEvents,
+  subscriptionList: [activeSubscription, expiredSubscription] satisfies Subscription[],
   subscriptionResponse: {
-    subscription: {
-      id: "22222222-2222-2222-2222-222222222222",
-      user_id: demoUser.id,
-      plan_id: "micro",
-      status: "active",
-      current_period_start: "2026-09-22T20:00:00Z",
-      current_period_end: "2026-10-22T20:00:00Z",
-      cancel_at_period_end: false,
-    },
+    subscription: activeSubscription,
     invoice: {
       id: "33333333-3333-3333-3333-333333333333",
       user_id: demoUser.id,
