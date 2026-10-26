@@ -6,7 +6,7 @@ estado: bloqueado
 rama: w1-nit-checkout-invoice
 epica: "E2-02, E2-06"
 sprint: S4
-pr:
+pr: https://github.com/carloshugoeg/koicloud/pull/133
 depends_on:
 ---
 
