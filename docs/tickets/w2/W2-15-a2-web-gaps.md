@@ -2,11 +2,11 @@
 id: W2-15
 workstream: W2
 persona: Carlos
-estado: en_curso
+estado: en-revision
 rama: w2-a2-web-gaps
 epica: "E2-02 / E9-04 / E6 / E1"
 sprint: S5
-pr: ""
+pr: "https://github.com/carloshugoeg/koicloud/pull/137"
 depends_on: []
 ---
 
