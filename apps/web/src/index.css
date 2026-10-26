@@ -1,6 +1,5 @@
 @import "tailwindcss";
 @import "./styles/data-states.css";
-@config "../tailwind.config.ts";
 
 :root {
   /* ── Sustrato: papel ───────────────────────────────────────────── */
@@ -142,11 +141,9 @@ select {
   min-height: 100vh;
 }
 
-@layer base {
-  a {
-    color: var(--turquoise-700);
-    text-decoration-color: var(--turquoise-300);
-  }
+a {
+  color: var(--turquoise-700);
+  text-decoration-color: var(--turquoise-300);
 }
 
 button {
