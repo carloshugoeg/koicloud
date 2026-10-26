@@ -2,6 +2,7 @@ import { type FormEvent, useState } from "react";
 import { Link } from "react-router-dom";
 import { useRegisterMutation } from "@/api/hooks";
 import { AuthErrorBanner, AuthField, AuthLayout } from "@/features/auth/auth-layout";
+import { MIN_PASSWORD_LENGTH, passwordMinHelp } from "@/lib/password";
 
 export function RegisterPage() {
   const registerMutation = useRegisterMutation();
@@ -72,11 +73,12 @@ export function RegisterPage() {
           name="password"
           type={showPassword ? "text" : "password"}
           required
+          minLength={MIN_PASSWORD_LENGTH}
           autoComplete="new-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="••••••••••"
-          help="Mínimo 10 caracteres. No uses una contraseña que ya tengas en otro servicio."
+          help={passwordMinHelp("No uses una contraseña que ya tengas en otro servicio.")}
           suffix={
             <button type="button" onClick={() => setShowPassword((prev) => !prev)} className="absolute right-1.5 rounded-sm px-2 py-1 text-xs font-medium text-turquoise-700 hover:bg-bone">
               {showPassword ? "Ocultar" : "Mostrar"}
