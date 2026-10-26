@@ -1,5 +1,6 @@
 import type { Backup } from "@/api/hooks/ponds";
 import { formatBytes, formatWhen, kindChipClass, shortSha } from "@/features/ponds/backup-format";
+import { formatExpires } from "@/features/ponds/format-expires";
 
 export function BackupsTable({
   backups,
@@ -23,38 +24,47 @@ export function BackupsTable({
           </tr>
         </thead>
         <tbody>
-          {backups.map((backup) => (
-            <tr key={backup.id} className="border-b border-line hover:bg-bone-raised">
-              <td className="px-3 py-2 font-mono text-xs">{formatWhen(backup.created_at)}</td>
-              <td className="px-3 py-2">
-                <span
-                  className={`inline-flex rounded-sm px-2 py-0.5 text-xs font-medium ${kindChipClass(backup.kind)}`}
-                  data-kind={backup.kind}
-                >
-                  {backup.kind}
-                </span>
-              </td>
-              <td className="px-3 py-2 font-mono text-xs">{backup.status}</td>
-              <td className="px-3 py-2 text-right tabular-nums">
-                {backup.status === "succeeded" ? formatBytes(backup.size_bytes) : "—"}
-              </td>
-              <td className="px-3 py-2 font-mono text-xs text-ink-muted">
-                {backup.status === "succeeded" ? shortSha(backup.sha256) : "—"}
-              </td>
-              <td className="px-3 py-2 text-ink-muted">—</td>
-              <td className="px-3 py-2 text-right">
-                {backup.status === "succeeded" ? (
-                  <button
-                    type="button"
-                    className="text-sm font-medium text-turquoise-700 hover:text-turquoise-900"
-                    onClick={() => onRestore(backup)}
+          {backups.map((backup) => {
+            const expires = formatExpires(backup.expires_at);
+            return (
+              <tr key={backup.id} className="border-b border-line hover:bg-bone-raised">
+                <td className="px-3 py-2 font-mono text-xs">{formatWhen(backup.created_at)}</td>
+                <td className="px-3 py-2">
+                  <span
+                    className={`inline-flex rounded-sm px-2 py-0.5 text-xs font-medium ${kindChipClass(backup.kind)}`}
+                    data-kind={backup.kind}
                   >
-                    Restaurar…
-                  </button>
-                ) : null}
-              </td>
-            </tr>
-          ))}
+                    {backup.kind}
+                  </span>
+                </td>
+                <td className="px-3 py-2 font-mono text-xs">{backup.status}</td>
+                <td className="px-3 py-2 text-right tabular-nums">
+                  {backup.status === "succeeded" ? formatBytes(backup.size_bytes) : "—"}
+                </td>
+                <td className="px-3 py-2 font-mono text-xs text-ink-muted">
+                  {backup.status === "succeeded" ? shortSha(backup.sha256) : "—"}
+                </td>
+                <td
+                  className="px-3 py-2 tabular-nums text-ink"
+                  data-testid="backup-expires"
+                  title={expires.title}
+                >
+                  {expires.label}
+                </td>
+                <td className="px-3 py-2 text-right">
+                  {backup.status === "succeeded" ? (
+                    <button
+                      type="button"
+                      className="text-sm font-medium text-turquoise-700 hover:text-turquoise-900"
+                      onClick={() => onRestore(backup)}
+                    >
+                      Restaurar…
+                    </button>
+                  ) : null}
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
       <div className="flex justify-between border-t border-line bg-bone px-3 py-2 text-xs text-ink-muted">

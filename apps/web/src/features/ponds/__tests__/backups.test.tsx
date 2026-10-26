@@ -3,6 +3,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { HttpResponse, http } from "msw";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
+import { afterEach, vi } from "vitest";
 import { appRoutes } from "@/app/router";
 import { useAuthStore } from "@/lib/auth-store";
 import { fixtures } from "@/mocks/fixtures";
@@ -37,6 +38,10 @@ function renderBackups(entry = `/app/ponds/${POND_ID}/backups`) {
 }
 
 describe("W2-08 Respaldos y restauración", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("lists backups and shows the pre_delete chip", async () => {
     renderBackups();
 
@@ -44,6 +49,18 @@ describe("W2-08 Respaldos y restauración", () => {
     expect(page.querySelector('[data-kind="pre_delete"]')).not.toBeNull();
     expect(page.querySelector('[data-kind="daily"]')).not.toBeNull();
     expect(page.querySelector('[data-kind="on_demand"]')).not.toBeNull();
+  });
+
+  it("fills Expira from expires_at instead of a blank column", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-26T15:00:00Z"));
+    renderBackups();
+
+    const cells = await screen.findAllByTestId("backup-expires");
+    expect(cells.map((cell) => cell.textContent)).toEqual(["vencido", "vencido", "—"]);
+    expect(cells[0]).toHaveAttribute("title", "2026-09-29 14:00");
+    expect(cells[1]).toHaveAttribute("title", "2026-09-29 05:55");
+    expect(cells[2]).not.toHaveAttribute("title");
   });
 
   it("keeps Restaurar disabled until the pond name matches exactly", async () => {
