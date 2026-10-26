@@ -2,7 +2,7 @@
 id: W2-16
 workstream: W2
 persona: Jason
-estado: en-curso
+estado: en-revision
 rama: w2-confirm-dialog
 epica: E9-04
 sprint: S4
