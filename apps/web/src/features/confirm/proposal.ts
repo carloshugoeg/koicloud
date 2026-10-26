@@ -62,6 +62,7 @@ export const confirmCopy = {
   copyToken: "Copiar token",
   copied: "Copiado",
   countdownLabel: "Expira",
+  locallyExpired: "La propuesta parece vencida.",
   invalidTitle: "Falta una confirmación válida",
   invalidBody: "Abrí el enlace con el token, el resumen y la hora de expiración.",
   disputedBody: "El enlace y la propuesta abierta no coinciden. Pedí una confirmación nueva.",
@@ -197,13 +198,7 @@ function describeFailure(
     return { message: problemToMessage(error), code: null };
   }
   if (expiredLocally) {
-    return {
-      message: problemToMessage({
-        code: "confirmation_expired",
-        message: "confirmation_expired",
-      }),
-      code: null,
-    };
+    return { message: confirmCopy.locallyExpired, code: null };
   }
   return null;
 }

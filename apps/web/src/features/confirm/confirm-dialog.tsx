@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { confirmCopy, type ConfirmView } from "@/features/confirm/proposal";
 
 type ConfirmDialogProps = {
@@ -10,16 +10,43 @@ type ConfirmDialogProps = {
 
 export function ConfirmDialog({ view, onConfirm, onDiscard, onDismiss }: ConfirmDialogProps) {
   const [copied, setCopied] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const confirmRef = useRef<HTMLButtonElement>(null);
+  const titleId = useId();
 
   useEffect(() => {
+    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    confirmRef.current?.focus();
+
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         onDismiss();
+        return;
+      }
+      if (event.key !== "Tab" || !panelRef.current) {
+        return;
+      }
+      const focusable = panelRef.current.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusable.length === 0) {
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
       }
     }
+
     window.addEventListener("keydown", onKeyDown);
     return () => {
       window.removeEventListener("keydown", onKeyDown);
+      previous?.focus();
     };
   }, [onDismiss]);
 
@@ -42,9 +69,10 @@ export function ConfirmDialog({ view, onConfirm, onDiscard, onDismiss }: Confirm
         onClick={onDismiss}
       />
       <div
+        ref={panelRef}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="confirm-dialog-title"
+        aria-labelledby={titleId}
         aria-busy={view.pending !== null}
         data-testid="confirm-dialog"
         className="relative z-10 w-full min-w-0 max-w-lg overflow-hidden rounded-md border border-line-control bg-bone-raised shadow-dialog"
@@ -56,7 +84,7 @@ export function ConfirmDialog({ view, onConfirm, onDiscard, onDismiss }: Confirm
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-muted">
                 {confirmCopy.overline}
               </p>
-              <h2 id="confirm-dialog-title" className="mt-1 font-display text-2xl text-ink">
+              <h2 id={titleId} className="mt-1 font-display text-2xl text-ink">
                 {confirmCopy.title}
               </h2>
             </div>
@@ -111,6 +139,7 @@ export function ConfirmDialog({ view, onConfirm, onDiscard, onDismiss }: Confirm
             {view.pending === "discard" ? confirmCopy.discarding : confirmCopy.discard}
           </button>
           <button
+            ref={confirmRef}
             type="button"
             className="h-9 rounded-sm bg-turquoise-700 px-4 text-sm font-medium text-bone-raised focus-visible:outline-none focus-visible:shadow-focus disabled:bg-bone-sunk disabled:text-ink-faint"
             disabled={!view.confirmEnabled}

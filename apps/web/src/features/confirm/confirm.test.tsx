@@ -233,8 +233,9 @@ describe("W2-16 confirm dialog", () => {
     renderAt(`/app/confirm${search}`);
 
     expect(await screen.findByTestId("confirm-countdown")).toHaveTextContent("00:00");
-    expect(screen.getByText("La confirmación ya expiró.")).toBeInTheDocument();
+    expect(screen.getByText("La propuesta parece vencida.")).toBeInTheDocument();
     expect(screen.queryByText("confirmation_expired")).not.toBeInTheDocument();
+    expect(screen.queryByText("La confirmación ya expiró.")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Confirmar" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Descartar" })).toBeEnabled();
 
