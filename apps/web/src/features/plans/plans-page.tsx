@@ -120,9 +120,9 @@ export function PlansPage() {
                         <span>
                           {plan.id === "sandbox"
                             ? "Validez 10 minutos"
-                            : plan.backup_retention_days > 0
-                              ? `Respaldos diarios (${plan.backup_retention_days} d)`
-                              : `Hasta ${plan.max_ponds} ponds y ${plan.max_storage_gb} GB`}
+                            : plan.id === "micro"
+                              ? "Respaldos diarios (7 d)"
+                              : "Hasta 10 ponds y 20 GB"}
                         </span>
                       </li>
                     </ul>
