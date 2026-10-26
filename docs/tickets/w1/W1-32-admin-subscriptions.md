@@ -6,7 +6,7 @@ estado: bloqueado
 rama: w1-admin-subscriptions
 epica: "E8-02"
 sprint: S4
-pr:
+pr: https://github.com/carloshugoeg/koicloud/pull/132
 depends_on:
 ---
 
