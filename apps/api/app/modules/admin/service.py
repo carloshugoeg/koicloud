@@ -92,7 +92,11 @@ class AdminService:
                     await session.execute(
                         select(func.count())
                         .select_from(PondStatus)
-                        .where(PondStatus.observed_state == PondObservedState.RUNNING)
+                        .join(Pond, Pond.id == PondStatus.pond_id)
+                        .where(
+                            PondStatus.observed_state == PondObservedState.RUNNING,
+                            Pond.desired_state != PondDesiredState.DELETED,
+                        )
                     )
                 ).scalar_one()
             )

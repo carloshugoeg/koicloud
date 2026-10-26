@@ -132,7 +132,7 @@ def test_admin_fields_totals_and_non_admin_forbidden() -> None:
     )
     after = client.get("/api/v1/admin/totals", headers=admin).json()["totals"]
     assert after["ponds"] == ponds_before_delete - 1
-    assert after["ponds_running"] == running_before_delete
+    assert after["ponds_running"] == running_before_delete - 1
     assert after["users"] == body["users"]
 
 
