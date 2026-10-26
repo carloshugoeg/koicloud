@@ -39,11 +39,12 @@ describe("W2-03 Planes y Checkout flow", () => {
     expect(screen.getByRole("heading", { name: "Micro" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Pro" })).toBeInTheDocument();
 
-    // Valores dinámicos en tarjetas
-    expect(screen.getByText("$0")).toBeInTheDocument();
-    expect(screen.getByText("$5")).toBeInTheDocument();
-    expect(screen.getAllByText("$0.02·h")).toHaveLength(2);
+    // Valores dinámicos en tarjetas (desde GET /plans via formatPrice)
+    expect(screen.getAllByText("USD 0").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("USD 5").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("USD 0.02").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Recomendado")).toBeInTheDocument();
+    expect(screen.getByText("USD 0.02 / hora")).toBeInTheDocument();
 
     // Tabla comparativa densa
     expect(screen.getByRole("heading", { name: "Comparativa de características" })).toBeInTheDocument();
@@ -64,11 +65,25 @@ describe("W2-03 Planes y Checkout flow", () => {
     expect(screen.getByText("Pago simulado: no se realiza ningún cobro real.")).toBeInTheDocument();
     expect(screen.getByText("CF si no tienes NIT")).toBeInTheDocument();
 
-    // Desglose de factura previa Micro según fixture sellado
+    // Desglose de factura previa Micro desde unit_price del plan (API)
     expect(screen.getByText("Vista previa de factura")).toBeInTheDocument();
-    expect(screen.getByText("$4.4643")).toBeInTheDocument();
-    expect(screen.getByText("$0.5357")).toBeInTheDocument();
-    expect(screen.getByText("$5.0000")).toBeInTheDocument();
+    expect(screen.getByText("USD 4.4643")).toBeInTheDocument();
+    expect(screen.getByText("USD 0.5357")).toBeInTheDocument();
+    expect(screen.getAllByText("USD 5").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("shows the same Pro unit_price from GET /plans on cards and checkout", async () => {
+    const user = userEvent.setup();
+    renderPlansRoute("/app/planes");
+
+    const pro = fixtures.plans.find((p) => p.id === "pro")!;
+    const expected = `USD ${pro.unit_price}`;
+    expect(await screen.findByTestId("plan-card-pro")).toHaveTextContent(expected);
+    expect(screen.getByText(`${expected} / hora`)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Elegir plan Pro" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog).toHaveTextContent(`Precio de catálogo: ${expected}`);
   });
 
   it("submits checkout successfully, displays success feedback, and navigates toward pond creation", async () => {
