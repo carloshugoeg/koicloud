@@ -66,6 +66,24 @@ async def mcp_jsonrpc(
 
 
 async def _dispatch_jsonrpc(method: str, params: dict[str, Any]) -> dict[str, Any]:
+    # MCP session handshake over the OpenAPI JSON-RPC surface (Accept: application/json).
+    # Streamable HTTP clients use FastMCP via McpHybridASGI instead.
+    if method.startswith("notifications/"):
+        return {}
+    if method == "ping":
+        return {}
+    if method == "initialize":
+        from app.core.config import get_settings
+
+        version = params.get("protocolVersion")
+        protocol = version if isinstance(version, str) and version else "2024-11-05"
+        settings = get_settings()
+        return {
+            "protocolVersion": protocol,
+            "capabilities": {"tools": {"listChanged": False}},
+            "serverInfo": {"name": "KoiCloud", "version": settings.app_version},
+        }
+
     if method in {"tools/list", "list_tools"}:
         tools = await mcp.list_tools()
         return {"tools": [{"name": tool.name, "description": tool.description} for tool in tools]}

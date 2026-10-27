@@ -81,6 +81,29 @@ def test_mcp_whoami_via_jsonrpc() -> None:
     assert result.json()["result"]["email"] == DEMO_EMAIL
 
 
+def test_mcp_initialize_via_jsonrpc() -> None:
+    ensure_demo_user()
+    result = client.post(
+        "/mcp",
+        headers={**mcp_headers(), "Accept": "application/json"},
+        json={
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "initialize",
+            "params": {
+                "protocolVersion": "2024-11-05",
+                "capabilities": {},
+                "clientInfo": {"name": "gate", "version": "0"},
+            },
+        },
+    )
+    assert result.status_code == 200
+    body = result.json()["result"]
+    assert body["protocolVersion"] == "2024-11-05"
+    assert body["serverInfo"]["name"] == "KoiCloud"
+    assert "version" in body["serverInfo"]
+
+
 def test_mcp_gate_rejects_bad_password() -> None:
     ensure_demo_user()
     token = base64.b64encode(b"demo-agent:wrong-password").decode("ascii")

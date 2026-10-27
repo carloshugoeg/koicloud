@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import os
 import sys
+import traceback
 from http.server import BaseHTTPRequestHandler
 from pathlib import Path
 from typing import Any
@@ -20,6 +21,10 @@ if str(_LIB) not in sys.path:
     sys.path.insert(0, str(_LIB))
 
 MAX_BODY = 1_000_000
+
+_fastapi_app: Any | None = None
+_loop: asyncio.AbstractEventLoop | None = None
+_lifespan_started = False
 
 
 def _production() -> bool:
@@ -37,9 +42,6 @@ def _configure_preview_env() -> None:
     unpooled = (os.environ.get("DATABASE_URL_UNPOOLED") or "").strip()
     if unpooled and not (os.environ.get("DATABASE_URL") or "").strip():
         os.environ["DATABASE_URL"] = unpooled
-
-
-_fastapi_app: Any | None = None
 
 
 def _get_app() -> Any:
@@ -74,6 +76,51 @@ def _get_app() -> Any:
 
     _fastapi_app = fastapi_app
     return _fastapi_app
+
+
+def _get_loop() -> asyncio.AbstractEventLoop:
+    global _loop
+    if _loop is None or _loop.is_closed():
+        _loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(_loop)
+    return _loop
+
+
+async def _lifespan_startup(app: Any) -> None:
+    """Run ASGI lifespan startup once so FastMCP streamable HTTP works."""
+    queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
+    done = asyncio.Event()
+    failed: list[str] = []
+
+    async def receive() -> dict[str, Any]:
+        return await queue.get()
+
+    async def send(message: dict[str, Any]) -> None:
+        msg_type = message.get("type")
+        if msg_type == "lifespan.startup.complete":
+            done.set()
+        elif msg_type == "lifespan.startup.failed":
+            failed.append(str(message.get("message") or "lifespan startup failed"))
+            done.set()
+
+    task = asyncio.create_task(
+        app({"type": "lifespan", "asgi": {"version": "3.0"}}, receive, send)
+    )
+    await queue.put({"type": "lifespan.startup"})
+    await done.wait()
+    if failed:
+        task.cancel()
+        raise RuntimeError(failed[0])
+    # Keep the lifespan task running for the warm instance; do not cancel.
+
+
+def _ensure_lifespan(app: Any) -> None:
+    global _lifespan_started
+    if _lifespan_started or _production():
+        return
+    loop = _get_loop()
+    loop.run_until_complete(_lifespan_startup(app))
+    _lifespan_started = True
 
 
 def _original_path(handler: BaseHTTPRequestHandler) -> str:
@@ -176,18 +223,33 @@ async def _run_asgi(
 
 def _serve(handler: BaseHTTPRequestHandler) -> None:
     app = _get_app()
+    try:
+        _ensure_lifespan(app)
+    except Exception:
+        traceback.print_exc()
+        status = 500
+        raw = (
+            b'{"code":"internal_error","message":"Algo sali\\u00f3 mal, revis\\u00e1 los logs",'
+            b'"request_id":null}'
+        )
+        handler.send_response(status)
+        handler.send_header("Content-Type", "application/json")
+        handler.send_header("Content-Length", str(len(raw)))
+        handler.end_headers()
+        handler.wfile.write(raw)
+        return
+
     path = _original_path(handler)
     query = _forward_query(handler)
     body = _read_body(handler)
     headers: list[tuple[bytes, bytes]] = []
     for key, value in handler.headers.items():
         headers.append((key.lower().encode("latin-1"), value.encode("latin-1")))
-    # Ensure host present for URL builders.
     if not any(k == b"host" for k, _ in headers):
         headers.append((b"host", b"vercel.app"))
 
     try:
-        status, resp_headers, raw = asyncio.run(
+        status, resp_headers, raw = _get_loop().run_until_complete(
             _run_asgi(
                 app,
                 method=handler.command,
@@ -198,6 +260,7 @@ def _serve(handler: BaseHTTPRequestHandler) -> None:
             )
         )
     except Exception:
+        traceback.print_exc()
         status = 500
         raw = (
             b'{"code":"internal_error","message":"Algo sali\\u00f3 mal, revis\\u00e1 los logs",'
