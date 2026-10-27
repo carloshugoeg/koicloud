@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   useAdminPondsQuery,
   useAdminUsersQuery,
@@ -29,6 +29,7 @@ export function AdminUsersPage() {
   const [dialog, setDialog] = useState<DialogState>({ kind: "closed" });
   const [confirmEmail, setConfirmEmail] = useState("");
   const [motivo, setMotivo] = useState("");
+  const suspendTriggerRef = useRef<HTMLElement | null>(null);
 
   const pondsComplete =
     pondsQuery.isSuccess && isCompleteCursorPage(pondsQuery.data.next_cursor);
@@ -70,7 +71,8 @@ export function AdminUsersPage() {
     reactivate.reset();
   }
 
-  function openSuspend(user: AdminUser) {
+  function openSuspend(user: AdminUser, trigger: HTMLButtonElement) {
+    suspendTriggerRef.current = trigger;
     setDialog({ kind: "suspend", user });
     setConfirmEmail("");
     setMotivo("");
@@ -171,6 +173,7 @@ export function AdminUsersPage() {
           motivo={motivo}
           pending={suspend.isPending}
           error={suspend.error}
+          returnFocusRef={suspendTriggerRef}
           onConfirmEmailChange={setConfirmEmail}
           onMotivoChange={setMotivo}
           onCancel={closeDialog}

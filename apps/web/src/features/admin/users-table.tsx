@@ -4,7 +4,7 @@ type UsersTableProps = {
   users: AdminUser[];
   pondsComplete: boolean;
   pondCountByEmail: Map<string, number>;
-  onSuspend: (user: AdminUser) => void;
+  onSuspend: (user: AdminUser, trigger: HTMLButtonElement) => void;
   onReactivate: (user: AdminUser) => void;
 };
 
@@ -61,9 +61,9 @@ export function UsersTable({
                 {user.status === "active" ? (
                   <button
                     type="button"
-                    className="h-8 rounded-sm border border-danger px-3 text-xs font-medium text-danger"
+                    className="h-8 rounded-sm border border-danger px-3 text-xs font-medium text-danger focus:shadow-focus"
                     data-testid={`suspend-${user.id}`}
-                    onClick={() => onSuspend(user)}
+                    onClick={(event) => onSuspend(user, event.currentTarget)}
                   >
                     Suspender
                   </button>
