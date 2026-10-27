@@ -222,6 +222,53 @@ describe("W2-02 Forgot and reset password flows", () => {
     expect(screen.queryByText("token_invalid")).not.toBeInTheDocument();
   });
 
+  it("shows short-password banner without calling the API", async () => {
+    let resetCalls = 0;
+    server.use(
+      http.post("*/api/v1/auth/reset", () => {
+        resetCalls += 1;
+        return HttpResponse.json({ password_reset: true }, { status: 200 });
+      }),
+    );
+    const user = userEvent.setup();
+    renderAuthRoute("/reset?token=reset_token_short");
+
+    await user.type(screen.getByLabelText("Nueva contraseña"), "short");
+    await user.type(screen.getByLabelText("Confirmar contraseña"), "short");
+    await user.click(screen.getByRole("button", { name: "Guardar contraseña" }));
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("La contraseña no cumple los requisitos mínimos.");
+    expect(screen.queryByText("password_too_weak")).not.toBeInTheDocument();
+    expect(resetCalls).toBe(0);
+  });
+
+  it("clears a stale server error before showing mismatch", async () => {
+    server.use(
+      http.post("*/api/v1/auth/reset", () =>
+        HttpResponse.json(
+          { code: "password_too_weak", message: "Weak", request_id: "req_stale" },
+          { status: 422 },
+        ),
+      ),
+    );
+    const user = userEvent.setup();
+    renderAuthRoute("/reset?token=reset_token_stale");
+
+    const longEnough = "a".repeat(MIN_PASSWORD_LENGTH);
+    await user.type(screen.getByLabelText("Nueva contraseña"), longEnough);
+    await user.type(screen.getByLabelText("Confirmar contraseña"), longEnough);
+    await user.click(screen.getByRole("button", { name: "Guardar contraseña" }));
+    expect(await screen.findByText("password_too_weak")).toBeInTheDocument();
+
+    await user.clear(screen.getByLabelText("Confirmar contraseña"));
+    await user.type(screen.getByLabelText("Confirmar contraseña"), `${longEnough}x`);
+    await user.click(screen.getByRole("button", { name: "Guardar contraseña" }));
+
+    expect(await screen.findByText("Las contraseñas no coinciden.")).toBeInTheDocument();
+    expect(screen.queryByText("password_too_weak")).not.toBeInTheDocument();
+  });
+
   it("shows token_invalid when verify opens without a token", async () => {
     renderAuthRoute("/verify");
 

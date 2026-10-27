@@ -55,3 +55,13 @@ No inventes endpoints, campos, tablas, códigos de error ni pantallas.
 ## Referencia
 
 Imitá el PR #57 (`[W2-06] Detalle del pond`) y el #24 (`[W2-02] Recuperar password`): misma estructura de archivos, mismo estilo de pruebas MSW + Testing Library.
+
+## Follow-up
+
+Gate FAIL post-merge de `/reset` (short password nativo EN + stale mutation error): [PR #141](https://github.com/carloshugoeg/koicloud/pull/141) en rama `w2-14-post-merge` (abierto; no mergear fuera de ship review + ventana Carlos).
+
+Prueba visual in-repo:
+
+- `docs/tickets/w2/assets/w2-14-reset-short-375.png`
+- `docs/tickets/w2/assets/w2-14-reset-short-1440.png`
+
