@@ -3,16 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { useSubscribeMutation, type PlanOut, type SubscribeResponse } from "@/api/hooks";
 import { ApiError, problemToMessage } from "@/lib/errors";
 
-const INVOICE_BREAKDOWN: Record<string, { subtotal: string; iva: string; total: string }> = {
-  micro: { subtotal: "4.4643", iva: "0.5357", total: "5.0000" },
-  sandbox: { subtotal: "0.0000", iva: "0.0000", total: "0.0000" },
-  pro: { subtotal: "0.0000", iva: "0.0000", total: "0.0000" },
-};
-
 export interface CheckoutModalProps {
   plan: PlanOut;
   onClose: () => void;
   onSuccess: (res: SubscribeResponse) => void;
+}
+
+function formatUsd(value: number): string {
+  return `$${value.toFixed(4)}`;
 }
 
 export function CheckoutModal({ plan, onClose, onSuccess }: CheckoutModalProps) {
@@ -23,16 +21,14 @@ export function CheckoutModal({ plan, onClose, onSuccess }: CheckoutModalProps) 
   const [cardExpiry, setCardExpiry] = useState("");
   const [cardCvc, setCardCvc] = useState("");
 
-  const breakdown = INVOICE_BREAKDOWN[plan.id] ?? {
-    subtotal: (plan.price_monthly_usd * 0.8929).toFixed(4),
-    iva: (plan.price_monthly_usd * 0.1071).toFixed(4),
-    total: plan.price_monthly_usd.toFixed(4),
-  };
-
   async function handleCheckout(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const trimmedNit = nit.trim();
     try {
-      const res = await subscribeMutation.mutateAsync({ plan_id: plan.id });
+      const res = await subscribeMutation.mutateAsync({
+        plan_id: plan.id,
+        nit: trimmedNit ? trimmedNit : null,
+      });
       onSuccess(res);
       navigate("/app/ponds/new");
     } catch {
@@ -63,17 +59,16 @@ export function CheckoutModal({ plan, onClose, onSuccess }: CheckoutModalProps) 
           <p className="text-xs font-medium uppercase tracking-[0.16em] text-ink-muted">Vista previa de factura</p>
           <div className="mt-2 space-y-1 text-sm">
             <div className="flex justify-between">
-              <span className="text-ink-muted">Subtotal:</span>
-              <span className="font-mono tabular-nums text-ink">${breakdown.subtotal}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-ink-muted">IVA (12%):</span>
-              <span className="font-mono tabular-nums text-ink">${breakdown.iva}</span>
+              <span className="text-ink-muted">Plan:</span>
+              <span className="text-ink">{plan.name}</span>
             </div>
             <div className="flex justify-between border-t border-line pt-1 font-medium">
               <span className="text-ink">Total a pagar:</span>
-              <span className="font-mono tabular-nums text-ink">${breakdown.total}</span>
+              <span className="font-mono tabular-nums text-ink">{formatUsd(plan.price_monthly_usd)}</span>
             </div>
+            <p className="pt-1 text-xs text-ink-muted">
+              Subtotal, IVA y líneas salen de la factura del API al confirmar.
+            </p>
           </div>
         </div>
 
@@ -98,7 +93,8 @@ export function CheckoutModal({ plan, onClose, onSuccess }: CheckoutModalProps) 
               value={nit}
               onChange={(e) => setNit(e.target.value)}
               placeholder="0614-220999-101-3"
-              className="mt-1 h-9 w-full rounded-sm border border-line-control bg-paper px-3 text-sm text-ink outline-none focus:border-turquoise-700"
+              maxLength={32}
+              className="mt-1 h-9 w-full rounded-sm border border-line-control bg-paper px-3 text-sm text-ink outline-none focus:border-turquoise-700 focus:shadow-focus"
             />
             <p className="mt-1 text-xs text-ink-muted">CF si no tienes NIT</p>
           </div>
@@ -115,7 +111,7 @@ export function CheckoutModal({ plan, onClose, onSuccess }: CheckoutModalProps) 
               value={cardNumber}
               onChange={(e) => setCardNumber(e.target.value)}
               placeholder="4242 •••• •••• 4242"
-              className="mt-1 h-9 w-full rounded-sm border border-line-control bg-paper px-3 font-mono text-sm text-ink outline-none focus:border-turquoise-700"
+              className="mt-1 h-9 w-full rounded-sm border border-line-control bg-paper px-3 font-mono text-sm text-ink outline-none focus:border-turquoise-700 focus:shadow-focus"
             />
           </div>
 
@@ -132,7 +128,7 @@ export function CheckoutModal({ plan, onClose, onSuccess }: CheckoutModalProps) 
                 value={cardExpiry}
                 onChange={(e) => setCardExpiry(e.target.value)}
                 placeholder="MM/AA"
-                className="mt-1 h-9 w-full rounded-sm border border-line-control bg-paper px-3 font-mono text-sm text-ink outline-none focus:border-turquoise-700"
+                className="mt-1 h-9 w-full rounded-sm border border-line-control bg-paper px-3 font-mono text-sm text-ink outline-none focus:border-turquoise-700 focus:shadow-focus"
               />
             </div>
             <div>
@@ -147,7 +143,7 @@ export function CheckoutModal({ plan, onClose, onSuccess }: CheckoutModalProps) 
                 value={cardCvc}
                 onChange={(e) => setCardCvc(e.target.value)}
                 placeholder="123"
-                className="mt-1 h-9 w-full rounded-sm border border-line-control bg-paper px-3 font-mono text-sm text-ink outline-none focus:border-turquoise-700"
+                className="mt-1 h-9 w-full rounded-sm border border-line-control bg-paper px-3 font-mono text-sm text-ink outline-none focus:border-turquoise-700 focus:shadow-focus"
               />
             </div>
           </div>

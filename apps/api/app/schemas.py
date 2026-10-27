@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict, Field, field_validator
 
 from app.core.base import SchemaModel
 from app.core.enums import (
@@ -301,8 +301,19 @@ class UserResponse(SchemaModel):
 
 class SubscribeRequest(SchemaModel):
     plan_id: str
+    nit: str | None = Field(default=None, max_length=32)
 
-    model_config = config_with_example({"plan_id": "micro"})
+    @field_validator("nit", mode="before")
+    @classmethod
+    def normalize_subscribe_nit(cls, value: object) -> object:
+        if value is None:
+            return None
+        if isinstance(value, str):
+            trimmed = value.strip()
+            return trimmed or None
+        return value
+
+    model_config = config_with_example({"plan_id": "micro", "nit": "0614-220999-101-3"})
 
 
 class SubscriptionListResponse(SchemaModel):
@@ -325,6 +336,7 @@ class InvoiceOut(SchemaModel):
     status: InvoiceStatus
     issued_at: datetime
     pdf_path: str | None = None
+    nit: str | None = None
 
     model_config = config_with_example(
         {
@@ -338,6 +350,7 @@ class InvoiceOut(SchemaModel):
             "status": "paid",
             "issued_at": EXAMPLE_NOW,
             "pdf_path": "/var/lib/koicloud/invoices/KOI-202609-0001.pdf",
+            "nit": "0614-220999-101-3",
         }
     )
 

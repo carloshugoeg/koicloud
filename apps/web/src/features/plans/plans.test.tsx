@@ -64,21 +64,46 @@ describe("W2-03 Planes y Checkout flow", () => {
     expect(screen.getByText("Pago simulado: no se realiza ningún cobro real.")).toBeInTheDocument();
     expect(screen.getByText("CF si no tienes NIT")).toBeInTheDocument();
 
-    // Desglose de factura previa Micro según fixture sellado
+    // Total del plan viene del API (PlanOut); sin INVOICE_BREAKDOWN local
     expect(screen.getByText("Vista previa de factura")).toBeInTheDocument();
-    expect(screen.getByText("$4.4643")).toBeInTheDocument();
-    expect(screen.getByText("$0.5357")).toBeInTheDocument();
     expect(screen.getByText("$5.0000")).toBeInTheDocument();
+    expect(
+      screen.getByText("Subtotal, IVA y líneas salen de la factura del API al confirmar."),
+    ).toBeInTheDocument();
   });
 
-  it("submits checkout successfully, displays success feedback, and navigates toward pond creation", async () => {
+  it("submits checkout with NIT and navigates toward pond creation", async () => {
     const user = userEvent.setup();
+    let postedBody: { plan_id?: string; nit?: string | null } | null = null;
+
+    server.use(
+      http.post("*/api/v1/subscriptions", async ({ request }) => {
+        postedBody = (await request.json()) as { plan_id?: string; nit?: string | null };
+        return HttpResponse.json(
+          {
+            ...fixtures.subscriptionResponse,
+            subscription: {
+              ...fixtures.subscriptionResponse.subscription,
+              plan_id: "micro",
+            },
+            invoice: {
+              ...fixtures.subscriptionResponse.invoice,
+              nit: postedBody.nit ?? null,
+              total_usd: 5,
+            },
+          },
+          { status: 202 },
+        );
+      }),
+    );
+
     const router = renderPlansRoute("/app/planes");
 
     const chooseMicroBtn = await screen.findByRole("button", { name: "Elegir plan Micro" });
     await user.click(chooseMicroBtn);
 
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByText("$5.0000")).toBeInTheDocument();
 
     await user.type(screen.getByLabelText("NIT (opcional)"), "0614-220999-101-3");
     await user.type(screen.getByLabelText("Número de tarjeta simulada"), "4242 4242 4242 4242");
@@ -87,8 +112,37 @@ describe("W2-03 Planes y Checkout flow", () => {
 
     await user.click(screen.getByRole("button", { name: "Confirmar contratación" }));
 
-    // Redirección hacia /app/ponds/new
     await waitFor(() => {
+      expect(postedBody).toEqual({ plan_id: "micro", nit: "0614-220999-101-3" });
+      expect(router.state.location.pathname).toBe("/app/ponds/new");
+    });
+    // e2e: checkout total (PlanOut) equals InvoiceOut total from subscribe response
+    expect(postedBody).not.toBeNull();
+    expect(fixtures.subscriptionResponse.invoice.total_usd).toBe(5);
+  });
+
+  it("submits checkout without NIT as null", async () => {
+    const user = userEvent.setup();
+    let postedBody: { plan_id?: string; nit?: string | null } | null = null;
+
+    server.use(
+      http.post("*/api/v1/subscriptions", async ({ request }) => {
+        postedBody = (await request.json()) as { plan_id?: string; nit?: string | null };
+        return HttpResponse.json(fixtures.subscriptionResponse, { status: 202 });
+      }),
+    );
+
+    const router = renderPlansRoute("/app/planes");
+    await user.click(await screen.findByRole("button", { name: "Elegir plan Micro" }));
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText("Número de tarjeta simulada"), "4242 4242 4242 4242");
+    await user.type(screen.getByLabelText("Expiración"), "12/28");
+    await user.type(screen.getByLabelText("CVC"), "123");
+    await user.click(screen.getByRole("button", { name: "Confirmar contratación" }));
+
+    await waitFor(() => {
+      expect(postedBody).toEqual({ plan_id: "micro", nit: null });
       expect(router.state.location.pathname).toBe("/app/ponds/new");
     });
   });

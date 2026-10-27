@@ -2,7 +2,7 @@
 id: W1-31
 workstream: W1
 persona: Carlos
-estado: bloqueado
+estado: en-revision
 rama: w1-nit-checkout-invoice
 epica: "E2-02, E2-06"
 sprint: S4
@@ -21,17 +21,13 @@ NIT del receptor, las líneas de pago y el total del backend. Desaparece
 
 ## Entradas ya decididas (no se cambian)
 
-- **CCR obligatorio:** [#127](https://github.com/carloshugoeg/koicloud/issues/127). No
-  implementar hasta que W1 lo apruebe en el issue. Ticket permanece `bloqueado`.
-- Amendment: issue [#96](https://github.com/carloshugoeg/koicloud/issues/96) A2 (risk high / money).
+- **CCR aprobado:** [#127](https://github.com/carloshugoeg/koicloud/issues/127) (amendment r3,
+  issue [#96](https://github.com/carloshugoeg/koicloud/issues/96) comment).
 - `users.nit` ya existe; sin migración.
-- Tras CCR: `SubscribeRequest.nit` opcional; `InvoiceOut.nit`; PDF con NIT; web envía y
-  muestra montos del API.
-- **ID uniqueness:** W1-28 es [#124](https://github.com/carloshugoeg/koicloud/pull/124)
-  retention; W1-30 es [#121](https://github.com/carloshugoeg/koicloud/pull/121) suspend.
-  Este ticket es **W1-31** (ex borrador W1-28 en #129).
+- `SubscribeRequest.nit` opcional; `InvoiceOut.nit`; PDF con NIT; web envía y muestra montos
+  del API.
 - **No tocar** PR [#123](https://github.com/carloshugoeg/koicloud/pull/123) (`PlanOut` /
-  `formatPrice`). Rebasear después si hace falta sobre el checkout.
+  `formatPrice`).
 - **No tocar** PR [#121](https://github.com/carloshugoeg/koicloud/pull/121) (suspend reason).
 - Autor de commits: Carlos Hugo Escobar. Sin merge / LGTM hasta «Carlos yes».
 
@@ -50,14 +46,13 @@ NIT del receptor, las líneas de pago y el total del backend. Desaparece
 - PR #121 / CCR #125 (motivo de suspensión).
 - Migraciones Alembic (no hacen falta).
 - Firmas de comandos ajenos a `subscribe` / mappers de invoice.
+- `PlanOut` pricing fields (#123).
 
 ## Si algo falta
 
-`BLOQUEADO: requiere CCR porque SubscribeRequest e InvoiceOut no exponen nit` — ver #127.
-No inventes campos en `schema.d.ts` a mano.
+Nada: CCR #127 aprobado. Implementación en este PR.
 
 ## Referencia
 
-Imitá el PR [#123](https://github.com/carloshugoeg/koicloud/pull/123) (money, proof en body,
-sin auto-merge) y el patrón de contrato de [#121](https://github.com/carloshugoeg/koicloud/pull/121)
-tras CCR aprobado.
+CCR [#127](https://github.com/carloshugoeg/koicloud/issues/127); amendment r3;
+issue [#96](https://github.com/carloshugoeg/koicloud/issues/96)#issuecomment-6445716121.

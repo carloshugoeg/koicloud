@@ -81,7 +81,9 @@ async def subscribe(
         )
 
     async with SessionLocal() as session:
-        result = await _billing_service(session).subscribe(actor, payload.plan_id)
+        result = await _billing_service(session).subscribe(
+            actor, payload.plan_id, nit=payload.nit
+        )
         await session.commit()
         return result
 

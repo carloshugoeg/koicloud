@@ -163,6 +163,9 @@ function InvoicePaper({
         <div className="ml-auto text-right font-mono text-xs leading-5 text-ink-muted">
           <span className="block font-display text-xl text-ink">{invoice.number}</span>
           <span>{new Date(invoice.issued_at).toLocaleString("es-GT")}</span>
+          <span className="mt-1 block">
+            NIT: <span className="text-ink">{invoice.nit ?? "—"}</span>
+          </span>
           <span className="mt-1 block uppercase tracking-[0.14em]">{invoice.status}</span>
         </div>
       </header>

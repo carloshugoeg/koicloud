@@ -1483,6 +1483,7 @@ export interface components {
          *         "id": "33333333-3333-3333-3333-333333333333",
          *         "issued_at": "2026-09-22T20:00:00Z",
          *         "iva_usd": 0.65,
+         *         "nit": "0614-220999-101-3",
          *         "number": "KOI-202609-0001",
          *         "pdf_path": "/var/lib/koicloud/invoices/KOI-202609-0001.pdf",
          *         "status": "paid",
@@ -1539,6 +1540,7 @@ export interface components {
          *           "id": "33333333-3333-3333-3333-333333333333",
          *           "issued_at": "2026-09-22T20:00:00Z",
          *           "iva_usd": 0.65,
+         *           "nit": "0614-220999-101-3",
          *           "number": "KOI-202609-0001",
          *           "pdf_path": "/var/lib/koicloud/invoices/KOI-202609-0001.pdf",
          *           "status": "paid",
@@ -1562,6 +1564,7 @@ export interface components {
          *       "id": "33333333-3333-3333-3333-333333333333",
          *       "issued_at": "2026-09-22T20:00:00Z",
          *       "iva_usd": 0.65,
+         *       "nit": "0614-220999-101-3",
          *       "number": "KOI-202609-0001",
          *       "pdf_path": "/var/lib/koicloud/invoices/KOI-202609-0001.pdf",
          *       "status": "paid",
@@ -1584,6 +1587,8 @@ export interface components {
             issued_at: string;
             /** Iva Usd */
             iva_usd: number;
+            /** Nit */
+            nit?: string | null;
             /** Number */
             number: string;
             /** Pdf Path */
@@ -2308,10 +2313,13 @@ export interface components {
         /**
          * SubscribeRequest
          * @example {
+         *       "nit": "0614-220999-101-3",
          *       "plan_id": "micro"
          *     }
          */
         SubscribeRequest: {
+            /** Nit */
+            nit?: string | null;
             /** Plan Id */
             plan_id: string;
         };
@@ -2322,6 +2330,7 @@ export interface components {
          *         "id": "33333333-3333-3333-3333-333333333333",
          *         "issued_at": "2026-09-22T20:00:00Z",
          *         "iva_usd": 0.65,
+         *         "nit": "0614-220999-101-3",
          *         "number": "KOI-202609-0001",
          *         "pdf_path": "/var/lib/koicloud/invoices/KOI-202609-0001.pdf",
          *         "status": "paid",
