@@ -45,11 +45,13 @@ def _blob_key_base() -> str:
 
 
 def _blob_path() -> str:
-    return f"koi-preview-sim-{_blob_key_base()}.pkl"
+    # Bump generation when durable schema/guards change so rolling alias
+    # instances on older builds cannot pollute the live Blob key.
+    return f"koi-preview-sim-{_blob_key_base()}-v5.pkl"
 
 
 def _users_blob_path() -> str:
-    return f"koi-preview-sim-{_blob_key_base()}-users.json"
+    return f"koi-preview-sim-{_blob_key_base()}-v5-users.json"
 
 
 def _persist_path() -> str:
