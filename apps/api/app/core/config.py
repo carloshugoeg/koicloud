@@ -41,6 +41,10 @@ class Settings(BaseSettings):
 
     default_limit: int = Field(default=50, ge=1, le=100)
 
+    # Comma-separated peer IPs (or "*") allowed to supply X-Forwarded-For.
+    # Prod API sits behind Caddy on the Docker network (#140); set "*" there.
+    trusted_proxy_ips: str = "127.0.0.1,::1"
+
 
 def to_sync_database_url(url: str) -> str:
     """Alembic uses a sync engine; asyncpg URLs raise MissingGreenlet."""

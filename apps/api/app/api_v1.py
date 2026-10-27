@@ -19,6 +19,7 @@ from app.commands import sql as sql_commands
 from app.commands import usage as usage_commands
 from app.commands import users as user_commands
 from app.core.auth import AuthContext, get_admin_user, get_current_user
+from app.core.client_ip import client_ip
 from app.core.config import get_settings
 from app.core.db import SessionLocal
 from app.core.deps import get_confirmation_token, get_surface
@@ -203,8 +204,7 @@ async def resend_verification(
     payload: ResendVerificationRequest,
     request: Request,
 ) -> OkResponse:
-    client_host = request.client.host if request.client else "unknown"
-    check_rate_limit(f"auth:resend-verification:{client_host}", limit=3)
+    check_rate_limit(f"auth:resend-verification:{client_ip(request)}", limit=3)
     return await auth_commands.resend_verification(payload)
 
 

@@ -204,6 +204,7 @@ async def test_delete_me_email_mismatch_and_soft_delete() -> None:
             ).scalars().all()
             assert subs
             assert all(s.status == SubscriptionStatus.CANCELED for s in subs)
+            assert all(s.cancel_at_period_end is False for s in subs)
             audits = (
                 await session.execute(
                     select(AuditEvent).where(
@@ -285,6 +286,97 @@ async def test_resend_verification_always_202_and_rate_limit() -> None:
         )
         assert limited.status_code == 429
         assert limited.json()["code"] == "rate_limited"
+
+
+async def test_resend_rate_limit_is_per_forwarded_client_ip() -> None:
+    """Two X-Forwarded-For clients behind a trusted peer get separate buckets."""
+    reset_auth_tables()
+    reset_rate_limits()
+
+    async with _make_client() as client:
+        ip_a = {"X-Forwarded-For": "203.0.113.10"}
+        ip_b = {"X-Forwarded-For": "203.0.113.20"}
+        for _ in range(3):
+            ok = await client.post(
+                "/api/v1/auth/resend-verification",
+                headers=ip_a,
+                json={"email": "nobody-a@koicloud.dev"},
+            )
+            assert ok.status_code == 202
+        limited = await client.post(
+            "/api/v1/auth/resend-verification",
+            headers=ip_a,
+            json={"email": "nobody-a@koicloud.dev"},
+        )
+        assert limited.status_code == 429
+        assert limited.json()["code"] == "rate_limited"
+
+        other = await client.post(
+            "/api/v1/auth/resend-verification",
+            headers=ip_b,
+            json={"email": "nobody-b@koicloud.dev"},
+        )
+        assert other.status_code == 202
+
+
+async def test_non_password_validation_keeps_fastapi_default() -> None:
+    """Non-password 422s must not become internal_error (ship review #148)."""
+    reset_auth_tables()
+    reset_rate_limits()
+
+    async with _make_client() as client:
+        # Missing required field → FastAPI default detail list, not AppError code.
+        res = await client.post(
+            "/api/v1/auth/register",
+            json={"email": "missing-pw@koicloud.dev", "full_name": "No Password"},
+        )
+        assert res.status_code == 422
+        body = res.json()
+        assert "code" not in body
+        assert isinstance(body.get("detail"), list)
+
+
+async def test_delete_me_cancels_past_due_subscription() -> None:
+    reset_pond_tables()
+    reset_rate_limits()
+
+    async with _make_client() as client:
+        user_id, access, _refresh = await _register_verify_login(
+            client, "pastdue-del@koicloud.dev"
+        )
+        create = await client.post(
+            "/api/v1/ponds",
+            headers={"Authorization": f"Bearer {access}"},
+            json={"name": "pond-past-due", "engine_version": "16"},
+        )
+        assert create.status_code in (200, 201, 202), create.text
+
+        async with SessionLocal() as session:
+            sub = (
+                await session.execute(
+                    select(Subscription).where(Subscription.user_id == user_id)
+                )
+            ).scalar_one()
+            sub.status = SubscriptionStatus.PAST_DUE
+            sub.cancel_at_period_end = False
+            await session.commit()
+
+        deleted = await client.request(
+            "DELETE",
+            "/api/v1/me",
+            headers={"Authorization": f"Bearer {access}"},
+            json={"confirm_email": "pastdue-del@koicloud.dev"},
+        )
+        assert deleted.status_code == 202, deleted.text
+
+        async with SessionLocal() as session:
+            sub = (
+                await session.execute(
+                    select(Subscription).where(Subscription.user_id == user_id)
+                )
+            ).scalar_one()
+            assert sub.status == SubscriptionStatus.CANCELED
+            assert sub.cancel_at_period_end is False
 
 
 async def test_migration_users_deleted_at_up_down() -> None:

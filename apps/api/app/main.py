@@ -4,8 +4,10 @@ from contextlib import asynccontextmanager
 from uuid import uuid4
 
 from fastapi import FastAPI, Request
+from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from starlette.responses import Response
 
 from app.api_v1 import router as api_v1_router
 from app.core.config import get_settings
@@ -56,7 +58,9 @@ def create_app() -> FastAPI:
     @app.exception_handler(RequestValidationError)
     async def validation_error_handler(
         request: Request, exc: RequestValidationError
-    ) -> JSONResponse:
+    ) -> Response:
+        # Only remap password floor → password_too_weak; leave every other
+        # validation error on FastAPI's default body (CCR #126 scope).
         request_id = getattr(request.state, "request_id", None)
         for err in exc.errors():
             loc = err.get("loc", ())
@@ -67,15 +71,7 @@ def create_app() -> FastAPI:
                     status_code=422,
                     content=payload_for_code(ErrorCode.PASSWORD_TOO_WEAK, request_id=request_id),
                 )
-        return JSONResponse(
-            status_code=422,
-            content={
-                "code": ErrorCode.INTERNAL_ERROR.value,
-                "message": "Solicitud inválida",
-                "request_id": request_id,
-                "detail": exc.errors(),
-            },
-        )
+        return await request_validation_exception_handler(request, exc)
 
     @app.exception_handler(404)
     async def not_found_handler(request: Request, _: Exception) -> JSONResponse:

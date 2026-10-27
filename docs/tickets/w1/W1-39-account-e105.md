@@ -28,8 +28,9 @@ Implementa el CCR aprobado [#126](https://github.com/carloshugoeg/koicloud/issue
 
 - CCR #126 aprobado en issue #96 comment (r3).
 - Migración W1: `users.deleted_at`.
-- Firmas: `resend_verification`, `change_password`, `delete_me` (+ helper `delete_all_user_ponds`).
+- Firmas: `resend_verification`, `change_password`, `delete_me`.
 - No tocar PlanOut / #123.
+- v0 note: access tokens emitidos antes del delete siguen válidos en rutas distintas de `/me` hasta que expiren (`get_current_user` no chequea `deleted_at`); TTL corto lo hace aceptable.
 
 ## Criterios de aceptación
 

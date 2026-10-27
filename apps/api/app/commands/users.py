@@ -101,30 +101,6 @@ async def update_profile(actor: AuthContext, payload: UpdateProfileRequest) -> U
         return UserResponse(user=_user_out(user))
 
 
-async def delete_all_user_ponds(actor: AuthContext) -> None:
-    """Enqueue delete for every live pond owned by the actor (account teardown)."""
-    user_id = UUID(actor.user_id)
-    async with SessionLocal() as session:
-        ponds = (
-            await session.execute(
-                select(Pond).where(
-                    Pond.user_id == user_id,
-                    Pond.desired_state != PondDesiredState.DELETED,
-                )
-            )
-        ).scalars().all()
-        service = PondService(session, get_settings())
-        for pond in ponds:
-            try:
-                await service.delete(actor, pond.id)
-            except AppError as exc:
-                if exc.code != ErrorCode.POND_BUSY:
-                    raise
-                # Account delete must still mark the pond for removal.
-                pond.desired_state = PondDesiredState.DELETED
-        await session.commit()
-
-
 async def delete_me(actor: AuthContext, payload: DeleteMeRequest) -> OkResponse:
     from app.commands import auth as auth_commands
 
@@ -136,18 +112,20 @@ async def delete_me(actor: AuthContext, payload: DeleteMeRequest) -> OkResponse:
         if user.email.strip().lower() != confirm:
             raise AppError(ErrorCode.EMAIL_MISMATCH)
 
-        # Cancel live subscription immediately.
+        # Immediate cancel (CCR #126): status canceled now; not end-of-period.
         live_subs = (
             await session.execute(
                 select(Subscription).where(
                     Subscription.user_id == user_id,
-                    Subscription.status == SubscriptionStatus.ACTIVE,
+                    Subscription.status.in_(
+                        (SubscriptionStatus.ACTIVE, SubscriptionStatus.PAST_DUE)
+                    ),
                 )
             )
         ).scalars().all()
         for sub in live_subs:
             sub.status = SubscriptionStatus.CANCELED
-            sub.cancel_at_period_end = True
+            sub.cancel_at_period_end = False
 
         # Soft-delete + free the email for future registration.
         now = utc_now()

@@ -39,6 +39,8 @@ services:
       EMAIL_PROVIDER: ${EMAIL_PROVIDER:-console}
       INVOICE_DIR: ${INVOICE_DIR:-/var/lib/koicloud/invoices}
       BACKUP_DIR: ${BACKUP_DIR:-/var/lib/koicloud/backups}
+      # Caddy is the only peer on the Docker network; trust its X-Forwarded-For.
+      TRUSTED_PROXY_IPS: ${TRUSTED_PROXY_IPS:-*}
     volumes:
       - invoices:/var/lib/koicloud/invoices
       - backups:/var/lib/koicloud/backups
@@ -61,7 +63,7 @@ services:
       [
         "sh",
         "-lc",
-        "uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000",
+        "uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips='*'",
       ]
 
   worker:
