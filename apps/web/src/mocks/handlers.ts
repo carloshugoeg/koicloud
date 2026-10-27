@@ -84,6 +84,14 @@ export const handlers = [
     return HttpResponse.json({ plans: fixtures.plans, next_cursor: null });
   }),
 
+  http.get(`${API_ROOT}/me`, () => {
+    return HttpResponse.json({
+      user: fixtures.session.user,
+      ponds_count: fixtures.ponds.length,
+      subscription: fixtures.subscriptionResponse.subscription,
+    });
+  }),
+
   http.get(`${API_ROOT}/subscriptions`, () => {
     return HttpResponse.json({ subscriptions: subscriptionsState, next_cursor: null });
   }),
