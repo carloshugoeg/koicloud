@@ -158,25 +158,35 @@ export async function deletePond(page: Page, pondId: string): Promise<number> {
 }
 
 export async function ensureProPlan(page: Page): Promise<void> {
-  const token = await mintAccessToken(page);
-  // Subscribe twice so confirm_payment supersedes any leftover ACTIVE rows
-  // from sandbox checkout / prior seeds (preview gate user is shared).
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    const result = await page.evaluate(
-      async (accessToken) => {
-        const headers: Record<string, string> = { "content-type": "application/json" };
-        if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
-        const response = await fetch("/api/v1/subscriptions", {
-          method: "POST",
-          headers,
-          body: JSON.stringify({ plan_id: "pro" }),
-        });
-        return response.status;
-      },
-      token,
-    );
-    if (result >= 400) {
-      throw new Error(`ensureProPlan HTTP ${result}`);
+  // Seed already puts gate-user on pro. Plans checkout may leave sandbox —
+  // one subscribe to pro supersedes ACTIVE rows via confirm_payment.
+  // Do not double-POST: rapid invoice allocation can 500 on preview.
+  const me0 = await api(page, "GET", "/api/v1/me");
+  const plan0 = (me0.json as { subscription?: { plan_id?: unknown } } | null)?.subscription
+    ?.plan_id;
+  if (plan0 !== "pro") {
+    let lastStatus = 0;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const token = await mintAccessToken(page);
+      lastStatus = await page.evaluate(
+        async (accessToken) => {
+          const headers: Record<string, string> = { "content-type": "application/json" };
+          if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+          const response = await fetch("/api/v1/subscriptions", {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ plan_id: "pro" }),
+          });
+          return response.status;
+        },
+        token,
+      );
+      if (lastStatus < 400) break;
+      // Cold-start / invoice race — brief backoff then retry.
+      await page.waitForTimeout(800 * (attempt + 1));
+    }
+    if (lastStatus >= 400) {
+      throw new Error(`ensureProPlan HTTP ${lastStatus}`);
     }
   }
   const me = await api(page, "GET", "/api/v1/me");
