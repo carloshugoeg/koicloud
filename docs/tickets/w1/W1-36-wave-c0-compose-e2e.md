@@ -24,7 +24,7 @@ contra un stack compose local. En un VPS real: copiar env y correr `deploy.sh`.
 
 - Rama existente: `w1-wave-c0-compose-e2e` (nombre histórico del wave; slug del ticket).
 - Alcance: `infra/` + `e2e/` (+ workflow `e2e-compose` mínimo). Sin tocar apps A1/A2.
-- `PAYMENT_PROVIDER` en prod compose default `simulated`; `deploy.sh` no lo exige con `need`.
+- `PAYMENT_PROVIDER` obligatorio en prod: compose sin default `:-simulated`; `deploy.sh` lo exige con `need`.
 - No inventar IP/DNS; proof de deploy solo contra contenedor SSH local.
 - No mergear este PR desde el agente; ship tras LGTM + gate (+ ventana Carlos, lane alta).
 
