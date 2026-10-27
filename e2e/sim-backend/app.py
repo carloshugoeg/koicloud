@@ -68,37 +68,82 @@ def _blob_find_url(token: str) -> str | None:
     return url if isinstance(url, str) and url else None
 
 
+_BLOB_LOAD_OK = False
+
+
+def _read_blob_state(token: str) -> State | None:
+    try:
+        url = _blob_find_url(token)
+        if not url:
+            return None
+        req = urllib.request.Request(
+            url,
+            headers={"Authorization": f"Bearer {token}"},
+            method="GET",
+        )
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            raw = resp.read()
+        if not raw:
+            return None
+        loaded = pickle.loads(raw)
+        return loaded if isinstance(loaded, State) else None
+    except (
+        urllib.error.HTTPError,
+        urllib.error.URLError,
+        pickle.UnpicklingError,
+        OSError,
+        json.JSONDecodeError,
+        TypeError,
+    ):
+        return None
+
+
+def _merge_state(writer: State, remote: State) -> None:
+    """Union remote entities into writer so a stale instance cannot wipe peers."""
+    for user_id, user in remote.users_by_id.items():
+        if user_id not in writer.users_by_id:
+            writer.users_by_id[user_id] = user
+    for email, user in remote.users_by_email.items():
+        if email not in writer.users_by_email:
+            writer.users_by_email[email] = user
+            writer.users_by_id.setdefault(user.id, user)
+    for key, value in remote.sessions.items():
+        writer.sessions.setdefault(key, value)
+    for key, value in remote.subs.items():
+        writer.subs.setdefault(key, value)
+    for key, value in remote.ponds.items():
+        writer.ponds.setdefault(key, value)
+    for key, value in remote.backups.items():
+        writer.backups.setdefault(key, value)
+    for key, value in remote.sql_events.items():
+        writer.sql_events.setdefault(key, value)
+    for key, value in remote.pending.items():
+        writer.pending.setdefault(key, value)
+    for key, value in remote.agents_by_user.items():
+        writer.agents_by_user.setdefault(key, value)
+    for key, value in remote.agents_by_slug.items():
+        writer.agents_by_slug.setdefault(key, value)
+    writer._next_port = max(writer._next_port, remote._next_port)
+    writer._invoice_n = max(writer._invoice_n, remote._invoice_n)
+
+
 def load_persisted_state() -> None:
     """Hydrate STATE from Blob (preferred) or local file.
 
     With Blob, reload every request so warm instances see seed/writes from peers.
     With only /tmp, load once per process (same container shares memory + file).
     """
-    global STATE, _PERSIST_LOADED
+    global STATE, _PERSIST_LOADED, _BLOB_LOAD_OK
     token = _blob_token()
     if token:
-        try:
-            url = _blob_find_url(token)
-            if url:
-                req = urllib.request.Request(
-                    url,
-                    headers={"Authorization": f"Bearer {token}"},
-                    method="GET",
-                )
-                with urllib.request.urlopen(req, timeout=8) as resp:
-                    raw = resp.read()
-                if raw:
-                    STATE = pickle.loads(raw)
-                    _PERSIST_LOADED = True
-                    return
-        except (
-            urllib.error.HTTPError,
-            urllib.error.URLError,
-            pickle.UnpicklingError,
-            OSError,
-            json.JSONDecodeError,
-        ):
+        loaded = _read_blob_state(token)
+        if loaded is not None:
+            STATE = loaded
+            _PERSIST_LOADED = True
+            _BLOB_LOAD_OK = True
             return
+        # Keep in-memory STATE but mark blob unread so save merges or skips wipe.
+        _BLOB_LOAD_OK = False
         return
     if _PERSIST_LOADED:
         return
@@ -115,9 +160,17 @@ def load_persisted_state() -> None:
 
 def save_persisted_state() -> None:
     """Snapshot STATE so the next serverless instance can resume the gate seed."""
+    global _BLOB_LOAD_OK
     token = _blob_token()
-    raw = pickle.dumps(STATE, protocol=pickle.HIGHEST_PROTOCOL)
     if token:
+        remote = _read_blob_state(token)
+        if remote is not None:
+            _merge_state(STATE, remote)
+            _BLOB_LOAD_OK = True
+        elif not _BLOB_LOAD_OK and not STATE.users_by_id:
+            # Avoid clobbering a populated blob with an empty cold start.
+            return
+        raw = pickle.dumps(STATE, protocol=pickle.HIGHEST_PROTOCOL)
         try:
             query = urllib.parse.urlencode({"pathname": _blob_path()})
             req = urllib.request.Request(
@@ -141,6 +194,7 @@ def save_persisted_state() -> None:
     path = _persist_path()
     if not path:
         return
+    raw = pickle.dumps(STATE, protocol=pickle.HIGHEST_PROTOCOL)
     try:
         directory = os.path.dirname(path)
         if directory:
