@@ -2,7 +2,7 @@
 id: W1-32
 workstream: W1
 persona: Carlos
-estado: en_revision
+estado: en-revision
 rama: w1-admin-subscriptions
 epica: "E8-02"
 sprint: S4
