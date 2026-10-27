@@ -19,7 +19,6 @@ export function ResetPage() {
     ? new ApiError({
         code: "token_invalid",
         message: "El enlace de restablecimiento no incluye un token válido.",
-        request_id: "client_missing_reset_token",
       })
     : null;
 
@@ -28,13 +27,7 @@ export function ResetPage() {
     setLocalError(null);
     if (!token) return;
     if (password !== confirmPassword) {
-      setLocalError(
-        new ApiError({
-          code: "password_too_weak",
-          message: "Las contraseñas no coinciden.",
-          request_id: "client_password_mismatch",
-        }),
-      );
+      setLocalError(new Error("Las contraseñas no coinciden."));
       return;
     }
     if (!isPasswordLongEnough(password)) {
