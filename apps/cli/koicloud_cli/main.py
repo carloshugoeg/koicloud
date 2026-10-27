@@ -13,6 +13,7 @@ from koicloud_cli.commands import (
     emit_table,
     exit_for_error,
     get_authenticated_client,
+    invoice,
     pond,
     sql,
     subscription,
@@ -27,6 +28,7 @@ app.command(name="whoami")(auth.whoami)
 app.add_typer(pond.app, name="pond")
 app.add_typer(sql.app, name="sql")
 app.add_typer(subscription.app, name="subscription")
+app.add_typer(invoice.app, name="invoice")
 app.add_typer(subscription.plan_app, name="plan")
 app.add_typer(backup.app, name="backup")
 app.add_typer(agent.app, name="agent")

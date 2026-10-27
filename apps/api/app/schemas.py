@@ -263,6 +263,7 @@ class SubscriptionOut(SchemaModel):
     current_period_start: datetime
     current_period_end: datetime
     cancel_at_period_end: bool
+    invoice_id: UUID | None = None
 
     model_config = config_with_example(
         {
@@ -273,6 +274,7 @@ class SubscriptionOut(SchemaModel):
             "current_period_start": EXAMPLE_NOW,
             "current_period_end": "2026-10-22T20:00:00Z",
             "cancel_at_period_end": False,
+            "invoice_id": EXAMPLE_INVOICE_ID,
         }
     )
 
@@ -426,6 +428,7 @@ class PondOut(SchemaModel):
     created_at: datetime
     last_restore_at: datetime | None = None
     last_error: str | None = None
+    size_bytes: int | None = None
 
     model_config = config_with_example(
         {
@@ -442,6 +445,7 @@ class PondOut(SchemaModel):
             "created_at": EXAMPLE_NOW,
             "last_restore_at": None,
             "last_error": None,
+            "size_bytes": 124901,
         }
     )
 
@@ -842,6 +846,8 @@ class AdminPondOut(SchemaModel):
     observed_state: PondObservedState
     host_port: int
     created_at: datetime
+    size_bytes: int | None = None
+    last_error: str | None = None
 
     model_config = config_with_example(
         {
@@ -854,6 +860,8 @@ class AdminPondOut(SchemaModel):
             "observed_state": "running",
             "host_port": 15007,
             "created_at": EXAMPLE_NOW,
+            "size_bytes": 124901,
+            "last_error": None,
         }
     )
 
@@ -865,6 +873,20 @@ class AdminPondListResponse(SchemaModel):
     model_config = config_with_example(
         {"ponds": [AdminPondOut.example_data()], "next_cursor": None}
     )
+
+
+class AdminTotalsOut(SchemaModel):
+    users: int
+    ponds: int
+    ponds_running: int
+
+    model_config = config_with_example({"users": 38, "ponds": 51, "ponds_running": 44})
+
+
+class AdminTotalsResponse(SchemaModel):
+    totals: AdminTotalsOut
+
+    model_config = config_with_example({"totals": AdminTotalsOut.example_data()})
 
 
 class AuditEventOut(SchemaModel):

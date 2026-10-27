@@ -24,6 +24,7 @@ export function ResetPage() {
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    resetMutation.reset();
     setLocalError(null);
     if (!token) return;
     if (password !== confirmPassword) {
@@ -109,7 +110,7 @@ export function ResetPage() {
           </div>
         </section>
       ) : (
-        <form className="space-y-4" onSubmit={handleSubmit}>
+        <form className="space-y-4" noValidate onSubmit={handleSubmit}>
           <AuthErrorBanner error={activeError} />
           <AuthField
             id="reset-password"
