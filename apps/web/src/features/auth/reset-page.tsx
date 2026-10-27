@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useResetPasswordMutation } from "@/api/hooks";
 import { AuthErrorBanner, AuthField, AuthLayout } from "@/features/auth/auth-layout";
 import { ApiError } from "@/lib/errors";
+import { isPasswordLongEnough, MIN_PASSWORD_LENGTH, passwordMinHelp } from "@/lib/password";
 
 export function ResetPage() {
   const [searchParams] = useSearchParams();
@@ -12,35 +13,29 @@ export function ResetPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [localError, setLocalError] = useState<ApiError | null>(null);
+  const [localError, setLocalError] = useState<Error | null>(null);
 
   const missingTokenError = !token
     ? new ApiError({
         code: "token_invalid",
         message: "El enlace de restablecimiento no incluye un token válido.",
-        request_id: "client_missing_reset_token",
       })
     : null;
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    resetMutation.reset();
     setLocalError(null);
     if (!token) return;
     if (password !== confirmPassword) {
-      setLocalError(
-        new ApiError({
-          code: "password_too_weak",
-          message: "Las contraseñas no coinciden.",
-          request_id: "client_password_mismatch",
-        }),
-      );
+      setLocalError(new Error("Las contraseñas no coinciden."));
       return;
     }
-    try {
-      await resetMutation.mutateAsync({ token, new_password: password });
-    } catch {
-      // Handled via resetMutation.error
+    if (!isPasswordLongEnough(password)) {
+      setLocalError(new Error("La contraseña no cumple los requisitos mínimos."));
+      return;
     }
+    resetMutation.mutate({ token, new_password: password });
   }
 
   if (resetMutation.isSuccess) {
@@ -115,7 +110,7 @@ export function ResetPage() {
           </div>
         </section>
       ) : (
-        <form className="space-y-4" onSubmit={handleSubmit}>
+        <form className="space-y-4" noValidate onSubmit={handleSubmit}>
           <AuthErrorBanner error={activeError} />
           <AuthField
             id="reset-password"
@@ -123,11 +118,12 @@ export function ResetPage() {
             name="new_password"
             type={showPassword ? "text" : "password"}
             required
+            minLength={MIN_PASSWORD_LENGTH}
             autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••••"
-            help="Mínimo 8 caracteres."
+            help={passwordMinHelp()}
             suffix={
               <button
                 type="button"
@@ -144,6 +140,7 @@ export function ResetPage() {
             name="confirm_password"
             type={showPassword ? "text" : "password"}
             required
+            minLength={MIN_PASSWORD_LENGTH}
             autoComplete="new-password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { useGetConnection, useGetPond } from "@/api/hooks/ponds";
+import { pondIsTransient, useGetConnection, useGetPond } from "@/api/hooks/ponds";
 import { ApiError, problemToMessage } from "@/lib/errors";
 import { pondStateMeta } from "@/features/ponds/pond-state";
 
@@ -59,6 +59,8 @@ export function PondDetailPage() {
   }
 
   const meta = pondStateMeta(pond.observed_state);
+  const inProgress = pondIsTransient(pond.observed_state);
+  const failed = pond.observed_state === "failed";
   const connection = connectionQuery.data;
   const connectionPending = connectionQuery.isPending;
   const connectionError = connectionQuery.isError;
@@ -98,6 +100,45 @@ export function PondDetailPage() {
           </nav>
         </div>
       </div>
+
+      {inProgress ? (
+        <section
+          className="flex flex-wrap items-center gap-3 rounded-md border border-line bg-bone-raised p-4"
+          data-testid="pond-in-progress"
+        >
+          <span
+            className="pond-water-strip relative inline-flex h-16 w-48 shrink-0 items-center justify-center overflow-hidden"
+            aria-hidden
+          >
+            <i className="koi" />
+          </span>
+          <div>
+            <p className="text-sm font-medium text-ink">{meta.label}</p>
+            <p className="mt-1 text-sm text-ink-muted">
+              Suele tomar unos 40 segundos. Esta vista se actualiza sola hasta el estado final.
+            </p>
+          </div>
+        </section>
+      ) : null}
+
+      {failed ? (
+        <section
+          className="rounded-md border border-danger bg-bone-raised p-4"
+          data-testid="pond-failed"
+        >
+          <div className="border-l-[3px] border-danger pl-3">
+            <p className="text-sm font-medium text-danger">
+              <span aria-hidden>{meta.glyph} </span>
+              {meta.label}
+            </p>
+            <p className="mt-1 text-sm text-ink">
+              {pond.last_error
+                ? `Último error: ${pond.last_error}`
+                : "El nodo no pudo completar la operación. Revisá el listado o reintentá más tarde."}
+            </p>
+          </div>
+        </section>
+      ) : null}
 
       <section className="rounded-md border border-line bg-paper p-5" data-testid="connection-card">
         <div className="flex flex-wrap items-center justify-between gap-3">
