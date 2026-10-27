@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   useDeleteMeMutation,
@@ -15,6 +15,7 @@ export function AccountPage() {
   const deleteMe = useDeleteMeMutation();
   const resend = useResendVerificationMutation();
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const deleteOpenRef = useRef<HTMLButtonElement>(null);
 
   if (meQuery.isPending) {
     return (
@@ -102,9 +103,10 @@ export function AccountPage() {
             Se eliminan tus ponds, sus respaldos y tu historial de facturación.
           </p>
           <button
+            ref={deleteOpenRef}
             type="button"
             data-testid="delete-me-open"
-            className="mt-4 h-9 rounded-sm border border-danger bg-bone-raised px-4 text-sm font-medium text-danger"
+            className="mt-4 h-9 rounded-sm border border-danger bg-bone-raised px-4 text-sm font-medium text-danger focus-visible:shadow-focus"
             onClick={() => setDeleteOpen(true)}
           >
             Eliminar mi cuenta…
@@ -118,6 +120,7 @@ export function AccountPage() {
           pondsCount={pondsCount}
           pending={deleteMe.isPending}
           error={deleteMe.error}
+          returnFocusRef={deleteOpenRef}
           onCancel={() => {
             setDeleteOpen(false);
             deleteMe.reset();

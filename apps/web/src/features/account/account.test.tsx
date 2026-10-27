@@ -62,6 +62,9 @@ describe("E1-05 Cuenta", () => {
     await screen.findByTestId("account-page");
 
     await user.click(screen.getByTestId("delete-me-open"));
+    const dialog = await screen.findByTestId("delete-me-dialog");
+    expect(dialog).toHaveAttribute("role", "dialog");
+    expect(dialog).toHaveAttribute("aria-labelledby", "delete-account-title");
     const input = await screen.findByTestId("delete-confirm-email");
     await user.type(input, "otro@koicloud.dev");
     expect(screen.getByTestId("delete-me-submit")).toBeDisabled();
@@ -73,6 +76,23 @@ describe("E1-05 Cuenta", () => {
     await waitFor(() => {
       expect(useAuthStore.getState().session).toBeNull();
     });
+  });
+
+  it("closes delete dialog on Escape and returns focus to the trigger", async () => {
+    const user = userEvent.setup();
+    renderAccount();
+    await screen.findByTestId("account-page");
+
+    const trigger = screen.getByTestId("delete-me-open");
+    await user.click(trigger);
+    expect(await screen.findByTestId("delete-me-dialog")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Cancelar" })).toHaveFocus();
+
+    await user.keyboard("{Escape}");
+    await waitFor(() => {
+      expect(screen.queryByTestId("delete-me-dialog")).not.toBeInTheDocument();
+    });
+    expect(trigger).toHaveFocus();
   });
 
   it("shows email_mismatch from the API when confirm fails server-side", async () => {
