@@ -1,4 +1,4 @@
-"""apps/web/api/index.py must 404 when VERCEL_ENV=production."""
+"""apps/web/api/index.py serves the API only when VERCEL_ENV=preview (fail-closed)."""
 
 from __future__ import annotations
 
@@ -11,8 +11,10 @@ import pytest
 INDEX = Path(__file__).resolve().parents[2] / "web" / "api" / "index.py"
 
 
-def _load_index(monkeypatch: pytest.MonkeyPatch, vercel_env: str):
-    monkeypatch.setenv("VERCEL_ENV", vercel_env)
+def _load_index(monkeypatch: pytest.MonkeyPatch, vercel_env: str | None):
+    monkeypatch.delenv("VERCEL_ENV", raising=False)
+    if vercel_env is not None:
+        monkeypatch.setenv("VERCEL_ENV", vercel_env)
     name = f"koi_preview_api_{vercel_env}_{id(object())}"
     spec = importlib.util.spec_from_file_location(name, INDEX)
     assert spec and spec.loader
@@ -22,11 +24,7 @@ def _load_index(monkeypatch: pytest.MonkeyPatch, vercel_env: str):
     return mod
 
 
-@pytest.mark.asyncio
-async def test_production_entry_returns_404_json(monkeypatch: pytest.MonkeyPatch) -> None:
-    mod = _load_index(monkeypatch, "production")
-    app = mod._get_app()
-
+async def _post_login(app) -> tuple[int, bytes]:
     scope = {
         "type": "http",
         "asgi": {"version": "3.0"},
@@ -51,14 +49,24 @@ async def test_production_entry_returns_404_json(monkeypatch: pytest.MonkeyPatch
 
     await app(scope, receive, send)
     start = next(m for m in messages if m["type"] == "http.response.start")
-    assert start["status"] == 404
     raw = b"".join(m.get("body", b"") for m in messages if m["type"] == "http.response.body")
+    return start["status"], raw
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("vercel_env", ["production", "development", None, ""])
+async def test_non_preview_entry_returns_404_json(
+    monkeypatch: pytest.MonkeyPatch, vercel_env: str | None
+) -> None:
+    mod = _load_index(monkeypatch, vercel_env)
+    assert mod._preview() is False
+    status, raw = await _post_login(mod._get_app())
+    assert status == 404
     assert b"Preview API is not available" in raw
     assert b"pond_not_found" in raw
 
 
-def test_production_flag(monkeypatch: pytest.MonkeyPatch) -> None:
-    mod = _load_index(monkeypatch, "production")
-    assert mod._production() is True
-    mod2 = _load_index(monkeypatch, "preview")
-    assert mod2._production() is False
+def test_preview_flag(monkeypatch: pytest.MonkeyPatch) -> None:
+    assert _load_index(monkeypatch, "preview")._preview() is True
+    assert _load_index(monkeypatch, "production")._preview() is False
+    assert _load_index(monkeypatch, None)._preview() is False

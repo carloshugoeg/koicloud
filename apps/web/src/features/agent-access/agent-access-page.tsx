@@ -262,7 +262,13 @@ function AgentAccessCard({
             );
           })}
         </div>
-        <pre className="mt-4 overflow-x-auto rounded-sm bg-ink p-4 font-mono text-xs text-bone-raised" data-testid="agent-snippet">
+        <pre
+          className="mt-4 overflow-x-auto rounded-sm bg-ink p-4 font-mono text-xs text-bone-raised"
+          data-testid="agent-snippet"
+          tabIndex={0}
+          role="region"
+          aria-label="Snippet de conexión del agente"
+        >
           {snippet}
         </pre>
         <button

@@ -2,7 +2,8 @@
 
 Vite + /api uses BaseHTTPRequestHandler serverless functions. This handler
 restores the original path from ?koi_path=… and runs the FastAPI ASGI app.
-Production (VERCEL_ENV=production) always returns 404 JSON.
+Fail-closed: the real API runs only when VERCEL_ENV=preview.
+Any other value (including production / unset) returns 404 JSON.
 """
 
 from __future__ import annotations
@@ -31,12 +32,12 @@ _lifespan_started = False
 _loop_lock = threading.Lock()
 
 
-def _production() -> bool:
-    return (os.environ.get("VERCEL_ENV") or "").strip().lower() == "production"
+def _preview() -> bool:
+    """Serve the real API only on Vercel preview. Fail closed otherwise."""
+    return (os.environ.get("VERCEL_ENV") or "").strip().lower() == "preview"
 
 
 def _configure_preview_env() -> None:
-    os.environ.setdefault("KOI_PREVIEW_MOCK", "1")
     os.environ.setdefault("KOI_DB_SCHEMA", "koicloud")
     os.environ.setdefault("PAYMENT_PROVIDER", "simulated")
     os.environ.setdefault("AUTO_MICRO_SUBSCRIPTION", "true")
@@ -48,31 +49,35 @@ def _configure_preview_env() -> None:
         os.environ["DATABASE_URL"] = unpooled
 
 
+def _disabled_app() -> Any:
+    from fastapi import FastAPI
+    from fastapi.responses import JSONResponse
+
+    disabled = FastAPI(title="KoiCloud API (disabled)")
+
+    @disabled.api_route(
+        "/{full_path:path}",
+        methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
+    )
+    async def off(full_path: str = "") -> JSONResponse:
+        return JSONResponse(
+            status_code=404,
+            content={
+                "code": "pond_not_found",
+                "message": "Preview API is not available in this deployment",
+                "request_id": None,
+            },
+        )
+
+    return disabled
+
+
 def _get_app() -> Any:
     global _fastapi_app
     if _fastapi_app is not None:
         return _fastapi_app
-    if _production():
-        from fastapi import FastAPI
-        from fastapi.responses import JSONResponse
-
-        disabled = FastAPI(title="KoiCloud API (disabled)")
-
-        @disabled.api_route(
-            "/{full_path:path}",
-            methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
-        )
-        async def off(full_path: str = "") -> JSONResponse:
-            return JSONResponse(
-                status_code=404,
-                content={
-                    "code": "pond_not_found",
-                    "message": "Preview API is not available in this deployment",
-                    "request_id": None,
-                },
-            )
-
-        _fastapi_app = disabled
+    if not _preview():
+        _fastapi_app = _disabled_app()
         return _fastapi_app
 
     _configure_preview_env()
@@ -120,7 +125,7 @@ async def _lifespan_startup(app: Any) -> None:
 
 def _ensure_lifespan(app: Any) -> None:
     global _lifespan_started
-    if _lifespan_started or _production():
+    if _lifespan_started or not _preview():
         return
     with _loop_lock:
         if _lifespan_started:
