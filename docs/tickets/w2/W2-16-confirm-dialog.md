@@ -39,6 +39,10 @@ En `/app/confirm`, con sesión iniciada, un velo y un diálogo con banda `marigo
 7. La prueba de página cubre el caso feliz, 404, 410 y 409.
 8. A 360 px no hay scroll horizontal. El diálogo no muestra koi.
 
+## Fuera de alcance
+
+- Reintentar Confirmar después de 404, 410 o 409. El criterio 5 deja Confirmar apagado. No hay transición error→retry en el statechart de W2-16. Pedí un enlace nuevo.
+
 ## No tocar
 
 - `packages/contracts/**`, `apps/web/src/api/schema.d.ts`, `apps/web/src/api/client.ts`.
