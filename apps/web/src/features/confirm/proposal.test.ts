@@ -108,8 +108,16 @@ describe("confirmation proposal", () => {
       text: "00:00",
       expired: true,
     });
+    expect(formatCountdown(expiresAt, new Date(expiresAt.getTime() - 59 * 60_000))).toEqual({
+      text: "59:00",
+      expired: false,
+    });
     expect(formatCountdown(expiresAt, new Date(expiresAt.getTime() - 120 * 60_000))).toEqual({
-      text: "120:00",
+      text: "2h 0m",
+      expired: false,
+    });
+    expect(formatCountdown(expiresAt, new Date(expiresAt.getTime() - 26 * 3600_000))).toEqual({
+      text: "1d 2h",
       expired: false,
     });
   });

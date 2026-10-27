@@ -126,6 +126,18 @@ export function formatCountdown(
     return { text: "00:00", expired: true };
   }
   const totalSeconds = Math.ceil(remaining / 1000);
+  const HOUR = 3600;
+  const DAY = 86_400;
+  if (totalSeconds >= DAY) {
+    const days = Math.floor(totalSeconds / DAY);
+    const hours = Math.floor((totalSeconds % DAY) / HOUR);
+    return { text: `${days}d ${hours}h`, expired: false };
+  }
+  if (totalSeconds >= HOUR) {
+    const hours = Math.floor(totalSeconds / HOUR);
+    const minutes = Math.floor((totalSeconds % HOUR) / 60);
+    return { text: `${hours}h ${minutes}m`, expired: false };
+  }
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   return {
