@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { HttpResponse, http } from "msw";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
@@ -37,6 +37,29 @@ function renderCreate() {
 }
 
 describe("W2-05 Crear pond", () => {
+  it("shows the user's real subscription plan from GET /me, not a hardcoded Micro", async () => {
+    server.use(
+      http.get("*/api/v1/me", () =>
+        HttpResponse.json({
+          user: fixtures.session.user,
+          ponds_count: 1,
+          subscription: {
+            ...fixtures.subscriptionResponse.subscription,
+            plan_id: "pro",
+          },
+        }),
+      ),
+    );
+
+    renderCreate();
+    await waitFor(() => {
+      expect(screen.getByTestId("create-pond-plan")).toHaveTextContent(
+        "Pro · heredado de tu suscripción",
+      );
+    });
+    expect(screen.getByTestId("create-pond-plan")).not.toHaveTextContent("Micro");
+  });
+
   it("validates the name live and echoes it in mono", async () => {
     const user = userEvent.setup();
     renderCreate();
