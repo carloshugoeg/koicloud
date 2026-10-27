@@ -17,7 +17,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Callable
 from urllib.parse import urlsplit
 
-from state import SimError, State, ToolMiss, User
+from state import SimError, State, ToolMiss, User, same_secret
 
 MAX_BODY = 1_000_000
 STATE = State()
@@ -180,7 +180,47 @@ def _users_to_json(state: State) -> bytes:
     return json.dumps({"users": rows}, separators=(",", ":")).encode()
 
 
-def _merge_users_json(state: State, raw: bytes) -> None:
+def _user_from_row(row: dict[str, object]) -> User | None:
+    user_id = row.get("id")
+    email = row.get("email")
+    if not isinstance(user_id, str) or not isinstance(email, str):
+        return None
+    password = str(row.get("password") or "")
+    if not password:
+        return None
+    return User(
+        id=user_id,
+        email=email.strip().lower(),
+        password=password,
+        full_name=str(row.get("full_name") or email),
+        role=str(row.get("role") or "client"),
+        status=str(row.get("status") or "active"),
+        email_verified=bool(row.get("email_verified", True)),
+        nit=row.get("nit") if isinstance(row.get("nit"), str) else None,
+        created_at=str(row.get("created_at") or "2020-01-01T00:00:00Z"),
+        verify_token=None,
+    )
+
+
+def _install_passworded_user(state: State, candidate: User, *, memory_wins: bool) -> None:
+    """Install a passworded user. memory_wins=True ⇒ caller is the in-process reseed."""
+    if not candidate.password:
+        return
+    prior = state.users_by_id.get(candidate.id) or state.users_by_email.get(candidate.email)
+    if prior is None or not prior.password:
+        chosen = candidate
+    elif memory_wins:
+        chosen = candidate
+    elif same_secret(prior.password, candidate.password):
+        chosen = _prefer_user(prior, candidate)
+    else:
+        # Sidecar hydrate into memory that already has a password (reseed) — keep memory.
+        chosen = prior
+    state.users_by_id[chosen.id] = chosen
+    state.users_by_email[chosen.email] = chosen
+
+
+def _merge_users_json(state: State, raw: bytes, *, memory_wins: bool = False) -> None:
     try:
         payload = json.loads(raw.decode())
     except (UnicodeDecodeError, json.JSONDecodeError):
@@ -191,10 +231,10 @@ def _merge_users_json(state: State, raw: bytes) -> None:
     for row in rows:
         if not isinstance(row, dict):
             continue
-        user_id = row.get("id")
-        email = row.get("email")
-        if not isinstance(user_id, str) or not isinstance(email, str):
+        candidate = _user_from_row(row)
+        if candidate is None:
             continue
+<<<<<<< HEAD
         password = str(row.get("password") or "")
         if not password:
             continue
@@ -214,16 +254,43 @@ def _merge_users_json(state: State, raw: bytes) -> None:
         chosen = _prefer_user(state.users_by_email.get(user.email), chosen)
         state.users_by_id[chosen.id] = chosen
         state.users_by_email[chosen.email] = chosen
+=======
+        _install_passworded_user(state, candidate, memory_wins=memory_wins)
+>>>>>>> 5c2032d (fix(e2e): merge-only users sidecar so Blob races cannot drop logins)
 
 
 def _load_users_sidecar(token: str, state: State) -> None:
     for attempt in range(4):
         raw = _download_blob_bytes(token, _users_blob_path())
         if raw:
-            _merge_users_json(state, raw)
+            # Sidecar wins on cold hydrate so a wiped pickle cannot keep bad passwords.
+            _merge_users_json(state, raw, memory_wins=False)
             return
         time.sleep(0.1 * (attempt + 1))
 
+
+def _save_users_sidecar_union(token: str, state: State) -> bool:
+    """Read-merge-write users.json so a partial instance cannot drop peers."""
+    for attempt in range(6):
+        existing = _download_blob_bytes(token, _users_blob_path())
+        merged = State()
+        if existing:
+            _merge_users_json(merged, existing, memory_wins=False)
+        before = _passworded_count(merged)
+        for user in list(state.users_by_id.values()):
+            if not user.password:
+                continue
+            _install_passworded_user(merged, user, memory_wins=True)
+        raw = _users_to_json(merged)
+        if _passworded_count(merged) < max(before, _passworded_count(state)) and attempt < 5:
+            time.sleep(0.12 * (attempt + 1))
+            continue
+        if not _put_blob_bytes(token, _users_blob_path(), raw, "application/json"):
+            time.sleep(0.12 * (attempt + 1))
+            continue
+        _merge_users_json(state, raw, memory_wins=False)
+        return True
+    return False
 
 def _prefer_user(current: User | None, candidate: User) -> User:
     """Keep the durable passworded row over a claim-hydrated stub (password='')."""
@@ -334,7 +401,7 @@ def load_persisted_state(*, force: bool = False) -> None:
     try:
         with open(path, "rb") as handle:
             STATE = pickle.loads(handle.read())
-    except (FileNotFoundError, pickle.UnpicklingError, OSError):
+    except (FileNotFoundError, pickle.UnpicklingError, OSError, EOFError):
         return
 
 
@@ -370,11 +437,12 @@ def save_persisted_state() -> None:
             remote = retry
         # Never shrink the durable passworded user set (full-pickle replace).
         if remote is not None and _passworded_count(STATE) < _passworded_count(remote):
+            # Still union the users sidecar — auth must survive pickle races.
+            _save_users_sidecar_union(token, STATE)
             return
         raw = pickle.dumps(STATE, protocol=pickle.HIGHEST_PROTOCOL)
-        users_raw = _users_to_json(STATE)
         wrote = _put_blob_bytes(token, _blob_path(), raw, "application/octet-stream")
-        _put_blob_bytes(token, _users_blob_path(), users_raw, "application/json")
+        _save_users_sidecar_union(token, STATE)
         if wrote:
             _LAST_BLOB_LOAD_AT = time.monotonic()
             return
@@ -388,7 +456,7 @@ def save_persisted_state() -> None:
             disk = pickle.loads(handle.read())
         if isinstance(disk, State):
             _merge_state(STATE, disk)
-    except (FileNotFoundError, pickle.UnpicklingError, OSError):
+    except (FileNotFoundError, pickle.UnpicklingError, OSError, EOFError):
         disk = None
     _strip_auth_stubs(STATE)
     if _passworded_count(STATE) == 0:
@@ -512,7 +580,20 @@ def route_login(
     body: bytes,
 ) -> tuple[int, dict[str, object]]:
     data = _json_dict(body)
-    return 200, state.login(_need_str(data, "email"), _need_str(data, "password"))
+    email = _need_str(data, "email")
+    password = _need_str(data, "password")
+    try:
+        return 200, state.login(email, password)
+    except SimError as exc:
+        if exc.code != "invalid_credentials":
+            raise
+        # Pickle may have lost the user; users sidecar is the merge-only auth truth.
+        token = _blob_token()
+        if token:
+            load_persisted_state(force=True)
+            _load_users_sidecar(token, STATE)
+            return 200, STATE.login(email, password)
+        raise
 
 
 def route_plans(
