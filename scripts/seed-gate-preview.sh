@@ -76,24 +76,34 @@ def request(
         encoded = base64.b64encode(basic.encode()).decode("ascii")
         headers["Authorization"] = "Basic " + encoded
     req = urllib.request.Request(url, data=data, headers=headers, method=method)
-    try:
-        with urllib.request.urlopen(req, timeout=10) as res:
-            raw = res.read().decode()
-            parsed = json.loads(raw) if raw else {}
-            if not isinstance(parsed, dict):
-                return res.status, {"code": "http_error"}
-            return res.status, parsed
-    except urllib.error.HTTPError as exc:
-        raw = exc.read().decode(errors="replace")
+    last_url_error = None
+    for attempt in range(5):
         try:
-            parsed = json.loads(raw)
-        except json.JSONDecodeError:
-            parsed = {"code": "http_error"}
-        if not isinstance(parsed, dict):
-            parsed = {"code": "http_error"}
-        return exc.code, parsed
-    except urllib.error.URLError:
-        fail("seed failed unreachable", 1)
+            with urllib.request.urlopen(req, timeout=30) as res:
+                raw = res.read().decode()
+                parsed = json.loads(raw) if raw else {}
+                if not isinstance(parsed, dict):
+                    return res.status, {"code": "http_error"}
+                return res.status, parsed
+        except urllib.error.HTTPError as exc:
+            raw = exc.read().decode(errors="replace")
+            try:
+                parsed = json.loads(raw)
+            except json.JSONDecodeError:
+                parsed = {"code": "http_error"}
+            if not isinstance(parsed, dict):
+                parsed = {"code": "http_error"}
+            # Retry cold-start / overload from the hosted sim.
+            if exc.code in {425, 429, 500, 502, 503, 504} and attempt < 4:
+                import time
+                time.sleep(1.5 * (attempt + 1))
+                continue
+            return exc.code, parsed
+        except urllib.error.URLError as exc:
+            last_url_error = exc
+            import time
+            time.sleep(1.5 * (attempt + 1))
+    fail("seed failed unreachable", 1)
 
 
 def code_of(payload: dict) -> str:

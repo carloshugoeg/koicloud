@@ -100,31 +100,37 @@ def _read_blob_state(token: str) -> State | None:
 
 def _merge_state(writer: State, remote: State) -> None:
     """Union remote entities into writer so a stale instance cannot wipe peers."""
-    for user_id, user in remote.users_by_id.items():
+    for user_id, user in getattr(remote, "users_by_id", {}).items():
         if user_id not in writer.users_by_id:
             writer.users_by_id[user_id] = user
-    for email, user in remote.users_by_email.items():
+    for email, user in getattr(remote, "users_by_email", {}).items():
         if email not in writer.users_by_email:
             writer.users_by_email[email] = user
             writer.users_by_id.setdefault(user.id, user)
-    for key, value in remote.sessions.items():
-        writer.sessions.setdefault(key, value)
-    for key, value in remote.subs.items():
-        writer.subs.setdefault(key, value)
-    for key, value in remote.ponds.items():
-        writer.ponds.setdefault(key, value)
-    for key, value in remote.backups.items():
-        writer.backups.setdefault(key, value)
-    for key, value in remote.sql_events.items():
-        writer.sql_events.setdefault(key, value)
-    for key, value in remote.pending.items():
-        writer.pending.setdefault(key, value)
-    for key, value in remote.agents_by_user.items():
-        writer.agents_by_user.setdefault(key, value)
-    for key, value in remote.agents_by_slug.items():
-        writer.agents_by_slug.setdefault(key, value)
-    writer._next_port = max(writer._next_port, remote._next_port)
-    writer._invoice_n = max(writer._invoice_n, remote._invoice_n)
+    for attr in (
+        "sessions",
+        "subs",
+        "ponds",
+        "backups",
+        "sql_events",
+        "pending",
+        "agents_by_user",
+        "agents_by_slug",
+    ):
+        remote_map = getattr(remote, attr, None)
+        writer_map = getattr(writer, attr, None)
+        if not isinstance(remote_map, dict) or not isinstance(writer_map, dict):
+            continue
+        for key, value in remote_map.items():
+            writer_map.setdefault(key, value)
+    writer._next_port = max(
+        int(getattr(writer, "_next_port", 0) or 0),
+        int(getattr(remote, "_next_port", 0) or 0),
+    )
+    writer._invoice_n = max(
+        int(getattr(writer, "_invoice_n", 0) or 0),
+        int(getattr(remote, "_invoice_n", 0) or 0),
+    )
 
 
 def load_persisted_state() -> None:
