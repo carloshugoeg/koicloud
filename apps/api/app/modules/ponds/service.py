@@ -318,10 +318,21 @@ class PondService:
         await self.session.flush()
         return subscription
 
+    async def _find_node(self, node_id: str, token_hash: str) -> Node | None:
+        """Resolve by configured id, else by token_hash (preview NODE_ID drift)."""
+        node = await self.session.get(Node, node_id)
+        if node is not None:
+            return node
+        return (
+            await self.session.execute(
+                select(Node).where(Node.token_hash == token_hash).limit(1)
+            )
+        ).scalars().first()
+
     async def _upsert_node(self) -> Node:
         settings = self.settings
-        node = await self.session.get(Node, settings.node_id)
         token_hash = hash_token(settings.node_token)
+        node = await self._find_node(settings.node_id, token_hash)
         if node is None:
             node = Node(
                 id=settings.node_id,
@@ -332,11 +343,28 @@ class PondService:
                 token_hash=token_hash,
             )
             self.session.add(node)
-            await self.session.flush()
-            return node
+            try:
+                # Concurrent preview creates can race the first insert.
+                async with self.session.begin_nested():
+                    await self.session.flush()
+                return node
+            except IntegrityError:
+                await self.session.expunge(node)
+                node = await self._find_node(settings.node_id, token_hash)
+                if node is None:
+                    raise
         node.public_host = settings.node_public_host
-        node.token_hash = token_hash
-        if node.last_seen_at is None:
+        if node.token_hash != token_hash:
+            conflict = (
+                await self.session.execute(
+                    select(Node.id)
+                    .where(Node.token_hash == token_hash, Node.id != node.id)
+                    .limit(1)
+                )
+            ).scalar_one_or_none()
+            if conflict is None:
+                node.token_hash = token_hash
+        if node.last_seen_at is None or settings.koi_preview_mock:
             node.last_seen_at = utc_now()
             node.status = NodeStatus.ALIVE
         return node

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine, text
 
-from app.core.config import get_settings
+from app.core.config import get_settings, to_sync_database_url
+from app.core.security import hash_token
 from app.main import app
 from tests.db_reset import DEMO_EMAIL, DEMO_PASSWORD, ensure_demo_user, reset_pond_tables
 
@@ -92,3 +94,37 @@ def test_claim_without_jobs_returns_204() -> None:
     reset_pond_tables()
     response = client.post("/internal/v1/jobs/claim", headers=node_headers(), json={})
     assert response.status_code == 204
+
+
+def test_create_pond_reuses_node_with_matching_token_hash() -> None:
+    """Preview NODE_ID drift: same token_hash under another id must not 500."""
+    reset_pond_tables()
+    settings = get_settings()
+    engine = create_engine(to_sync_database_url(settings.database_url))
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+                """
+                INSERT INTO nodes (
+                    id, public_host, status, capacity_ponds, last_seen_at, token_hash
+                )
+                VALUES (
+                    :id, :host, 'alive', 20, CURRENT_TIMESTAMP, :token_hash
+                )
+                """
+            ),
+            {
+                "id": "node-legacy-token-owner",
+                "host": settings.node_public_host,
+                "token_hash": hash_token(settings.node_token),
+            },
+        )
+    engine.dispose()
+
+    created = client.post(
+        "/api/v1/ponds",
+        headers=auth_headers(),
+        json={"name": "token-hash-reuse"},
+    )
+    assert created.status_code == 202, created.text
+    assert created.json()["pond"]["node_id"] == "node-legacy-token-owner"

@@ -22,7 +22,16 @@ from app.schemas import CompleteJobRequest
 async def refresh_preview_node(session: AsyncSession, settings: Settings) -> Node | None:
     if not settings.koi_preview_mock:
         return None
+    from app.core.security import hash_token
+
     node = await session.get(Node, settings.node_id)
+    if node is None:
+        token_hash = hash_token(settings.node_token)
+        node = (
+            await session.execute(
+                select(Node).where(Node.token_hash == token_hash).limit(1)
+            )
+        ).scalars().first()
     if node is None:
         return None
     node.status = NodeStatus.ALIVE
