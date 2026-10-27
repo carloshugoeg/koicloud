@@ -21,7 +21,6 @@ export function VerifyPage() {
     ? new ApiError({
         code: "token_invalid",
         message: "El enlace de verificación no incluye un token válido.",
-        request_id: "client_missing_token",
       })
     : null;
   const activeError = verifyMutation.error ?? missingTokenError;
