@@ -50,6 +50,8 @@ docker run -d --name "$NAME" \
   -v "$ROOT:/srv/koicloud:rw" \
   "$IMAGE" >/dev/null
 
+ssh-keygen -R "[127.0.0.1]:${PORT}" >/dev/null 2>&1 || true
+
 for _ in $(seq 1 40); do
   if ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
     -i "$KEY_DIR/id" -p "$PORT" root@127.0.0.1 'echo ssh-ok' 2>/dev/null; then
