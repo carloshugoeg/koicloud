@@ -41,9 +41,11 @@ services:
       PAYMENT_PROVIDER: simulated
       INVOICE_DIR: /var/lib/koicloud/invoices
       BACKUP_DIR: /var/lib/koicloud/backups
+      PYTHONUNBUFFERED: "1"
     volumes:
       - e2e_invoices:/var/lib/koicloud/invoices
       - e2e_backups:/var/lib/koicloud/backups
+      - ./logging.ini:/app/e2e-logging.ini:ro
     depends_on:
       db:
         condition: service_healthy
@@ -63,7 +65,7 @@ services:
       [
         "sh",
         "-lc",
-        "uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000",
+        "uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --log-config /app/e2e-logging.ini",
       ]
 
   worker:

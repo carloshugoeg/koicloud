@@ -65,19 +65,25 @@ extract_verify_token() {
   local email="$1"
   local try=0
   local token=""
-  while (( try < 30 )); do
+  while (( try < 45 )); do
     token="$(
-      "${COMPOSE[@]}" logs api 2>&1 \
-        | grep "verify_email token for ${email}:" \
+      "${COMPOSE[@]}" logs api --no-color 2>&1 \
+        | grep -F "verify_email token for ${email}:" \
         | tail -1 \
-        | sed -E 's/.*verify_email token for [^:]*: //' \
+        | sed -E 's/.*verify_email token for [^:]*:[[:space:]]*//' \
+        | tr -d '\r' \
+        | awk '{print $1}' \
         || true
     )"
+    token="${token%%[[:space:]]*}"
     [[ -n "$token" ]] && break
     sleep 1
     try=$((try + 1))
   done
-  [[ -n "$token" ]] || die "no verify_email token in api logs for $email"
+  if [[ -z "$token" ]]; then
+    "${COMPOSE[@]}" logs api --no-color --tail 80 >"$REPORT_DIR/api-logs-no-verify.txt" || true
+    die "no verify_email token in api logs for $email"
+  fi
   echo "$token"
 }
 
