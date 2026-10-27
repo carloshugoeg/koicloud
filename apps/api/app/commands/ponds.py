@@ -7,7 +7,7 @@ from app.core.auth import AuthContext
 from app.core.config import get_settings
 from app.core.db import SessionLocal
 from app.core.enums import AppSurface
-from app.modules.ponds.service import PondService, pond_to_out
+from app.modules.ponds.service import PondService
 from app.schemas import (
     ConfirmationRequiredResponse,
     ConnectionResponse,
@@ -57,14 +57,14 @@ async def create_pond(
 
 async def get_pond(actor: AuthContext, pond_id: UUID) -> PondResponse:
     async with SessionLocal() as session:
-        pond, status = await PondService(session, get_settings()).get_owned(actor, pond_id)
-        return PondResponse(pond=pond_to_out(pond, status))
+        pond = await PondService(session, get_settings()).get_owned_out(actor, pond_id)
+        return PondResponse(pond=pond)
 
 
 async def get_pond_by_name(actor: AuthContext, name: str) -> PondResponse:
     async with SessionLocal() as session:
-        pond, status = await PondService(session, get_settings()).get_owned_by_name(actor, name)
-        return PondResponse(pond=pond_to_out(pond, status))
+        pond = await PondService(session, get_settings()).get_owned_by_name_out(actor, name)
+        return PondResponse(pond=pond)
 
 
 async def get_connection(actor: AuthContext, pond_id: UUID) -> ConnectionResponse:

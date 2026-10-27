@@ -9,7 +9,8 @@ from app.core.db import SessionLocal
 from app.core.enums import SubscriptionStatus
 from app.core.errors import AppError, ErrorCode
 from app.core.models import Pond, Subscription, User
-from app.schemas import MeResponse, SubscriptionOut, UpdateProfileRequest, UserOut, UserResponse
+from app.modules.billing.service import latest_invoice_id_by_subscription, subscription_to_out
+from app.schemas import MeResponse, UpdateProfileRequest, UserOut, UserResponse
 
 
 def _user_out(user: User) -> UserOut:
@@ -22,18 +23,6 @@ def _user_out(user: User) -> UserOut:
         status=user.status,
         email_verified=user.email_verified_at is not None,
         created_at=user.created_at,
-    )
-
-
-def _subscription_out(row: Subscription) -> SubscriptionOut:
-    return SubscriptionOut(
-        id=row.id,
-        user_id=row.user_id,
-        plan_id=row.plan_id,
-        status=row.status,
-        current_period_start=row.current_period_start,
-        current_period_end=row.current_period_end,
-        cancel_at_period_end=row.cancel_at_period_end,
     )
 
 
@@ -59,10 +48,18 @@ async def get_me(actor: AuthContext) -> MeResponse:
                 )
             )
         ).scalar_one_or_none()
+        invoice_id = None
+        if subscription is not None:
+            invoice_ids = await latest_invoice_id_by_subscription(session, [subscription.id])
+            invoice_id = invoice_ids.get(subscription.id)
 
         return MeResponse(
             user=_user_out(user),
-            subscription=_subscription_out(subscription) if subscription else None,
+            subscription=(
+                subscription_to_out(subscription, invoice_id=invoice_id)
+                if subscription
+                else None
+            ),
             ponds_count=ponds_count,
         )
 
