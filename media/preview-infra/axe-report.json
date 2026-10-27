@@ -1,0 +1,71 @@
+{
+  "tip": "ae59df5",
+  "preview": "https://koicloud-web-git-w1-preview-api-1348c2-hugos-projects-3379fa36.vercel.app",
+  "pages": [
+    {
+      "label": "app-375",
+      "url": "https://koicloud-web-git-w1-preview-api-1348c2-hugos-projects-3379fa36.vercel.app/app",
+      "contrast": 0,
+      "scrollableRegion": 0,
+      "violations": []
+    },
+    {
+      "label": "acceso-agente-375",
+      "url": "https://koicloud-web-git-w1-preview-api-1348c2-hugos-projects-3379fa36.vercel.app/app/acceso-agente",
+      "contrast": 0,
+      "scrollableRegion": 0,
+      "violations": []
+    },
+    {
+      "label": "planes-375",
+      "url": "https://koicloud-web-git-w1-preview-api-1348c2-hugos-projects-3379fa36.vercel.app/app/plans",
+      "contrast": 0,
+      "scrollableRegion": 0,
+      "violations": []
+    },
+    {
+      "label": "app-768",
+      "url": "https://koicloud-web-git-w1-preview-api-1348c2-hugos-projects-3379fa36.vercel.app/app",
+      "contrast": 0,
+      "scrollableRegion": 0,
+      "violations": []
+    },
+    {
+      "label": "acceso-agente-768",
+      "url": "https://koicloud-web-git-w1-preview-api-1348c2-hugos-projects-3379fa36.vercel.app/app/acceso-agente",
+      "contrast": 0,
+      "scrollableRegion": 0,
+      "violations": []
+    },
+    {
+      "label": "planes-768",
+      "url": "https://koicloud-web-git-w1-preview-api-1348c2-hugos-projects-3379fa36.vercel.app/app/plans",
+      "contrast": 0,
+      "scrollableRegion": 0,
+      "violations": []
+    },
+    {
+      "label": "app-1440",
+      "url": "https://koicloud-web-git-w1-preview-api-1348c2-hugos-projects-3379fa36.vercel.app/app",
+      "contrast": 0,
+      "scrollableRegion": 0,
+      "violations": []
+    },
+    {
+      "label": "acceso-agente-1440",
+      "url": "https://koicloud-web-git-w1-preview-api-1348c2-hugos-projects-3379fa36.vercel.app/app/acceso-agente",
+      "contrast": 0,
+      "scrollableRegion": 0,
+      "violations": []
+    },
+    {
+      "label": "planes-1440",
+      "url": "https://koicloud-web-git-w1-preview-api-1348c2-hugos-projects-3379fa36.vercel.app/app/plans",
+      "contrast": 0,
+      "scrollableRegion": 0,
+      "violations": []
+    }
+  ],
+  "contrast": 0,
+  "scrollableRegion": 0
+}
