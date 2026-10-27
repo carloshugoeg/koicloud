@@ -97,9 +97,20 @@ def _rpc(url: str, auth: str, method: str, params: dict | None = None, req_id: i
 def main() -> int:
     creds = _load_creds()
     hidden = _secrets(creds)
-    base = os.environ.get("KOI_SIM_BASE_URL") or creds.get("sim_base_url") or "http://127.0.0.1:18080"
-    base = str(base).rstrip("/")
+    # Prefer the Vercel preview origin so MCP is exercised at preview /mcp.
+    # Callers that cannot route preview→sim (no Playwright page.route) may set
+    # KOI_SIM_BASE_URL alone for a loopback-only debug run.
+    preview = (
+        os.environ.get("KOI_MCP_BASE_URL")
+        or os.environ.get("KOI_PUBLIC_BASE_URL")
+        or os.environ.get("PLAYWRIGHT_BASE_URL")
+        or (creds.get("preview_url") if isinstance(creds.get("preview_url"), str) else None)
+    )
+    sim = os.environ.get("KOI_SIM_BASE_URL") or creds.get("sim_base_url") or "http://127.0.0.1:18080"
+    base = str(preview or sim).rstrip("/")
     mcp_url = f"{base}/mcp"
+    if "127.0.0.1" in mcp_url or "localhost" in mcp_url:
+        print("warning: MCP URL is loopback; prefer PLAYWRIGHT_BASE_URL preview host", file=sys.stderr)
     mcp = creds.get("mcp")
     if not isinstance(mcp, dict):
         print("mcp credentials missing", file=sys.stderr)

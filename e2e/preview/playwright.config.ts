@@ -4,9 +4,10 @@ import { defineConfig } from "@playwright/test";
 
 const previewRoot = path.dirname(fileURLToPath(import.meta.url));
 
+// SHA-exact / branch tip preview for #142 (w1-e2e-preview-verify). Never localhost.
 const baseURL =
   process.env.PLAYWRIGHT_BASE_URL ??
-  "https://koicloud-web-git-w2-14-post-merge-hugos-projects-3379fa36.vercel.app";
+  "https://koicloud-web-git-w1-e2e-preview-verify-hugos-projects-3379fa36.vercel.app";
 
 export default defineConfig({
   testDir: "./tests",

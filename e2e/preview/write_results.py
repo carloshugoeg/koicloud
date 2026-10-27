@@ -78,10 +78,18 @@ def main() -> int:
     mcp_by_tool = {_text(row.get("tool")): row for row in mcp if isinstance(row, dict)}
     preview = os.environ.get(
         "PLAYWRIGHT_BASE_URL",
-        "https://koicloud-web-git-w2-14-post-merge-hugos-projects-3379fa36.vercel.app",
+        "https://koicloud-web-git-w1-e2e-preview-verify-hugos-projects-3379fa36.vercel.app",
     )
+    sha = (
+        os.environ.get("KOI_GIT_SHA")
+        or os.environ.get("GITHUB_SHA")
+        or ""
+    ).strip()
     run_id = os.environ.get("GITHUB_RUN_ID", "")
-    run_cell = f"GitHub Actions run {run_id}" if run_id else "local"
+    if run_id:
+        run_cell = f"https://github.com/carloshugoeg/koicloud/actions/runs/{run_id}"
+    else:
+        run_cell = "local"
     lines = [
         "# E2E preview verification results",
         "",
@@ -90,10 +98,11 @@ def main() -> int:
         f"`{STORE_CREDS}`",
         "",
         f"Preview URL: {preview}",
+        f"Head SHA: `{sha or 'unknown'}`",
         "",
-        f"CI run: {run_cell}",
+        f"CI run (Playwright + MCP): {run_cell}",
         "",
-        "PR: not opened from this harness.",
+        "PR: https://github.com/carloshugoeg/koicloud/pull/142 (draft, never merge)",
         "",
         "## Pond and product flows",
         "",
@@ -113,7 +122,7 @@ def main() -> int:
     lines.extend(
         [
             "",
-            "## MCP tools (real JSON-RPC client → sim `/mcp`)",
+            "## MCP tools (real JSON-RPC client → preview `/mcp`, proxied to sim)",
             "",
             "| Tool | Result | Notes |",
             "|------|--------|-------|",

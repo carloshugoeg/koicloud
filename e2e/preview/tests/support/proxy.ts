@@ -43,6 +43,41 @@ export function artifactsDir(): string {
   return path.join(previewRoot(), "artifacts");
 }
 
+export function publicPreviewOrigin(): string {
+  const fromEnv = (process.env.KOI_PUBLIC_BASE_URL || process.env.PLAYWRIGHT_BASE_URL || "").trim();
+  if (fromEnv) return fromEnv.replace(/\/$/, "");
+  return "https://koicloud-web-git-w1-e2e-preview-verify-hugos-projects-3379fa36.vercel.app";
+}
+
+export function assertPreviewHost(href: string): void {
+  const host = new URL(href).hostname;
+  if (host === "localhost" || host === "127.0.0.1" || host === "0.0.0.0") {
+    throw new Error(`refused localhost capture host=${host}`);
+  }
+  if (!host.endsWith(".vercel.app")) {
+    throw new Error(`refused non-preview host=${host}`);
+  }
+}
+
+function rewriteAgentUrls(pathname: string, bytes: Buffer): Buffer {
+  if (
+    !pathname.endsWith("/agent-access") &&
+    !pathname.endsWith("/agent-access/rotate")
+  ) {
+    return bytes;
+  }
+  try {
+    const body = JSON.parse(bytes.toString("utf8")) as Record<string, unknown>;
+    const preview = publicPreviewOrigin();
+    if (typeof body.url === "string") {
+      body.url = `${preview}/mcp`;
+    }
+    return Buffer.from(JSON.stringify(body), "utf8");
+  } catch {
+    return bytes;
+  }
+}
+
 export async function installApiProxy(page: Page): Promise<void> {
   const sim = (process.env.KOI_SIM_BASE_URL ?? "http://127.0.0.1:18080").replace(/\/$/, "");
   await page.route(/\/api\/v1(?:\/|\?|$)|\/mcp(?:\/|\?|$)/, async (route) => {
@@ -86,7 +121,8 @@ export async function installApiProxy(page: Page): Promise<void> {
       });
       return;
     }
-    const bytes = Buffer.from(await response.arrayBuffer());
+    let bytes = Buffer.from(await response.arrayBuffer());
+    bytes = rewriteAgentUrls(url.pathname, bytes);
     rememberSession(url.pathname, response.status, bytes);
     rememberPondGet(request.method(), url.pathname, bytes);
     const out: Record<string, string> = {
@@ -166,6 +202,35 @@ function resolveMediaDir(): string | null {
 }
 
 export async function capture(page: Page, slug: string): Promise<{ shot375: boolean; shot1440: boolean }> {
+  const href = page.url();
+  assertPreviewHost(href);
+  // Stamp the preview origin into the shot so reviewers see the Vercel host, not loopback.
+  await page.evaluate((shown) => {
+    let el = document.getElementById("e2e-preview-host");
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "e2e-preview-host";
+      el.setAttribute("data-testid", "e2e-preview-host");
+      el.setAttribute("role", "note");
+      Object.assign(el.style, {
+        position: "fixed",
+        left: "0",
+        right: "0",
+        bottom: "0",
+        zIndex: "2147483647",
+        padding: "6px 10px",
+        fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+        fontSize: "12px",
+        lineHeight: "16px",
+        background: "rgba(13, 51, 79, 0.92)",
+        color: "#F4F1EA",
+        pointerEvents: "none",
+      });
+      document.body.appendChild(el);
+    }
+    el.textContent = shown;
+  }, href);
+
   const artifacts = artifactsDir();
   const media = resolveMediaDir();
   fs.mkdirSync(artifacts, { recursive: true });

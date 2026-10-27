@@ -68,8 +68,14 @@ def _basic(headers: dict[str, str]) -> tuple[str, str]:
 
 
 def _base_url(headers: dict[str, str]) -> str:
+    # Prefer the public preview origin so agent-access / MCP URLs match the
+    # Vercel host under test (not the loopback sim listen address).
+    public = (os.environ.get("KOI_PUBLIC_BASE_URL") or "").strip().rstrip("/")
+    if public:
+        return public
     host = headers.get("host", "127.0.0.1:18080")
-    return "http://" + host
+    scheme = "https" if host.endswith(".vercel.app") else "http"
+    return f"{scheme}://{host}"
 
 
 def route_health(

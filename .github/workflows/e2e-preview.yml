@@ -16,12 +16,30 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      PLAYWRIGHT_BASE_URL: https://koicloud-web-git-w2-14-post-merge-hugos-projects-3379fa36.vercel.app
+      # Branch-tip Vercel preview for w1-e2e-preview-verify (#142). Never localhost.
+      PLAYWRIGHT_BASE_URL: https://koicloud-web-git-w1-e2e-preview-verify-hugos-projects-3379fa36.vercel.app
+      KOI_PUBLIC_BASE_URL: https://koicloud-web-git-w1-e2e-preview-verify-hugos-projects-3379fa36.vercel.app
       KOI_SIM_BASE_URL: http://127.0.0.1:18080
       PYTHON_VERSION: "3.12"
       NODE_VERSION: "22"
     steps:
       - uses: actions/checkout@v4
+
+      - name: Wait for SHA-exact Vercel preview
+        run: |
+          set -euo pipefail
+          echo "Waiting for preview ${PLAYWRIGHT_BASE_URL} (sha=${GITHUB_SHA})"
+          for _ in $(seq 1 60); do
+            code=$(curl -sS -o /tmp/preview-home.html -w "%{http_code}" "$PLAYWRIGHT_BASE_URL/" || true)
+            if [ "$code" = "200" ]; then
+              echo "preview HTTP 200"
+              exit 0
+            fi
+            echo "preview HTTP ${code}; retry"
+            sleep 10
+          done
+          echo "preview did not become ready" >&2
+          exit 1
 
       - uses: actions/setup-python@v5
         with:
@@ -29,6 +47,7 @@ jobs:
 
       - name: Start sim backend
         run: |
+          export KOI_PUBLIC_BASE_URL
           python3 e2e/sim-backend/__main__.py > "$RUNNER_TEMP/sim.log" 2>&1 &
           echo $! > "$RUNNER_TEMP/sim.pid"
           for _ in $(seq 1 30); do
@@ -49,11 +68,6 @@ jobs:
           export KOI_GATE_CREDENTIALS_OUT="$RUNNER_TEMP/gate-credentials.json"
           bash scripts/seed-gate-preview.sh
 
-      - name: MCP client suite
-        id: mcp
-        run: python3 e2e/preview/mcp_client_suite.py
-        continue-on-error: true
-
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -64,10 +78,16 @@ jobs:
           npm ci
           npx playwright install --with-deps chromium
 
+      - name: MCP client suite via preview /mcp
+        id: mcp
+        working-directory: e2e/preview
+        run: npx playwright test tests/mcp.spec.ts
+        continue-on-error: true
+
       - name: Playwright preview suite
         id: playwright
         working-directory: e2e/preview
-        run: npx playwright test
+        run: npx playwright test tests/preview.spec.ts
         continue-on-error: true
 
       - name: Write results table
@@ -75,6 +95,7 @@ jobs:
         run: python3 e2e/preview/write_results.py
         env:
           KOI_E2E_RESULTS_OUT: ${{ runner.temp }}/e2e-verify-results.md
+          KOI_GIT_SHA: ${{ github.sha }}
 
       - name: Upload screenshots
         if: always()

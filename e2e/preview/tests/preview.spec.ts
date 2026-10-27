@@ -1,6 +1,12 @@
 import { expect, test, type Page } from "@playwright/test";
 import { loadGateCreds, secretValues, type GateCreds } from "./support/creds";
-import { capture, installApiProxy, recordFlow, resetSession } from "./support/proxy";
+import {
+  capture,
+  installApiProxy,
+  publicPreviewOrigin,
+  recordFlow,
+  resetSession,
+} from "./support/proxy";
 import { errorNote } from "./support/redact";
 import {
   api,
@@ -212,15 +218,20 @@ test("pond lifecycle", async ({ page }) => {
 test("agent access", async ({ page }) => {
   const creds = loadGateCreds();
   await run(page, "agent-access UI", "agent-access", secrets(creds), async () => {
+    const previewHost = new URL(publicPreviewOrigin()).host;
     await login(page, creds.user);
     await expect(page).toHaveURL(/\/app/);
+    expect(page.url()).toContain(".vercel.app");
     await clickNav(page, "Acceso agente");
     await expect(page.getByTestId("agent-access")).toBeVisible();
     await expect(page.getByTestId("agent-slug")).not.toBeEmpty();
     await expect(page.getByTestId("agent-url")).toContainText(/mcp/i);
+    await expect(page.getByTestId("agent-url")).toContainText(previewHost);
+    await expect(page.getByTestId("agent-url")).not.toContainText("127.0.0.1");
+    await expect(page.getByTestId("agent-url")).not.toContainText("localhost");
     await expect(page.getByTestId("agent-enabled")).toContainText(/habilitado|deshabilitado/);
     await expect(page.getByTestId("agent-password-band")).toHaveCount(0);
-    return "slug and URL visible, password sealed";
+    return `slug and preview MCP URL on ${previewHost}, password sealed`;
   });
 });
 
