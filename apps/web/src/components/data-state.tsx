@@ -111,7 +111,7 @@ export function DataStateError({
     >
       <div className="border-l-[3px] border-danger pl-3">
         <p className="text-sm text-ink">{problemToMessage(error)}</p>
-        <p className="mt-1 font-mono text-xs text-ink-faint">{errorCode(error)}</p>
+        <p className="mt-1 font-mono text-xs text-ink-muted">{errorCode(error)}</p>
       </div>
       <button
         type="button"

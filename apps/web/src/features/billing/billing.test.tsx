@@ -56,6 +56,40 @@ describe("W2-15 Historial de suscripciones", () => {
     expect(screen.queryByTestId("cancel-subscription-dialog")).not.toBeInTheDocument();
   });
 
+  it("exposes a keyboard-reachable subscription table region", async () => {
+    renderBilling();
+
+    const region = await screen.findByRole("region", { name: "Historial de suscripciones" });
+    expect(region).toHaveAttribute("tabindex", "0");
+    expect(region).toHaveAttribute("data-testid", "billing-subscription-table");
+  });
+
+  it("traps focus in the cancel dialog and returns it to Cancelar al corte", async () => {
+    const user = userEvent.setup();
+    renderBilling();
+
+    const trigger = await screen.findByRole("button", { name: "Cancelar al corte" });
+    await user.click(trigger);
+
+    const dialog = await screen.findByTestId("cancel-subscription-dialog");
+    const volver = within(dialog).getByRole("button", { name: "Volver" });
+    const confirm = within(dialog).getByRole("button", { name: "Cancelar al corte" });
+    expect(volver).toHaveFocus();
+
+    await user.tab();
+    expect(confirm).toHaveFocus();
+    await user.tab();
+    expect(volver).toHaveFocus();
+    await user.tab({ shift: true });
+    expect(confirm).toHaveFocus();
+
+    await user.click(volver);
+    await waitFor(() => {
+      expect(screen.queryByTestId("cancel-subscription-dialog")).not.toBeInTheDocument();
+    });
+    expect(trigger).toHaveFocus();
+  });
+
   it("shows an empty history without a pond", async () => {
     server.use(
       http.get("*/api/v1/subscriptions", () => {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   useCancelSubscriptionMutation,
@@ -31,6 +31,7 @@ export function BillingPage() {
   const query = useSubscriptionsQuery();
   const cancel = useCancelSubscriptionMutation();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const cancelTriggerRef = useRef<HTMLElement | null>(null);
 
   if (query.isPending) {
     return <DataStateLoading testId="billing-loading" />;
@@ -48,6 +49,11 @@ export function BillingPage() {
 
   const rows = query.data ?? [];
   const selected = rows.find((row) => row.id === selectedId) ?? null;
+
+  function openCancel(rowId: string, trigger: HTMLElement) {
+    cancelTriggerRef.current = trigger;
+    setSelectedId(rowId);
+  }
 
   async function confirmCancel() {
     if (!selected) {
@@ -86,14 +92,22 @@ export function BillingPage() {
           </Link>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-sm border border-line bg-paper">
-          <table className="w-full min-w-[640px] text-left text-sm">
+        <div
+          className="overflow-x-auto rounded-sm border border-line bg-paper"
+          tabIndex={0}
+          role="region"
+          aria-label="Historial de suscripciones"
+          data-testid="billing-subscription-table"
+        >
+          <table className="w-full min-w-[36rem] text-left text-sm">
             <thead>
               <tr className="border-b border-line bg-bone-sunk text-xs text-ink-muted">
-                <th className="px-4 py-2.5 font-medium">Plan</th>
-                <th className="px-4 py-2.5 font-medium">Estado</th>
-                <th className="px-4 py-2.5 font-medium">Período</th>
-                <th className="px-4 py-2.5 text-right font-medium">Acción</th>
+                <th className="px-3 py-2.5 font-medium sm:px-4">Plan</th>
+                <th className="px-3 py-2.5 font-medium sm:px-4">Estado</th>
+                <th className="px-3 py-2.5 font-medium sm:px-4">Período</th>
+                <th className="sticky right-0 z-[1] border-l border-line bg-bone-sunk px-3 py-2.5 text-right font-medium sm:px-4">
+                  Acción
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
@@ -101,8 +115,8 @@ export function BillingPage() {
                 const phase = subscriptionPhaseMeta(row);
                 return (
                   <tr key={row.id} data-testid={`subscription-${row.id}`}>
-                    <td className="px-4 py-2.5 font-mono text-ink">{row.plan_id}</td>
-                    <td className="px-4 py-2.5">
+                    <td className="px-3 py-2.5 font-mono text-ink sm:px-4">{row.plan_id}</td>
+                    <td className="px-3 py-2.5 sm:px-4">
                       <span
                         className={`inline-flex items-center gap-1 rounded-sm px-2 py-0.5 text-xs font-medium ${phase.badgeClass}`}
                       >
@@ -110,15 +124,15 @@ export function BillingPage() {
                         {phase.label}
                       </span>
                     </td>
-                    <td className="px-4 py-2.5 font-mono text-xs tabular-nums text-ink">
+                    <td className="px-3 py-2.5 font-mono text-xs tabular-nums text-ink sm:px-4">
                       {formatDay(row.current_period_start)} → {formatDay(row.current_period_end)}
                     </td>
-                    <td className="px-4 py-2.5 text-right">
+                    <td className="sticky right-0 z-[1] border-l border-line bg-paper px-3 py-2.5 text-right sm:px-4">
                       {canCancelSubscription(row) ? (
                         <button
                           type="button"
-                          className="h-8 rounded-sm border border-danger bg-bone-raised px-3 text-xs font-medium text-danger"
-                          onClick={() => setSelectedId(row.id)}
+                          className="h-8 whitespace-nowrap rounded-sm border border-danger bg-bone-raised px-3 text-xs font-medium text-danger"
+                          onClick={(event) => openCancel(row.id, event.currentTarget)}
                         >
                           Cancelar al corte
                         </button>
@@ -140,6 +154,7 @@ export function BillingPage() {
           error={cancel.error}
           onDismiss={() => setSelectedId(null)}
           onConfirm={() => void confirmCancel()}
+          returnFocusRef={cancelTriggerRef}
         />
       ) : null}
     </div>

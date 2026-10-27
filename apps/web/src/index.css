@@ -29,6 +29,27 @@
   --color-warn: var(--warn);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
+
+  /* shadcn semantic aliases → KoiCloud tokens (owned by #137 / W2-15) */
+  --color-background: var(--bone);
+  --color-foreground: var(--ink);
+  --color-card: var(--bone-raised);
+  --color-card-foreground: var(--ink);
+  --color-popover: var(--bone-raised);
+  --color-popover-foreground: var(--ink);
+  --color-primary: var(--turquoise-700);
+  --color-primary-foreground: var(--bone-raised);
+  --color-secondary: var(--bone-sunk);
+  --color-secondary-foreground: var(--ink);
+  --color-muted: var(--bone-sunk);
+  --color-muted-foreground: var(--ink-muted);
+  --color-accent: var(--turquoise-100);
+  --color-accent-foreground: var(--turquoise-900);
+  --color-destructive: var(--danger);
+  --color-destructive-foreground: var(--bone-raised);
+  --color-border: var(--line);
+  --color-input: var(--line-control);
+  --color-ring: var(--turquoise-700);
 }
 
 :root {
