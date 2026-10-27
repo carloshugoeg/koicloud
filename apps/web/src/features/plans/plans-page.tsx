@@ -113,7 +113,13 @@ export function PlansPage() {
             })}
           </div>
 
-          <div className="overflow-x-auto rounded-sm border border-line bg-paper">
+          <div
+            className="overflow-x-auto rounded-sm border border-line bg-paper"
+            tabIndex={0}
+            role="region"
+            aria-label="Comparativa de características"
+            data-testid="plans-comparison-table"
+          >
             <div className="border-b border-line-control bg-bone-sunk px-4 py-3">
               <h2 className="text-xs font-medium uppercase tracking-[0.18em] text-ink-muted">
                 Comparativa de características
