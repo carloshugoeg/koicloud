@@ -198,4 +198,34 @@ describe("W2-02 Forgot and reset password flows", () => {
     expect(await screen.findByText("La contraseña no cumple los requisitos mínimos.")).toBeInTheDocument();
     expect(screen.getByText("password_too_weak")).toBeInTheDocument();
   });
+
+  it("shows token_invalid recovery when reset opens without a token", async () => {
+    renderAuthRoute("/reset");
+
+    expect(await screen.findByText("El token enviado no es válido.")).toBeInTheDocument();
+    expect(screen.getByText("token_invalid")).toBeInTheDocument();
+    expect(screen.queryByText("password_too_weak")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Volver a recuperar acceso" })).toBeInTheDocument();
+  });
+
+  it("shows client mismatch copy without a fake server error code", async () => {
+    const user = userEvent.setup();
+    renderAuthRoute("/reset?token=reset_token_123");
+
+    const longEnough = "a".repeat(MIN_PASSWORD_LENGTH);
+    await user.type(screen.getByLabelText("Nueva contraseña"), longEnough);
+    await user.type(screen.getByLabelText("Confirmar contraseña"), `${longEnough}x`);
+    await user.click(screen.getByRole("button", { name: "Guardar contraseña" }));
+
+    expect(await screen.findByText("Las contraseñas no coinciden.")).toBeInTheDocument();
+    expect(screen.queryByText("password_too_weak")).not.toBeInTheDocument();
+    expect(screen.queryByText("token_invalid")).not.toBeInTheDocument();
+  });
+
+  it("shows token_invalid when verify opens without a token", async () => {
+    renderAuthRoute("/verify");
+
+    expect(await screen.findByText("El token enviado no es válido.")).toBeInTheDocument();
+    expect(screen.getByText("token_invalid")).toBeInTheDocument();
+  });
 });
