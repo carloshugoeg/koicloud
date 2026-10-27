@@ -88,3 +88,12 @@ def test_read_body_over_max_raises(monkeypatch: pytest.MonkeyPatch) -> None:
 
     with pytest.raises(mod.BodyTooLarge):
         mod._read_body(_Handler())  # type: ignore[arg-type]  # minimal stub for BaseHTTPRequestHandler
+
+
+def test_oversize_body_response_json_has_code() -> None:
+    """413 JSON shape includes code (payload_too_large)."""
+    from pathlib import Path
+
+    src = (Path(__file__).resolve().parents[2] / "web" / "api" / "index.py").read_text()
+    assert '"code":"payload_too_large"' in src
+    assert "handler.send_response(413)" in src

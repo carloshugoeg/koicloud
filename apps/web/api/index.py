@@ -267,7 +267,10 @@ def _serve(handler: BaseHTTPRequestHandler) -> None:
     try:
         body = _read_body(handler)
     except BodyTooLarge:
-        raw = b'{"message":"Request body too large","request_id":null}'
+        raw = (
+            b'{"code":"payload_too_large","message":"Request body too large",'
+            b'"request_id":null}'
+        )
         handler.send_response(413)
         handler.send_header("Content-Type", "application/json")
         handler.send_header("Content-Length", str(len(raw)))
