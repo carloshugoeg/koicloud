@@ -30,8 +30,9 @@ describe("W2-15 Historial de suscripciones", () => {
     renderBilling();
 
     expect(await screen.findByRole("heading", { name: "Suscripciones" })).toBeInTheDocument();
-    const row = await screen.findByTestId(`subscription-${fixtures.subscriptionResponse.subscription.id}`);
-    expect(within(row).getByText("micro")).toBeInTheDocument();
+    const subscription = fixtures.subscriptionResponse.subscription;
+    const row = await screen.findByTestId(`subscription-${subscription.id}`);
+    expect(within(row).getByText(subscription.plan_id)).toBeInTheDocument();
     expect(within(row).getByText("Activa")).toBeInTheDocument();
     expect(within(row).getByText("2026-09-22 → 2026-10-22")).toBeInTheDocument();
     expect(within(row).getByRole("button", { name: "Cancelar al corte" })).toBeInTheDocument();
