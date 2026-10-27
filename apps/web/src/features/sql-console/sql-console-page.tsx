@@ -6,7 +6,11 @@ import { useRunSqlMutation, type SQLMode, type SQLResultResponse } from "@/api/h
 import { ApiError, problemToMessage } from "@/lib/errors";
 import { SqlHistoryPanel } from "@/features/sql-console/sql-history-panel";
 import { SqlResults } from "@/features/sql-console/sql-results";
-import { sqlEditorChrome, sqlSyntaxHighlight } from "@/features/sql-console/sql-editor-theme";
+import {
+  sqlEditorA11y,
+  sqlEditorChrome,
+  sqlSyntaxHighlight,
+} from "@/features/sql-console/sql-editor-theme";
 
 type Outcome =
   | { kind: "idle" }
@@ -113,10 +117,9 @@ export function SqlConsolePage() {
               value={query}
               height="220px"
               theme={sqlEditorChrome}
-              extensions={[sql(), sqlSyntaxHighlight]}
+              extensions={[sql(), sqlSyntaxHighlight, sqlEditorA11y]}
               basicSetup={{ lineNumbers: true, foldGutter: false, syntaxHighlighting: false }}
               onChange={setQuery}
-              aria-label="Editor SQL"
             />
           </div>
 
@@ -129,7 +132,7 @@ export function SqlConsolePage() {
               <div className="border-l-[3px] border-danger pl-3">
                 <p className="text-sm text-ink">{problemToMessage(outcome.error)}</p>
                 {outcome.error instanceof ApiError && outcome.error.problem?.code ? (
-                  <p className="mt-1 font-mono text-xs text-ink-faint">
+                  <p className="mt-1 font-mono text-xs text-ink-muted">
                     {outcome.error.problem.code}
                   </p>
                 ) : null}

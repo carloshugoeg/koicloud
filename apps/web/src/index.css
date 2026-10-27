@@ -141,7 +141,11 @@ select {
   min-height: 100vh;
 }
 
-a {
+/*
+  Default link ink is turquoise-700 (AA on bone). Utility classes such as
+  text-ink / text-ink-muted must win for secondary button-links and mono.
+*/
+a:not([class*="text-"]) {
   color: var(--turquoise-700);
   text-decoration-color: var(--turquoise-300);
 }
@@ -247,8 +251,20 @@ button:disabled {
   animation: pond-row-flash 600ms var(--ease);
 }
 
-.dialog-veil {
-  background: rgba(20, 33, 31, 0.32);
+/* Opaque scrim so page text cannot bleed through create/confirm dialogs. */
+.dialog-veil,
+.create-pond-veil {
+  background: color-mix(in srgb, var(--ink) 72%, var(--bone));
+}
+
+.create-pond-dialog {
+  background: var(--bone-raised);
+  border: 1px solid var(--line-control);
+  box-shadow: var(--shadow-dialog);
+}
+
+.create-pond-dialog__accent {
+  background: var(--turquoise-700);
 }
 
 @media (prefers-reduced-motion: reduce) {

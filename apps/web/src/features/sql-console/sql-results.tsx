@@ -2,7 +2,7 @@ import type { SQLMode, SQLResultResponse } from "@/api/hooks/sql-console";
 
 function cellView(value: unknown) {
   if (value === null || value === undefined) {
-    return { text: "NULL", className: "italic text-ink-faint" };
+    return { text: "NULL", className: "italic text-ink-muted" };
   }
   if (typeof value === "object") {
     return { text: JSON.stringify(value), className: "text-ink" };

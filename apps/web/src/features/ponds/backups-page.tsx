@@ -4,9 +4,12 @@ import {
   useGetPond,
   useListBackups,
   useRestoreBackupMutation,
+  useTriggerBackupMutation,
   type Backup,
 } from "@/api/hooks/ponds";
 import { problemToMessage } from "@/lib/errors";
+import { BackupConfirmDialog } from "@/features/ponds/backup-confirm-dialog";
+import { RestoreDialog } from "@/features/ponds/restore-dialog";
 import { pondStateMeta } from "@/features/ponds/pond-state";
 
 function formatBytes(size: number): string {
@@ -38,9 +41,12 @@ export function BackupsPage() {
   const pondQuery = useGetPond(pondId || undefined);
   const backupsQuery = useListBackups(pondId || undefined);
   const restoreMutation = useRestoreBackupMutation(pondId);
+  const backupMutation = useTriggerBackupMutation(pondId);
   const [selected, setSelected] = useState<Backup | null>(null);
   const [confirmName, setConfirmName] = useState("");
+  const [backupOpen, setBackupOpen] = useState(false);
   const [queuedJobId, setQueuedJobId] = useState<string | null>(null);
+  const [backupJobId, setBackupJobId] = useState<string | null>(null);
 
   if (pondQuery.isPending || backupsQuery.isPending) {
     return (
@@ -75,10 +81,9 @@ export function BackupsPage() {
   const pond = pondQuery.data;
   const backups = backupsQuery.data ?? [];
   const meta = pond ? pondStateMeta(pond.observed_state) : null;
-  const nameMatches = Boolean(pond && confirmName === pond.name);
 
   async function handleRestore() {
-    if (!selected || !pond || !nameMatches) return;
+    if (!selected || !pond || confirmName !== pond.name) return;
     try {
       const result = await restoreMutation.mutateAsync(selected.id);
       setQueuedJobId(result.job.id);
@@ -86,6 +91,16 @@ export function BackupsPage() {
       setConfirmName("");
     } catch {
       // surfaced via restoreMutation.error
+    }
+  }
+
+  async function handleBackup() {
+    try {
+      const result = await backupMutation.mutateAsync();
+      setBackupJobId(result.job.id);
+      setBackupOpen(false);
+    } catch {
+      // surfaced via backupMutation.error
     }
   }
 
@@ -114,7 +129,26 @@ export function BackupsPage() {
             <span className="font-medium text-ink">Respaldos</span>
           </nav>
         </div>
+        <button
+          type="button"
+          className="h-8 rounded-sm border border-line-control bg-bone-raised px-3 text-sm font-medium text-ink disabled:text-ink-muted"
+          disabled={!pond || backupMutation.isPending}
+          onClick={() => setBackupOpen(true)}
+          data-testid="trigger-backup"
+        >
+          Respaldar ahora
+        </button>
       </div>
+
+      {backupJobId ? (
+        <div
+          className="rounded-md border border-line bg-turquoise-100 px-4 py-3 text-sm text-turquoise-900"
+          data-testid="backup-queued"
+        >
+          Respaldo encolado. Job <span className="font-mono">{backupJobId}</span> · estado{" "}
+          <span className="font-mono">queued</span>.
+        </div>
+      ) : null}
 
       {queuedJobId ? (
         <div
@@ -178,6 +212,7 @@ export function BackupsPage() {
                       <button
                         type="button"
                         className="text-sm font-medium text-turquoise-700 hover:text-turquoise-900"
+                        data-testid="open-restore"
                         onClick={() => {
                           setSelected(backup);
                           setConfirmName("");
@@ -201,64 +236,30 @@ export function BackupsPage() {
       )}
 
       {selected && pond ? (
-        <div
-          className="dialog-veil fixed inset-0 z-50 flex items-center justify-center p-4"
-          data-testid="restore-dialog"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="restore-title"
-        >
-          <div className="w-full max-w-lg rounded-md border border-line-control bg-bone-raised shadow-dialog">
-            <div className="h-1 bg-danger" />
-            <div className="space-y-4 p-5">
-              <h3 id="restore-title" className="font-display text-2xl text-ink">
-                Restaurar respaldo del {formatWhen(selected.created_at)}
-              </h3>
-              <div className="rounded-sm border border-danger bg-danger-soft px-3 py-2 text-sm text-ink">
-                Esto borra los datos actuales de{" "}
-                <span className="font-mono font-medium">{pond.name}</span> y los reemplaza por el
-                respaldo. No se puede deshacer.
-              </div>
-              <label className="block space-y-1.5">
-                <span className="text-xs font-medium uppercase tracking-[0.14em] text-ink-muted">
-                  Escribe el nombre del pond para confirmar
-                </span>
-                <input
-                  className="h-9 w-full rounded-sm border border-line-control bg-paper px-3 font-mono text-sm text-ink"
-                  value={confirmName}
-                  onChange={(e) => setConfirmName(e.target.value)}
-                  autoComplete="off"
-                  data-testid="restore-confirm-input"
-                />
-                <span className="block text-xs text-ink-muted">
-                  Esperado: <span className="font-mono font-medium text-ink">{pond.name}</span>
-                </span>
-              </label>
-            </div>
-            <div className="flex items-center gap-3 border-t border-line px-5 py-4">
-              <button
-                type="button"
-                className="h-9 rounded-sm border border-line-control bg-bone-raised px-4 text-sm font-medium"
-                onClick={() => {
-                  setSelected(null);
-                  setConfirmName("");
-                }}
-              >
-                Cancelar
-              </button>
-              <span className="grow" />
-              <button
-                type="button"
-                className="h-9 rounded-sm bg-danger px-4 text-sm font-medium text-bone-raised disabled:bg-bone-sunk disabled:text-ink-faint"
-                disabled={!nameMatches || restoreMutation.isPending}
-                onClick={() => void handleRestore()}
-                data-testid="restore-confirm-button"
-              >
-                {restoreMutation.isPending ? "Restaurando…" : "Restaurar pond"}
-              </button>
-            </div>
-          </div>
-        </div>
+        <RestoreDialog
+          pondName={pond.name}
+          backup={selected}
+          confirmName={confirmName}
+          pending={restoreMutation.isPending}
+          onConfirmNameChange={setConfirmName}
+          onCancel={() => {
+            setSelected(null);
+            setConfirmName("");
+          }}
+          onConfirm={() => void handleRestore()}
+        />
+      ) : null}
+
+      {backupOpen && pond ? (
+        <BackupConfirmDialog
+          pondName={pond.name}
+          pending={backupMutation.isPending}
+          errorMessage={
+            backupMutation.isError ? problemToMessage(backupMutation.error) : null
+          }
+          onCancel={() => setBackupOpen(false)}
+          onConfirm={() => void handleBackup()}
+        />
       ) : null}
     </div>
   );

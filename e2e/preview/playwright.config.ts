@@ -32,6 +32,7 @@ export default defineConfig({
       name: "chromium",
       use: {
         browserName: "chromium",
+        // Default before each flow; capture() also shoots 375 and 768.
         viewport: { width: 1440, height: 900 },
       },
     },

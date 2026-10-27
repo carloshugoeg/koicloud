@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { HttpResponse, http } from "msw";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
@@ -131,5 +131,48 @@ describe("W2-06 Detalle del pond y conexión", () => {
     expect(screen.getByText("No encontramos ese pond.")).toBeInTheDocument();
     expect(screen.getByText("pond_not_found")).toBeInTheDocument();
     expect(screen.queryByText(/at Object|TypeError|stack/i)).not.toBeInTheDocument();
+  });
+
+  it("shows Respaldar ahora and Eliminar without Detener or Iniciar", async () => {
+    renderDetail();
+    expect(await screen.findByTestId("pond-detail-actions")).toBeInTheDocument();
+    expect(screen.getByTestId("trigger-backup")).toHaveTextContent("Respaldar ahora");
+    expect(screen.getByTestId("open-delete-pond")).toHaveTextContent("Eliminar…");
+    expect(screen.queryByRole("button", { name: /Detener|Iniciar/i })).not.toBeInTheDocument();
+  });
+
+  it("confirms before queuing an on-demand backup", async () => {
+    const user = userEvent.setup();
+    renderDetail();
+    expect(await screen.findByTestId("trigger-backup")).toBeInTheDocument();
+    await user.click(screen.getByTestId("trigger-backup"));
+
+    const dialog = await screen.findByTestId("backup-confirm-dialog");
+    await user.click(within(dialog).getByTestId("backup-confirm-button"));
+    expect(await screen.findByTestId("backup-queued")).toHaveTextContent("job_backup_01");
+    expect(screen.queryByTestId("backup-confirm-dialog")).not.toBeInTheDocument();
+  });
+
+  it("requires typing the pond name before delete confirm", async () => {
+    const user = userEvent.setup();
+    renderDetail();
+    expect(await screen.findByTestId("open-delete-pond")).toBeInTheDocument();
+    await user.click(screen.getByTestId("open-delete-pond"));
+
+    const dialog = await screen.findByTestId("delete-pond-dialog");
+    const confirm = within(dialog).getByTestId("delete-confirm-button");
+    expect(confirm).toBeDisabled();
+
+    await user.type(within(dialog).getByTestId("delete-confirm-input"), "nombre-incorrecto");
+    expect(confirm).toBeDisabled();
+
+    await user.clear(within(dialog).getByTestId("delete-confirm-input"));
+    await user.type(within(dialog).getByTestId("delete-confirm-input"), fixtures.pond.name);
+    expect(confirm).toBeEnabled();
+
+    await user.click(confirm);
+    await waitFor(() => {
+      expect(screen.queryByTestId("delete-pond-dialog")).not.toBeInTheDocument();
+    });
   });
 });

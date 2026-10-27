@@ -54,12 +54,17 @@ async def create_pond(
             engine_version=payload.engine_version,
         )
         if settings.koi_preview_mock:
+            from app.core.enums import PondObservedState
             from app.core.preview_mock import drain_preview_jobs
             from app.modules.ponds.service import pond_to_out
 
-            await drain_preview_jobs(session, settings, pond_id=pond_out.id)
-            pond_model, status = await service.get_owned(actor, pond_out.id)
-            pond_out = pond_to_out(pond_model, status)
+            # Cold serverless instances can flake once on the first drain.
+            for _ in range(2):
+                await drain_preview_jobs(session, settings, pond_id=pond_out.id)
+                pond_model, status = await service.get_owned(actor, pond_out.id)
+                pond_out = pond_to_out(pond_model, status)
+                if pond_out.observed_state == PondObservedState.RUNNING:
+                    break
         await session.commit()
         return CreatePondResponse(pond=pond_out, job=job)
 

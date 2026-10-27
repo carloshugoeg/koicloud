@@ -1,17 +1,30 @@
 import { useState } from "react";
-import { Link, useParams } from "react-router-dom";
-import { pondIsTransient, useGetConnection, useGetPond } from "@/api/hooks/ponds";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import {
+  pondIsTransient,
+  useDeletePondMutation,
+  useGetConnection,
+  useGetPond,
+  useTriggerBackupMutation,
+} from "@/api/hooks/ponds";
 import { ApiError, problemToMessage } from "@/lib/errors";
+import { BackupConfirmDialog } from "@/features/ponds/backup-confirm-dialog";
+import { ConnectionCard } from "@/features/ponds/connection-card";
+import { DeletePondDialog } from "@/features/ponds/delete-pond-dialog";
+import { PondRiskZone } from "@/features/ponds/pond-risk-zone";
 import { pondStateMeta } from "@/features/ponds/pond-state";
-
-const MASK = "••••••••";
 
 export function PondDetailPage() {
   const { pondId = "" } = useParams();
+  const navigate = useNavigate();
   const pondQuery = useGetPond(pondId || undefined);
   const connectionQuery = useGetConnection(pondId || undefined);
-  const [revealed, setRevealed] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const backupMutation = useTriggerBackupMutation(pondId);
+  const deleteMutation = useDeletePondMutation(pondId);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [backupOpen, setBackupOpen] = useState(false);
+  const [confirmName, setConfirmName] = useState("");
+  const [backupJobId, setBackupJobId] = useState<string | null>(null);
 
   if (pondQuery.isPending) {
     return (
@@ -29,7 +42,7 @@ export function PondDetailPage() {
       <div className="rounded-md border border-line bg-bone-raised p-5" data-testid="pond-detail-error">
         <div className="border-l-[3px] border-danger pl-3">
           <p className="text-sm text-ink">{problemToMessage(pondQuery.error)}</p>
-          {code ? <p className="mt-1 font-mono text-xs text-ink-faint">{code}</p> : null}
+          {code ? <p className="mt-1 font-mono text-xs text-ink-muted">{code}</p> : null}
         </div>
         <button
           type="button"
@@ -61,15 +74,33 @@ export function PondDetailPage() {
   const meta = pondStateMeta(pond.observed_state);
   const inProgress = pondIsTransient(pond.observed_state);
   const failed = pond.observed_state === "failed";
-  const connection = connectionQuery.data;
-  const connectionPending = connectionQuery.isPending;
-  const connectionError = connectionQuery.isError;
+  const actionsDisabled = inProgress || pond.observed_state === "deleted";
 
-  async function copyUri() {
-    if (!connection?.uri) return;
-    await navigator.clipboard.writeText(connection.uri);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1_200);
+  async function handleBackup() {
+    try {
+      const result = await backupMutation.mutateAsync();
+      setBackupJobId(result.job.id);
+      setBackupOpen(false);
+    } catch {
+      // surfaced via backupMutation.error
+    }
+  }
+
+  async function handleDelete() {
+    if (confirmName !== pond.name) return;
+    try {
+      await deleteMutation.mutateAsync();
+      setDeleteOpen(false);
+      setConfirmName("");
+      void navigate("/app/ponds");
+    } catch {
+      // surfaced via deleteMutation.error
+    }
+  }
+
+  function openDelete() {
+    setConfirmName("");
+    setDeleteOpen(true);
   }
 
   return (
@@ -99,7 +130,37 @@ export function PondDetailPage() {
             </Link>
           </nav>
         </div>
+        <div className="flex flex-wrap gap-2" data-testid="pond-detail-actions">
+          <button
+            type="button"
+            className="h-8 rounded-sm border border-line-control bg-bone-raised px-3 text-sm font-medium text-ink disabled:text-ink-muted"
+            disabled={actionsDisabled || backupMutation.isPending}
+            onClick={() => setBackupOpen(true)}
+            data-testid="trigger-backup"
+          >
+            Respaldar ahora
+          </button>
+          <button
+            type="button"
+            className="h-8 rounded-sm border border-danger bg-bone-raised px-3 text-sm font-medium text-danger disabled:border-line-control disabled:text-ink-muted"
+            disabled={actionsDisabled || deleteMutation.isPending}
+            onClick={openDelete}
+            data-testid="open-delete-pond"
+          >
+            Eliminar…
+          </button>
+        </div>
       </div>
+
+      {backupJobId ? (
+        <div
+          className="rounded-md border border-line bg-turquoise-100 px-4 py-3 text-sm text-turquoise-900"
+          data-testid="backup-queued"
+        >
+          Respaldo encolado. Job <span className="font-mono">{backupJobId}</span> · estado{" "}
+          <span className="font-mono">queued</span>.
+        </div>
+      ) : null}
 
       {inProgress ? (
         <section
@@ -140,76 +201,43 @@ export function PondDetailPage() {
         </section>
       ) : null}
 
-      <section className="rounded-md border border-line bg-paper p-5" data-testid="connection-card">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h3 className="font-display text-xl text-ink">Cadena de conexión</h3>
-            <p className="text-sm text-ink-muted">Host, puerto, usuario, base y URI. Contraseña oculta por defecto.</p>
-          </div>
-          <button
-            type="button"
-            className="h-9 rounded-sm border border-line-control bg-bone-raised px-4 text-sm font-medium text-turquoise-700 disabled:text-ink-faint"
-            disabled={!connection?.uri || connectionPending}
-            onClick={() => void copyUri()}
-            data-testid="copy-uri"
-          >
-            {copied ? "URI copiada" : "Copiar URI"}
-          </button>
-        </div>
+      <ConnectionCard
+        connection={connectionQuery.data}
+        pending={connectionQuery.isPending}
+        error={connectionQuery.isError ? connectionQuery.error : null}
+      />
 
-        {connectionPending ? (
-          <div className="mt-4 h-32 animate-pulse rounded-sm bg-bone-sunk" />
-        ) : null}
+      <PondRiskZone
+        disabled={actionsDisabled || deleteMutation.isPending}
+        onDelete={openDelete}
+      />
 
-        {connectionError ? (
-          <div className="mt-4 border-l-[3px] border-danger pl-3 text-sm text-ink">
-            {problemToMessage(connectionQuery.error)}
-          </div>
-        ) : null}
+      {backupOpen ? (
+        <BackupConfirmDialog
+          pondName={pond.name}
+          pending={backupMutation.isPending}
+          errorMessage={
+            backupMutation.isError ? problemToMessage(backupMutation.error) : null
+          }
+          onCancel={() => setBackupOpen(false)}
+          onConfirm={() => void handleBackup()}
+        />
+      ) : null}
 
-        {connection ? (
-          <dl className="mt-4 grid gap-3 font-mono text-sm text-ink md:grid-cols-2">
-            <div>
-              <dt className="text-xs uppercase tracking-[0.14em] text-ink-muted">Host</dt>
-              <dd data-testid="conn-host">{connection.host}</dd>
-            </div>
-            <div>
-              <dt className="text-xs uppercase tracking-[0.14em] text-ink-muted">Puerto</dt>
-              <dd data-testid="conn-port">{connection.port}</dd>
-            </div>
-            <div>
-              <dt className="text-xs uppercase tracking-[0.14em] text-ink-muted">Usuario</dt>
-              <dd data-testid="conn-user">{connection.username}</dd>
-            </div>
-            <div>
-              <dt className="text-xs uppercase tracking-[0.14em] text-ink-muted">Base</dt>
-              <dd data-testid="conn-db">{connection.database}</dd>
-            </div>
-            <div className="md:col-span-2">
-              <dt className="text-xs uppercase tracking-[0.14em] text-ink-muted">Contraseña</dt>
-              <dd className="flex flex-wrap items-center gap-3">
-                <span data-testid="conn-password">{revealed ? connection.password : MASK}</span>
-                <button
-                  type="button"
-                  className="text-xs font-medium text-turquoise-700"
-                  onClick={() => setRevealed((v) => !v)}
-                  data-testid="reveal-password"
-                >
-                  {revealed ? "Ocultar" : "Revelar"}
-                </button>
-              </dd>
-            </div>
-            <div className="md:col-span-2">
-              <dt className="text-xs uppercase tracking-[0.14em] text-ink-muted">URI</dt>
-              <dd className="break-all" data-testid="conn-uri">
-                {revealed
-                  ? connection.uri
-                  : `postgresql://${connection.username}:${MASK}@${connection.host}:${connection.port}/${connection.database}`}
-              </dd>
-            </div>
-          </dl>
-        ) : null}
-      </section>
+      {deleteOpen ? (
+        <DeletePondDialog
+          pondName={pond.name}
+          confirmName={confirmName}
+          pending={deleteMutation.isPending}
+          error={deleteMutation.error}
+          onConfirmNameChange={setConfirmName}
+          onCancel={() => {
+            setDeleteOpen(false);
+            setConfirmName("");
+          }}
+          onSubmit={() => void handleDelete()}
+        />
+      ) : null}
     </div>
   );
 }

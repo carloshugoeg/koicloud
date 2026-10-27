@@ -2,6 +2,10 @@ import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { EditorView } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
 
+export const sqlEditorA11y = EditorView.contentAttributes.of({
+  "aria-label": "Consulta SQL",
+});
+
 export const sqlEditorChrome = EditorView.theme(
   {
     "&": {
@@ -47,8 +51,9 @@ export const sqlSyntaxHighlight = syntaxHighlighting(
       },
       { tag: tags.keyword, color: "var(--turquoise-700)", fontWeight: "500" },
       { tag: tags.string, color: "var(--green-700)" },
-      { tag: tags.number, color: "var(--lagoon)" },
-      { tag: tags.comment, color: "var(--ink-faint)", fontStyle: "italic" },
+      /* lagoon / ink-faint are not paragraph colors on bone (AA) */
+      { tag: tags.number, color: "var(--turquoise-700)" },
+      { tag: tags.comment, color: "var(--ink-muted)", fontStyle: "italic" },
     ],
     { themeType: "light" },
   ),

@@ -26,9 +26,8 @@ UI_FLOWS = (
     "auth error",
     "plans / simulated checkout",
     "pond create",
-    "pond start (→ running)",
-    # pond stop omitted: start/stop not in #142 / B1; preview asserts running only.
     "pond backup",
+    "pond restore",
     "pond delete",
     "pond limits / errors",
     "SQL console",
@@ -59,8 +58,8 @@ SLUGS = {
     "auth error": "auth-error",
     "plans / simulated checkout": "plans-checkout",
     "pond create": "pond-create",
-    "pond start (→ running)": "pond-start",
     "pond backup": "pond-backup",
+    "pond restore": "pond-restore",
     "pond delete": "pond-delete",
     "pond limits / errors": "pond-limits",
     "SQL console": "sql-console",
@@ -80,7 +79,8 @@ def main() -> int:
         "https://koicloud-web-git-w1-e2e-preview-verify-hugos-projects-3379fa36.vercel.app",
     )
     sha = (
-        os.environ.get("KOI_GIT_SHA")
+        os.environ.get("PREVIEW_HEAD_SHA")
+        or os.environ.get("KOI_GIT_SHA")
         or os.environ.get("GITHUB_SHA")
         or ""
     ).strip()
@@ -105,19 +105,22 @@ def main() -> int:
         "",
         "## Pond and product flows",
         "",
-        "| Flow | Result | 375 | 1440 | Notes |",
-        "|------|--------|-----|------|-------|",
+        "| Flow | Result | 375 | 768 | 1440 | Notes |",
+        "|------|--------|-----|-----|------|-------|",
     ]
     for flow in UI_FLOWS:
         row = ui_by_flow.get(flow, {})
         result = _result(row.get("result"))
         note = redact(_text(row.get("note")) or "not run", secrets)
-        slug = SLUGS[flow]
         shot375 = "yes" if row.get("shot375") else "no"
+        shot768 = "yes" if row.get("shot768") else "no"
         shot1440 = "yes" if row.get("shot1440") else "no"
-        lines.append(f"| {flow} | {result} | {shot375} | {shot1440} | {note} |")
+        lines.append(f"| {flow} | {result} | {shot375} | {shot768} | {shot1440} | {note} |")
     lines.extend(
         [
+            "",
+            "Start/stop UI asserts: deferred (wave B1 / Carlos 9:00 batch). "
+            "Preview create drains to `running` without a VPS.",
             "",
             "## MCP tools (real JSON-RPC client → preview `/mcp`, proxied to sim)",
             "",

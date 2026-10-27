@@ -10,12 +10,10 @@ import { errorNote } from "./support/redact";
 import {
   api,
   clickNav,
-  deletePond,
   ensureProPlan,
   login,
   purgePonds,
   resetSession,
-  triggerBackup,
 } from "./support/session";
 
 test.beforeEach(async ({ page }) => {
@@ -89,7 +87,7 @@ test("plans checkout", async ({ page }) => {
 
 test("pond lifecycle", async ({ page }) => {
   // Preview QueryClient staleTime is 30s; delete UI needs a refetch after that.
-  // Pond stop is out of #142 / B1 scope — not asserted here.
+  // Start/stop UI deferred (wave B1). Preview create drains jobs → running.
   test.setTimeout(180_000);
   const creds = loadGateCreds();
   const hidden = secrets(creds);
@@ -113,6 +111,7 @@ test("pond lifecycle", async ({ page }) => {
     for (let attempt = 0; attempt < 3; attempt += 1) {
       const name = attempt === 0 ? pondNameBase : `${pondNameBase}${attempt}`;
       await clickNav(page, "Crear pond");
+      await expect(page.getByTestId("create-pond-veil")).toBeVisible();
       await page.getByTestId("create-pond-name").fill(name);
       await expect(page.getByText("nombre válido")).toBeVisible();
       const navigated = page.waitForURL(/\/app\/ponds\/[0-9a-f-]{36}/i, { timeout: 45_000 });
@@ -122,12 +121,23 @@ test("pond lifecycle", async ({ page }) => {
         pondId = new URL(page.url()).pathname.split("/").pop() ?? "";
         pondName = name;
         await expect(page.getByRole("heading", { name })).toBeVisible();
-        return `created ${name}`;
-      } catch {
-        const error = page.getByTestId("create-pond-error");
-        if ((await error.count()) > 0) {
-          lastError = (await error.innerText()).replace(/\s+/g, " ").slice(0, 180);
-          // Cold preview / one-shot internal_error: dismiss and retry with a fresh name.
+        // Preview mock drains CREATE_POND inline — no VPS / start control.
+        await expect(page.getByTestId("pond-status-badge")).toContainText("En línea", {
+          timeout: 45_000,
+        });
+        const fetched = await api(page, "GET", `/api/v1/ponds/${pondId}`);
+        const state =
+          (fetched.json as { pond?: { observed_state?: unknown } } | null)?.pond?.observed_state;
+        if (state !== "running") {
+          throw new Error(`GET pond state ${String(state)} (want running)`);
+        }
+        await expect(page.getByTestId("pond-detail-actions")).toBeVisible();
+        await expect(page.getByRole("button", { name: /Detener|Iniciar/i })).toHaveCount(0);
+        return `created ${name} running (preview drain)`;
+      } catch (error) {
+        const errBox = page.getByTestId("create-pond-error");
+        if ((await errBox.count()) > 0) {
+          lastError = (await errBox.innerText()).replace(/\s+/g, " ").slice(0, 180);
           if (/internal_error|Algo salió mal/i.test(lastError) && attempt < 2) {
             await page.goto("/app");
             await page.waitForTimeout(1_000 * (attempt + 1));
@@ -135,30 +145,23 @@ test("pond lifecycle", async ({ page }) => {
           }
           throw new Error(lastError);
         }
-        throw new Error(lastError);
+        if (error instanceof Error && /internal_error|Algo salió mal/i.test(error.message) && attempt < 2) {
+          await page.goto("/app");
+          await page.waitForTimeout(1_000 * (attempt + 1));
+          continue;
+        }
+        throw error;
       }
     }
     throw new Error(lastError);
   });
 
-  await check(page, failures, "pond start (→ running)", "pond-start", hidden, async () => {
-    if (!pondId) throw new Error("no pond id from create");
-    // Preview mock drains CREATE_POND inline to running; poll badge + API.
-    await expect(page.getByTestId("pond-status-badge")).toContainText("En línea", {
-      timeout: 45_000,
-    });
-    const fetched = await api(page, "GET", `/api/v1/ponds/${pondId}`);
-    const state =
-      (fetched.json as { pond?: { observed_state?: unknown } } | null)?.pond?.observed_state;
-    if (state !== "running") {
-      throw new Error(`GET pond state ${String(state)} (want running)`);
-    }
-    return "badge En línea";
-  });
-
   await check(page, failures, "SQL console", "sql-console", hidden, async () => {
     await page.getByRole("link", { name: "Consola" }).click();
     await expect(page.getByTestId("sql-console")).toBeVisible();
+    const sqlNamed = page.getByRole("textbox", { name: "Consulta SQL" });
+    const sqlEditor = page.getByTestId("sql-editor");
+    await expect(sqlNamed.or(sqlEditor)).toBeVisible();
     await page.getByTestId("sql-run").click();
     await expect(page.getByTestId("sql-results")).toBeVisible();
     await expect(page.getByTestId("sql-results-meta")).toContainText("filas");
@@ -166,14 +169,39 @@ test("pond lifecycle", async ({ page }) => {
   });
 
   await check(page, failures, "pond backup", "pond-backup", hidden, async () => {
-    const status = await triggerBackup(page, pondId);
-    if (status !== 200 && status !== 202) {
-      throw new Error(`backup HTTP ${status}`);
-    }
+    await page.getByRole("link", { name: "Resumen" }).click();
+    await expect(page.getByTestId("pond-detail")).toBeVisible();
+    await page.getByTestId("trigger-backup").click();
+    const dialog = page.getByTestId("backup-confirm-dialog");
+    await expect(dialog).toBeVisible();
+    await dialog.getByTestId("backup-confirm-button").click();
+    await expect(page.getByTestId("backup-queued")).toBeVisible({ timeout: 30_000 });
     await page.getByRole("link", { name: "Respaldos" }).click();
     await expect(page.getByTestId("backups-page")).toBeVisible();
     await expect(page.getByTestId("backups-empty")).toHaveCount(0);
-    return `backup list visible after HTTP ${status}`;
+    return "backup confirm dialog → list visible";
+  });
+
+  await check(page, failures, "pond restore", "pond-restore", hidden, async () => {
+    await expect(page.getByTestId("backups-page")).toBeVisible();
+    const restoreBtn = page.getByTestId("open-restore").first();
+    await expect(restoreBtn).toBeVisible();
+    await restoreBtn.click();
+    const dialog = page.getByTestId("restore-dialog");
+    await expect(dialog).toBeVisible();
+    await dialog.getByTestId("restore-confirm-input").fill(pondName);
+    await dialog.getByTestId("restore-confirm-button").click();
+    await expect(page.getByTestId("restore-queued").or(page.getByTestId("pond-status-badge"))).toBeVisible({
+      timeout: 30_000,
+    });
+    await page.getByRole("link", { name: "Resumen" }).click();
+    await expect(page.getByTestId("pond-status-badge")).toContainText(/En línea|Restaurando/, {
+      timeout: 30_000,
+    });
+    await expect(page.getByTestId("pond-status-badge")).toContainText("En línea", {
+      timeout: 45_000,
+    });
+    return "restore confirm dialog → running";
   });
 
   await check(page, failures, "pond limits / errors", "pond-limits", hidden, async () => {
@@ -181,7 +209,6 @@ test("pond lifecycle", async ({ page }) => {
     await page.getByTestId("create-pond-name").fill("A");
     await expect(page.getByTestId("create-pond-issues")).toContainText("Mínimo 3 caracteres.");
     await expect(page.getByTestId("create-pond-submit")).toBeDisabled();
-    // Stop is out of #142 scope — duplicate name against the still-running pond.
     await page.getByTestId("create-pond-name").fill(pondName);
     await expect(page.getByTestId("create-pond-submit")).toBeEnabled();
     await page.getByTestId("create-pond-submit").click();
@@ -202,21 +229,30 @@ test("pond lifecycle", async ({ page }) => {
   });
 
   await check(page, failures, "pond delete", "pond-delete", hidden, async () => {
-    await deletePond(page, pondId);
+    await page.getByRole("link", { name: "Cancelar" }).click();
+    await expect(page).toHaveURL(/\/app\/ponds\/?$/);
+    await page.locator(`tr[data-pond-id="${pondId}"]`).getByRole("link", { name: "Abrir" }).click();
+    await expect(page.getByTestId("pond-detail")).toBeVisible();
+    await page.getByTestId("open-delete-pond").click();
+    const dialog = page.getByTestId("delete-pond-dialog");
+    await expect(dialog).toBeVisible();
+    await dialog.getByTestId("delete-confirm-input").fill(pondName);
+    await dialog.getByTestId("delete-confirm-button").click();
+    await expect(page).toHaveURL(/\/app\/ponds\/?$/, { timeout: 45_000 });
     const listed = await api(page, "GET", "/api/v1/ponds");
     const ponds = (listed.json as { ponds?: Array<{ id?: unknown }> } | null)?.ponds;
     if (!Array.isArray(ponds)) {
-      throw new Error("sim list ponds missing after delete");
+      throw new Error("list ponds missing after delete");
     }
     if (ponds.some((row) => row && row.id === pondId)) {
-      throw new Error("sim list still contains the deleted pond id");
+      throw new Error("list still contains the deleted pond id");
     }
     resetSession();
     await login(page, creds.user);
     await expect(page).toHaveURL(/\/app/);
     await expect(page.locator(`tr[data-pond-id="${pondId}"]`)).toHaveCount(0);
     await expect(page.getByRole("cell", { name: pondName, exact: true })).toHaveCount(0);
-    return "pond left the list";
+    return "delete confirm dialog → pond left the list";
   });
 
   expect(failures, failures.join(", ")).toEqual([]);
@@ -317,13 +353,16 @@ async function recordFailure(
   error: unknown,
 ): Promise<void> {
   let shot375 = false;
+  let shot768 = false;
   let shot1440 = false;
   try {
     const shots = await capture(page, slug);
     shot375 = shots.shot375;
+    shot768 = shots.shot768;
     shot1440 = shots.shot1440;
   } catch {
     shot375 = false;
+    shot768 = false;
     shot1440 = false;
   }
   recordFlow({
@@ -331,6 +370,7 @@ async function recordFailure(
     result: "fail",
     note: errorNote(error, hidden),
     shot375,
+    shot768,
     shot1440,
   });
 }

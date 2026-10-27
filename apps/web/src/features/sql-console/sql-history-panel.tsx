@@ -46,7 +46,7 @@ export function SqlHistoryPanel({ pondId }: { pondId: string }) {
                 <p className="truncate font-mono text-xs text-ink" title={event.query_truncated}>
                   {event.query_truncated}
                 </p>
-                <p className="mt-1 flex flex-wrap gap-2 font-mono text-[11px] text-ink-faint">
+                <p className="mt-1 flex flex-wrap gap-2 font-mono text-[11px] text-ink-muted">
                   <span>{formatStamp(event.executed_at)}</span>
                   <span>{event.mode}</span>
                   <span>{event.duration_ms} ms</span>

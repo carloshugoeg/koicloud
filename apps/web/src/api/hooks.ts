@@ -31,11 +31,13 @@ export {
 
 export {
   useCreatePondMutation,
+  useDeletePondMutation,
   useGetConnection,
   useGetPond,
   useListBackups,
   usePondsQuery,
   useRestoreBackupMutation,
+  useTriggerBackupMutation,
   pondIsTransient,
   type Backup,
   type Connection,
