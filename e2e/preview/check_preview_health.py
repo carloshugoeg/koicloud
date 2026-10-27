@@ -23,6 +23,9 @@ def main() -> int:
     if not isinstance(data, dict) or data.get("ok") is not True:
         print(f"health not ok: {raw[:200]}", file=sys.stderr)
         return 1
+    if data.get("sim") is not True:
+        print(f"health missing sim=true: {raw[:200]}", file=sys.stderr)
+        return 1
     got = data.get("git_sha")
     if got != sha:
         print(f"sha mismatch got={got!r} want={sha!r}", file=sys.stderr)

@@ -23,6 +23,8 @@ jobs:
       KOI_HOSTED_SIM: "1"
       KOI_SIM_BASE_URL: https://koicloud-web-git-w1-e2e-preview-verify-hugos-projects-3379fa36.vercel.app
       KOI_ALLOW_PREVIEW_SEED: "1"
+      # pull_request GITHUB_SHA is the merge commit; Vercel deploys the PR head tip.
+      PREVIEW_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
       PYTHON_VERSION: "3.12"
       NODE_VERSION: "22"
     steps:
@@ -31,20 +33,20 @@ jobs:
       - name: Wait for SHA-exact preview with hosted sim
         run: |
           set -euo pipefail
-          echo "Waiting for preview ${PLAYWRIGHT_BASE_URL} (sha=${GITHUB_SHA})"
+          echo "Waiting for preview ${PLAYWRIGHT_BASE_URL} (head_sha=${PREVIEW_HEAD_SHA} github_sha=${GITHUB_SHA})"
           for _ in $(seq 1 60); do
-            code=$(curl -sS --connect-timeout 5 --max-time 20 \
-              -o /tmp/preview-home.html -w "%{http_code}" "$PLAYWRIGHT_BASE_URL/" || echo "000")
-            health_code=$(curl -sS --connect-timeout 5 --max-time 20 \
-              -o /tmp/preview-health.json -w "%{http_code}" "$PLAYWRIGHT_BASE_URL/api/v1/health" || echo "000")
-            echo "home=${code} health=${health_code}"
-            if [ "$code" = "200" ] && [ "$health_code" = "200" ]; then
-              if python3 e2e/preview/check_preview_health.py "$GITHUB_SHA" /tmp/preview-health.json; then
-                echo "preview HTTP 200 + health JSON for ${GITHUB_SHA}"
+            # Health alone is enough — do not depend on a SHA-exact dpl hostname.
+            health_code=$(curl -sS --connect-timeout 5 --max-time 15 \
+              -o /tmp/preview-health.json -w "%{http_code}" \
+              "$PLAYWRIGHT_BASE_URL/api/v1/health" || echo "000")
+            echo "health=${health_code}"
+            if [ "$health_code" = "200" ]; then
+              if python3 e2e/preview/check_preview_health.py "$PREVIEW_HEAD_SHA" /tmp/preview-health.json; then
+                echo "preview health JSON matches head ${PREVIEW_HEAD_SHA}"
                 exit 0
               fi
             fi
-            sleep 10
+            sleep 5
           done
           echo "preview sim did not become ready" >&2
           head -c 400 /tmp/preview-health.json >&2 || true
