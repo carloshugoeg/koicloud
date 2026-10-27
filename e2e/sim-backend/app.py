@@ -9,6 +9,7 @@ import os
 import pickle
 import re
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -21,6 +22,11 @@ from state import SimError, State, ToolMiss
 MAX_BODY = 1_000_000
 STATE = State()
 _PERSIST_LOADED = False
+_BLOB_LOAD_OK = False
+_LAST_BLOB_LOAD_AT = 0.0
+# Reuse in-memory state across GETs on a warm instance; Blob list/get stampedes
+# under Playwright parallel /me+/ponds and return empty → token_invalid.
+_BLOB_RELOAD_SECONDS = 2.0
 
 
 def _blob_token() -> str:
@@ -28,9 +34,15 @@ def _blob_token() -> str:
 
 
 def _blob_path() -> str:
-    # Isolate state per Vercel deployment so concurrent previews/seeds do not clobber each other.
-    deploy = (os.environ.get("VERCEL_DEPLOYMENT_ID") or os.environ.get("KOI_SIM_STATE_KEY") or "local").strip()
-    safe = "".join(ch if ch.isalnum() or ch in "-_" else "-" for ch in deploy)[:80]
+    # Prefer git branch so rolling alias deploys share one Blob (seed + SPA).
+    # Override with KOI_SIM_STATE_KEY when needed. Fall back to deployment id.
+    raw = (
+        os.environ.get("KOI_SIM_STATE_KEY")
+        or os.environ.get("VERCEL_GIT_COMMIT_REF")
+        or os.environ.get("VERCEL_DEPLOYMENT_ID")
+        or "local"
+    ).strip()
+    safe = "".join(ch if ch.isalnum() or ch in "-_" else "-" for ch in raw)[:80]
     return f"koi-preview-sim-{safe}.pkl"
 
 
@@ -68,10 +80,7 @@ def _blob_find_url(token: str) -> str | None:
     return url if isinstance(url, str) and url else None
 
 
-_BLOB_LOAD_OK = False
-
-
-def _read_blob_state(token: str) -> State | None:
+def _read_blob_state_once(token: str) -> State | None:
     try:
         url = _blob_find_url(token)
         if not url:
@@ -96,6 +105,17 @@ def _read_blob_state(token: str) -> State | None:
         TypeError,
     ):
         return None
+
+
+def _read_blob_state(token: str, *, attempts: int = 4) -> State | None:
+    """Retry Blob list/get — concurrent cold starts otherwise miss seed state."""
+    for attempt in range(max(1, attempts)):
+        loaded = _read_blob_state_once(token)
+        if loaded is not None:
+            return loaded
+        if attempt + 1 < attempts:
+            time.sleep(0.15 * (attempt + 1))
+    return None
 
 
 def _merge_state(writer: State, remote: State) -> None:
@@ -133,22 +153,31 @@ def _merge_state(writer: State, remote: State) -> None:
     )
 
 
-def load_persisted_state() -> None:
+def load_persisted_state(*, force: bool = False) -> None:
     """Hydrate STATE from Blob (preferred) or local file.
 
-    With Blob, reload every request so warm instances see seed/writes from peers.
-    With only /tmp, load once per process (same container shares memory + file).
+    Warm instances keep memory across GETs to avoid Blob stampedes. POSTs and
+    empty/cold memory force a reload so seed/writes from peers are visible.
     """
-    global STATE, _PERSIST_LOADED, _BLOB_LOAD_OK
+    global STATE, _PERSIST_LOADED, _BLOB_LOAD_OK, _LAST_BLOB_LOAD_AT
     token = _blob_token()
     if token:
+        now = time.monotonic()
+        warm = bool(STATE.users_by_id) and _PERSIST_LOADED
+        fresh = (now - _LAST_BLOB_LOAD_AT) < _BLOB_RELOAD_SECONDS
+        if warm and fresh and not force:
+            return
         loaded = _read_blob_state(token)
         if loaded is not None:
+            if STATE.users_by_id and force:
+                # Preserve in-flight mutations if any; prefer remote for GET refresh.
+                _merge_state(loaded, STATE)
             STATE = loaded
             _PERSIST_LOADED = True
             _BLOB_LOAD_OK = True
+            _LAST_BLOB_LOAD_AT = now
             return
-        # Keep in-memory STATE but mark blob unread so save merges or skips wipe.
+        # Keep in-memory STATE; never replace a populated warm cache with empty.
         _BLOB_LOAD_OK = False
         return
     if _PERSIST_LOADED:
@@ -166,10 +195,10 @@ def load_persisted_state() -> None:
 
 def save_persisted_state() -> None:
     """Snapshot STATE so the next serverless instance can resume the gate seed."""
-    global _BLOB_LOAD_OK
+    global _BLOB_LOAD_OK, _LAST_BLOB_LOAD_AT
     token = _blob_token()
     if token:
-        remote = _read_blob_state(token)
+        remote = _read_blob_state(token, attempts=3)
         if remote is not None:
             _merge_state(STATE, remote)
             _BLOB_LOAD_OK = True
@@ -194,6 +223,7 @@ def save_persisted_state() -> None:
             )
             with urllib.request.urlopen(req, timeout=8) as resp:
                 resp.read()
+            _LAST_BLOB_LOAD_AT = time.monotonic()
             return
         except (urllib.error.HTTPError, urllib.error.URLError, OSError):
             pass
@@ -713,7 +743,8 @@ def dispatch(
     headers: dict[str, str],
     body: bytes,
 ) -> tuple[int, dict[str, object] | None]:
-    load_persisted_state()
+    # POST/DELETE must see peer writes (seed, login). GETs reuse warm memory.
+    load_persisted_state(force=method not in {"GET", "OPTIONS", "HEAD"})
     if method == "OPTIONS":
         return 204, None
     for route_method, pattern, handler in ROUTES:
@@ -722,7 +753,15 @@ def dispatch(
         match = pattern.match(path)
         if match is None:
             continue
-        result = handler(STATE, match.groupdict(), headers, body)
+        try:
+            result = handler(STATE, match.groupdict(), headers, body)
+        except SimError as exc:
+            # Valid HMAC but missing user usually means a stale/empty load — refresh once.
+            if exc.code == "token_invalid" and method in {"GET", "HEAD"}:
+                load_persisted_state(force=True)
+                result = handler(STATE, match.groupdict(), headers, body)
+            else:
+                raise
         if method != "GET":
             save_persisted_state()
         return result
