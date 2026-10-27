@@ -2,7 +2,7 @@
 id: W1-33
 workstream: W1
 persona: Carlos
-estado: en-revision
+estado: en-curso
 rama: w1-pond-stop-start
 epica: E4-04
 sprint: S4
@@ -10,69 +10,49 @@ pr: "https://github.com/carloshugoeg/koicloud/pull/130"
 depends_on: W1-17 W1-10
 ---
 
-# [W1-33] Pond lifecycle statechart (stop / start / delete with backup)
+# [W1-33] Pond stop/start (CCR #131)
 
 Renumbered from draft W1-27 (that ID belongs to [#123](https://github.com/carloshugoeg/koicloud/pull/123) plans-pricing).
 
 ## Qué se ve
 
-**This PR (criterion 1 only):** the agreed pond lifecycle diagram is in the repo and in
-PR #130, TLC-checked, before any product code.
+Approved CCR [#131](https://github.com/carloshugoeg/koicloud/issues/131). Statechart first, then public stop/start.
 
-- Mermaid + PNG: `docs/architecture/diagrams/20-pond-lifecycle-stop-start-delete.*`
-- Spec: `docs/architecture/statecharts/pond-lifecycle/` (`PondLifecycle.tla` + cfg + map)
-- Invariants green: `GoneWhileWantedOn`, `GoneWhileWantedOff`,
-  `OnlineAfterYouRemovedIt`, `OfflineAfterYouRemovedIt`, `GoneOnlyWhenRemoved`
-
-**Follow-up PR (after CCR [#131](https://github.com/carloshugoeg/koicloud/issues/131) is
-approved):** user-facing stop/start and any contract edits. Until then, freeze holds:
-
-- no `POST /ponds/{id}/stop` or `/start`
-- no new signatures in `commands/ponds.py`
-- no edits to `api-surface.md` or `data-model.md` §4.1
-
-Delete-with-`pre_delete` already lives on `main`; this ticket does not re-implement it.
+- Diagram: `docs/architecture/diagrams/21-pond-stop-start.*` + TLC under `docs/architecture/statecharts/pond-stop-start/`
+- Keep **Detener**; add **Iniciar** on pond detail
+- `POST /api/v1/ponds/{id}/stop` → `stop_pond`; `POST .../start` → `start_pond`; `202 {pond, job}`
+- CLI/MCP without token → `confirmation_required`
+- 404 `pond_not_found` | 403 `not_owner` | 409 `pond_busy` | 503 `node_unavailable`
+- No migration. Do not touch PlanOut / #123.
 
 ## Entradas ya decididas (no se cambian)
 
-- Enums already on `main`: `PondDesiredState.stopped`, `JobType.start_pond|stop_pond`,
-  `BackupKind.pre_delete`. Node-agent handlers for start/stop already exist.
-- `jobs_one_active` and the live delete → pre_delete → `delete_pond` chain stay as today.
-- **CCR [#131](https://github.com/carloshugoeg/koicloud/issues/131)** must be approved
-  before OpenAPI routes, command signatures, or `api-surface` / `data-model` §4.1 change.
-- Survey (open PRs): W1-27=#123, W1-28=#124, W1-30=#121, W1-31=#133, W1-32=#132 → this
-  ticket is **W1-33**.
+- Enums already on `main`: `PondDesiredState.stopped`, `JobType.start_pond|stop_pond`.
+- Node-agent handlers for start/stop already exist.
+- Wrong state reuses `pond_busy` (no new error code).
+- `stopping`/`starting` are UI phases (`desired≠observed` + job); no observed-enum change.
+- SQL on non-running keeps `409 pond_not_running`.
 
 ## Criterios de aceptación
 
-1. Diagrama `20-pond-lifecycle-stop-start-delete` + PNG + spec TLC in PR #130; summary
-   invariants green. **In scope for this PR.**
-2. *(Follow-up, needs CCR #131)* `POST .../stop` → 202, `desired=stopped`, job
-   `stop_pond`; complete → `observed=stopped`.
-3. *(Follow-up, needs CCR #131)* `POST .../start` → 202, `desired=running`, job
-   `start_pond`; complete → `observed=running`.
-4. *(Follow-up)* Wrong observed / active job → catalog errors (`pond_busy` /
-   `pond_not_found`).
-5. *(Already on main; not re-done here)* `DELETE` enqueues `pre_delete` first.
-6. *(Follow-up)* CLI/MCP stop/start without confirm → `409 confirmation_required`.
-7. *(Follow-up)* `make check-api` and `make check-node-agent` for the impl PR.
-8. One ticket file (`W1-33`). No frozen-contract edits without approved CCR.
+1. Statechart (running/stopping/stopped/starting/error/provisioning) + every 409 case documented; in PR body.
+2. `POST .../stop` → 202, `desired=stopped`, job `stop_pond`; complete → `observed=stopped`.
+3. `POST .../start` → 202, `desired=running`, job `start_pond`; complete → `observed=running`.
+4. Wrong observed / active job → `pond_busy` 409; unknown → 404; other owner → 403.
+5. CLI/MCP stop/start without confirm → `409 confirmation_required`.
+6. Web: Detener running→stopping→stopped; Iniciar→starting→running; buttons disabled in flight.
+7. API tests 202/404/403/409 + transition coverage; `make check-api` / `check-web` / `check-cli`.
+8. No PlanOut / #123 edits. No migration.
 
 ## No tocar
 
-Frozen until CCR #131 approved: `apps/api/app/commands/ponds.py`,
-`docs/architecture/api-surface.md`, `docs/architecture/data-model.md` §4.1,
-`packages/contracts/openapi.json`, `apps/web/src/api/schema.d.ts`, Alembic.
-Do not invent error codes. Do not merge this PR without Carlos’s yes (high-risk).
+`PlanOut` / PR #123 pricing fields. Alembic. Do not merge without Carlos’s yes (high-risk). W1-34 ticket status is owned by PR #147 — do not mark it aquí.
 
 ## Si algo falta
 
 Respondé `BLOQUEADO: requiere <CCR | ticket para Wn> porque <razón>` y pará.
-No inventes endpoints, campos, tablas, códigos de error ni pantallas.
 
 ## Referencia
 
-`docs/architecture/diagrams/20-pond-lifecycle-stop-start-delete.mmd`,
-`docs/architecture/statecharts/pond-lifecycle/`, CCR #131, W1-17, W1-10,
-Wave B1 how notes on PR #130. PR body carries real `make check-web` /
-`check-cli` / `check-node-agent` output for the guards fence.
+CCR #131 comment, `docs/architecture/diagrams/21-pond-stop-start.mmd`,
+`docs/architecture/statecharts/pond-stop-start/`, W1-17, W1-10.

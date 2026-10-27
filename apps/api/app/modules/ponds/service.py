@@ -207,6 +207,44 @@ class PondService:
         )
         return await self.to_out(pond, status), [job_to_out(backup_job)]
 
+    async def stop(self, actor: AuthContext, pond_id: UUID) -> tuple[PondOut, JobOut]:
+        pond, status = await self.get_owned(actor, pond_id)
+        await self._assert_no_active_job(pond.id)
+        if status.observed_state != PondObservedState.RUNNING:
+            raise AppError(ErrorCode.POND_BUSY)
+
+        pond.desired_state = PondDesiredState.STOPPED
+        status.updated_at = utc_now()
+        job = Job(
+            type=JobType.STOP_POND,
+            pond_id=pond.id,
+            node_id=pond.node_id,
+            status=JobStatus.QUEUED,
+            payload=self._agent_payload(pond),
+        )
+        self.session.add(job)
+        await self.session.flush()
+        return await self.to_out(pond, status), job_to_out(job)
+
+    async def start(self, actor: AuthContext, pond_id: UUID) -> tuple[PondOut, JobOut]:
+        pond, status = await self.get_owned(actor, pond_id)
+        await self._assert_no_active_job(pond.id)
+        if status.observed_state != PondObservedState.STOPPED:
+            raise AppError(ErrorCode.POND_BUSY)
+
+        pond.desired_state = PondDesiredState.RUNNING
+        status.updated_at = utc_now()
+        job = Job(
+            type=JobType.START_POND,
+            pond_id=pond.id,
+            node_id=pond.node_id,
+            status=JobStatus.QUEUED,
+            payload=self._agent_payload(pond),
+        )
+        self.session.add(job)
+        await self.session.flush()
+        return await self.to_out(pond, status), job_to_out(job)
+
     async def retry_failed(self, actor: AuthContext, pond_id: UUID) -> JobOut:
         pond, status = await self.get_owned(actor, pond_id)
         await self._assert_no_active_job(pond.id)
@@ -238,6 +276,11 @@ class PondService:
         status.updated_at = utc_now()
         if failed.type == JobType.CREATE_POND:
             pond.desired_state = PondDesiredState.RUNNING
+        elif failed.type == JobType.START_POND:
+            pond.desired_state = PondDesiredState.RUNNING
+        elif failed.type == JobType.STOP_POND:
+            pond.desired_state = PondDesiredState.STOPPED
+            status.observed_state = PondObservedState.RUNNING
         elif failed.type == JobType.DELETE_POND:
             pond.desired_state = PondDesiredState.DELETED
             status.observed_state = PondObservedState.DELETING

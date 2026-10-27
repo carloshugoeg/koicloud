@@ -116,6 +116,80 @@ describe("W2-06 Detalle del pond y conexión", () => {
     });
   });
 
+  it("shows Detener enabled and Iniciar disabled for a running pond", async () => {
+    renderDetail();
+    expect(await screen.findByTestId("pond-detail")).toBeInTheDocument();
+    expect(screen.getByTestId("pond-stop")).toBeEnabled();
+    expect(screen.getByTestId("pond-start")).toBeDisabled();
+  });
+
+  it("stops a running pond and disables both buttons while stopping", async () => {
+    const user = userEvent.setup();
+    let getCount = 0;
+    server.use(
+      http.get(`*/api/v1/ponds/${POND_ID}`, () => {
+        getCount += 1;
+        if (getCount === 1) {
+          return HttpResponse.json({ pond: fixtures.pond });
+        }
+        return HttpResponse.json({
+          pond: {
+            ...fixtures.pond,
+            desired_state: "stopped",
+            observed_state: "running",
+          },
+        });
+      }),
+    );
+
+    renderDetail();
+    expect(await screen.findByTestId("pond-stop")).toBeEnabled();
+    await user.click(screen.getByTestId("pond-stop"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("pond-status-badge")).toHaveTextContent("Deteniendo…");
+    });
+    expect(screen.getByTestId("pond-stop")).toBeDisabled();
+    expect(screen.getByTestId("pond-start")).toBeDisabled();
+  });
+
+  it("starts a stopped pond", async () => {
+    const user = userEvent.setup();
+    let getCount = 0;
+    server.use(
+      http.get(`*/api/v1/ponds/${POND_ID}`, () => {
+        getCount += 1;
+        if (getCount === 1) {
+          return HttpResponse.json({
+            pond: {
+              ...fixtures.pond,
+              desired_state: "stopped",
+              observed_state: "stopped",
+            },
+          });
+        }
+        return HttpResponse.json({
+          pond: {
+            ...fixtures.pond,
+            desired_state: "running",
+            observed_state: "stopped",
+          },
+        });
+      }),
+    );
+
+    renderDetail();
+    expect(await screen.findByTestId("pond-start")).toBeEnabled();
+    expect(screen.getByTestId("pond-stop")).toBeDisabled();
+    await user.click(screen.getByTestId("pond-start"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("pond-status-badge")).toHaveTextContent("Iniciando…");
+    });
+    expect(screen.getByTestId("pond-stop")).toBeDisabled();
+    expect(screen.getByTestId("pond-start")).toBeDisabled();
+  });
+
   it("shows catalog message for pond_not_found without a stack", async () => {
     server.use(
       http.get(`*/api/v1/ponds/${POND_ID}`, () =>
