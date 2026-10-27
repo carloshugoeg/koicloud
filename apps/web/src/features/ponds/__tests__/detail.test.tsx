@@ -141,12 +141,16 @@ describe("W2-06 Detalle del pond y conexión", () => {
     expect(screen.queryByRole("button", { name: /Detener|Iniciar/i })).not.toBeInTheDocument();
   });
 
-  it("queues an on-demand backup from the detail actions", async () => {
+  it("confirms before queuing an on-demand backup", async () => {
     const user = userEvent.setup();
     renderDetail();
     expect(await screen.findByTestId("trigger-backup")).toBeInTheDocument();
     await user.click(screen.getByTestId("trigger-backup"));
+
+    const dialog = await screen.findByTestId("backup-confirm-dialog");
+    await user.click(within(dialog).getByTestId("backup-confirm-button"));
     expect(await screen.findByTestId("backup-queued")).toHaveTextContent("job_backup_01");
+    expect(screen.queryByTestId("backup-confirm-dialog")).not.toBeInTheDocument();
   });
 
   it("requires typing the pond name before delete confirm", async () => {

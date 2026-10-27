@@ -8,8 +8,10 @@ import {
   useTriggerBackupMutation,
 } from "@/api/hooks/ponds";
 import { ApiError, problemToMessage } from "@/lib/errors";
+import { BackupConfirmDialog } from "@/features/ponds/backup-confirm-dialog";
 import { ConnectionCard } from "@/features/ponds/connection-card";
 import { DeletePondDialog } from "@/features/ponds/delete-pond-dialog";
+import { PondRiskZone } from "@/features/ponds/pond-risk-zone";
 import { pondStateMeta } from "@/features/ponds/pond-state";
 
 export function PondDetailPage() {
@@ -20,6 +22,7 @@ export function PondDetailPage() {
   const backupMutation = useTriggerBackupMutation(pondId);
   const deleteMutation = useDeletePondMutation(pondId);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [backupOpen, setBackupOpen] = useState(false);
   const [confirmName, setConfirmName] = useState("");
   const [backupJobId, setBackupJobId] = useState<string | null>(null);
 
@@ -77,6 +80,7 @@ export function PondDetailPage() {
     try {
       const result = await backupMutation.mutateAsync();
       setBackupJobId(result.job.id);
+      setBackupOpen(false);
     } catch {
       // surfaced via backupMutation.error
     }
@@ -92,6 +96,11 @@ export function PondDetailPage() {
     } catch {
       // surfaced via deleteMutation.error
     }
+  }
+
+  function openDelete() {
+    setConfirmName("");
+    setDeleteOpen(true);
   }
 
   return (
@@ -126,19 +135,16 @@ export function PondDetailPage() {
             type="button"
             className="h-8 rounded-sm border border-line-control bg-bone-raised px-3 text-sm font-medium text-ink disabled:text-ink-faint"
             disabled={actionsDisabled || backupMutation.isPending}
-            onClick={() => void handleBackup()}
+            onClick={() => setBackupOpen(true)}
             data-testid="trigger-backup"
           >
-            {backupMutation.isPending ? "Respaldando…" : "Respaldar ahora"}
+            Respaldar ahora
           </button>
           <button
             type="button"
             className="h-8 rounded-sm border border-danger bg-bone-raised px-3 text-sm font-medium text-danger disabled:border-line-control disabled:text-ink-faint"
             disabled={actionsDisabled || deleteMutation.isPending}
-            onClick={() => {
-              setConfirmName("");
-              setDeleteOpen(true);
-            }}
+            onClick={openDelete}
             data-testid="open-delete-pond"
           >
             Eliminar…
@@ -153,12 +159,6 @@ export function PondDetailPage() {
         >
           Respaldo encolado. Job <span className="font-mono">{backupJobId}</span> · estado{" "}
           <span className="font-mono">queued</span>.
-        </div>
-      ) : null}
-
-      {backupMutation.isError ? (
-        <div className="rounded-md border border-line bg-bone-raised px-4 py-3 text-sm text-danger">
-          {problemToMessage(backupMutation.error)}
         </div>
       ) : null}
 
@@ -207,28 +207,22 @@ export function PondDetailPage() {
         error={connectionQuery.isError ? connectionQuery.error : null}
       />
 
-      <section
-        className="rounded-md border border-line bg-bone-raised p-5"
-        data-testid="pond-risk-zone"
-      >
-        <h3 className="font-display text-xl text-ink">Zona de riesgo</h3>
-        <p className="mt-1 text-sm text-ink-muted">
-          Al eliminar encolamos primero un respaldo <span className="font-mono">pre_delete</span> y
-          luego el borrado del contenedor. Te pediremos escribir el nombre del pond.
-        </p>
-        <button
-          type="button"
-          className="mt-4 h-8 rounded-sm border border-danger bg-bone-raised px-3 text-sm font-medium text-danger disabled:border-line-control disabled:text-ink-faint"
-          disabled={actionsDisabled || deleteMutation.isPending}
-          onClick={() => {
-            setConfirmName("");
-            setDeleteOpen(true);
-          }}
-          data-testid="open-delete-pond-risk"
-        >
-          Eliminar pond…
-        </button>
-      </section>
+      <PondRiskZone
+        disabled={actionsDisabled || deleteMutation.isPending}
+        onDelete={openDelete}
+      />
+
+      {backupOpen ? (
+        <BackupConfirmDialog
+          pondName={pond.name}
+          pending={backupMutation.isPending}
+          errorMessage={
+            backupMutation.isError ? problemToMessage(backupMutation.error) : null
+          }
+          onCancel={() => setBackupOpen(false)}
+          onConfirm={() => void handleBackup()}
+        />
+      ) : null}
 
       {deleteOpen ? (
         <DeletePondDialog

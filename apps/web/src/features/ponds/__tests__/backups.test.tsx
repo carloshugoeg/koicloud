@@ -46,6 +46,16 @@ describe("W2-08 Respaldos y restauración", () => {
     expect(page.querySelector('[data-kind="on_demand"]')).not.toBeNull();
   });
 
+  it("confirms before queuing Respaldar ahora from the backups page", async () => {
+    const user = userEvent.setup();
+    renderBackups();
+    expect(await screen.findByTestId("trigger-backup")).toBeInTheDocument();
+    await user.click(screen.getByTestId("trigger-backup"));
+    const dialog = await screen.findByTestId("backup-confirm-dialog");
+    await user.click(within(dialog).getByTestId("backup-confirm-button"));
+    expect(await screen.findByTestId("backup-queued")).toHaveTextContent("job_backup_01");
+  });
+
   it("keeps Restaurar disabled until the pond name matches exactly", async () => {
     const user = userEvent.setup();
     renderBackups();
