@@ -46,18 +46,30 @@ export function SuspendDialog({
             <span className="mt-1 block font-mono text-[11px]">Esperado: {user.email}</span>
           </label>
           <label className="block text-xs text-ink-muted">
-            Motivo (queda en la bitácora)
+            Motivo (opcional, queda en la bitácora)
             <input
               className="mt-1 block h-10 w-full rounded-sm border border-line-control bg-bone px-3 text-sm"
               value={motivo}
               onChange={(event) => onMotivoChange(event.target.value)}
-              maxLength={500}
               data-testid="suspend-motivo"
             />
+            <span
+              className={`mt-1 block font-mono text-[11px] tabular-nums ${
+                motivo.trim().length > 500 ? "text-danger" : "text-ink-faint"
+              }`}
+              data-testid="suspend-motivo-count"
+            >
+              {motivo.trim().length}/500
+            </span>
           </label>
           {error ? (
             <p className="text-sm text-danger" data-testid="suspend-error">
               {problemToMessage(error)}
+            </p>
+          ) : null}
+          {motivo.trim().length > 500 ? (
+            <p className="text-sm text-danger" data-testid="suspend-motivo-over-limit">
+              El motivo no puede superar 500 caracteres.
             </p>
           ) : null}
         </div>
@@ -69,7 +81,7 @@ export function SuspendDialog({
             type="button"
             className="h-9 rounded-sm bg-danger px-4 text-sm font-medium text-bone disabled:opacity-40"
             data-testid="suspend-submit"
-            disabled={!emailMatches || !motivo.trim() || pending}
+            disabled={!emailMatches || motivo.trim().length > 500 || pending}
             onClick={onSubmit}
           >
             Suspender cuenta

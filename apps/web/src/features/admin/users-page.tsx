@@ -80,8 +80,9 @@ export function AdminUsersPage() {
     if (dialog.kind !== "suspend") {
       return;
     }
+    const trimmed = motivo.trim();
     suspend.mutate(
-      { userId: dialog.user.id, reason: motivo },
+      { userId: dialog.user.id, reason: trimmed ? trimmed : undefined },
       { onSuccess: () => closeDialog() },
     );
   }

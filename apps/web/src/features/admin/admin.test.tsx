@@ -81,6 +81,7 @@ describe("W2-10 Panel admin", () => {
 
     expect(screen.getByTestId("suspend-submit")).toBeDisabled();
     await user.type(screen.getByTestId("suspend-confirm-email"), adminClientUser.email);
+    expect(screen.getByTestId("suspend-submit")).toBeEnabled();
     await user.type(screen.getByTestId("suspend-motivo"), "abuso de recursos");
     expect(screen.getByTestId("suspend-submit")).toBeEnabled();
 

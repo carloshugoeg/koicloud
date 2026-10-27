@@ -1,6 +1,6 @@
 import { HttpResponse, http } from "msw";
 import type { components } from "@/api/schema";
-import { fixtures } from "@/mocks/fixtures";
+import { adminUser, fixtures } from "@/mocks/fixtures";
 
 const API_ROOT = "*/api/v1";
 const SUSPEND_CONFIRM_TEXT = "SUSPENDER";
@@ -63,7 +63,25 @@ export const handlers = [
     });
   }),
 
-  http.post(`${API_ROOT}/auth/login`, () => {
+  http.post(`${API_ROOT}/auth/login`, async ({ request }) => {
+    const body = (await request.json()) as { email?: string };
+    // Preview/test-only admin seed (MSW). Never a real credential store.
+    if (body.email?.trim().toLowerCase() === adminUser.email) {
+      return HttpResponse.json({
+        access_token: "access_admin_token",
+        refresh_token: "refresh_admin_token",
+        user: {
+          id: adminUser.id,
+          email: adminUser.email,
+          full_name: adminUser.full_name,
+          role: "admin" as const,
+          status: adminUser.status,
+          email_verified: true,
+          nit: "0614-220999-101-3",
+          created_at: adminUser.created_at,
+        },
+      });
+    }
     return HttpResponse.json(fixtures.session);
   }),
 
@@ -294,6 +312,22 @@ export const handlers = [
         { status: 409 },
       );
     }
+    const trimmedReason = body.reason?.trim() ?? "";
+    if (trimmedReason.length > 500) {
+      return HttpResponse.json(
+        {
+          detail: [
+            {
+              type: "string_too_long",
+              loc: ["body", "reason"],
+              msg: "String should have at most 500 characters",
+              ctx: { max_length: 500 },
+            },
+          ],
+        },
+        { status: 422 },
+      );
+    }
     const userId = String(params.userId);
     const index = adminUsersState.findIndex((user) => user.id === userId);
     if (index < 0) {
@@ -308,17 +342,16 @@ export const handlers = [
       updated,
       ...adminUsersState.slice(index + 1),
     ];
-    const reason = body.reason?.trim();
-    if (reason) {
+    if (trimmedReason) {
       adminAuditState = [
         {
           id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa01",
-          actor_user_id: "11111111-1111-1111-1111-111111111111",
+          actor_user_id: "22222222-2222-2222-2222-222222222222",
           actor_kind: "admin",
           target_kind: "user",
           target_id: userId,
           action: "suspend_user",
-          metadata: { reason },
+          metadata: { reason: trimmedReason },
           at: "2026-09-22T20:00:00Z",
         },
         ...adminAuditState,

@@ -12,7 +12,8 @@ import { createAppRouter } from "@/app/router";
 import "./index.css";
 
 async function enableMocks() {
-  if (import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCKS === "true") {
+  // Preview-only gate walks set VITE_ENABLE_MOCKS=true (never production).
+  if (import.meta.env.VITE_ENABLE_MOCKS === "true") {
     const { worker } = await import("@/mocks/browser");
     await worker.start({ onUnhandledRequest: "bypass" });
   }
