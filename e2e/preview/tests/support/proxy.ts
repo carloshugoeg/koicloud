@@ -147,18 +147,37 @@ const VIEWPORTS = [
   { tag: "1440", width: 1440, height: 900 },
 ] as const;
 
+function ensureWritableDir(dir: string): boolean {
+  try {
+    fs.mkdirSync(dir, { recursive: true });
+    fs.accessSync(dir, fs.constants.W_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function resolveMediaDir(): string | null {
+  const fromEnv = process.env.KOI_E2E_MEDIA_DIR;
+  if (fromEnv && fromEnv.trim()) {
+    return ensureWritableDir(fromEnv) ? fromEnv : null;
+  }
+  return ensureWritableDir(STORE_MEDIA) ? STORE_MEDIA : null;
+}
+
 export async function capture(page: Page, slug: string): Promise<{ shot375: boolean; shot1440: boolean }> {
   const artifacts = artifactsDir();
-  const media = process.env.KOI_E2E_MEDIA_DIR ?? STORE_MEDIA;
+  const media = resolveMediaDir();
   fs.mkdirSync(artifacts, { recursive: true });
-  fs.mkdirSync(media, { recursive: true });
   const flags = { shot375: false, shot1440: false };
   for (const viewport of VIEWPORTS) {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
     const file = `${slug}-${viewport.tag}.png`;
     const local = path.join(artifacts, file);
     await page.screenshot({ path: local, fullPage: true });
-    fs.copyFileSync(local, path.join(media, file));
+    if (media) {
+      fs.copyFileSync(local, path.join(media, file));
+    }
     if (viewport.tag === "375") flags.shot375 = true;
     if (viewport.tag === "1440") flags.shot1440 = true;
   }

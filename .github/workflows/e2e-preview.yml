@@ -29,7 +29,7 @@ jobs:
 
       - name: Start sim backend
         run: |
-          python e2e/sim-backend/__main__.py > "$RUNNER_TEMP/sim.log" 2>&1 &
+          python3 e2e/sim-backend/__main__.py > "$RUNNER_TEMP/sim.log" 2>&1 &
           echo $! > "$RUNNER_TEMP/sim.pid"
           for _ in $(seq 1 30); do
             if curl -fsS "$KOI_SIM_BASE_URL/api/v1/health" >/dev/null; then
@@ -44,12 +44,14 @@ jobs:
       - name: Seed gate users
         run: |
           echo "KOI_GATE_CREDENTIALS_OUT=$RUNNER_TEMP/gate-credentials.json" >> "$GITHUB_ENV"
+          echo "KOI_E2E_MEDIA_DIR=$RUNNER_TEMP/e2e-verify-media" >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/e2e-verify-media"
           export KOI_GATE_CREDENTIALS_OUT="$RUNNER_TEMP/gate-credentials.json"
           bash scripts/seed-gate-preview.sh
 
       - name: MCP client suite
         id: mcp
-        run: python e2e/preview/mcp_client_suite.py
+        run: python3 e2e/preview/mcp_client_suite.py
         continue-on-error: true
 
       - uses: actions/setup-node@v4
@@ -70,7 +72,7 @@ jobs:
 
       - name: Write results table
         if: always()
-        run: python e2e/preview/write_results.py
+        run: python3 e2e/preview/write_results.py
         env:
           KOI_E2E_RESULTS_OUT: ${{ runner.temp }}/e2e-verify-results.md
 
@@ -79,7 +81,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: e2e-preview-screenshots
-          path: e2e/preview/artifacts/*.png
+          path: |
+            e2e/preview/artifacts/*.png
+            ${{ runner.temp }}/e2e-verify-results.md
           if-no-files-found: ignore
 
       - name: Fail when a suite failed
