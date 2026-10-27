@@ -286,6 +286,29 @@ def route_cancel(
     return 204, None
 
 
+def route_admin_users(
+    state: State,
+    _groups: dict[str, str],
+    headers: dict[str, str],
+    _body: bytes,
+) -> tuple[int, dict[str, object]]:
+    return 200, state.list_admin_users(_bearer(state, headers))
+
+
+def route_usage(
+    state: State,
+    _groups: dict[str, str],
+    headers: dict[str, str],
+    _body: bytes,
+) -> tuple[int, dict[str, object]]:
+    from urllib.parse import parse_qs
+
+    params = parse_qs(headers.get("x-koi-raw-query", ""))
+    values = params.get("month") or []
+    month = values[0] if values else None
+    return 200, state.usage(_bearer(state, headers), month)
+
+
 def route_suspend(
     state: State,
     groups: dict[str, str],
@@ -444,8 +467,10 @@ ROUTES: list[tuple[str, re.Pattern[str], HandlerFn]] = [
     ("DELETE", re.compile(r"^/api/v1/ponds/(?P<pond_id>[^/]+)$"), route_pond_delete),
     ("POST", re.compile(r"^/api/v1/confirm/(?P<token>[^/]+)$"), route_confirm),
     ("DELETE", re.compile(r"^/api/v1/confirm/(?P<token>[^/]+)$"), route_cancel),
+    ("GET", re.compile(r"^/api/v1/admin/users$"), route_admin_users),
     ("POST", re.compile(r"^/api/v1/admin/users/(?P<user_id>[^/]+)/suspend$"), route_suspend),
     ("POST", re.compile(r"^/api/v1/admin/users/(?P<user_id>[^/]+)/reactivate$"), route_reactivate),
+    ("GET", re.compile(r"^/api/v1/usage$"), route_usage),
     ("GET", re.compile(r"^/api/v1/agent-access$"), route_agent_get),
     ("POST", re.compile(r"^/api/v1/agent-access/rotate$"), route_agent_rotate),
     ("POST", re.compile(r"^/api/v1/agent-access/toggle$"), route_agent_toggle),
@@ -495,7 +520,9 @@ class Handler(BaseHTTPRequestHandler):
         try:
             body = self._read_body()
             headers = {key.lower(): value for key, value in self.headers.items()}
-            path = urlsplit(self.path).path
+            split = urlsplit(self.path)
+            path = split.path
+            headers["x-koi-raw-query"] = split.query
             status, payload = dispatch(self.command, path, headers, body)
         except SimError as exc:
             status = exc.status

@@ -561,6 +561,44 @@ class State:
             pending = self._peek(user_id, token)
             pending.consumed = True
 
+    def list_admin_users(self, actor_id: str) -> dict[str, object]:
+        with self._lock:
+            self._require_admin(actor_id)
+            rows = [
+                self._admin_out(user)
+                for user in sorted(self.users_by_id.values(), key=lambda row: row.created_at)
+            ]
+            return {"users": rows, "next_cursor": None}
+
+    def usage(self, user_id: str, month: str | None) -> dict[str, object]:
+        with self._lock:
+            self._active_user(user_id)
+            label = month if month else utcnow().strftime("%Y-%m")
+            rows: list[dict[str, object]] = []
+            total_instance = 0.0
+            total_storage = 0.0
+            for pond in self.ponds.values():
+                if pond.user_id != user_id or pond.desired_state == "deleted":
+                    continue
+                instance_hours = 1.0 if pond.observed_state == "running" else 0.0
+                storage = 0.5
+                total_instance += instance_hours
+                total_storage += storage
+                rows.append(
+                    {
+                        "pond_id": pond.id,
+                        "pond_name": pond.name,
+                        "instance_hours": instance_hours,
+                        "storage_gb_hours": storage,
+                    }
+                )
+            return {
+                "month": label,
+                "ponds": rows,
+                "total_instance_hours": total_instance,
+                "total_storage_gb_hours": total_storage,
+            }
+
     def suspend(self, actor_id: str, target_id: str, confirm_text: str) -> dict[str, object]:
         with self._lock:
             self._require_admin(actor_id)

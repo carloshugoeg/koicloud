@@ -2,7 +2,7 @@
 id: W1-37
 workstream: W1
 persona: Carlos
-estado: en-curso
+estado: en-revision
 rama: w1-e2e-preview-verify
 epica: E4-04
 sprint: S4

@@ -84,7 +84,7 @@ test("plans checkout", async ({ page }) => {
 
 test("pond lifecycle", async ({ page }) => {
   // Preview QueryClient staleTime is 30s; stop/delete UI needs a refetch after that.
-  test.setTimeout(300_000);
+  test.setTimeout(180_000);
   const creds = loadGateCreds();
   const hidden = secrets(creds);
   const failures: string[] = [];
@@ -145,7 +145,6 @@ test("pond lifecycle", async ({ page }) => {
   });
 
   await check(page, failures, "pond stop (sim)", "pond-stop", hidden, async () => {
-    // Detail only polls transient states; remount after stop so it refetches.
     await page.getByRole("link", { name: "Resumen" }).click();
     await expect(page.getByTestId("pond-status-badge")).toContainText("En línea");
     await stopPond(page, pondId);
@@ -156,20 +155,12 @@ test("pond lifecycle", async ({ page }) => {
     if (state !== "stopped") {
       throw new Error(`GET pond state ${String(state)}`);
     }
-    // The preview QueryClient keeps pond queries fresh for 30s, so remount
-    // inside that window still shows the previous badge.
-    await page.waitForTimeout(31_000);
-    await page.getByRole("link", { name: "Consola" }).click();
-    await expect(page.getByTestId("sql-console")).toBeVisible();
-    await page.getByRole("link", { name: "Resumen" }).click();
-    await page.waitForURL(new RegExp(`/app/ponds/${pondId}$`));
-    const badge = page.getByTestId("pond-status-badge");
-    const detailError = page.getByTestId("pond-detail-error");
-    await expect(badge.or(detailError)).toBeVisible();
-    if (await detailError.isVisible()) {
-      throw new Error((await detailError.innerText()).replace(/\s+/g, " ").slice(0, 160));
-    }
-    await expect(badge).toContainText("Detenido");
+    // Full reload clears the 30s React Query cache (refetchOnWindowFocus is off).
+    resetSession();
+    await login(page, creds.user);
+    await expect(page).toHaveURL(/\/app/);
+    await page.getByRole("link", { name: "Abrir" }).click();
+    await expect(page.getByTestId("pond-status-badge")).toContainText("Detenido");
     return "badge Detenido";
   });
 
@@ -198,12 +189,7 @@ test("pond lifecycle", async ({ page }) => {
   });
 
   await check(page, failures, "pond delete", "pond-delete", hidden, async () => {
-    try {
-      await deletePond(page, pondId);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "";
-      if (!message.includes("HTTP 404")) throw error;
-    }
+    await deletePond(page, pondId);
     const listed = await api(page, "GET", "/api/v1/ponds");
     const ponds = (listed.json as { ponds?: Array<{ id?: unknown }> } | null)?.ponds;
     if (!Array.isArray(ponds)) {
@@ -212,19 +198,10 @@ test("pond lifecycle", async ({ page }) => {
     if (ponds.some((row) => row && row.id === pondId)) {
       throw new Error("sim list still contains the deleted pond id");
     }
-    const cancel = page.getByRole("link", { name: "Cancelar" });
-    if (await cancel.isVisible()) {
-      await cancel.click();
-    }
-    await page.waitForTimeout(31_000);
-    await page.getByRole("link", { name: "Crear pond", exact: true }).first().click({
-      force: true,
-      timeout: 5_000,
-    });
-    await page.getByRole("link", { name: "Ponds", exact: true }).first().click({
-      force: true,
-      timeout: 5_000,
-    });
+    resetSession();
+    await login(page, creds.user);
+    await expect(page).toHaveURL(/\/app/);
+    await expect(page.locator(`tr[data-pond-id="${pondId}"]`)).toHaveCount(0);
     await expect(page.getByRole("cell", { name: pondName, exact: true })).toHaveCount(0);
     return "pond left the list";
   });
