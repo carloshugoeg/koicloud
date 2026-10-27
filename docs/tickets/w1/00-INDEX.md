@@ -41,7 +41,7 @@ no existe todavía. `00-INDEX.md` no es un ticket y el agente lo ignora.
 | W1-30 | Admin suspend reason in audit metadata | `w1-admin-suspend-reason` | en-revision · [#121](https://github.com/carloshugoeg/koicloud/pull/121) |
 | W1-31 | NIT checkout → invoice (#96 A2) | `w1-nit-checkout-invoice` | bloqueado · [#133](https://github.com/carloshugoeg/koicloud/pull/133) CCR #127 |
 | W1-32 | Admin subscriptions (#96 A7) | `w1-admin-subscriptions` | bloqueado · [#132](https://github.com/carloshugoeg/koicloud/pull/132) CCR #128 |
-| W1-33 | Pond stop/start (CCR #131) | `w1-pond-stop-start` | en-revision · [#130](https://github.com/carloshugoeg/koicloud/pull/130) · CCR [#131](https://github.com/carloshugoeg/koicloud/issues/131) approved |
+| [W1-33](W1-33-pond-stop-start.md) | Pond stop/start (CCR #131) | `w1-pond-stop-start` | en-revision · [#130](https://github.com/carloshugoeg/koicloud/pull/130) · CCR [#131](https://github.com/carloshugoeg/koicloud/issues/131) approved |
 | W1-34 | Expose size_bytes / admin totals / invoice link + MCP·CLI (A1) | `w1-expose-fields` | hecho · [#136](https://github.com/carloshugoeg/koicloud/pull/136) · **no** `PlanOut.backup_retention_days` (#124/W1-28) |
 
 W1 es el único workstream que puede tocar cualquier ruta, y el único que escribe migraciones,
