@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Boot local compose stack, run the Wave C0 e2e suite, collect artifacts.
+# Boot the Wave C0 e2e compose stack, run the suite, collect artifacts.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -17,17 +17,17 @@ cleanup() {
 }
 trap cleanup EXIT
 
-log "building + starting compose stack"
-AGENT_MODE=docker NODE_PUBLIC_HOST=127.0.0.1 \
+log "building + starting e2e compose stack"
+KOI_DB_HOST_PORT="${KOI_DB_HOST_PORT:-55432}" \
   "${COMPOSE[@]}" up -d --build db api worker node-agent \
   | tee "$E2E_REPORT_DIR/compose-up.log"
 
 log "waiting for api health"
-wait_http "${API_BASE}/health" 180 || {
-  "${COMPOSE[@]}" ps >"$E2E_REPORT_DIR/compose-ps.txt" || true
+if ! wait_http "${API_BASE}/health" 180; then
+  "${COMPOSE[@]}" ps -a >"$E2E_REPORT_DIR/compose-ps.txt" || true
   "${COMPOSE[@]}" logs --tail 200 >"$E2E_REPORT_DIR/compose-logs.txt" || true
   die "api never became healthy"
-}
+fi
 ok "api healthy"
 
 bash "$SCRIPT_DIR/suite.sh" | tee "$E2E_REPORT_DIR/suite.log"

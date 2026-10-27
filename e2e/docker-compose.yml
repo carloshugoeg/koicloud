@@ -1,0 +1,115 @@
+# Wave C0 e2e stack. Image builds only — no source bind mounts, no named .venv volumes
+# (those break CI with "failed to create symlink … lib64").
+#
+#   docker compose -f e2e/docker-compose.yml up -d --build
+#   bash e2e/suite.sh
+
+name: koicloud-e2e
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: koi
+      POSTGRES_PASSWORD: koi
+      POSTGRES_DB: koicloud
+    ports:
+      - "${KOI_DB_HOST_PORT:-55432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U koi -d koicloud"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  api:
+    build:
+      context: ../apps/api
+    environment: &api_env
+      DATABASE_URL: postgresql+asyncpg://koi:koi@db:5432/koicloud
+      JWT_SECRET: e2e-jwt-secret-not-for-production-00000000
+      REFRESH_TTL_DAYS: "30"
+      POND_PASSWORD_KEY: 7chvGNh8l4rbVgpH0wWJjCT2J8eQ6D8eW5DiKjR3owE=
+      AGENT_MODE: docker
+      NODE_ID: node-e2e
+      NODE_TOKEN: e2e-node-token
+      NODE_PUBLIC_HOST: 127.0.0.1
+      KOICLOUD_DOMAIN: koicloud.example
+      POND_PORT_RANGE_START: "15000"
+      POND_PORT_RANGE_END: "15999"
+      MCP_ENABLED: "true"
+      EMAIL_PROVIDER: console
+      PAYMENT_PROVIDER: simulated
+      INVOICE_DIR: /var/lib/koicloud/invoices
+      BACKUP_DIR: /var/lib/koicloud/backups
+    volumes:
+      - e2e_invoices:/var/lib/koicloud/invoices
+      - e2e_backups:/var/lib/koicloud/backups
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=2)\"",
+        ]
+      interval: 3s
+      timeout: 5s
+      retries: 40
+      start_period: 40s
+    command:
+      [
+        "sh",
+        "-lc",
+        "uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000",
+      ]
+
+  worker:
+    build:
+      context: ../apps/api
+    environment:
+      <<: *api_env
+    volumes:
+      - e2e_invoices:/var/lib/koicloud/invoices
+      - e2e_backups:/var/lib/koicloud/backups
+    depends_on:
+      db:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    command:
+      [
+        "sh",
+        "-lc",
+        "uv run python -m app.workers.reconciler",
+      ]
+
+  node-agent:
+    build:
+      context: ../apps/node-agent
+    environment:
+      AGENT_MODE: docker
+      NODE_ID: node-e2e
+      NODE_TOKEN: e2e-node-token
+      NODE_PUBLIC_HOST: 127.0.0.1
+      INTERNAL_API_URL: http://api:8000/internal/v1
+      BACKUP_DIR: /tmp/koicloud/backups
+      CONTROL_PLANE_URL: http://api:8000
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - e2e_backups:/tmp/koicloud/backups
+    depends_on:
+      api:
+        condition: service_healthy
+    command:
+      [
+        "sh",
+        "-lc",
+        "uv run python -m agent.main",
+      ]
+
+volumes:
+  e2e_invoices:
+  e2e_backups:

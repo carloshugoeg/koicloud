@@ -4,12 +4,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 API_BASE="${API_BASE:-http://127.0.0.1:8000/api/v1}"
-COMPOSE_FILES=(
-  -f "$ROOT/docker-compose.yml"
-  -f "$ROOT/docker-compose.docker-agent.yml"
-  -f "$ROOT/e2e/docker-compose.override.yml"
-)
-COMPOSE=(docker compose "${COMPOSE_FILES[@]}")
+COMPOSE=(docker compose -f "$ROOT/e2e/docker-compose.yml")
 REPORT_DIR="${E2E_REPORT_DIR:-$ROOT/e2e/artifacts}"
 mkdir -p "$REPORT_DIR"
 
