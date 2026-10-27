@@ -9,7 +9,6 @@ stateDiagram-v2
   state "Detenido" as stopped
   state "Iniciando…" as starting
   state "Con fallas" as error
-  state "Aprovisionando…" as provisioning
 
   running --> stopping: POST /stop
   stopping --> stopped: job stop ok
@@ -18,18 +17,14 @@ stateDiagram-v2
 
   stopping --> error: job stop failed
   starting --> error: job start failed
-  provisioning --> error: create/start failed
 
   error --> stopping: POST /retry [stop_pond]
-  error --> starting: POST /retry [start_pond]
-  error --> provisioning: POST /retry [create_pond]
-
-  provisioning --> running: create/start ok
+  error --> starting: POST /retry [start_pond|create_pond]
 
   %% 409 pond_busy — no phase change (documented, not drawn as self-loops):
   %%   stopped  + POST /stop              → 409 (stop needs observed=running)
   %%   running  + POST /start             → 409 (start needs observed=stopped)
-  %%   failed   + POST /start|/stop       → 409 (start needs observed=stopped; stop needs running)
+  %%   failed   + POST /start|/stop       → 409 (use POST /retry)
   %%   stopping + POST /stop|/start       → 409 (job in flight)
   %%   starting + POST /stop|/start       → 409 (job in flight)
   %%   any + active queued|running job    → 409 (double-click / jobs_one_active)

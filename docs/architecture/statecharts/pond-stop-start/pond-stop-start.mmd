@@ -9,7 +9,6 @@ stateDiagram-v2
   state "Detenido" as stopped
   state "Iniciando…" as starting
   state "Con fallas" as error
-  state "Aprovisionando…" as provisioning
 
   running --> stopping: POST /stop
   stopping --> stopped: job stop ok
@@ -18,10 +17,6 @@ stateDiagram-v2
 
   stopping --> error: job stop failed
   starting --> error: job start failed
-  provisioning --> error: create/start failed
 
   error --> stopping: POST /retry [stop_pond]
-  error --> starting: POST /retry [start_pond]
-  error --> provisioning: POST /retry [create_pond]
-
-  provisioning --> running: create/start ok
+  error --> starting: POST /retry [start_pond|create_pond]

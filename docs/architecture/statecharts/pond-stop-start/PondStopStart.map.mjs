@@ -12,8 +12,6 @@ export const state = (v) => {
       return "Iniciando…";
     case "error":
       return "Con fallas";
-    case "provisioning":
-      return "Aprovisionando…";
     default:
       return String(v.phase);
   }
@@ -21,9 +19,7 @@ export const state = (v) => {
 
 export const group = (v) => {
   if (v.phase === "error") return "error";
-  if (v.phase === "stopping" || v.phase === "starting" || v.phase === "provisioning") {
-    return "in-flight";
-  }
+  if (v.phase === "stopping" || v.phase === "starting") return "in-flight";
   return "steady";
 };
 
@@ -33,7 +29,7 @@ export const colors = {
   error: "pink",
 };
 
-export const step = (action) => {
+export const step = (action, from) => {
   switch (action) {
     case "PostStop":
       return "POST /stop";
@@ -47,17 +43,14 @@ export const step = (action) => {
       return "job start ok";
     case "StartFailed":
       return "job start failed";
+    case "CreateFailed":
+      return "job create failed";
     case "RetryStop":
       return "POST /retry [stop_pond]";
     case "RetryStart":
+      if (from?.last_fail === "create") return "POST /retry [create_pond]";
       return "POST /retry [start_pond]";
-    case "RetryCreate":
-      return "POST /retry [create_pond]";
-    case "ProvisionOk":
-      return "create/start ok";
-    case "ProvisionFailed":
-      return "create/start failed";
-    case "BeginProvision":
+    case "SeedCreateError":
       return null;
     case "Idle":
       return null;

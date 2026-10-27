@@ -11,26 +11,21 @@ stateDiagram-v2
   class lg1 orange
   class lg2 pink
   s0: En línea
-  s1: Aprovisionando#8230;
+  s1: Con fallas
   s2: Deteniendo#8230;
-  s3: Con fallas
+  s3: Iniciando#8230;
   s4: Detenido
-  s5: Iniciando#8230;
   [*] --> s0
   s0 --> s2: POST /stop
-  s1 --> s0: create/start ok
-  s1 --> s3: create/start failed
+  s1 --> s3: POST /retry [create_pond] or POST /retry [start_pond]
   s2 --> s4: job stop ok
-  s2 --> s3: job stop failed
-  s3 --> s1: POST /retry [create_pond]
-  s4 --> s5: POST /start
-  s3 --> s2: POST /retry [stop_pond]
-  s5 --> s0: job start ok
-  s5 --> s3: job start failed
-  s3 --> s5: POST /retry [start_pond]
+  s2 --> s1: job stop failed
+  s3 --> s0: job start ok
+  s3 --> s1: job create failed or job start failed
+  s4 --> s3: POST /start
+  s1 --> s2: POST /retry [stop_pond]
   class s0 teal
-  class s1 orange
+  class s1 pink
   class s2 orange
-  class s3 pink
+  class s3 orange
   class s4 teal
-  class s5 orange

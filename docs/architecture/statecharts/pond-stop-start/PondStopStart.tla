@@ -1,9 +1,9 @@
 ---- MODULE PondStopStart ----
-\* CCR 131 pond stop/start. UI phases: running, stopping, stopped,
-\* starting, error, provisioning. Recovery from error is POST /retry,
-\* which requeues the last failed job type (stop→stopping, start→starting,
-\* create→provisioning). Wrong-state and in-flight POSTs stay put and
-\* answer 409 pond_busy (documented beside the chart; no phase change).
+\* CCR 131 pond stop/start. Five UI phases only: running, stopping, stopped,
+\* starting, error. Recovery from error is POST /retry by failed job type
+\* (stop→stopping, start|create→starting). No pending / En cola / provisioning
+\* in this chart. Wrong-state POSTs stay put with 409 pond_busy (documented
+\* beside the chart; no phase change).
 
 EXTENDS Naturals
 
@@ -15,8 +15,7 @@ phases == {
   "stopping",
   "stopped",
   "starting",
-  "error",
-  "provisioning"
+  "error"
 }
 
 fails == {"none", "stop", "start", "create"}
@@ -59,6 +58,11 @@ StartFailed ==
     /\ phase' = "error"
     /\ last_fail' = "start"
 
+CreateFailed ==
+    /\ phase = "starting"
+    /\ phase' = "error"
+    /\ last_fail' = "create"
+
 RetryStop ==
     /\ phase = "error"
     /\ last_fail = "stop"
@@ -67,34 +71,17 @@ RetryStop ==
 
 RetryStart ==
     /\ phase = "error"
-    /\ last_fail = "start"
+    /\ last_fail \in {"start", "create"}
     /\ phase' = "starting"
     /\ UNCHANGED last_fail
 
-RetryCreate ==
-    /\ phase = "error"
-    /\ last_fail = "create"
-    /\ phase' = "provisioning"
-    /\ UNCHANGED last_fail
-
-ProvisionOk ==
-    /\ phase = "provisioning"
-    /\ phase' = "running"
-    /\ last_fail' = "none"
-
-ProvisionFailed ==
-    /\ phase = "provisioning"
+\* Seed a create-failure so RetryStart[create] is reachable (hidden in view).
+SeedCreateError ==
+    /\ phase = "running"
+    /\ last_fail = "none"
     /\ phase' = "error"
     /\ last_fail' = "create"
 
-\* Seed provisioning so create-fail → retry create is reachable from Init.
-BeginProvision ==
-    /\ phase = "running"
-    /\ last_fail = "none"
-    /\ phase' = "provisioning"
-    /\ UNCHANGED last_fail
-
-\* Terminal sink so CHECK_DEADLOCK does not flag stopped/running forever.
 Idle ==
     /\ phase \in {"running", "stopped"}
     /\ UNCHANGED vars
@@ -106,17 +93,14 @@ Next ==
     \/ PostStart
     \/ StartOk
     \/ StartFailed
+    \/ CreateFailed
     \/ RetryStop
     \/ RetryStart
-    \/ RetryCreate
-    \/ ProvisionOk
-    \/ ProvisionFailed
-    \/ BeginProvision
+    \/ SeedCreateError
     \/ Idle
 
 Spec == Init /\ [][Next]_vars
 
-\* Reachable happy path never jumps over stopping/starting.
 NoTeleportStop == ~(phase = "running" /\ phase' = "stopped")
 NoTeleportStart == ~(phase = "stopped" /\ phase' = "running")
 ====
