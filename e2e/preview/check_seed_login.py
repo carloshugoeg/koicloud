@@ -29,12 +29,25 @@ def main() -> int:
         method="POST",
         headers={"content-type": "application/json", "accept": "application/json"},
     )
-    try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            payload = json.loads(resp.read().decode())
-            status = resp.status
-    except urllib.error.HTTPError as exc:
-        print(f"login HTTP {exc.code}", file=sys.stderr)
+    last_exc: Exception | None = None
+    payload: dict = {}
+    status = 0
+    for attempt in range(5):
+        try:
+            with urllib.request.urlopen(req, timeout=90) as resp:
+                payload = json.loads(resp.read().decode())
+                status = resp.status
+            break
+        except urllib.error.HTTPError as exc:
+            print(f"login HTTP {exc.code}", file=sys.stderr)
+            return 1
+        except (TimeoutError, OSError, urllib.error.URLError) as exc:
+            last_exc = exc
+            import time
+
+            time.sleep(1.5 * (attempt + 1))
+    else:
+        print(f"login unreachable: {type(last_exc).__name__}", file=sys.stderr)
         return 1
     if status != 200 or not isinstance(payload.get("access_token"), str) or not payload["access_token"]:
         print("login missing access_token", file=sys.stderr)
@@ -46,14 +59,24 @@ def main() -> int:
             "accept": "application/json",
         },
     )
-    try:
-        with urllib.request.urlopen(me_req, timeout=30) as resp:
-            if resp.status != 200:
-                print(f"me HTTP {resp.status}", file=sys.stderr)
-                return 1
-            resp.read()
-    except urllib.error.HTTPError as exc:
-        print(f"me HTTP {exc.code}", file=sys.stderr)
+    for attempt in range(5):
+        try:
+            with urllib.request.urlopen(me_req, timeout=90) as resp:
+                if resp.status != 200:
+                    print(f"me HTTP {resp.status}", file=sys.stderr)
+                    return 1
+                resp.read()
+            break
+        except urllib.error.HTTPError as exc:
+            print(f"me HTTP {exc.code}", file=sys.stderr)
+            return 1
+        except (TimeoutError, OSError, urllib.error.URLError) as exc:
+            last_exc = exc
+            import time
+
+            time.sleep(1.5 * (attempt + 1))
+    else:
+        print(f"me unreachable: {type(last_exc).__name__}", file=sys.stderr)
         return 1
     print("seed login+me ok")
     return 0
