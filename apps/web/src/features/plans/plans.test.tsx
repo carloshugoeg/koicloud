@@ -55,6 +55,14 @@ describe("W2-03 Planes y Checkout flow", () => {
     expect(screen.getByText("Respaldos automáticos")).toBeInTheDocument();
   });
 
+  it("exposes a keyboard-reachable comparison table region", async () => {
+    renderPlansRoute("/app/planes");
+
+    const region = await screen.findByRole("region", { name: "Comparativa de características" });
+    expect(region).toHaveAttribute("tabindex", "0");
+    expect(region).toHaveAttribute("data-testid", "plans-comparison-table");
+  });
+
   it("opens checkout modal with fixed simulated payment notice and helper copy", async () => {
     const user = userEvent.setup();
     renderPlansRoute("/app/planes");
