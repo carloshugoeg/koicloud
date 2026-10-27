@@ -8,13 +8,21 @@ import { isPondNameValid, pondNameIssues } from "@/features/ponds/pond-name";
 export function CreatePondPage() {
   return (
     <>
-      <div className="pointer-events-none select-none opacity-40" aria-hidden>
+      {/*
+        Dashboard stays at full ink contrast (no opacity fade — that alone
+        caused 30+ axe color-contrast hits). Dim only via the veil layer.
+        Dialog is a sibling above the veil so its opaque bone surface is not
+        composited through the scrim.
+      */}
+      <div className="pointer-events-none select-none" aria-hidden>
         <DashboardPage />
       </div>
       <div
-        className="fixed inset-0 z-20 flex items-start justify-center overflow-y-auto bg-ink/30 px-4 py-10"
+        className="dialog-veil fixed inset-0 z-20"
         data-testid="create-pond-veil"
-      >
+        aria-hidden
+      />
+      <div className="fixed inset-0 z-30 flex items-start justify-center overflow-y-auto px-4 py-10">
         <CreatePondDialog />
       </div>
     </>
@@ -52,13 +60,18 @@ function CreatePondDialog() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="w-full max-w-[560px] overflow-hidden rounded-md border border-line bg-bone-raised shadow-sm"
+      className="w-full max-w-[560px] overflow-hidden rounded-md border border-line bg-bone-raised shadow-dialog"
       data-testid="create-pond-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="create-pond-title"
     >
       <div className="h-1 bg-turquoise-700" />
       <div className="space-y-4 p-5">
         <div>
-          <h2 className="font-display text-2xl text-ink">Nuevo pond</h2>
+          <h2 id="create-pond-title" className="font-display text-2xl text-ink">
+            Nuevo pond
+          </h2>
           <p className="mt-1 text-sm text-ink-muted">
             Levantamos un contenedor PostgreSQL 16 real en el nodo. Tarda unos 40 segundos.
           </p>
@@ -67,7 +80,7 @@ function CreatePondDialog() {
         {createMutation.isError ? (
           <div className="border-l-[3px] border-danger pl-3" data-testid="create-pond-error">
             <p className="text-sm text-ink">{problemToMessage(createMutation.error)}</p>
-            {errorCode ? <p className="mt-1 font-mono text-xs text-ink-faint">{errorCode}</p> : null}
+            {errorCode ? <p className="mt-1 font-mono text-xs text-ink-muted">{errorCode}</p> : null}
             {errorCode === "plan_required" ? (
               <Link
                 to="/app/plans"
@@ -89,8 +102,9 @@ function CreatePondDialog() {
               autoComplete="off"
               spellCheck={false}
               onChange={(event) => setName(event.target.value)}
-              className="min-w-0 flex-1 bg-transparent font-mono text-sm text-ink outline-none"
+              className="min-w-0 flex-1 bg-transparent font-mono text-sm text-ink outline-none placeholder:text-ink-muted"
               placeholder="inventario-mvp"
+              aria-invalid={issues.length > 0 && name.length > 0}
             />
             {valid ? (
               <span className="rounded-sm bg-green-100 px-2 py-0.5 text-xs font-medium text-ink">
@@ -160,7 +174,7 @@ function CreatePondDialog() {
           type="submit"
           data-testid="create-pond-submit"
           disabled={!valid || createMutation.isPending}
-          className="h-9 rounded-sm bg-turquoise-700 px-4 text-sm font-medium text-bone-raised hover:bg-turquoise-900 disabled:bg-bone-sunk disabled:text-ink-faint"
+          className="h-9 rounded-sm bg-turquoise-700 px-4 text-sm font-medium text-bone-raised hover:bg-turquoise-900 disabled:bg-bone-sunk disabled:text-ink-muted"
         >
           {createMutation.isPending ? "Creando…" : "Crear pond"}
         </button>

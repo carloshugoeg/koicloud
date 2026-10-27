@@ -13,13 +13,16 @@ vi.mock("@uiw/react-codemirror", () => ({
   default: function MockCodeMirror({
     value,
     onChange,
+    id,
   }: {
     value: string;
     onChange?: (value: string) => void;
+    id?: string;
   }) {
     return (
       <textarea
-        aria-label="SQL editor"
+        id={id}
+        aria-label="Consulta SQL"
         value={value}
         onChange={(event) => onChange?.(event.target.value)}
       />
@@ -51,6 +54,12 @@ function renderConsole(entry = `/app/ponds/${POND_ID}/consola`) {
 }
 
 describe("W2-07 Consola SQL", () => {
+  it("names the SQL editor for assistive tech", async () => {
+    renderConsole();
+    expect(await screen.findByTestId("sql-console")).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Consulta SQL" })).toBeInTheDocument();
+  });
+
   it("runs SELECT and shows columns, rows, and meta", async () => {
     const user = userEvent.setup();
     renderConsole();

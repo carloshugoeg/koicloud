@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "./styles/data-states.css";
+@config "../tailwind.config.ts";
 
 :root {
   /* ── Sustrato: papel ───────────────────────────────────────────── */
@@ -141,7 +142,11 @@ select {
   min-height: 100vh;
 }
 
-a {
+/*
+  Default link ink is turquoise-700 (AA on bone). Utility classes such as
+  text-ink / text-ink-muted must win for secondary button-links and mono.
+*/
+a:not([class*="text-"]) {
   color: var(--turquoise-700);
   text-decoration-color: var(--turquoise-300);
 }
