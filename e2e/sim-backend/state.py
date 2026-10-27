@@ -19,6 +19,26 @@ from urllib.parse import quote
 
 GATE_ADMIN_EMAIL = "gate-admin@koicloud.test"
 GATE_USER_EMAIL = "gate-user@koicloud.test"
+# Stable preview fixtures — Blob races cannot invent a different password/id.
+GATE_ADMIN_ID = "00000000-0000-4000-8000-00000000a001"
+GATE_USER_ID = "00000000-0000-4000-8000-00000000a002"
+GATE_ADMIN_PASSWORD = (
+    os.environ.get("KOI_GATE_ADMIN_PASSWORD", "").strip() or "KoiGateAdmin!preview-sim-v5"
+)
+GATE_USER_PASSWORD = (
+    os.environ.get("KOI_GATE_USER_PASSWORD", "").strip() or "KoiGateUser!preview-sim-v5"
+)
+GATE_MCP_PASSWORD = (
+    os.environ.get("KOI_GATE_MCP_PASSWORD", "").strip() or "KoiGateMcp!preview-sim-v5"
+)
+GATE_FIXTURE_PASSWORDS = {
+    GATE_ADMIN_EMAIL: GATE_ADMIN_PASSWORD,
+    GATE_USER_EMAIL: GATE_USER_PASSWORD,
+}
+GATE_FIXTURE_IDS = {
+    GATE_ADMIN_EMAIL: GATE_ADMIN_ID,
+    GATE_USER_EMAIL: GATE_USER_ID,
+}
 NODE_ID = "sim-node"
 PORT_START = 15000
 PORT_END = 15999
@@ -26,6 +46,14 @@ PORT_END = 15999
 MCP_TTL = timedelta(hours=36)
 CONFIRM_TTL = timedelta(minutes=5)
 PROMPT_SUMMARY = "Sos un asistente que opera KoiCloud (DBaaS académico)."
+
+
+def _preview_fixtures_enabled() -> bool:
+    return (
+        os.environ.get("VERCEL_ENV", "").strip() == "preview"
+        or os.environ.get("KOI_SIM_ALLOW_RESEED", "").strip() == "1"
+        or os.environ.get("KOI_ALLOW_PREVIEW_SEED", "").strip() == "1"
+    )
 
 READ_ONLY_TOOLS = (
     "whoami",
@@ -537,8 +565,17 @@ class State:
 
     def login(self, email: str, password: str) -> dict[str, object]:
         with self._lock:
-            user = self.users_by_email.get(email.strip().lower())
-            if user is None or not same_secret(user.password, password):
+            normalized = email.strip().lower()
+            user = self.users_by_email.get(normalized)
+            fixture_pw = GATE_FIXTURE_PASSWORDS.get(normalized)
+            if (
+                _preview_fixtures_enabled()
+                and fixture_pw is not None
+                and same_secret(fixture_pw, password)
+            ):
+                # Repair gate rows even when Blob was wiped by a concurrent save.
+                user = self._upsert_gate_fixture(normalized, fixture_pw)
+            elif user is None or not same_secret(user.password, password):
                 raise SimError("invalid_credentials")
             if not user.email_verified:
                 raise SimError("email_not_verified")
@@ -552,6 +589,28 @@ class State:
                 "refresh_token": refresh,
                 "user": _user_out(user),
             }
+
+    def _upsert_gate_fixture(self, email: str, password: str) -> User:
+        user_id = GATE_FIXTURE_IDS[email]
+        existing = self.users_by_id.get(user_id) or self.users_by_email.get(email)
+        if existing is not None and existing.id != user_id:
+            self.users_by_id.pop(existing.id, None)
+        user = User(
+            id=user_id,
+            email=email,
+            password=password,
+            full_name="Gate Admin" if email == GATE_ADMIN_EMAIL else "Gate User",
+            role="admin" if email == GATE_ADMIN_EMAIL else "client",
+            status="active",
+            email_verified=True,
+            nit=None,
+            created_at=iso(utcnow()),
+            verify_token=None,
+        )
+        self.users_by_id[user.id] = user
+        self.users_by_email[user.email] = user
+        self.claim_actors.pop(user.id, None)
+        return user
 
     def user_id_for_token(self, token: str) -> str:
         with self._lock:
@@ -734,6 +793,7 @@ class State:
         with self._lock:
             pending = self._peek(user_id, token)
             pending.consumed = True
+            self.pending[token] = pending
 
     def list_admin_users(self, actor_id: str) -> dict[str, object]:
         with self._lock:
@@ -799,7 +859,15 @@ class State:
         with self._lock:
             self._active_user(user_id)
             agent = self._ensure_agent(user_id)
-            agent.password = secrets.token_urlsafe(18)
+            user = self.users_by_id.get(user_id)
+            if (
+                _preview_fixtures_enabled()
+                and user is not None
+                and user.email == GATE_USER_EMAIL
+            ):
+                agent.password = GATE_MCP_PASSWORD
+            else:
+                agent.password = secrets.token_urlsafe(18)
             agent.rotated_at = iso(utcnow())
             agent.expires_at = iso(utcnow() + MCP_TTL)
             return {
@@ -818,6 +886,19 @@ class State:
 
     def mcp_user(self, slug: str, password: str) -> str:
         with self._lock:
+            if (
+                _preview_fixtures_enabled()
+                and slug == "gate-user"
+                and same_secret(GATE_MCP_PASSWORD, password)
+            ):
+                user = self._upsert_gate_fixture(GATE_USER_EMAIL, GATE_USER_PASSWORD)
+                agent = self._ensure_agent(user.id)
+                agent.password = GATE_MCP_PASSWORD
+                agent.enabled = True
+                agent.expires_at = iso(utcnow() + MCP_TTL)
+                self.agents_by_slug[agent.slug] = agent
+                self.agents_by_user[user.id] = agent
+                return user.id
             agent = self.agents_by_slug.get(slug)
             if agent is None or not same_secret(agent.password, password):
                 raise SimError("agent_bad_credentials")
@@ -899,7 +980,7 @@ class State:
         # cold second instance cannot 401 token_invalid before Blob catches up.
         gate = normalized in {GATE_ADMIN_EMAIL, GATE_USER_EMAIL}
         user = User(
-            id=str(uuid.uuid4()),
+            id=GATE_FIXTURE_IDS.get(normalized, str(uuid.uuid4())),
             email=normalized,
             password=password,
             full_name=full_name.strip(),
@@ -1164,8 +1245,26 @@ class State:
         payload: dict[str, str],
         summary: str,
     ) -> dict[str, object]:
-        token = "conf_" + secrets.token_urlsafe(12)
-        expires = iso(utcnow() + CONFIRM_TTL)
+        import base64
+        import json as _json
+
+        expires_at = utcnow() + CONFIRM_TTL
+        expires = iso(expires_at)
+        body_obj = {
+            "uid": user_id,
+            "action": action,
+            "payload": payload,
+            "summary": summary,
+            "exp": int(expires_at.timestamp()),
+        }
+        body = (
+            base64.urlsafe_b64encode(_json.dumps(body_obj, separators=(",", ":")).encode())
+            .decode()
+            .rstrip("=")
+        )
+        sig = hmac.new(_token_secret(), body.encode(), hashlib.sha256).hexdigest()[:32]
+        # Signed so any serverless instance can confirm without shared pending memory.
+        token = f"conf2.{body}.{sig}"
         self.pending[token] = Pending(
             token=token,
             user_id=user_id,
@@ -1185,8 +1284,57 @@ class State:
             },
         }
 
+    def _pending_from_token(self, token: str) -> Pending | None:
+        import base64
+        import json as _json
+
+        if not token.startswith("conf2."):
+            return None
+        parts = token.split(".")
+        if len(parts) != 3:
+            return None
+        _, body, sig = parts
+        expected = hmac.new(_token_secret(), body.encode(), hashlib.sha256).hexdigest()[:32]
+        if not hmac.compare_digest(expected, sig):
+            return None
+        pad = "=" * (-len(body) % 4)
+        try:
+            payload = _json.loads(base64.urlsafe_b64decode(body + pad).decode())
+        except (ValueError, _json.JSONDecodeError, UnicodeDecodeError):
+            return None
+        if not isinstance(payload, dict):
+            return None
+        user_id = payload.get("uid")
+        action = payload.get("action")
+        summary = payload.get("summary")
+        exp = payload.get("exp")
+        raw_payload = payload.get("payload")
+        if (
+            not isinstance(user_id, str)
+            or not isinstance(action, str)
+            or not isinstance(summary, str)
+            or not isinstance(exp, int)
+            or not isinstance(raw_payload, dict)
+        ):
+            return None
+        clean_payload = {
+            key: value for key, value in raw_payload.items() if isinstance(key, str) and isinstance(value, str)
+        }
+        return Pending(
+            token=token,
+            user_id=user_id,
+            action=action,
+            payload=clean_payload,
+            summary=summary,
+            expires_at=iso(datetime.fromtimestamp(exp, tz=timezone.utc)),
+        )
+
     def _peek(self, user_id: str, token: str) -> Pending:
         pending = self.pending.get(token)
+        if pending is None:
+            pending = self._pending_from_token(token)
+            if pending is not None:
+                self.pending[token] = pending
         if pending is None or pending.user_id != user_id or pending.consumed:
             raise SimError("confirmation_not_found")
         if parse_iso(pending.expires_at) <= utcnow():
@@ -1243,13 +1391,18 @@ class State:
             return existing
         user = self.users_by_id[user_id]
         slug = "gate-user" if user.email == GATE_USER_EMAIL else "u" + user.id.replace("-", "")[:8]
-        if slug in self.agents_by_slug:
+        if slug in self.agents_by_slug and self.agents_by_slug[slug].user_id != user_id:
             slug = slug + "-" + secrets.token_hex(2)
         moment = iso(utcnow())
+        password = (
+            GATE_MCP_PASSWORD
+            if _preview_fixtures_enabled() and user.email == GATE_USER_EMAIL
+            else secrets.token_urlsafe(18)
+        )
         agent = Agent(
             user_id=user_id,
             slug=slug,
-            password=secrets.token_urlsafe(18),
+            password=password,
             enabled=True,
             rotated_at=moment,
             expires_at=iso(utcnow() + MCP_TTL),
