@@ -140,7 +140,13 @@ export function AdminSubscriptionsPage() {
           <p className="text-sm text-ink-muted">No hay suscripciones con ese filtro.</p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-md border border-line bg-bone-raised">
+        <div
+          className="overflow-x-auto rounded-md border border-line bg-bone-raised"
+          tabIndex={0}
+          role="region"
+          aria-label="Suscripciones"
+          data-testid="admin-subscriptions-table"
+        >
           <table className="w-full min-w-[760px] border-collapse text-sm">
             <thead className="bg-bone-sunk text-left text-xs uppercase tracking-[0.12em] text-ink-muted">
               <tr>
