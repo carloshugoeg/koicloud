@@ -33,12 +33,16 @@ export function ToastHost() {
     };
   }, []);
 
-  if (items.length === 0) return null;
-
   const calm = motionReduced();
 
+  // Always mount the live region so AT can discover it before the first toast.
   return (
-    <div className="pointer-events-none fixed bottom-4 left-4 right-4 z-50 flex flex-col gap-2 sm:left-auto sm:w-80">
+    <div
+      aria-live="polite"
+      aria-relevant="additions text"
+      data-testid="toast-host"
+      className="pointer-events-none fixed bottom-4 left-4 right-4 z-50 flex flex-col gap-2 sm:left-auto sm:w-80"
+    >
       {items.map((item) => (
         <div
           key={item.id}

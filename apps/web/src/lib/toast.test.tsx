@@ -21,6 +21,17 @@ describe("ToastHost", () => {
     vi.useRealTimers();
   });
 
+  it("keeps an empty aria-live host in the DOM", () => {
+    stubReducedMotion(false);
+    render(<ToastHost />);
+
+    const host = screen.getByTestId("toast-host");
+    expect(host).toBeInTheDocument();
+    expect(host).toHaveAttribute("aria-live", "polite");
+    expect(host).toBeEmptyDOMElement();
+    expect(screen.queryByTestId("toast")).not.toBeInTheDocument();
+  });
+
   it("removes the toast after 1.2s", () => {
     vi.useFakeTimers();
     stubReducedMotion(false);

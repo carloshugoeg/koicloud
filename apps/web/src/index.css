@@ -1,6 +1,11 @@
 @import "tailwindcss";
 @import "./styles/data-states.css";
 
+/* TODO(#134/#137): primary button utilities (bg-turquoise-700, text-bone-raised)
+   render as plain text until @theme inline lands. Do NOT duplicate that block here —
+   PR #137 owns theme CSS. After #137 merges to main, merge origin/main into this
+   branch (merge commit only) and verify «Respaldar ahora» fills turquoise-700. */
+
 :root {
   /* ── Sustrato: papel ───────────────────────────────────────────── */
   --bone: #f2ecdc;
