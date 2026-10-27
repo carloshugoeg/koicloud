@@ -27,6 +27,8 @@ services:
       context: ../apps/api
     restart: unless-stopped
     environment:
+      # Pinned: Settings.reject_console_email_in_production only runs in production.
+      ENVIRONMENT: production
       DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://koi:change-me@db:5432/koicloud}
       JWT_SECRET: ${JWT_SECRET:-change-me-32-random-bytes}
       REFRESH_TTL_DAYS: ${REFRESH_TTL_DAYS:-30}
@@ -72,6 +74,7 @@ services:
       context: ../apps/api
     restart: unless-stopped
     environment:
+      ENVIRONMENT: production
       DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://koi:change-me@db:5432/koicloud}
       JWT_SECRET: ${JWT_SECRET:-change-me-32-random-bytes}
       POND_PASSWORD_KEY: ${POND_PASSWORD_KEY:-change-me-fernet-key}

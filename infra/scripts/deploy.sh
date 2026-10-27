@@ -39,6 +39,14 @@ need POND_PASSWORD_KEY
 need PAYMENT_PROVIDER
 need EMAIL_PROVIDER
 
+# Refuse before compose up: console would log plaintext verify tokens under
+# ENVIRONMENT=production (pinned in docker-compose.prod.yml).
+if [[ "${EMAIL_PROVIDER,,}" == "console" ]]; then
+  echo "refusing deploy: EMAIL_PROVIDER=console is not allowed in production" >&2
+  echo "set EMAIL_PROVIDER to a real provider (see infra/.env.production.example)" >&2
+  exit 1
+fi
+
 cd "$ROOT"
 
 if [[ "${KOI_DEPLOY_SKIP_GIT:-0}" != "1" ]]; then

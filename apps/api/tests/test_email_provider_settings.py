@@ -46,6 +46,31 @@ def test_create_app_refuses_prod_console(
     get_settings.cache_clear()
 
 
+def test_unset_environment_defaults_to_development_and_allows_console(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Prod compose must pin ENVIRONMENT=production; without it the guard is a no-op."""
+    get_settings.cache_clear()
+    monkeypatch.delenv("ENVIRONMENT", raising=False)
+    monkeypatch.setenv("EMAIL_PROVIDER", "console")
+    settings = Settings()
+    assert settings.environment == "development"
+    assert settings.email_provider == "console"
+    get_settings.cache_clear()
+
+
+def test_production_env_from_environ_with_console_refuses(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Same path a prod container hits once compose sets ENVIRONMENT=production."""
+    get_settings.cache_clear()
+    monkeypatch.setenv("ENVIRONMENT", "production")
+    monkeypatch.setenv("EMAIL_PROVIDER", "console")
+    with pytest.raises(ValidationError, match="EMAIL_PROVIDER=console"):
+        Settings()
+    get_settings.cache_clear()
+
+
 def test_verify_token_not_logged_when_email_provider_is_not_console(
     caplog: pytest.LogCaptureFixture,
     monkeypatch: pytest.MonkeyPatch,
