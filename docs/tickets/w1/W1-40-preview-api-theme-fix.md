@@ -1,5 +1,5 @@
 ---
-id: W1-39
+id: W1-40
 workstream: W1
 persona: Carlos
 estado: en-revision
@@ -10,7 +10,7 @@ pr: "https://github.com/carloshugoeg/koicloud/pull/149"
 depends_on:
 ---
 
-# [W1-39] Preview API rewrite + theme CSS on Vercel
+# [W1-40] Preview API rewrite + theme CSS on Vercel
 
 Low-lane preview-infra. Unblocks gate proof for #138 (confirm dialog) without merging #142.
 
@@ -24,6 +24,9 @@ On Vercel **preview** deployments of `koicloud-web`:
 
 ## Entradas ya decididas (no se cambian)
 
+- `alembic/env.py` is **not** modified (dropped after Carlos scope check).
+- `KOI_DB_SCHEMA` search_path in `core/db.py` applies **only** when `VERCEL_ENV=preview`.
+- Ticket id is **W1-40** (W1-39 belongs to #148 account E1-05).
 - Preview hosting pattern from #142: `apps/web/api/index.py` + `prepare-preview-api.mjs` + `vercel.json` rewrites `/api/v1/*` and `/mcp` ahead of the SPA catch-all that excludes `api/`.
 - Theme fix from #137 approach: `@theme inline` in `index.css` (Tailwind 4 ignores `tailwind.config.ts` colors). Explicit `.shadow-*` classes.
 - `KOI_PREVIEW_MOCK` / `KOI_DB_SCHEMA` only for preview; never against production data.

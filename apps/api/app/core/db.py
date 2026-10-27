@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 from collections.abc import AsyncIterator
 
@@ -19,7 +20,15 @@ settings = get_settings()
 _SCHEMA_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
-def _safe_schema() -> str:
+def _vercel_preview() -> bool:
+    """Schema search_path is preview-only. Production / local stay on the default path."""
+    return (os.environ.get("VERCEL_ENV") or "").strip().lower() == "preview"
+
+
+def _safe_preview_schema() -> str:
+    # Never alter search_path outside Vercel preview — prod DB selection must match main.
+    if not _vercel_preview():
+        return ""
     schema = settings.koi_db_schema.strip()
     if not schema:
         return ""
@@ -28,7 +37,7 @@ def _safe_schema() -> str:
     return schema
 
 
-_schema = _safe_schema()
+_schema = _safe_preview_schema()
 _connect_args: dict[str, object] = {}
 if _schema:
     _connect_args["server_settings"] = {"search_path": _schema}
