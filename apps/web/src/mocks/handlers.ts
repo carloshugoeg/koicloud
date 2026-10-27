@@ -148,6 +148,69 @@ export const handlers = [
     return HttpResponse.json({ backups: fixtures.backups, next_cursor: null });
   }),
 
+  http.post(`${API_ROOT}/ponds/:pondId/backups`, ({ params }) => {
+    const pondId = String(params.pondId);
+    return HttpResponse.json(
+      {
+        backup: {
+          ...fixtures.backups[1],
+          id: "bbbbbbbb-2222-2222-2222-bbbbbbbbbbbb",
+          kind: "on_demand",
+          pond_id: pondId,
+          status: "queued",
+          completed_at: null,
+          sha256: "",
+          size_bytes: 0,
+        },
+        job: {
+          id: "job_backup_01",
+          type: "backup_pond",
+          status: "queued",
+          attempts: 0,
+          created_at: "2026-09-22T21:05:00Z",
+          node_id: "node-sv-01",
+          pond_id: pondId,
+        },
+      },
+      { status: 202 },
+    );
+  }),
+
+  http.delete(`${API_ROOT}/ponds/:pondId`, ({ params }) => {
+    const pondId = String(params.pondId);
+    return HttpResponse.json(
+      {
+        pond: {
+          ...fixtures.pond,
+          id: pondId,
+          desired_state: "deleted",
+          observed_state: "deleting",
+        },
+        jobs: [
+          {
+            id: "job_pre_delete_01",
+            type: "backup_pond",
+            status: "queued",
+            attempts: 0,
+            created_at: "2026-09-22T21:10:00Z",
+            node_id: "node-sv-01",
+            pond_id: pondId,
+          },
+          {
+            id: "job_delete_01",
+            type: "delete_pond",
+            status: "queued",
+            attempts: 0,
+            created_at: "2026-09-22T21:10:00Z",
+            node_id: "node-sv-01",
+            pond_id: pondId,
+          },
+        ],
+      },
+      { status: 202 },
+    );
+  }),
+
   http.post(`${API_ROOT}/ponds/:pondId/sql`, async ({ request }) => {
     const body = (await request.json()) as { query?: string; mode?: string };
     if (!body?.query?.trim()) {
