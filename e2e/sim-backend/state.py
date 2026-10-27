@@ -893,6 +893,9 @@ class State:
             if not existing.email_verified:
                 existing.verify_token = secrets.token_urlsafe(18)
             return 200, self._register_body(existing)
+        # Gate emails used by hosted preview CI: skip the verify round-trip so a
+        # cold second instance cannot 401 token_invalid before Blob catches up.
+        gate = normalized in {GATE_ADMIN_EMAIL, GATE_USER_EMAIL}
         user = User(
             id=str(uuid.uuid4()),
             email=normalized,
@@ -900,10 +903,10 @@ class State:
             full_name=full_name.strip(),
             role="admin" if normalized == GATE_ADMIN_EMAIL else "client",
             status="active",
-            email_verified=False,
+            email_verified=gate,
             nit=nit,
             created_at=iso(utcnow()),
-            verify_token=secrets.token_urlsafe(18),
+            verify_token=None if gate else secrets.token_urlsafe(18),
         )
         self.users_by_email[normalized] = user
         self.users_by_id[user.id] = user

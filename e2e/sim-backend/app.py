@@ -234,29 +234,7 @@ def _merge_users_json(state: State, raw: bytes, *, memory_wins: bool = False) ->
         candidate = _user_from_row(row)
         if candidate is None:
             continue
-<<<<<<< HEAD
-        password = str(row.get("password") or "")
-        if not password:
-            continue
-        user = User(
-            id=user_id,
-            email=email.strip().lower(),
-            password=password,
-            full_name=str(row.get("full_name") or email),
-            role=str(row.get("role") or "client"),
-            status=str(row.get("status") or "active"),
-            email_verified=bool(row.get("email_verified", True)),
-            nit=row.get("nit") if isinstance(row.get("nit"), str) else None,
-            created_at=str(row.get("created_at") or "2020-01-01T00:00:00Z"),
-            verify_token=None,
-        )
-        chosen = _prefer_user(state.users_by_id.get(user_id), user)
-        chosen = _prefer_user(state.users_by_email.get(user.email), chosen)
-        state.users_by_id[chosen.id] = chosen
-        state.users_by_email[chosen.email] = chosen
-=======
         _install_passworded_user(state, candidate, memory_wins=memory_wins)
->>>>>>> 5c2032d (fix(e2e): merge-only users sidecar so Blob races cannot drop logins)
 
 
 def _load_users_sidecar(token: str, state: State) -> None:
@@ -570,7 +548,18 @@ def route_verify(
     body: bytes,
 ) -> tuple[int, dict[str, object]]:
     data = _json_dict(body)
-    return 200, state.verify(_need_str(data, "token"))
+    token = _need_str(data, "token")
+    try:
+        return 200, state.verify(token)
+    except SimError as exc:
+        if exc.code != "token_invalid":
+            raise
+        blob = _blob_token()
+        if not blob:
+            raise
+        load_persisted_state(force=True)
+        _load_users_sidecar(blob, STATE)
+        return 200, STATE.verify(token)
 
 
 def route_login(
