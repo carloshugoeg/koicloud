@@ -120,7 +120,7 @@ export function PlansPage() {
                   <button
                     type="button"
                     onClick={() => setSelectedPlan(plan)}
-                    className="mt-6 h-9 w-full rounded-sm bg-turquoise-700 px-4 text-sm font-medium text-bone-raised transition-colors duration-instant hover:bg-turquoise-900"
+                    className="mt-6 flex h-9 w-full items-center justify-center whitespace-nowrap rounded-sm bg-turquoise-700 px-3 text-sm font-medium text-bone-raised transition-colors duration-instant hover:bg-turquoise-900 sm:px-4"
                   >
                     Elegir plan {plan.name}
                   </button>
