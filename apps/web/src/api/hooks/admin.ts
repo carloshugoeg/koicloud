@@ -22,13 +22,22 @@ export function useAdminUsersQuery() {
   });
 }
 
+export type SuspendUserInput = {
+  userId: string;
+  reason?: string;
+};
+
 export function useSuspendUserMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (userId: string) => {
+    mutationFn: async ({ userId, reason }: SuspendUserInput) => {
+      const trimmed = reason?.trim();
       const { data, error } = await apiClient.POST("/api/v1/admin/users/{user_id}/suspend", {
         params: { path: { user_id: userId } },
-        body: { confirm_text: SUSPEND_CONFIRM_TEXT },
+        body: {
+          confirm_text: SUSPEND_CONFIRM_TEXT,
+          ...(trimmed ? { reason: trimmed } : {}),
+        },
       });
       if (error || !data) {
         throw new ApiError(error);
@@ -37,6 +46,7 @@ export function useSuspendUserMutation() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "audit"] });
     },
   });
 }
