@@ -212,6 +212,17 @@ describe("W2-10 Panel admin", () => {
     ).toBeInTheDocument();
   });
 
+  it("exposes the subscriptions table as a keyboard-reachable scroll region", async () => {
+    renderAdmin("/app/admin/subscriptions");
+    expect(await screen.findByTestId("admin-subscriptions-page")).toBeInTheDocument();
+
+    const region = screen.getByRole("region", { name: "Suscripciones" });
+    expect(region).toHaveAttribute("tabindex", "0");
+    expect(region).toHaveAttribute("data-testid", "admin-subscriptions-table");
+    region.focus();
+    expect(region).toHaveFocus();
+  });
+
   it("shows error state for admin subscriptions when the API fails", async () => {
     server.use(
       http.get("*/api/v1/admin/subscriptions", () =>
