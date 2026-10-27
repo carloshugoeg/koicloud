@@ -23,9 +23,10 @@ contra un stack compose local. En un VPS real: copiar env y correr `deploy.sh`.
 ## Entradas ya decididas (no se cambian)
 
 - Rama existente: `w1-wave-c0-compose-e2e` (nombre histórico del wave; slug del ticket).
-- Alcance: `infra/` + `e2e/` (+ workflow `e2e-compose` mínimo). Sin tocar apps A1/A2.
+- Alcance: `infra/` + `e2e/` (+ workflow `e2e-compose` mínimo). Sin tocar apps A1/A2, salvo la excepción gate r5 abajo.
 - `PAYMENT_PROVIDER` obligatorio en prod: compose sin default `:-simulated`; `deploy.sh` lo exige con `need`.
 - `EMAIL_PROVIDER` obligatorio en prod: compose sin default `:-console`; `deploy.sh` lo exige con `need`.
+- Gate r5 (security): la API lee `EMAIL_PROVIDER`; el log del verify-token en claro solo corre cuando `EMAIL_PROVIDER=console`; `ENVIRONMENT=production|prod` + `console` rechaza el arranque. Diff permitido en `apps/api/app/core/config.py`, `apps/api/app/commands/auth.py` y su test.
 - No inventar IP/DNS; proof de deploy solo contra contenedor SSH local.
 - No mergear este PR desde el agente; ship tras LGTM + gate (+ ventana Carlos, lane alta).
 
@@ -40,7 +41,8 @@ contra un stack compose local. En un VPS real: copiar env y correr `deploy.sh`.
 
 ## No tocar
 
-`apps/**` de olas A1/A2. Contratos OpenAPI / firmas de commands. Host VPS real.
+`apps/**` de olas A1/A2 fuera de la excepción gate r5 (verify-token / `EMAIL_PROVIDER` arriba).
+Contratos OpenAPI / firmas de commands. Host VPS real.
 Tickets de otros workstreams (p. ej. W2-14).
 
 ## Si algo falta
