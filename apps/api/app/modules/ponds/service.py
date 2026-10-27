@@ -372,15 +372,18 @@ class PondService:
         return node
 
     async def _assert_name_free(self, user_id: UUID, name: str) -> None:
+        # .first() — never scalar_one*: preview seed/retries can leave dupes.
         existing = (
             await self.session.execute(
-                select(Pond.id).where(
+                select(Pond.id)
+                .where(
                     Pond.user_id == user_id,
                     Pond.name == name,
                     Pond.desired_state != PondDesiredState.DELETED,
                 )
+                .limit(1)
             )
-        ).scalar_one_or_none()
+        ).scalars().first()
         if existing is not None:
             raise AppError(ErrorCode.POND_NAME_TAKEN)
 
