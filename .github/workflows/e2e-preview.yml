@@ -1,0 +1,89 @@
+name: e2e-preview
+
+on:
+  pull_request:
+
+concurrency:
+  group: e2e-preview-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  preview:
+    name: preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PLAYWRIGHT_BASE_URL: https://koicloud-web-git-w2-14-post-merge-hugos-projects-3379fa36.vercel.app
+      KOI_SIM_BASE_URL: http://127.0.0.1:18080
+      PYTHON_VERSION: "3.12"
+      NODE_VERSION: "22"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Start sim backend
+        run: |
+          python e2e/sim-backend/__main__.py > "$RUNNER_TEMP/sim.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/sim.pid"
+          for _ in $(seq 1 30); do
+            if curl -fsS "$KOI_SIM_BASE_URL/api/v1/health" >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "sim did not become healthy" >&2
+          cat "$RUNNER_TEMP/sim.log" >&2
+          exit 1
+
+      - name: Seed gate users
+        run: |
+          echo "KOI_GATE_CREDENTIALS_OUT=$RUNNER_TEMP/gate-credentials.json" >> "$GITHUB_ENV"
+          export KOI_GATE_CREDENTIALS_OUT="$RUNNER_TEMP/gate-credentials.json"
+          bash scripts/seed-gate-preview.sh
+
+      - name: MCP client suite
+        id: mcp
+        run: python e2e/preview/mcp_client_suite.py
+        continue-on-error: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install Playwright
+        working-directory: e2e/preview
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Playwright preview suite
+        id: playwright
+        working-directory: e2e/preview
+        run: npx playwright test
+        continue-on-error: true
+
+      - name: Write results table
+        if: always()
+        run: python e2e/preview/write_results.py
+        env:
+          KOI_E2E_RESULTS_OUT: ${{ runner.temp }}/e2e-verify-results.md
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-preview-screenshots
+          path: e2e/preview/artifacts/*.png
+          if-no-files-found: ignore
+
+      - name: Fail when a suite failed
+        if: always()
+        run: |
+          test "${{ steps.mcp.outcome }}" = "success"
+          test "${{ steps.playwright.outcome }}" = "success"
