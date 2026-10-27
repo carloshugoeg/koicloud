@@ -160,9 +160,8 @@ test("pond lifecycle", async ({ page }) => {
   await check(page, failures, "SQL console", "sql-console", hidden, async () => {
     await page.getByRole("link", { name: "Consola" }).click();
     await expect(page.getByTestId("sql-console")).toBeVisible();
-    const sqlNamed = page.getByRole("textbox", { name: "Consulta SQL" });
-    const sqlEditor = page.getByTestId("sql-editor");
-    await expect(sqlNamed.or(sqlEditor)).toBeVisible();
+    // CodeMirror exposes a textbox with the same aria-label — use testid only.
+    await expect(page.getByTestId("sql-editor")).toBeVisible();
     await page.getByTestId("sql-run").click();
     await expect(page.getByTestId("sql-results")).toBeVisible();
     await expect(page.getByTestId("sql-results-meta")).toContainText("filas");

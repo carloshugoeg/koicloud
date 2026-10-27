@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import os
 import sys
+import threading
 import traceback
 from http.server import BaseHTTPRequestHandler
 from pathlib import Path
@@ -25,6 +26,9 @@ MAX_BODY = 1_000_000
 _fastapi_app: Any | None = None
 _loop: asyncio.AbstractEventLoop | None = None
 _lifespan_started = False
+# Vercel may invoke this sync handler concurrently on one warm worker.
+# Serialise run_until_complete so we never hit "loop already running".
+_loop_lock = threading.Lock()
 
 
 def _production() -> bool:
@@ -118,9 +122,17 @@ def _ensure_lifespan(app: Any) -> None:
     global _lifespan_started
     if _lifespan_started or _production():
         return
-    loop = _get_loop()
-    loop.run_until_complete(_lifespan_startup(app))
-    _lifespan_started = True
+    with _loop_lock:
+        if _lifespan_started:
+            return
+        loop = _get_loop()
+        loop.run_until_complete(_lifespan_startup(app))
+        _lifespan_started = True
+
+
+def _run_coro(coro: Any) -> Any:
+    with _loop_lock:
+        return _get_loop().run_until_complete(coro)
 
 
 def _original_path(handler: BaseHTTPRequestHandler) -> str:
@@ -249,7 +261,7 @@ def _serve(handler: BaseHTTPRequestHandler) -> None:
         headers.append((b"host", b"vercel.app"))
 
     try:
-        status, resp_headers, raw = _get_loop().run_until_complete(
+        status, resp_headers, raw = _run_coro(
             _run_asgi(
                 app,
                 method=handler.command,

@@ -116,10 +116,12 @@ class PondService:
         self, actor: AuthContext, *, name: str, engine_version: str
     ) -> tuple[PondOut, JobOut]:
         user = await self.ensure_actor(actor)
-        node = await self.ensure_live_node()
         subscription = await self.ensure_subscription(user)
+        # Domain checks before node upsert so duplicate/quota map cleanly even
+        # when preview node/loop work flakes under concurrent requests.
         await self._assert_name_free(user.id, name)
         await self._assert_quota(user.id, subscription.plan_id)
+        node = await self.ensure_live_node()
 
         password = secrets.token_urlsafe(18)
         try:
@@ -420,7 +422,12 @@ class PondService:
 
     def _translate_integrity(self, exc: IntegrityError) -> AppError:
         detail = str(exc.orig) if getattr(exc, "orig", None) else str(exc)
-        if "ponds_user_name_uk" in detail or "ponds_user_id_name" in detail:
+        lowered = detail.lower()
+        if (
+            "ponds_user_name_uk" in detail
+            or "ponds_user_id_name" in detail
+            or ("unique" in lowered and "name" in lowered and "pond" in lowered)
+        ):
             return AppError(ErrorCode.POND_NAME_TAKEN)
         if "ponds_host_port_uk" in detail:
             return AppError(ErrorCode.NODE_UNAVAILABLE)
