@@ -451,6 +451,8 @@ class State:
         self._lock = threading.Lock()
         self.users_by_email: dict[str, User] = {}
         self.users_by_id: dict[str, User] = {}
+        # Ephemeral claim-hydrated actors (password=""). Never pickled / Blob-saved.
+        self.claim_actors: dict[str, User] = {}
         self.sessions: dict[str, str] = {}
         self.subs: dict[str, Subscription] = {}
         self.ponds: dict[str, Pond] = {}
@@ -483,11 +485,32 @@ class State:
         payload = dict(self.__dict__)
         payload.pop("_lock", None)
         payload.pop("_tools", None)
+        payload.pop("claim_actors", None)
+        # Never persist empty-password stubs into Blob.
+        users = {
+            user_id: user
+            for user_id, user in self.users_by_id.items()
+            if user.password
+        }
+        payload["users_by_id"] = users
+        payload["users_by_email"] = {
+            email: user for email, user in self.users_by_email.items() if user.password
+        }
         return payload
 
     def __setstate__(self, payload: dict[str, object]) -> None:
         self.__dict__.update(payload)
         self._lock = threading.Lock()
+        if not hasattr(self, "claim_actors") or not isinstance(self.claim_actors, dict):
+            self.claim_actors = {}
+        # Drop any legacy stub rows that landed in an older Blob pickle.
+        for user_id, user in list(self.users_by_id.items()):
+            if user.password:
+                continue
+            self.users_by_id.pop(user_id, None)
+            mapped = self.users_by_email.get(user.email)
+            if mapped is user or (mapped is not None and not mapped.password):
+                self.users_by_email.pop(user.email, None)
         self._bind_tools()
 
     def register(
@@ -532,7 +555,8 @@ class State:
         with self._lock:
             user_id = self.sessions.get(token)
             claims: dict[str, object] = {}
-            if user_id is None or user_id not in self.users_by_id:
+            durable = user_id is not None and user_id in self.users_by_id
+            if not durable:
                 parsed = parse_access_token(token)
                 if parsed is None and user_id is None:
                     raise SimError("token_invalid")
@@ -540,10 +564,9 @@ class State:
                     user_id, claims = parsed
             if user_id is None:
                 raise SimError("token_invalid")
-            if user_id not in self.users_by_id and claims:
-                # Blob miss on a cold instance: hydrate actor from signed claims.
-                # Never overwrite a passworded email row — empty-password stubs must
-                # stay memory-only and must not win a later Blob save/merge.
+            if user_id not in self.users_by_id and user_id not in self.claim_actors and claims:
+                # Blob miss: keep claim actor out of durable indexes so saves
+                # cannot publish password="" over the seeded gate user.
                 email = claims.get("email")
                 role = claims.get("role")
                 status = claims.get("status")
@@ -557,10 +580,9 @@ class State:
                     normalized = email.strip().lower()
                     existing = self.users_by_email.get(normalized)
                     if existing is not None and existing.password:
-                        self.users_by_id[existing.id] = existing
                         user_id = existing.id
                     else:
-                        user = User(
+                        self.claim_actors[user_id] = User(
                             id=user_id,
                             email=normalized,
                             password="",
@@ -572,9 +594,6 @@ class State:
                             created_at=iso(utcnow()),
                             verify_token=None,
                         )
-                        # Id map only — never users_by_email, or login can see
-                        # password="" and Blob saves can publish the stub.
-                        self.users_by_id[user.id] = user
             self._active_user(user_id)
             return user_id
 
@@ -900,7 +919,7 @@ class State:
         return body
 
     def _active_user(self, user_id: str) -> User:
-        user = self.users_by_id.get(user_id)
+        user = self.users_by_id.get(user_id) or self.claim_actors.get(user_id)
         if user is None:
             raise SimError("token_invalid")
         if user.status != "active":

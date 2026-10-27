@@ -30,10 +30,13 @@ export async function login(page: Page, account: Account): Promise<void> {
   await page.getByLabel("Correo").fill(account.email);
   await page.getByLabel("Contraseña").fill(account.password);
   await page.getByRole("button", { name: "Iniciar sesión" }).click();
-  // Hosted sim can cold-start; wait for /app or a login alert before minting.
-  const app = page.waitForURL(/\/app/, { timeout: 30_000 });
-  const alert = page.getByRole("alert").waitFor({ state: "visible", timeout: 30_000 });
-  await Promise.race([app, alert]);
+  // Hosted sim can cold-start; prefer navigation to /app. If credentials fail,
+  // the alert becomes visible and the caller assertion surfaces it.
+  try {
+    await page.waitForURL(/\/app(?:\/|$)/, { timeout: 45_000 });
+  } catch {
+    // Fall through — caller asserts URL / alert.
+  }
   // Lazily mint a helper token for api()/stopPond after the SPA session is up.
   // Do not block the UI login path if mint races a cold sim instance.
   try {

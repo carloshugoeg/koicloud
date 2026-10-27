@@ -193,12 +193,13 @@ def _merge_users_json(state: State, raw: bytes) -> None:
         email = row.get("email")
         if not isinstance(user_id, str) or not isinstance(email, str):
             continue
-        if user_id in state.users_by_id:
+        password = str(row.get("password") or "")
+        if not password:
             continue
         user = User(
             id=user_id,
             email=email.strip().lower(),
-            password=str(row.get("password") or ""),
+            password=password,
             full_name=str(row.get("full_name") or email),
             role=str(row.get("role") or "client"),
             status=str(row.get("status") or "active"),
@@ -207,8 +208,10 @@ def _merge_users_json(state: State, raw: bytes) -> None:
             created_at=str(row.get("created_at") or "2020-01-01T00:00:00Z"),
             verify_token=None,
         )
-        state.users_by_id[user.id] = user
-        state.users_by_email[user.email] = user
+        chosen = _prefer_user(state.users_by_id.get(user_id), user)
+        chosen = _prefer_user(state.users_by_email.get(user.email), chosen)
+        state.users_by_id[chosen.id] = chosen
+        state.users_by_email[chosen.email] = chosen
 
 
 def _load_users_sidecar(token: str, state: State) -> None:
