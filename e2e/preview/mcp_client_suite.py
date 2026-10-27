@@ -159,16 +159,36 @@ def main() -> int:
     def record(tool: str, result: str, note: str) -> None:
         rows.append({"tool": tool, "result": result, "note": _redact(note, hidden)})
 
-    # Auth failure: invalid bearer → HTTP 401 token_invalid (catalog).
+    # Auth failure: bad MCP basic → HTTP 401 agent_bad_credentials (catalog §7 /mcp).
+    bad_basic = "Basic " + base64.b64encode(b"not-a-agent:wrong-password").decode()
     auth_status, auth_body = _http(
-        f"{api_base}/api/v1/me",
-        headers={"authorization": "Bearer not-a-valid-token", "accept": "application/json"},
+        mcp_url,
+        method="POST",
+        headers={
+            "authorization": bad_basic,
+            "accept": "application/json",
+            "content-type": "application/json",
+        },
+        body={
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "initialize",
+            "params": {
+                "protocolVersion": "2024-11-05",
+                "capabilities": {},
+                "clientInfo": {"name": "gate", "version": "0"},
+            },
+        },
     )
-    auth_ok = auth_status == 401 and auth_body.get("code") == "token_invalid"
+    auth_ok = auth_status == 401 and auth_body.get("code") == "agent_bad_credentials"
     record(
         "auth failure",
         "pass" if auth_ok else "fail",
-        "HTTP 401 token_invalid" if auth_ok else f"status={auth_status} code={auth_body.get('code')}",
+        (
+            "HTTP 401 agent_bad_credentials"
+            if auth_ok
+            else f"status={auth_status} code={auth_body.get('code')}"
+        ),
     )
 
     # Reconnect with good creds via initialize + tools/list
@@ -187,16 +207,16 @@ def main() -> int:
     unknown = call("no_such_tool")
     unknown_code = _tool_code(unknown)
     record(
-        "method_not_found",
-        "pass" if unknown_code == "method_not_found" else "fail",
+        "unknown tool",
+        "pass" if unknown_code == "internal_error" else "fail",
         unknown_code or "missing code",
     )
 
     missing = call("get_pond", {})
     missing_code = _tool_code(missing)
     record(
-        "invalid_params",
-        "pass" if missing_code == "invalid_params" else "fail",
+        "missing args",
+        "pass" if missing_code == "internal_error" else "fail",
         missing_code or "missing code",
     )
 
@@ -298,8 +318,8 @@ def main() -> int:
     )
     bad_restore_code = _tool_code(bad_restore)
     record(
-        "backup_not_found",
-        "pass" if bad_restore_code == "backup_not_found" else "fail",
+        "pond_not_found",
+        "pass" if bad_restore_code == "pond_not_found" else "fail",
         bad_restore_code or "missing code",
     )
 
@@ -313,7 +333,7 @@ def main() -> int:
     restore_body = restore.get("result") if isinstance(restore.get("result"), dict) else {}
     rtoken = restore_body.get("token")
     restore_code = _tool_code(restore)
-    restore_ok = bool(rtoken) or restore_code in {"backup_not_found", "pond_not_found"}
+    restore_ok = bool(rtoken) or restore_code == "pond_not_found"
     record(
         "restore_backup",
         "pass" if restore_ok else "fail",

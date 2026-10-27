@@ -105,6 +105,7 @@ PLANS: tuple[dict[str, object], ...] = (
 )
 PLANS_BY_ID = {str(plan["id"]): plan for plan in PLANS}
 
+# Exact api-surface §7 / apps/web/src/lib/errors.ts codes. No invented variants.
 CATALOG: dict[str, tuple[int, str]] = {
     "invalid_credentials": (401, "Correo o contraseña incorrectos"),
     "email_not_verified": (403, "Verificá tu correo antes de continuar"),
@@ -117,6 +118,10 @@ CATALOG: dict[str, tuple[int, str]] = {
     "quota_exceeded": (409, "Ya alcanzaste el máximo de ponds de tu plan"),
     "pond_name_taken": (409, "Ya existe un pond con ese nombre"),
     "pond_not_found": (404, "No existe el pond solicitado"),
+    "pond_busy": (409, "El pond ya tiene un job activo"),
+    "node_unavailable": (503, "No hay nodos disponibles en este momento"),
+    "sql_readonly_violation": (400, "La query es de escritura pero el modo es read"),
+    "sql_timeout": (504, "La consulta excedió el límite de 10 segundos"),
     "confirmation_required": (409, "La acción requiere confirmación explícita"),
     "confirmation_not_found": (404, "El token de confirmación no existe"),
     "confirmation_expired": (410, "El token de confirmación ya expiró"),
@@ -125,12 +130,9 @@ CATALOG: dict[str, tuple[int, str]] = {
     "agent_bad_credentials": (401, "Credenciales MCP inválidas"),
     "not_owner": (403, "No tenés acceso a este recurso"),
     "admin_only": (403, "Esta operación requiere rol administrador"),
-    "sql_readonly_violation": (400, "La query es de escritura pero el modo es read"),
-    "node_unavailable": (503, "No hay nodos disponibles en este momento"),
-    # Sim-only MCP / restore codes (not production OpenAPI catalog).
-    "method_not_found": (404, "Herramienta MCP desconocida"),
-    "invalid_params": (400, "Falta un argumento requerido"),
-    "backup_not_found": (404, "No existe el respaldo solicitado"),
+    "rate_limited": (429, "Muchos intentos, esperá un momento"),
+    "disk_full": (507, "No hay espacio suficiente para completar la operación"),
+    "internal_error": (500, "Algo salió mal, revisá los logs"),
 }
 
 
@@ -1218,7 +1220,7 @@ class State:
             backup_id = payload["backup_id"]
             found = any(row.id == backup_id for row in self.backups.get(pond.id, []))
             if not found:
-                raise SimError("backup_not_found")
+                raise SimError("pond_not_found")
             pond.last_restore_at = iso(utcnow())
             desired, observed, healthy = POND_APPLY["start"]
             pond.desired_state = desired
@@ -1268,7 +1270,8 @@ class State:
     def _need(self, args: dict[str, object], key: str) -> str:
         value = args.get(key)
         if not isinstance(value, str) or not value.strip():
-            raise SimError("invalid_params", message=f"Falta el argumento '{key}'")
+            # Catalog has no validation code; catch-all matches api-surface §7.
+            raise SimError("internal_error", message=f"Falta el argumento '{key}'")
         return value
 
     def _tool_whoami(self, user_id: str, _args: dict[str, object]) -> dict[str, object]:
@@ -1329,7 +1332,8 @@ class State:
         backup_id = self._need(args, "backup_id")
         found = any(row.id == backup_id for row in self.backups.get(pond.id, []))
         if not found:
-            raise SimError("backup_not_found")
+            # Real API maps missing/unrestorable backups to pond_not_found.
+            raise SimError("pond_not_found")
         summary = (
             f"Se restaurará el pond '{pond.name}' desde el respaldo {backup_id}. "
             "Expira en 5 min."

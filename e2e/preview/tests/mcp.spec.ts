@@ -51,18 +51,31 @@ test("mcp tools via preview /mcp", async ({ page, baseURL }) => {
     rows.push({ tool, result, note: redact(note, hidden) });
   };
 
-  const authFail = await browserFetchStatus(page, `${preview}/api/v1/me`, {
-    method: "GET",
+  const authFail = await browserFetchStatus(page, mcpUrl, {
+    method: "POST",
     headers: {
-      authorization: "Bearer not-a-valid-token",
+      authorization: basicAuth("not-a-agent", "wrong-password"),
       accept: "application/json",
+      "content-type": "application/json",
+    },
+    body: {
+      jsonrpc: "2.0",
+      id: 1,
+      method: "initialize",
+      params: {
+        protocolVersion: "2024-11-05",
+        capabilities: {},
+        clientInfo: { name: "gate", version: "0" },
+      },
     },
   });
-  const authOk = authFail.status === 401 && authFail.body.code === "token_invalid";
+  const authOk = authFail.status === 401 && authFail.body.code === "agent_bad_credentials";
   record(
     "auth failure",
     authOk ? "pass" : "fail",
-    authOk ? "HTTP 401 token_invalid" : `status=${authFail.status} code=${String(authFail.body.code ?? "")}`,
+    authOk
+      ? "HTTP 401 agent_bad_credentials"
+      : `status=${authFail.status} code=${String(authFail.body.code ?? "")}`,
   );
 
   const init = await rpc(page, mcpUrl, auth, "initialize", {
@@ -88,16 +101,16 @@ test("mcp tools via preview /mcp", async ({ page, baseURL }) => {
   const unknown = await call("no_such_tool");
   const unknownCode = toolCode(unknown);
   record(
-    "method_not_found",
-    unknownCode === "method_not_found" ? "pass" : "fail",
+    "unknown tool",
+    unknownCode === "internal_error" ? "pass" : "fail",
     unknownCode || "missing code",
   );
 
   const missing = await call("get_pond", {});
   const missingCode = toolCode(missing);
   record(
-    "invalid_params",
-    missingCode === "invalid_params" ? "pass" : "fail",
+    "missing args",
+    missingCode === "internal_error" ? "pass" : "fail",
     missingCode || "missing code",
   );
 
@@ -189,8 +202,8 @@ test("mcp tools via preview /mcp", async ({ page, baseURL }) => {
   });
   const badRestoreCode = toolCode(badRestore);
   record(
-    "backup_not_found",
-    badRestoreCode === "backup_not_found" ? "pass" : "fail",
+    "pond_not_found",
+    badRestoreCode === "pond_not_found" ? "pass" : "fail",
     badRestoreCode || "missing code",
   );
 
@@ -200,7 +213,7 @@ test("mcp tools via preview /mcp", async ({ page, baseURL }) => {
   });
   const restoreBody = (restore.result as { token?: string; isError?: unknown; code?: unknown } | undefined) ?? {};
   const restoreCode = toolCode(restore);
-  const restoreOk = Boolean(restoreBody.token || restoreCode === "backup_not_found");
+  const restoreOk = Boolean(restoreBody.token || restoreCode === "pond_not_found");
   record("restore_backup", restoreOk ? "pass" : "fail", "propose or domain error");
   if (restoreBody.token) {
     await call("cancel_confirmation", { token: restoreBody.token });

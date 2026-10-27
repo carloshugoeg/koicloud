@@ -116,7 +116,8 @@ def _serve(handler: BaseHTTPRequestHandler) -> None:
             handler,
             404,
             {
-                "code": "pond_not_found",
+                # Catalog code only — never invent pond_not_found variants for routing.
+                "code": "internal_error",
                 "message": "Preview sim is not available in this deployment",
                 "request_id": None,
             },

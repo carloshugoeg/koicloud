@@ -2,7 +2,39 @@ import type { components } from "@/api/schema";
 
 export type ApiProblem = components["schemas"]["ErrorResponse"];
 
-const CATALOG: Record<ApiProblem["code"], string> = {
+/** Stable api-surface §7 codes. Source of truth for web + preview sim MCP errors. */
+export const ERROR_CODES = [
+  "invalid_credentials",
+  "email_not_verified",
+  "account_suspended",
+  "token_expired",
+  "token_invalid",
+  "email_taken",
+  "password_too_weak",
+  "plan_required",
+  "quota_exceeded",
+  "pond_name_taken",
+  "pond_not_found",
+  "pond_busy",
+  "node_unavailable",
+  "sql_readonly_violation",
+  "sql_timeout",
+  "confirmation_required",
+  "confirmation_not_found",
+  "confirmation_expired",
+  "confirmation_action_mismatch",
+  "agent_disabled",
+  "agent_bad_credentials",
+  "not_owner",
+  "admin_only",
+  "rate_limited",
+  "disk_full",
+  "internal_error",
+] as const;
+
+export type ErrorCode = (typeof ERROR_CODES)[number];
+
+const CATALOG: Record<ErrorCode, string> = {
   invalid_credentials: "Correo o contraseña incorrectos.",
   email_not_verified: "Verificá tu correo antes de continuar.",
   account_suspended: "Tu cuenta está suspendida.",
@@ -56,7 +88,11 @@ export function problemToMessage(error: unknown) {
   }
 
   if (isApiProblem(error)) {
-    return CATALOG[error.code] ?? error.message;
+    const mapped =
+      (ERROR_CODES as readonly string[]).includes(error.code)
+        ? CATALOG[error.code as ErrorCode]
+        : undefined;
+    return mapped ?? error.message;
   }
 
   if (error instanceof TypeError) {

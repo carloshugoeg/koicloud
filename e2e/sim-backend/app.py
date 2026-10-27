@@ -978,7 +978,7 @@ def route_mcp_post(
     if not name:
         missed = _tool_error(
             "tools/call",
-            SimError("method_not_found", message="tool name required"),
+            SimError("internal_error", message="tool name required"),
         )
         return 200, {"jsonrpc": "2.0", "id": rpc_id, "result": missed, "error": None}
     try:
@@ -986,7 +986,7 @@ def route_mcp_post(
     except ToolMiss as exc:
         missed = _tool_error(
             exc.name,
-            SimError("method_not_found", message=f"unknown tool '{exc.name}'"),
+            SimError("internal_error", message=f"unknown tool '{exc.name}'"),
         )
         return 200, {"jsonrpc": "2.0", "id": rpc_id, "result": missed, "error": None}
     except SimError as exc:
