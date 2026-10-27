@@ -17,7 +17,15 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Callable
 from urllib.parse import urlsplit
 
-from state import SimError, State, ToolMiss, User, same_secret
+from state import (
+    GATE_ADMIN_EMAIL,
+    GATE_USER_EMAIL,
+    SimError,
+    State,
+    ToolMiss,
+    User,
+    same_secret,
+)
 
 MAX_BODY = 1_000_000
 STATE = State()
@@ -47,11 +55,11 @@ def _blob_key_base() -> str:
 def _blob_path() -> str:
     # Bump generation when durable schema/guards change so rolling alias
     # instances on older builds cannot pollute the live Blob key.
-    return f"koi-preview-sim-{_blob_key_base()}-v6.pkl"
+    return f"koi-preview-sim-{_blob_key_base()}-v7.pkl"
 
 
 def _users_blob_path() -> str:
-    return f"koi-preview-sim-{_blob_key_base()}-v6-users.json"
+    return f"koi-preview-sim-{_blob_key_base()}-v7-users.json"
 
 
 def _persist_path() -> str:
@@ -249,18 +257,51 @@ def _load_users_sidecar(token: str, state: State) -> None:
 
 def _save_users_sidecar_union(token: str, state: State) -> bool:
     """Read-merge-write users.json so a partial instance cannot drop peers."""
-    for attempt in range(6):
-        existing = _download_blob_bytes(token, _users_blob_path())
+    for attempt in range(8):
+        existing = None
+        for read_try in range(4):
+            existing = _download_blob_bytes(token, _users_blob_path())
+            if existing:
+                break
+            time.sleep(0.1 * (read_try + 1))
         merged = State()
         if existing:
             _merge_users_json(merged, existing, memory_wins=False)
         before = _passworded_count(merged)
+        memory_emails = {
+            user.email for user in state.users_by_id.values() if user.password
+        }
+        # Blind write without a durable read would drop gate users after auth register.
+        if not existing:
+            has_gate_pair = (
+                GATE_ADMIN_EMAIL in memory_emails and GATE_USER_EMAIL in memory_emails
+            )
+            if not has_gate_pair:
+                if attempt < 7:
+                    time.sleep(0.15 * (attempt + 1))
+                    continue
+                return False
         for user in list(state.users_by_id.values()):
             if not user.password:
                 continue
             _install_passworded_user(merged, user, memory_wins=True)
+        # Never publish a sidecar that loses a previously known gate email.
+        merged_emails = {
+            user.email for user in merged.users_by_id.values() if user.password
+        }
+        if existing and before > 0:
+            prior = State()
+            _merge_users_json(prior, existing, memory_wins=False)
+            prior_emails = {
+                user.email for user in prior.users_by_id.values() if user.password
+            }
+            if not prior_emails.issubset(merged_emails):
+                if attempt < 7:
+                    time.sleep(0.15 * (attempt + 1))
+                    continue
+                return False
         raw = _users_to_json(merged)
-        if _passworded_count(merged) < max(before, _passworded_count(state)) and attempt < 5:
+        if _passworded_count(merged) < max(before, _passworded_count(state)) and attempt < 7:
             time.sleep(0.12 * (attempt + 1))
             continue
         if not _put_blob_bytes(token, _users_blob_path(), raw, "application/json"):
@@ -396,12 +437,19 @@ def save_persisted_state() -> None:
         if remote is not None:
             _merge_state(STATE, remote)
             _BLOB_LOAD_OK = True
-        elif _BLOB_LOAD_OK:
-            # Stampede miss after we have seen durable Blob — publishing partial
-            # memory would drop peers registered on other instances.
-            return
-        elif not STATE.users_by_id:
-            return
+        else:
+            # Stampede miss: only the initial gate seed (both fixture emails in
+            # memory) may create the first pickle. Anything else would drop MCP
+            # agents / peers registered on other instances.
+            emails = {
+                user.email for user in STATE.users_by_id.values() if user.password
+            }
+            if _BLOB_LOAD_OK or not STATE.users_by_id:
+                _save_users_sidecar_union(token, STATE)
+                return
+            if GATE_ADMIN_EMAIL not in emails or GATE_USER_EMAIL not in emails:
+                _save_users_sidecar_union(token, STATE)
+                return
         _strip_auth_stubs(STATE)
         if _passworded_count(STATE) == 0:
             retry = _read_blob_state(token, attempts=4)
