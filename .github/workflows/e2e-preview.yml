@@ -39,8 +39,12 @@ jobs:
             if [ "$code" = "200" ] && [ "$health_code" = "200" ] && grep -q '"ok"' /tmp/preview-health.json; then
               if grep -qi '<html' /tmp/preview-health.json; then
                 echo "health still HTML; retry"
+              elif ! grep -q "\"git_sha\": \"${GITHUB_SHA}\"" /tmp/preview-health.json \
+                && ! grep -q "\"git_sha\":\"${GITHUB_SHA}\"" /tmp/preview-health.json; then
+                echo "health JSON but sha mismatch; retry"
+                head -c 200 /tmp/preview-health.json; echo
               else
-                echo "preview HTTP 200 + health JSON"
+                echo "preview HTTP 200 + health JSON for ${GITHUB_SHA}"
                 head -c 200 /tmp/preview-health.json; echo
                 exit 0
               fi

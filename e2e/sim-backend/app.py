@@ -219,7 +219,8 @@ def route_health(
     _headers: dict[str, str],
     _body: bytes,
 ) -> tuple[int, dict[str, object]]:
-    return 200, {"ok": True, "git_sha": "sim-backend"}
+    sha = (os.environ.get("VERCEL_GIT_COMMIT_SHA") or "").strip() or "sim-backend"
+    return 200, {"ok": True, "git_sha": sha, "sim": True}
 
 
 def route_register(

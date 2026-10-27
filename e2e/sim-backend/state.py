@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import os
 import secrets
 import threading
 import uuid
@@ -737,6 +738,23 @@ class State:
             raise SimError("password_too_weak")
         existing = self.users_by_email.get(normalized)
         if existing is not None:
+            # Preview/hosted sim: CI may re-seed gate users with a fresh password
+            # against durable Blob state. Never enable this path in production.
+            allow_reseed = (
+                os.environ.get("VERCEL_ENV", "").strip() == "preview"
+                or os.environ.get("KOI_SIM_ALLOW_RESEED", "").strip() == "1"
+            )
+            if (
+                allow_reseed
+                and normalized in {GATE_ADMIN_EMAIL, GATE_USER_EMAIL}
+                and not same_secret(existing.password, password)
+            ):
+                existing.password = password
+                existing.full_name = full_name.strip() or existing.full_name
+                existing.status = "active"
+                existing.email_verified = True
+                existing.verify_token = None
+                return 200, self._register_body(existing)
             if not same_secret(existing.password, password):
                 raise SimError("email_taken")
             if not existing.email_verified:
