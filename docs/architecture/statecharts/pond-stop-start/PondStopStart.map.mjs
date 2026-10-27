@@ -47,12 +47,18 @@ export const step = (action) => {
       return "job start ok";
     case "StartFailed":
       return "job start failed";
-    case "Retry":
-      return "retry (existing)";
+    case "RetryStop":
+      return "POST /retry [stop_pond]";
+    case "RetryStart":
+      return "POST /retry [start_pond]";
+    case "RetryCreate":
+      return "POST /retry [create_pond]";
     case "ProvisionOk":
       return "create/start ok";
     case "ProvisionFailed":
       return "create/start failed";
+    case "BeginProvision":
+      return null;
     case "Idle":
       return null;
     default:

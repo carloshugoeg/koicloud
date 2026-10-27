@@ -1,10 +1,10 @@
 {
-  "states": 6,
-  "steps": 12,
-  "arrows": 10,
+  "states": 11,
+  "steps": 20,
+  "arrows": 11,
   "invariants": [
     "TypeOK"
   ],
   "breaks": 0,
-  "source": "CCR #131 approved comment + 409 edges documented in README"
+  "source": "CCR #131: error recovers via POST /retry by failed job type (stop\u2192stopping, start\u2192starting, create\u2192provisioning)"
 }

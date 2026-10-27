@@ -18,9 +18,10 @@ stateDiagram-v2
 
   stopping --> error: job stop failed
   starting --> error: job start failed
+  provisioning --> error: create/start failed
 
-  error --> starting: POST /start [observed=stopped]
-  error --> provisioning: retry [existing]
+  error --> stopping: POST /retry [stop_pond]
+  error --> starting: POST /retry [start_pond]
+  error --> provisioning: POST /retry [create_pond]
 
   provisioning --> running: create/start ok
-  provisioning --> error: create/start failed

@@ -25,11 +25,17 @@ stateDiagram-v2
   starting --> running: job start ok
   stopping --> error: job stop failed
   starting --> error: job start failed
-  error --> starting: POST /start [observed=stopped]
-  error --> provisioning: retry (existing)
-  provisioning --> running: create/start ok
   provisioning --> error: create/start failed
+  error --> stopping: POST /retry [stop_pond]
+  error --> starting: POST /retry [start_pond]
+  error --> provisioning: POST /retry [create_pond]
+  provisioning --> running: create/start ok
 ```
+
+Recovery from `error` is **only** `POST /retry`, which requeues the last
+failed job type (`stop_pond` → stopping, `start_pond` → starting,
+`create_pond` → provisioning). `POST /start` from `observed=failed` stays
+`409 pond_busy` (start needs `observed=stopped`).
 
 `stopping` / `starting` are **UI phases** (`desired ≠ observed` + job in flight).
 The observed enum does not gain new values.
@@ -43,6 +49,7 @@ drawn as arrows on the chart (self-loops would hide the real transitions).
 |---|---|---|
 | `stopped` | `POST /stop` | stop needs `observed=running` |
 | `running` | `POST /start` | start needs `observed=stopped` |
+| `error` (`observed=failed`) | `POST /start` or `/stop` | start needs `observed=stopped`; stop needs `running` — use `/retry` |
 | `stopping` | `POST /stop` or `/start` | job already in flight |
 | `starting` | `POST /stop` or `/start` | job already in flight |
 | any with active `queued\|running` job | either | `jobs_one_active` / double-click |
@@ -58,4 +65,5 @@ node <statechart-skill>/scripts/statechart PondStopStart.tla \
   --view PondStopStart.map.mjs --out /tmp/pond-stop-start-out
 ```
 
-Invariant that must stay green: `TypeOK` (6 distinct states, 0 rule breaks).
+Invariant that must stay green: `TypeOK` (6 chart phases × `last_fail`;
+last TLC: 11 distinct model states, 0 rule breaks).
