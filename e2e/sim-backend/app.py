@@ -333,31 +333,38 @@ def load_persisted_state(*, force: bool = False) -> None:
         return
 
 
+def _passworded_count(state: State) -> int:
+    return sum(1 for user in state.users_by_id.values() if user.password)
+
+
 def save_persisted_state() -> None:
     """Snapshot STATE so the next serverless instance can resume the gate seed."""
     global _BLOB_LOAD_OK, _LAST_BLOB_LOAD_AT
     token = _blob_token()
     if token:
-        remote = _read_blob_state(token, attempts=3)
+        remote = _read_blob_state(token, attempts=4)
         if remote is not None:
             _merge_state(STATE, remote)
             _BLOB_LOAD_OK = True
-        elif not _BLOB_LOAD_OK and not STATE.users_by_id:
-            # Avoid clobbering a populated blob with an empty cold start.
+        elif _BLOB_LOAD_OK:
+            # Stampede miss after we have seen durable Blob — publishing partial
+            # memory would drop peers registered on other instances.
+            return
+        elif not STATE.users_by_id:
             return
         _strip_auth_stubs(STATE)
-        has_passworded = any(u.password for u in STATE.users_by_id.values())
-        # Blob list/get stampedes leave memory with only claim stubs. After strip
-        # that is empty — never PUT that pickle or gate passwords disappear.
-        if not has_passworded:
+        if _passworded_count(STATE) == 0:
             retry = _read_blob_state(token, attempts=4)
-            if retry is not None:
-                _merge_state(STATE, retry)
-                _strip_auth_stubs(STATE)
-                has_passworded = any(u.password for u in STATE.users_by_id.values())
-                remote = retry
-                _BLOB_LOAD_OK = True
-        if not has_passworded:
+            if retry is None:
+                return
+            _merge_state(STATE, retry)
+            _strip_auth_stubs(STATE)
+            _BLOB_LOAD_OK = True
+            if _passworded_count(STATE) == 0:
+                return
+            remote = retry
+        # Never shrink the durable passworded user set (full-pickle replace).
+        if remote is not None and _passworded_count(STATE) < _passworded_count(remote):
             return
         raw = pickle.dumps(STATE, protocol=pickle.HIGHEST_PROTOCOL)
         users_raw = _users_to_json(STATE)
@@ -366,10 +373,23 @@ def save_persisted_state() -> None:
         if wrote:
             _LAST_BLOB_LOAD_AT = time.monotonic()
             return
+        # Blob PUT failed — do not fall through to a partial /tmp clobber.
+        return
     path = _persist_path()
     if not path:
         return
+    try:
+        with open(path, "rb") as handle:
+            disk = pickle.loads(handle.read())
+        if isinstance(disk, State):
+            _merge_state(STATE, disk)
+    except (FileNotFoundError, pickle.UnpicklingError, OSError):
+        disk = None
     _strip_auth_stubs(STATE)
+    if _passworded_count(STATE) == 0:
+        return
+    if isinstance(disk, State) and _passworded_count(STATE) < _passworded_count(disk):
+        return
     raw = pickle.dumps(STATE, protocol=pickle.HIGHEST_PROTOCOL)
     try:
         directory = os.path.dirname(path)
