@@ -1,10 +1,11 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { HttpResponse, http } from "msw";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { AppProviders } from "@/app/providers";
 import { appRoutes } from "@/app/router";
 import { useAuthStore } from "@/lib/auth-store";
+import { MIN_PASSWORD_LENGTH } from "@/lib/password";
 import { server } from "@/mocks/server";
 
 function renderAuthRoute(initialEntry: string) {
@@ -109,6 +110,29 @@ describe("W2-01 Auth flows (register, verify, login)", () => {
   });
 });
 
+describe("Screen-map password length (register + reset)", () => {
+  it(`shows the same minimum of ${MIN_PASSWORD_LENGTH} on register and reset`, async () => {
+    renderAuthRoute("/register");
+    expect(
+      await screen.findByText(new RegExp(`Mínimo ${MIN_PASSWORD_LENGTH} caracteres`)),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Contraseña")).toHaveAttribute(
+      "minLength",
+      String(MIN_PASSWORD_LENGTH),
+    );
+
+    cleanup();
+    renderAuthRoute("/reset?token=reset_token_123");
+    expect(
+      await screen.findByText(new RegExp(`^Mínimo ${MIN_PASSWORD_LENGTH} caracteres\\.?$`)),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Nueva contraseña")).toHaveAttribute(
+      "minLength",
+      String(MIN_PASSWORD_LENGTH),
+    );
+  });
+});
+
 describe("W2-02 Forgot and reset password flows", () => {
   it("shows a neutral confirmation after forgot submit regardless of email existence", async () => {
     const user = userEvent.setup();
@@ -166,11 +190,89 @@ describe("W2-02 Forgot and reset password flows", () => {
     const user = userEvent.setup();
     renderAuthRoute("/reset?token=reset_token_weak");
 
-    await user.type(screen.getByLabelText("Nueva contraseña"), "short");
-    await user.type(screen.getByLabelText("Confirmar contraseña"), "short");
+    const longEnough = "a".repeat(MIN_PASSWORD_LENGTH);
+    await user.type(screen.getByLabelText("Nueva contraseña"), longEnough);
+    await user.type(screen.getByLabelText("Confirmar contraseña"), longEnough);
     await user.click(screen.getByRole("button", { name: "Guardar contraseña" }));
 
     expect(await screen.findByText("La contraseña no cumple los requisitos mínimos.")).toBeInTheDocument();
     expect(screen.getByText("password_too_weak")).toBeInTheDocument();
+  });
+
+  it("shows token_invalid recovery when reset opens without a token", async () => {
+    renderAuthRoute("/reset");
+
+    expect(await screen.findByText("El token enviado no es válido.")).toBeInTheDocument();
+    expect(screen.getByText("token_invalid")).toBeInTheDocument();
+    expect(screen.queryByText("password_too_weak")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Volver a recuperar acceso" })).toBeInTheDocument();
+  });
+
+  it("shows client mismatch copy without a fake server error code", async () => {
+    const user = userEvent.setup();
+    renderAuthRoute("/reset?token=reset_token_123");
+
+    const longEnough = "a".repeat(MIN_PASSWORD_LENGTH);
+    await user.type(screen.getByLabelText("Nueva contraseña"), longEnough);
+    await user.type(screen.getByLabelText("Confirmar contraseña"), `${longEnough}x`);
+    await user.click(screen.getByRole("button", { name: "Guardar contraseña" }));
+
+    expect(await screen.findByText("Las contraseñas no coinciden.")).toBeInTheDocument();
+    expect(screen.queryByText("password_too_weak")).not.toBeInTheDocument();
+    expect(screen.queryByText("token_invalid")).not.toBeInTheDocument();
+  });
+
+  it("shows short-password banner without calling the API", async () => {
+    let resetCalls = 0;
+    server.use(
+      http.post("*/api/v1/auth/reset", () => {
+        resetCalls += 1;
+        return HttpResponse.json({ password_reset: true }, { status: 200 });
+      }),
+    );
+    const user = userEvent.setup();
+    renderAuthRoute("/reset?token=reset_token_short");
+
+    await user.type(screen.getByLabelText("Nueva contraseña"), "short");
+    await user.type(screen.getByLabelText("Confirmar contraseña"), "short");
+    await user.click(screen.getByRole("button", { name: "Guardar contraseña" }));
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("La contraseña no cumple los requisitos mínimos.");
+    expect(screen.queryByText("password_too_weak")).not.toBeInTheDocument();
+    expect(resetCalls).toBe(0);
+  });
+
+  it("clears a stale server error before showing mismatch", async () => {
+    server.use(
+      http.post("*/api/v1/auth/reset", () =>
+        HttpResponse.json(
+          { code: "password_too_weak", message: "Weak", request_id: "req_stale" },
+          { status: 422 },
+        ),
+      ),
+    );
+    const user = userEvent.setup();
+    renderAuthRoute("/reset?token=reset_token_stale");
+
+    const longEnough = "a".repeat(MIN_PASSWORD_LENGTH);
+    await user.type(screen.getByLabelText("Nueva contraseña"), longEnough);
+    await user.type(screen.getByLabelText("Confirmar contraseña"), longEnough);
+    await user.click(screen.getByRole("button", { name: "Guardar contraseña" }));
+    expect(await screen.findByText("password_too_weak")).toBeInTheDocument();
+
+    await user.clear(screen.getByLabelText("Confirmar contraseña"));
+    await user.type(screen.getByLabelText("Confirmar contraseña"), `${longEnough}x`);
+    await user.click(screen.getByRole("button", { name: "Guardar contraseña" }));
+
+    expect(await screen.findByText("Las contraseñas no coinciden.")).toBeInTheDocument();
+    expect(screen.queryByText("password_too_weak")).not.toBeInTheDocument();
+  });
+
+  it("shows token_invalid when verify opens without a token", async () => {
+    renderAuthRoute("/verify");
+
+    expect(await screen.findByText("El token enviado no es válido.")).toBeInTheDocument();
+    expect(screen.getByText("token_invalid")).toBeInTheDocument();
   });
 });

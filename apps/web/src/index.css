@@ -192,6 +192,10 @@ button:disabled {
   image-rendering: pixelated;
   animation: pond-pan-hero 72s linear infinite;
 }
+.pond-water-strip {
+  background: url("/koi/pond-water-strip.png") 0 0 / 192px 64px repeat;
+  image-rendering: pixelated;
+}
 .koi {
   width: 64px; height: 64px;
   background: url("/koi/koi-sheet.png") 0 0 / 768px 64px no-repeat;
@@ -251,6 +255,7 @@ button:disabled {
   .koi, .koi--x2 { animation: none; background-position-x: 0; }
   .pond-water-auth { animation: none; }
   .pond-water-hero { animation: none; }
+  .pond-water-strip { animation: none; }
   .pond-row-flash { animation: none; background-color: var(--turquoise-100); }
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

@@ -1,6 +1,6 @@
 import { type FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useCreatePondMutation, usePlansQuery } from "@/api/hooks";
+import { useCreatePondMutation, useMeQuery, usePlansQuery } from "@/api/hooks";
 import { ApiError, problemToMessage } from "@/lib/errors";
 import { DashboardPage } from "@/features/ponds/dashboard-page";
 import { isPondNameValid, pondNameIssues } from "@/features/ponds/pond-name";
@@ -23,12 +23,16 @@ export function CreatePondPage() {
 
 function CreatePondDialog() {
   const navigate = useNavigate();
+  const meQuery = useMeQuery();
   const plansQuery = usePlansQuery();
   const createMutation = useCreatePondMutation();
   const [name, setName] = useState("");
 
-  const inheritedPlan =
-    plansQuery.data?.find((plan) => plan.id === "micro") ?? plansQuery.data?.[0];
+  const planId = meQuery.data?.subscription?.plan_id;
+  const inheritedPlan = planId
+    ? plansQuery.data?.find((plan) => plan.id === planId)
+    : undefined;
+  const planLoading = meQuery.isPending || plansQuery.isPending;
   const issues = pondNameIssues(name);
   const valid = isPondNameValid(name);
   const errorCode =
@@ -128,7 +132,7 @@ function CreatePondDialog() {
             className="rounded-sm border border-line-control bg-bone-sunk px-3 py-2 text-sm text-ink-muted"
             data-testid="create-pond-plan"
           >
-            {plansQuery.isPending
+            {planLoading
               ? "…"
               : inheritedPlan
                 ? `${inheritedPlan.name} · heredado de tu suscripción`

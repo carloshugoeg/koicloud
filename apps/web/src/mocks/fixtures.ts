@@ -456,7 +456,7 @@ export const fixtures = {
     subscription: {
       id: "22222222-2222-2222-2222-222222222222",
       user_id: demoUser.id,
-      plan_id: "micro",
+      plan_id: "pro",
       status: "active",
       current_period_start: "2026-09-22T20:00:00Z",
       current_period_end: "2026-10-22T20:00:00Z",
