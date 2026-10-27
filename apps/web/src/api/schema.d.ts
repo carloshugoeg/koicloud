@@ -38,6 +38,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/totals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin Get Totals */
+        get: operations["admin_get_totals"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/users": {
         parameters: {
             query?: never;
@@ -713,7 +730,8 @@ export interface components {
          *           "node_id": "node-sv-01",
          *           "observed_state": "running",
          *           "owner_email": "carlos@koicloud.dev",
-         *           "plan_id": "micro"
+         *           "plan_id": "micro",
+         *           "size_bytes": 124901
          *         }
          *       ]
          *     }
@@ -735,7 +753,8 @@ export interface components {
          *       "node_id": "node-sv-01",
          *       "observed_state": "running",
          *       "owner_email": "carlos@koicloud.dev",
-         *       "plan_id": "micro"
+         *       "plan_id": "micro",
+         *       "size_bytes": 124901
          *     }
          */
         AdminPondOut: {
@@ -752,6 +771,8 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Last Error */
+            last_error?: string | null;
             /** Name */
             name: string;
             /** Node Id */
@@ -761,6 +782,37 @@ export interface components {
             owner_email: string;
             /** Plan Id */
             plan_id: string;
+            /** Size Bytes */
+            size_bytes?: number | null;
+        };
+        /**
+         * AdminTotalsOut
+         * @example {
+         *       "ponds": 51,
+         *       "ponds_running": 44,
+         *       "users": 38
+         *     }
+         */
+        AdminTotalsOut: {
+            /** Ponds */
+            ponds: number;
+            /** Ponds Running */
+            ponds_running: number;
+            /** Users */
+            users: number;
+        };
+        /**
+         * AdminTotalsResponse
+         * @example {
+         *       "totals": {
+         *         "ponds": 51,
+         *         "ponds_running": 44,
+         *         "users": 38
+         *       }
+         *     }
+         */
+        AdminTotalsResponse: {
+            totals: components["schemas"]["AdminTotalsOut"];
         };
         /**
          * AdminUserListResponse
@@ -1024,6 +1076,7 @@ export interface components {
          *         "current_period_end": "2026-10-22T20:00:00Z",
          *         "current_period_start": "2026-09-22T20:00:00Z",
          *         "id": "22222222-2222-2222-2222-222222222222",
+         *         "invoice_id": "33333333-3333-3333-3333-333333333333",
          *         "plan_id": "micro",
          *         "status": "active",
          *         "user_id": "11111111-1111-1111-1111-111111111111"
@@ -1266,6 +1319,7 @@ export interface components {
          *         "node_id": "node-sv-01",
          *         "observed_state": "pending",
          *         "plan_id": "micro",
+         *         "size_bytes": 124901,
          *         "user_id": "11111111-1111-1111-1111-111111111111"
          *       }
          *     }
@@ -1308,6 +1362,7 @@ export interface components {
          *         "node_id": "node-sv-01",
          *         "observed_state": "deleting",
          *         "plan_id": "micro",
+         *         "size_bytes": 124901,
          *         "user_id": "11111111-1111-1111-1111-111111111111"
          *       }
          *     }
@@ -1757,6 +1812,7 @@ export interface components {
          *         "current_period_end": "2026-10-22T20:00:00Z",
          *         "current_period_start": "2026-09-22T20:00:00Z",
          *         "id": "22222222-2222-2222-2222-222222222222",
+         *         "invoice_id": "33333333-3333-3333-3333-333333333333",
          *         "plan_id": "micro",
          *         "status": "active",
          *         "user_id": "11111111-1111-1111-1111-111111111111"
@@ -1967,6 +2023,7 @@ export interface components {
          *           "node_id": "node-sv-01",
          *           "observed_state": "running",
          *           "plan_id": "micro",
+         *           "size_bytes": 124901,
          *           "user_id": "11111111-1111-1111-1111-111111111111"
          *         }
          *       ]
@@ -1996,6 +2053,7 @@ export interface components {
          *       "node_id": "node-sv-01",
          *       "observed_state": "running",
          *       "plan_id": "micro",
+         *       "size_bytes": 124901,
          *       "user_id": "11111111-1111-1111-1111-111111111111"
          *     }
          */
@@ -2028,6 +2086,8 @@ export interface components {
             observed_state: components["schemas"]["PondObservedState"];
             /** Plan Id */
             plan_id: string;
+            /** Size Bytes */
+            size_bytes?: number | null;
             /**
              * User Id
              * Format: uuid
@@ -2048,6 +2108,7 @@ export interface components {
          *         "node_id": "node-sv-01",
          *         "observed_state": "running",
          *         "plan_id": "micro",
+         *         "size_bytes": 124901,
          *         "user_id": "11111111-1111-1111-1111-111111111111"
          *       }
          *     }
@@ -2303,6 +2364,7 @@ export interface components {
          *         "current_period_end": "2026-10-22T20:00:00Z",
          *         "current_period_start": "2026-09-22T20:00:00Z",
          *         "id": "22222222-2222-2222-2222-222222222222",
+         *         "invoice_id": "33333333-3333-3333-3333-333333333333",
          *         "plan_id": "micro",
          *         "status": "active",
          *         "user_id": "11111111-1111-1111-1111-111111111111"
@@ -2323,6 +2385,7 @@ export interface components {
          *           "current_period_end": "2026-10-22T20:00:00Z",
          *           "current_period_start": "2026-09-22T20:00:00Z",
          *           "id": "22222222-2222-2222-2222-222222222222",
+         *           "invoice_id": "33333333-3333-3333-3333-333333333333",
          *           "plan_id": "micro",
          *           "status": "active",
          *           "user_id": "11111111-1111-1111-1111-111111111111"
@@ -2343,6 +2406,7 @@ export interface components {
          *       "current_period_end": "2026-10-22T20:00:00Z",
          *       "current_period_start": "2026-09-22T20:00:00Z",
          *       "id": "22222222-2222-2222-2222-222222222222",
+         *       "invoice_id": "33333333-3333-3333-3333-333333333333",
          *       "plan_id": "micro",
          *       "status": "active",
          *       "user_id": "11111111-1111-1111-1111-111111111111"
@@ -2366,6 +2430,8 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Invoice Id */
+            invoice_id?: string | null;
             /** Plan Id */
             plan_id: string;
             status: components["schemas"]["SubscriptionStatus"];
@@ -2674,6 +2740,55 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminPondListResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_get_totals: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-KOI-Surface"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminTotalsResponse"];
                 };
             };
             /** @description Unauthorized */

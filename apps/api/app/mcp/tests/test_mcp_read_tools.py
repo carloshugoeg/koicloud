@@ -21,6 +21,7 @@ READ_ONLY = {
     "get_connection",
     "list_subscriptions",
     "list_backups",
+    "get_usage",
 }
 
 
@@ -42,15 +43,15 @@ def auth_headers() -> dict[str, str]:
     return {"Authorization": f"Bearer {response.json()['access_token']}"}
 
 
-def test_mcp_info_lists_six_read_only_tools() -> None:
+def test_mcp_info_lists_seven_read_only_tools() -> None:
     ensure_demo_user()
     body = client.get("/mcp", headers=mcp_headers()).json()
     assert set(body["read_only_tools"]) == READ_ONLY
-    assert "get_usage" not in body["read_only_tools"]
+    assert "get_usage" in body["read_only_tools"]
 
 
 @pytest.mark.asyncio
-async def test_fastmcp_registers_six_read_tools() -> None:
+async def test_fastmcp_registers_seven_read_tools() -> None:
     names = {tool.name for tool in await mcp.list_tools()}
     assert READ_ONLY.issubset(names)
 
@@ -66,6 +67,24 @@ def test_mcp_list_subscriptions_shape() -> None:
     payload = result.json()["result"]
     assert set(payload.keys()) == {"subscriptions", "next_cursor"}
     assert isinstance(payload["subscriptions"], list)
+
+
+def test_mcp_get_usage_matches_usage_shape() -> None:
+    ensure_demo_user()
+    result = client.post(
+        "/mcp",
+        headers=mcp_headers(),
+        json={"jsonrpc": "2.0", "id": 13, "method": "get_usage", "params": {}},
+    )
+    assert result.status_code == 200
+    payload = result.json()["result"]
+    assert set(payload.keys()) == {
+        "month",
+        "total_instance_hours",
+        "total_storage_gb_hours",
+        "ponds",
+    }
+    assert isinstance(payload["ponds"], list)
 
 
 def test_mcp_get_connection_and_list_backups() -> None:

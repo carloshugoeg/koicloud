@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
@@ -32,7 +33,25 @@ from app.schemas import (
 )
 
 
-def subscription_to_out(row: Subscription) -> SubscriptionOut:
+async def latest_invoice_id_by_subscription(
+    session: AsyncSession, subscription_ids: Sequence[UUID]
+) -> dict[UUID, UUID]:
+    if not subscription_ids:
+        return {}
+    rows = (
+        await session.execute(
+            select(Invoice.subscription_id, Invoice.id)
+            .where(Invoice.subscription_id.in_(list(subscription_ids)))
+            .distinct(Invoice.subscription_id)
+            .order_by(Invoice.subscription_id, Invoice.issued_at.desc(), Invoice.id.desc())
+        )
+    ).all()
+    return {subscription_id: invoice_id for subscription_id, invoice_id in rows}
+
+
+def subscription_to_out(
+    row: Subscription, *, invoice_id: UUID | None = None
+) -> SubscriptionOut:
     return SubscriptionOut(
         id=row.id,
         user_id=row.user_id,
@@ -41,6 +60,7 @@ def subscription_to_out(row: Subscription) -> SubscriptionOut:
         current_period_start=row.current_period_start,
         current_period_end=row.current_period_end,
         cancel_at_period_end=row.cancel_at_period_end,
+        invoice_id=invoice_id,
     )
 
 
@@ -116,8 +136,13 @@ class BillingService:
                 .order_by(Subscription.current_period_start.desc())
             )
         ).all()
+        invoice_ids = await latest_invoice_id_by_subscription(
+            self.session, [row.id for row in rows]
+        )
         return SubscriptionListResponse(
-            subscriptions=[subscription_to_out(row) for row in rows],
+            subscriptions=[
+                subscription_to_out(row, invoice_id=invoice_ids.get(row.id)) for row in rows
+            ],
             next_cursor=None,
         )
 
@@ -153,7 +178,7 @@ class BillingService:
         await self.session.refresh(invoice)
         await self.session.refresh(payment)
         return SubscribeResponse(
-            subscription=subscription_to_out(subscription),
+            subscription=subscription_to_out(subscription, invoice_id=invoice.id),
             invoice=invoice_to_out(invoice),
             payment=payment_to_out(payment),
         )
@@ -177,7 +202,7 @@ class BillingService:
         await self.session.refresh(invoice)
         await self.session.refresh(payment)
         return SubscribeResponse(
-            subscription=subscription_to_out(subscription),
+            subscription=subscription_to_out(subscription, invoice_id=invoice.id),
             invoice=invoice_to_out(invoice),
             payment=payment_to_out(payment),
         )
@@ -233,7 +258,10 @@ class BillingService:
             raise AppError(ErrorCode.NOT_OWNER)
         subscription.cancel_at_period_end = True
         await self.session.flush()
-        return subscription_to_out(subscription)
+        invoice_ids = await latest_invoice_id_by_subscription(self.session, [subscription.id])
+        return subscription_to_out(
+            subscription, invoice_id=invoice_ids.get(subscription.id)
+        )
 
     async def list_invoices(self, actor: AuthContext) -> InvoiceListResponse:
         rows = (
