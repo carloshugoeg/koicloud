@@ -9,7 +9,6 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import get_settings
 from app.core.db import SessionLocal
 from app.core.enums import EmailTokenKind, UserRole, UserStatus
 from app.core.errors import AppError, ErrorCode
@@ -167,14 +166,8 @@ async def register_user(payload: RegisterUserRequest) -> RegisterUserResponse:
 
         plaintext = await _issue_email_token_row(session, user.id, EmailTokenKind.VERIFY_EMAIL)
         await session.commit()
-        # Plaintext verify token only in console/dev (pack R-03). Never in prod mailers.
-        settings = get_settings()
-        if settings.email_provider == "console" or settings.environment in {
-            "development",
-            "dev",
-            "test",
-        }:
-            logger.info("verify_email token for %s: %s", payload.email, plaintext)
+        # No mailer yet: surface the verify token once in API logs (pack R-03 console).
+        logger.info("verify_email token for %s: %s", payload.email, plaintext)
         return RegisterUserResponse(user_id=user.id, email_verified=False)
 
 
