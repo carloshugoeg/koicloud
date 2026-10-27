@@ -1,0 +1,35 @@
+---
+title: "Pond stop / start (CCR 131)"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: steady
+    lg1: in-flight
+    lg2: error
+  }
+  class lg0 teal
+  class lg1 orange
+  class lg2 pink
+  s0: En línea
+  s1: Deteniendo#8230;
+  s2: Con fallas
+  s3: Detenido
+  s4: Aprovisionando#8230;
+  s5: Iniciando#8230;
+  [*] --> s0
+  s0 --> s1: POST /stop
+  s1 --> s2: job stop failed
+  s1 --> s3: job stop ok
+  s2 --> s4: retry (existing)
+  s2 --> s5: POST /start
+  s3 --> s5: POST /start
+  s4 --> s0: create/start ok
+  s4 --> s2: create/start failed
+  s5 --> s0: job start ok
+  s5 --> s2: job start failed
+  class s0 teal
+  class s1 orange
+  class s2 pink
+  class s3 teal
+  class s4 orange
+  class s5 orange

@@ -1,0 +1,26 @@
+---
+title: "Pond stop / start (CCR 131)"
+---
+stateDiagram-v2
+  [*] --> running
+
+  state "En línea" as running
+  state "Deteniendo…" as stopping
+  state "Detenido" as stopped
+  state "Iniciando…" as starting
+  state "Con fallas" as error
+  state "Aprovisionando…" as provisioning
+
+  running --> stopping: POST /stop
+  stopping --> stopped: job stop ok
+  stopped --> starting: POST /start
+  starting --> running: job start ok
+
+  stopping --> error: job stop failed
+  starting --> error: job start failed
+
+  error --> starting: POST /start [observed=stopped]
+  error --> provisioning: retry [existing]
+
+  provisioning --> running: create/start ok
+  provisioning --> error: create/start failed

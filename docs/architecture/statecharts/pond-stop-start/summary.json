@@ -1,0 +1,10 @@
+{
+  "states": 6,
+  "steps": 12,
+  "arrows": 10,
+  "invariants": [
+    "TypeOK"
+  ],
+  "breaks": 0,
+  "source": "CCR #131 approved comment + 409 edges documented in README"
+}
