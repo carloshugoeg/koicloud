@@ -1,6 +1,6 @@
 {
-  "tip": "9263cf2",
-  "tipFull": "9263cf22cd9497ef4be013f9f85548b1d99d2534",
+  "tip": "905e1ce",
+  "tipFull": "905e1ce5b6c29c820a435eac0667987e9ff29352",
   "preview": "https://koicloud-web-git-w1-preview-api-1348c2-hugos-projects-3379fa36.vercel.app",
   "pages": [
     {
@@ -69,6 +69,5 @@
   ],
   "contrast": 0,
   "scrollableRegion": 0,
-  "note": "Captured on f31535c preview UI; tip field advanced to head 9263cf2 (proof-only commit, identical UI). Surfaces may look unthemed until #137 lands.",
-  "capturePreviewSha": "f31535ce84b8f45ed532f2c17fee7d3f2dedb8df"
+  "note": "Captured on head 905e1ce preview (post theme drop ad5ca0a). Surfaces may look unthemed until #137 lands."
 }
