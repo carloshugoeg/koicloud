@@ -1,5 +1,5 @@
 ---
-id: W1-27
+id: W1-36
 workstream: W1
 persona: Carlos
 estado: en-revision
@@ -10,7 +10,7 @@ pr: "https://github.com/carloshugoeg/koicloud/pull/140"
 depends_on:
 ---
 
-# [W1-27] Wave C0: compose prod, deploy.sh SSH, e2e compose CI
+# [W1-36] Wave C0: compose prod, deploy.sh SSH, e2e compose CI
 
 ## Qué se ve
 
@@ -50,3 +50,4 @@ Sin host real: el ticket no inventa VPS; el Done de CI es el compose e2e local.
 ## Referencia
 
 W1-13 groundwork · `docs/runbooks/deploy.md` · PR #140 · polish Phase 4 Wave C0.
+(Renombrado desde W1-27: ese id ya lo ocupa Plan pricing / PR #123.)
