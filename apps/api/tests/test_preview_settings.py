@@ -21,10 +21,11 @@ def test_sidebar_and_scroll_regions_have_a11y_hooks() -> None:
     assert "text-ink-muted" in sidebar
     assert "text-ink-faint" not in sidebar
 
-    agent = (web / "features/agent-access/agent-access-page.tsx").read_text()
+    agent = (web / "features/agent-access/agent-snippets.tsx").read_text()
     assert 'data-testid="agent-snippet"' in agent
     assert "tabIndex={0}" in agent
     assert 'aria-label="Snippet de conexión del agente"' in agent
+    assert "AgentSnippets" in (web / "features/agent-access/agent-access-page.tsx").read_text()
 
     plans = (web / "features/plans/plans-page.tsx").read_text()
     assert 'aria-label="Comparativa de planes"' in plans
