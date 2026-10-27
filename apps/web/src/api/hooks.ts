@@ -38,11 +38,14 @@ export {
   useRestoreBackupMutation,
   useRetryFailedJobMutation,
   useTriggerBackupMutation,
+  pondIsTransient,
   type Backup,
   type Connection,
   type Pond,
   type PondObservedState,
 } from "@/api/hooks/ponds";
+
+export { useMeQuery, type MeResponse } from "@/api/hooks/me";
 
 export {
   useForgotPasswordMutation,

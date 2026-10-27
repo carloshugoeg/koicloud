@@ -1,16 +1,15 @@
-import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
+  pondIsTransient,
   useGetConnection,
   useGetPond,
   useRetryFailedJobMutation,
   useTriggerBackupMutation,
 } from "@/api/hooks/ponds";
+import { ConnectionCard } from "@/features/ponds/connection-card";
 import { pondStateMeta } from "@/features/ponds/pond-state";
 import { ApiError, problemToMessage } from "@/lib/errors";
 import { toast } from "@/lib/toast";
-
-const MASK = "••••••••";
 
 export function PondDetailPage() {
   const { pondId = "" } = useParams();
@@ -18,8 +17,6 @@ export function PondDetailPage() {
   const connectionQuery = useGetConnection(pondId || undefined);
   const backupMutation = useTriggerBackupMutation(pondId);
   const retryMutation = useRetryFailedJobMutation(pondId);
-  const [revealed, setRevealed] = useState(false);
-  const [copied, setCopied] = useState(false);
 
   if (pondQuery.isPending) {
     return (
@@ -67,9 +64,8 @@ export function PondDetailPage() {
   }
 
   const meta = pondStateMeta(pond.observed_state);
-  const connection = connectionQuery.data;
-  const connectionPending = connectionQuery.isPending;
-  const connectionError = connectionQuery.isError;
+  const inProgress = pondIsTransient(pond.observed_state);
+  const failed = pond.observed_state === "failed";
 
   async function handleBackupNow() {
     try {
@@ -87,14 +83,6 @@ export function PondDetailPage() {
     } catch (error) {
       toast({ tone: "danger", message: problemToMessage(error) });
     }
-  }
-
-  async function copyUri() {
-    if (!connection?.uri) return;
-    await navigator.clipboard.writeText(connection.uri);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1_200);
-    toast({ tone: "ok", message: "URI copiada" });
   }
 
   return (
@@ -150,76 +138,51 @@ export function PondDetailPage() {
         </div>
       </div>
 
-      <section className="rounded-md border border-line bg-paper p-5" data-testid="connection-card">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h3 className="font-display text-xl text-ink">Cadena de conexión</h3>
-            <p className="text-sm text-ink-muted">Host, puerto, usuario, base y URI. Contraseña oculta por defecto.</p>
-          </div>
-          <button
-            type="button"
-            className="h-9 rounded-sm border border-line-control bg-bone-raised px-4 text-sm font-medium text-turquoise-700 disabled:text-ink-faint"
-            disabled={!connection?.uri || connectionPending}
-            onClick={() => void copyUri()}
-            data-testid="copy-uri"
+      {inProgress ? (
+        <section
+          className="flex flex-wrap items-center gap-3 rounded-md border border-line bg-bone-raised p-4"
+          data-testid="pond-in-progress"
+        >
+          <span
+            className="pond-water-strip relative inline-flex h-16 w-48 shrink-0 items-center justify-center overflow-hidden"
+            aria-hidden
           >
-            {copied ? "URI copiada" : "Copiar URI"}
-          </button>
-        </div>
-
-        {connectionPending ? (
-          <div className="mt-4 h-32 animate-pulse rounded-sm bg-bone-sunk" />
-        ) : null}
-
-        {connectionError ? (
-          <div className="mt-4 border-l-[3px] border-danger pl-3 text-sm text-ink">
-            {problemToMessage(connectionQuery.error)}
+            <i className="koi" />
+          </span>
+          <div>
+            <p className="text-sm font-medium text-ink">{meta.label}</p>
+            <p className="mt-1 text-sm text-ink-muted">
+              Suele tomar unos 40 segundos. Esta vista se actualiza sola hasta el estado final.
+            </p>
           </div>
-        ) : null}
+        </section>
+      ) : null}
 
-        {connection ? (
-          <dl className="mt-4 grid gap-3 font-mono text-sm text-ink md:grid-cols-2">
-            <div>
-              <dt className="text-xs uppercase tracking-[0.14em] text-ink-muted">Host</dt>
-              <dd data-testid="conn-host">{connection.host}</dd>
-            </div>
-            <div>
-              <dt className="text-xs uppercase tracking-[0.14em] text-ink-muted">Puerto</dt>
-              <dd data-testid="conn-port">{connection.port}</dd>
-            </div>
-            <div>
-              <dt className="text-xs uppercase tracking-[0.14em] text-ink-muted">Usuario</dt>
-              <dd data-testid="conn-user">{connection.username}</dd>
-            </div>
-            <div>
-              <dt className="text-xs uppercase tracking-[0.14em] text-ink-muted">Base</dt>
-              <dd data-testid="conn-db">{connection.database}</dd>
-            </div>
-            <div className="md:col-span-2">
-              <dt className="text-xs uppercase tracking-[0.14em] text-ink-muted">Contraseña</dt>
-              <dd className="flex flex-wrap items-center gap-3">
-                <span data-testid="conn-password">{revealed ? connection.password : MASK}</span>
-                <button
-                  type="button"
-                  className="text-xs font-medium text-turquoise-700"
-                  onClick={() => setRevealed((v) => !v)}
-                  data-testid="reveal-password"
-                >
-                  {revealed ? "Ocultar" : "Revelar"}
-                </button>
-              </dd>
-            </div>
-            <div className="md:col-span-2">
-              <dt className="text-xs uppercase tracking-[0.14em] text-ink-muted">URI</dt>
-              <dd className="break-all" data-testid="conn-uri">
-                {revealed
-                  ? connection.uri
-                  : `postgresql://${connection.username}:${MASK}@${connection.host}:${connection.port}/${connection.database}`}
-              </dd>
-            </div>
-          </dl>
-        ) : null}
-      </section>
+      {failed ? (
+        <section
+          className="rounded-md border border-danger bg-bone-raised p-4"
+          data-testid="pond-failed"
+        >
+          <div className="border-l-[3px] border-danger pl-3">
+            <p className="text-sm font-medium text-danger">
+              <span aria-hidden>{meta.glyph} </span>
+              {meta.label}
+            </p>
+            <p className="mt-1 text-sm text-ink">
+              {pond.last_error
+                ? `Último error: ${pond.last_error}`
+                : "El nodo no pudo completar la operación. Revisá el listado o reintentá más tarde."}
+            </p>
+          </div>
+        </section>
+      ) : null}
+
+      <ConnectionCard
+        connection={connectionQuery.data}
+        pending={connectionQuery.isPending}
+        error={connectionQuery.error}
+        isError={connectionQuery.isError}
+      />
     </div>
   );
 }

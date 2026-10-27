@@ -40,6 +40,51 @@ function renderDetail(entry = `/app/ponds/${POND_ID}`) {
 }
 
 describe("W2-06 Detalle del pond y conexión", () => {
+  it("polls while provisioning and shows En línea when the pond becomes ready", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    let calls = 0;
+    server.use(
+      http.get(`*/api/v1/ponds/${POND_ID}`, () => {
+        calls += 1;
+        const observed_state = calls < 2 ? "provisioning" : "running";
+        return HttpResponse.json({
+          pond: { ...fixtures.pond, id: POND_ID, observed_state },
+        });
+      }),
+    );
+
+    renderDetail();
+    expect(await screen.findByTestId("pond-status-badge")).toHaveTextContent("Aprovisionando…");
+    expect(screen.getByTestId("pond-in-progress")).toBeInTheDocument();
+
+    await vi.advanceTimersByTimeAsync(4_500);
+    await waitFor(() => {
+      expect(screen.getByTestId("pond-status-badge")).toHaveTextContent("En línea");
+    });
+    expect(screen.queryByTestId("pond-in-progress")).not.toBeInTheDocument();
+    vi.useRealTimers();
+  });
+
+  it("shows the failed state with last_error", async () => {
+    server.use(
+      http.get(`*/api/v1/ponds/${POND_ID}`, () =>
+        HttpResponse.json({
+          pond: {
+            ...fixtures.pond,
+            id: POND_ID,
+            observed_state: "failed",
+            healthy: false,
+            last_error: "disk_full",
+          },
+        }),
+      ),
+    );
+
+    renderDetail();
+    expect(await screen.findByTestId("pond-status-badge")).toHaveTextContent("Con fallas");
+    expect(screen.getByTestId("pond-failed")).toHaveTextContent("Último error: disk_full");
+  });
+
   it("shows connection fields and En línea badge for a running pond", async () => {
     renderDetail();
 
