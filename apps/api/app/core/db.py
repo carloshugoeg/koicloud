@@ -20,24 +20,25 @@ settings = get_settings()
 _SCHEMA_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
-def _vercel_preview() -> bool:
-    """Schema search_path is preview-only. Production / local stay on the default path."""
-    return (os.environ.get("VERCEL_ENV") or "").strip().lower() == "preview"
+def resolve_preview_schema(*, vercel_env: str | None, schema: str) -> str:
+    """Return a Postgres schema name only for Vercel preview.
 
-
-def _safe_preview_schema() -> str:
-    # Never alter search_path outside Vercel preview — prod DB selection must match main.
-    if not _vercel_preview():
+    Production / local / CI keep the default search_path (same as main).
+    """
+    if (vercel_env or "").strip().lower() != "preview":
         return ""
-    schema = settings.koi_db_schema.strip()
-    if not schema:
+    cleaned = schema.strip()
+    if not cleaned:
         return ""
-    if not _SCHEMA_RE.fullmatch(schema):
+    if not _SCHEMA_RE.fullmatch(cleaned):
         raise ValueError(f"invalid KOI_DB_SCHEMA={schema!r}")
-    return schema
+    return cleaned
 
 
-_schema = _safe_preview_schema()
+_schema = resolve_preview_schema(
+    vercel_env=os.environ.get("VERCEL_ENV"),
+    schema=settings.koi_db_schema,
+)
 _connect_args: dict[str, object] = {}
 if _schema:
     _connect_args["server_settings"] = {"search_path": _schema}
