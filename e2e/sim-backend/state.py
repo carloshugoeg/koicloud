@@ -542,6 +542,8 @@ class State:
                 raise SimError("token_invalid")
             if user_id not in self.users_by_id and claims:
                 # Blob miss on a cold instance: hydrate actor from signed claims.
+                # Never overwrite a passworded email row — empty-password stubs must
+                # stay memory-only and must not win a later Blob save/merge.
                 email = claims.get("email")
                 role = claims.get("role")
                 status = claims.get("status")
@@ -552,20 +554,27 @@ class State:
                     and isinstance(status, str)
                     and isinstance(full_name, str)
                 ):
-                    user = User(
-                        id=user_id,
-                        email=email.strip().lower(),
-                        password="",
-                        full_name=full_name,
-                        role=role,
-                        status=status,
-                        email_verified=True,
-                        nit=None,
-                        created_at=iso(utcnow()),
-                        verify_token=None,
-                    )
-                    self.users_by_id[user.id] = user
-                    self.users_by_email[user.email] = user
+                    normalized = email.strip().lower()
+                    existing = self.users_by_email.get(normalized)
+                    if existing is not None and existing.password:
+                        self.users_by_id[existing.id] = existing
+                        user_id = existing.id
+                    else:
+                        user = User(
+                            id=user_id,
+                            email=normalized,
+                            password="",
+                            full_name=full_name,
+                            role=role,
+                            status=status,
+                            email_verified=True,
+                            nit=None,
+                            created_at=iso(utcnow()),
+                            verify_token=None,
+                        )
+                        self.users_by_id[user.id] = user
+                        if existing is None:
+                            self.users_by_email[user.email] = user
             self._active_user(user_id)
             return user_id
 

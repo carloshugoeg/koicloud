@@ -111,6 +111,34 @@ def code_of(payload: dict) -> str:
     return value if isinstance(value, str) else "http_error"
 
 
+def seed_fail(step: str, status: int, body: dict) -> None:
+    code = code_of(body)
+    print(f"seed failed step={step} status={status} code={code}", file=sys.stderr)
+    raise SystemExit(1)
+
+
+def login_with_retry(base: str, email: str, password: str) -> str | None:
+    import time
+
+    last_status, last_body = 0, {}
+    for attempt in range(6):
+        last_status, last_body = request(
+            base,
+            "POST",
+            "/api/v1/auth/login",
+            {"email": email, "password": password},
+        )
+        if last_status == 200 and isinstance(last_body.get("access_token"), str):
+            return last_body["access_token"]
+        # Blob lag after register/reseed on a cold preview instance.
+        if last_status in {401, 403, 404, 425, 429, 500, 502, 503, 504} and attempt < 5:
+            time.sleep(1.2 * (attempt + 1))
+            continue
+        break
+    seed_fail("login", last_status, last_body if isinstance(last_body, dict) else {})
+    return None
+
+
 def ensure_user(base: str, email: str, password: str, full_name: str) -> str:
     status, body = request(
         base,
@@ -121,44 +149,38 @@ def ensure_user(base: str, email: str, password: str, full_name: str) -> str:
     if status == 409 and code_of(body) == "email_taken":
         # Idempotent re-seed: same email already present. Login must work with
         # the password from KOI_GATE_CREDENTIALS_OUT (or this run's draft).
-        lstatus, login = request(
+        access = login_with_retry(base, email, password)
+        assert access is not None
+        sstatus, sub = request(
             base,
             "POST",
-            "/api/v1/auth/login",
-            {"email": email, "password": password},
+            "/api/v1/subscriptions",
+            {"plan_id": "pro"},
+            token=access,
         )
-        if lstatus == 200 and isinstance(login.get("access_token"), str):
-            access = login["access_token"]
-            sstatus, _sub = request(
-                base,
-                "POST",
-                "/api/v1/subscriptions",
-                {"plan_id": "pro"},
-                token=access,
-            )
-            if sstatus not in {200, 201, 202}:
-                fail("seed failed", 1)
-            return access
-        fail("seed conflict", 3)
+        if sstatus not in {200, 201, 202}:
+            seed_fail("subscribe", sstatus, sub)
+        return access
     if status not in {200, 201}:
-        fail("seed failed", 1)
+        seed_fail("register", status, body)
     if body.get("email_verified") is not True:
         token = body.get("verify_token")
         if not isinstance(token, str) or not token:
-            fail("seed failed", 1)
-        vstatus, vbody = request(base, "POST", "/api/v1/auth/verify", {"token": token})
-        if vstatus != 200 or vbody.get("email_verified") is not True:
-            fail("seed failed", 1)
-    lstatus, login = request(
-        base,
-        "POST",
-        "/api/v1/auth/login",
-        {"email": email, "password": password},
-    )
-    if lstatus != 200 or not isinstance(login.get("access_token"), str):
-        fail("seed failed", 1)
-    access = login["access_token"]
-    sstatus, _sub = request(
+            seed_fail("verify_token", status, body)
+        import time
+
+        vstatus, vbody = 0, {}
+        for attempt in range(5):
+            vstatus, vbody = request(base, "POST", "/api/v1/auth/verify", {"token": token})
+            if vstatus == 200 and vbody.get("email_verified") is True:
+                break
+            if attempt < 4:
+                time.sleep(1.2 * (attempt + 1))
+        else:
+            seed_fail("verify", vstatus, vbody if isinstance(vbody, dict) else {})
+    access = login_with_retry(base, email, password)
+    assert access is not None
+    sstatus, sub = request(
         base,
         "POST",
         "/api/v1/subscriptions",
@@ -166,7 +188,7 @@ def ensure_user(base: str, email: str, password: str, full_name: str) -> str:
         token=access,
     )
     if sstatus not in {200, 201, 202}:
-        fail("seed failed", 1)
+        seed_fail("subscribe", sstatus, sub)
     return access
 
 
@@ -295,13 +317,13 @@ def main() -> None:
             token=user_access,
         )
         if rstatus != 200:
-            fail("seed failed", 1)
+            seed_fail("rotate", rstatus, rotated)
         slug = rotated.get("slug")
         mcp_password = rotated.get("password")
         expires = rotated.get("expires_at")
         url = rotated.get("url")
         if not isinstance(slug, str) or not isinstance(mcp_password, str):
-            fail("seed failed", 1)
+            seed_fail("rotate_body", rstatus, rotated)
         if not isinstance(expires, str):
             expires = ""
         if not isinstance(url, str) or not url:
@@ -317,11 +339,11 @@ def main() -> None:
 
     mcp = draft.get("mcp")
     if not isinstance(mcp, dict):
-        fail("seed failed", 1)
+        seed_fail("mcp_missing", 0, {})
     if not isinstance(mcp.get("password"), str) or len(mcp["password"]) < 8:
-        fail("seed failed", 1)
+        seed_fail("mcp_password", 0, {})
     if not isinstance(mcp.get("expires_at"), str) or not mcp["expires_at"]:
-        fail("seed failed", 1)
+        seed_fail("mcp_expires", 0, {})
 
     preview = os.environ.get("PLAYWRIGHT_BASE_URL", "").strip()
     if preview and out:

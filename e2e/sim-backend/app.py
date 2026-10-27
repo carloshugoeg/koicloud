@@ -159,6 +159,9 @@ def _read_blob_state(token: str, *, attempts: int = 4) -> State | None:
 def _users_to_json(state: State) -> bytes:
     rows = []
     for user in state.users_by_id.values():
+        # Claim-hydrated stubs use password="" — never persist them or login breaks.
+        if not user.password:
+            continue
         rows.append(
             {
                 "id": user.id,
@@ -217,15 +220,32 @@ def _load_users_sidecar(token: str, state: State) -> None:
         time.sleep(0.1 * (attempt + 1))
 
 
+def _prefer_user(current: User | None, candidate: User) -> User:
+    """Keep the durable passworded row over a claim-hydrated stub (password='')."""
+    if current is None:
+        return candidate
+    if not current.password and candidate.password:
+        return candidate
+    if current.password and not candidate.password:
+        return current
+    # Same durability: prefer verified + active remote/candidate only when current is worse.
+    if current.status != "active" and candidate.status == "active":
+        return candidate
+    if (not current.email_verified) and candidate.email_verified:
+        return candidate
+    return current
+
+
 def _merge_state(writer: State, remote: State) -> None:
     """Union remote entities into writer so a stale instance cannot wipe peers."""
     for user_id, user in getattr(remote, "users_by_id", {}).items():
-        if user_id not in writer.users_by_id:
-            writer.users_by_id[user_id] = user
+        chosen = _prefer_user(writer.users_by_id.get(user_id), user)
+        writer.users_by_id[user_id] = chosen
+        writer.users_by_email[chosen.email] = chosen
     for email, user in getattr(remote, "users_by_email", {}).items():
-        if email not in writer.users_by_email:
-            writer.users_by_email[email] = user
-            writer.users_by_id.setdefault(user.id, user)
+        chosen = _prefer_user(writer.users_by_email.get(email), user)
+        writer.users_by_email[email] = chosen
+        writer.users_by_id[chosen.id] = _prefer_user(writer.users_by_id.get(chosen.id), chosen)
     for attr in (
         "sessions",
         "subs",
@@ -252,6 +272,17 @@ def _merge_state(writer: State, remote: State) -> None:
     )
 
 
+def _strip_auth_stubs(state: State) -> None:
+    """Drop claim-hydrated users (empty password) before Blob write."""
+    for user_id, user in list(state.users_by_id.items()):
+        if user.password:
+            continue
+        state.users_by_id.pop(user_id, None)
+        mapped = state.users_by_email.get(user.email)
+        if mapped is user or (mapped is not None and not mapped.password):
+            state.users_by_email.pop(user.email, None)
+
+
 def load_persisted_state(*, force: bool = False) -> None:
     """Hydrate STATE from Blob (preferred) or local file.
 
@@ -269,9 +300,10 @@ def load_persisted_state(*, force: bool = False) -> None:
         loaded = _read_blob_state(token)
         if loaded is not None:
             if STATE.users_by_id and force:
-                # Preserve in-flight mutations if any; prefer remote for GET refresh.
-                _merge_state(loaded, STATE)
-            STATE = loaded
+                # Memory is writer: keep in-flight reseeds/mutations, pull peers from Blob.
+                _merge_state(STATE, loaded)
+            else:
+                STATE = loaded
             _load_users_sidecar(token, STATE)
             _PERSIST_LOADED = True
             _BLOB_LOAD_OK = True
@@ -313,16 +345,23 @@ def save_persisted_state() -> None:
         elif not _BLOB_LOAD_OK and not STATE.users_by_id:
             # Avoid clobbering a populated blob with an empty cold start.
             return
+        _strip_auth_stubs(STATE)
+        # Refuse to publish a users sidecar with zero passwords when remote had some.
+        if remote is not None and not any(u.password for u in STATE.users_by_id.values()):
+            if any(u.password for u in remote.users_by_id.values()):
+                return
         raw = pickle.dumps(STATE, protocol=pickle.HIGHEST_PROTOCOL)
         users_raw = _users_to_json(STATE)
         wrote = _put_blob_bytes(token, _blob_path(), raw, "application/octet-stream")
-        _put_blob_bytes(token, _users_blob_path(), users_raw, "application/json")
+        if users_raw != b'{"users":[]}':
+            _put_blob_bytes(token, _users_blob_path(), users_raw, "application/json")
         if wrote:
             _LAST_BLOB_LOAD_AT = time.monotonic()
             return
     path = _persist_path()
     if not path:
         return
+    _strip_auth_stubs(STATE)
     raw = pickle.dumps(STATE, protocol=pickle.HIGHEST_PROTOCOL)
     try:
         directory = os.path.dirname(path)
