@@ -95,16 +95,20 @@ api_delete() {
 }
 
 wait_http() {
+  # Readiness probe only (-f fails on HTTP errors). Suite calls use _api_curl
+  # status checks; do not use --fail-with-body here (host curl quirks on CI).
   local url="$1"
   local tries="${2:-90}"
   local i=0
+  local last=""
   while (( i < tries )); do
-    if curl -fsS --fail-with-body "$url" >/dev/null 2>&1; then
-      return 0
+    if last="$(curl -fsS -o /dev/null -w '%{http_code}' "$url" 2>/dev/null)"; then
+      [[ "$last" =~ ^2 ]] && return 0
     fi
     sleep 2
     i=$((i + 2))
   done
+  log "wait_http gave up on $url (last_http=${last:-none})"
   return 1
 }
 
