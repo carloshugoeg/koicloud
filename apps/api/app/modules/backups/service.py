@@ -62,6 +62,15 @@ class BackupService:
         backup, job = await self.enqueue_backup(pond=pond, kind=BackupKind.ON_DEMAND)
         return backup_to_out(backup), job_to_out(job)
 
+    async def assert_restoreable(
+        self, actor: AuthContext, pond_id: UUID, backup_id: UUID
+    ) -> None:
+        """Raise pond_not_found unless the actor owns a succeeded backup on the pond."""
+        pond, _status = await self.ponds.get_owned(actor, pond_id)
+        backup = await self.session.get(Backup, backup_id)
+        if backup is None or backup.pond_id != pond.id or backup.status != BackupStatus.SUCCEEDED:
+            raise AppError(ErrorCode.POND_NOT_FOUND)
+
     async def restore(self, actor: AuthContext, pond_id: UUID, backup_id: UUID) -> JobOut:
         pond, status = await self.ponds.get_owned(actor, pond_id)
         backup = await self.session.get(Backup, backup_id)

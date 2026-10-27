@@ -68,6 +68,14 @@ async def restore_backup(
     surface: AppSurface,
     confirm_token: str | None = None,
 ) -> JobResponse | ConfirmationRequiredResponse:
+    # Validate pond + backup before propose/confirm so MCP/CLI get catalog codes
+    # (pond_not_found) instead of a confirmation token for a missing backup.
+    async with SessionLocal() as session:
+        settings = get_settings()
+        await BackupService(session, settings).assert_restoreable(
+            actor, pond_id, payload.backup_id
+        )
+
     if _requires_confirmation(surface, confirm_token):
         return await build_confirmation(
             actor=actor,

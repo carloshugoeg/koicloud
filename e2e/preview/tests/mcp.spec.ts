@@ -209,6 +209,7 @@ test("mcp tools via preview /mcp", async ({ page, baseURL }) => {
     backup_id: "00000000-0000-0000-0000-000000000000",
   });
   const badRestoreCode = toolCode(badRestore);
+  // Missing backup on an owned pond must surface catalog pond_not_found (not a token).
   record(
     "pond_not_found",
     badRestoreCode === "pond_not_found" ? "pass" : "fail",

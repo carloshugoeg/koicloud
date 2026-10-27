@@ -25,17 +25,24 @@ export async function clickNav(page: Page, label: string): Promise<void> {
 }
 
 export async function login(page: Page, account: Account): Promise<void> {
-  await page.goto("/login");
-  await page.getByRole("heading", { name: "Iniciar sesión" }).waitFor();
-  await page.getByLabel("Correo").fill(account.email);
-  await page.getByLabel("Contraseña").fill(account.password);
-  await page.getByRole("button", { name: "Iniciar sesión" }).click();
-  // Hosted sim can cold-start; prefer navigation to /app. If credentials fail,
-  // the alert becomes visible and the caller assertion surfaces it.
-  try {
-    await page.waitForURL(/\/app(?:\/|$)/, { timeout: 45_000 });
-  } catch {
-    // Fall through — caller asserts URL / alert.
+  // Hosted preview can return a one-shot internal_error on cold start; retry once.
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    await page.goto("/login");
+    await page.getByRole("heading", { name: "Iniciar sesión" }).waitFor();
+    await page.getByLabel("Correo").fill(account.email);
+    await page.getByLabel("Contraseña").fill(account.password);
+    await page.getByRole("button", { name: "Iniciar sesión" }).click();
+    try {
+      await page.waitForURL(/\/app(?:\/|$)/, { timeout: 45_000 });
+      break;
+    } catch {
+      const alert = page.getByRole("alert");
+      const text = (await alert.isVisible()) ? await alert.innerText() : "";
+      if (!/internal_error|Algo salió mal/i.test(text) || attempt === 2) {
+        break;
+      }
+      await page.waitForTimeout(800 * (attempt + 1));
+    }
   }
   // Lazily mint a helper token for api()/stopPond after the SPA session is up.
   // Do not block the UI login path if mint races a cold sim instance.
@@ -136,6 +143,16 @@ export async function deletePond(page: Page, pondId: string): Promise<number> {
     throw new Error("deletePond requires a pond id");
   }
   const first = await api(page, "DELETE", `/api/v1/ponds/${pondId}`);
+  // Web surface executes immediately (no propose→confirm). Preview mock drains to deleted.
+  if (first.status === 200 || first.status === 202) {
+    const state = pondState(first.json);
+    if (state === "deleted" || state === "deleting") {
+      return first.status;
+    }
+    throw new Error(
+      `delete HTTP ${first.status} without deleted/deleting (state=${String(state)})`,
+    );
+  }
   if (first.status !== 409) {
     throw new Error(`delete propose HTTP ${first.status}`);
   }
