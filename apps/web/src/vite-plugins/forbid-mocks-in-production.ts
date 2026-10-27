@@ -1,8 +1,9 @@
 import type { Plugin } from "vite";
 
 /**
- * Fail closed: production builds must never embed MSW via VITE_ENABLE_MOCKS=true.
- * Preview/dev may set the flag; Vercel Production must not.
+ * Fail closed when MSW would ship to real production.
+ * Vercel Preview also runs `vite build` (mode=production) with VITE_ENABLE_MOCKS;
+ * only VERCEL_ENV=production (or a non-Vercel local production build) is forbidden.
  */
 export function forbidMocksInProduction(): Plugin {
   return {
@@ -11,14 +12,22 @@ export function forbidMocksInProduction(): Plugin {
       if (config.command !== "build") {
         return;
       }
-      if (config.mode !== "production") {
+
+      const mocks =
+        (config.env.VITE_ENABLE_MOCKS ?? process.env.VITE_ENABLE_MOCKS) === "true";
+      if (!mocks) {
         return;
       }
-      const fromEnv = config.env.VITE_ENABLE_MOCKS ?? process.env.VITE_ENABLE_MOCKS;
-      if (fromEnv === "true") {
+
+      const vercelEnv = process.env.VERCEL_ENV;
+      const onVercel = process.env.VERCEL === "1";
+      const vercelProduction = onVercel && vercelEnv === "production";
+      const localProductionBuild = !onVercel && config.mode === "production";
+
+      if (vercelProduction || localProductionBuild) {
         throw new Error(
           "VITE_ENABLE_MOCKS=true is forbidden for production builds. " +
-            "Set it only on Vercel Preview (or local dev), never Production.",
+            "Set it only on Vercel Preview (VERCEL_ENV=preview) or local serve, never Production.",
         );
       }
     },
