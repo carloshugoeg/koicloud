@@ -1,16 +1,18 @@
 ---
-id: W1-36
+id: W1-37
 workstream: W1
 persona: Carlos
 estado: en-curso
 rama: w1-e2e-preview-verify
 epica: E4-04
 sprint: S4
-pr:
+pr: "https://github.com/carloshugoeg/koicloud/pull/142"
 depends_on:
 ---
 
-# [W1-36] Gate preview seed + simulated backend (test data only)
+# [W1-37] Gate preview seed + simulated backend (test data only)
+
+Renumbered from draft W1-36 (that ID belongs to Wave C0 [#140](https://github.com/carloshugoeg/koicloud/pull/140)).
 
 ## Qué se ve
 
@@ -28,6 +30,7 @@ Credentials land only in the Project store path named by `KOI_GATE_CREDENTIALS_O
   stop/start HTTP stays frozen until CCR #131.
 - Do not edit `apps/web/src/main.tsx` or `apps/web/src/mocks/*` (owned by open PRs).
 - Do not edit `#140` files under `e2e/{docker-compose,lib,logging,run,suite}*`.
+- Do not claim `W1-36` (Wave C0 compose e2e on #140).
 
 ## Criterios de aceptación
 
@@ -52,4 +55,4 @@ No inventes endpoints en el API real; el sim puede espejar CCR #131 solo en proc
 
 ## Referencia
 
-`scripts/seed-dev.sh`, `scripts/demo-mcp-replay.py`, CCR #131, W1-33, Wave C0 e2e suite.
+`scripts/seed-dev.sh`, `scripts/demo-mcp-replay.py`, CCR #131, W1-33, Wave C0 #140 (W1-36).

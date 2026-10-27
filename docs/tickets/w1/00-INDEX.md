@@ -35,8 +35,9 @@ no existe todavía. `00-INDEX.md` no es un ticket y el agente lo ignora.
 | W1-24 | Revisión SOLID del control plane (P7 / #96) | `w1-solid-review` | hecho ([PR #101](https://github.com/carloshugoeg/koicloud/pull/101)) |
 | W1-25 | ADRs A-01..A-12 en `docs/adr/` | `w1-architecture-adrs` | hecho ([PR #106](https://github.com/carloshugoeg/koicloud/pull/106)) |
 | W1-26 | `scripts/demo-mcp-replay.py` (antes W4-09) | `w1-demo-replay` | hecho ([PR #110](https://github.com/carloshugoeg/koicloud/pull/110)) |
-| W1-36 | Gate preview seed + simulated backend | `w1-e2e-preview-verify` | en-curso |
-| W1-37 | Preview e2e Playwright + MCP client suite | `w1-e2e-preview-verify` | en-curso |
+| W1-36 | Wave C0 prod compose + compose e2e | `w1-wave-c0-compose-e2e` | en-revision ([#140](https://github.com/carloshugoeg/koicloud/pull/140); ticket on that branch) |
+| W1-37 | Gate preview seed + simulated backend | `w1-e2e-preview-verify` | en-curso ([#142](https://github.com/carloshugoeg/koicloud/pull/142)) |
+| W1-38 | Preview e2e Playwright + MCP client suite | `w1-e2e-preview-verify` | en-curso ([#142](https://github.com/carloshugoeg/koicloud/pull/142)) |
 
 W1 es el único workstream que puede tocar cualquier ruta, y el único que escribe migraciones,
 regenera contratos (`make contracts`) y edita el harness de agentes.
