@@ -42,7 +42,7 @@ no existe todavía. `00-INDEX.md` no es un ticket y el agente lo ignora.
 | W1-31 | NIT checkout → invoice (#96 A2) | `w1-nit-checkout-invoice` | en-revision · [#133](https://github.com/carloshugoeg/koicloud/pull/133) CCR [#127](https://github.com/carloshugoeg/koicloud/issues/127) aprobado |
 | W1-32 | Admin subscriptions (#96 A7) | `w1-admin-subscriptions` | bloqueado · [#132](https://github.com/carloshugoeg/koicloud/pull/132) CCR #128 |
 | W1-33 | Pond stop/start + delete with backup first (Wave B1) | `w1-pond-stop-start` | en-curso · [#130](https://github.com/carloshugoeg/koicloud/pull/130) |
-| W1-34 | Expose size_bytes / admin totals / invoice link + MCP·CLI (A1) | `w1-expose-fields` | en-revision · [#136](https://github.com/carloshugoeg/koicloud/pull/136) · **no** `PlanOut.backup_retention_days` (#124/W1-28) |
+| W1-34 | Expose size_bytes / admin totals / invoice link + MCP·CLI (A1) | `w1-expose-fields` | hecho · [#136](https://github.com/carloshugoeg/koicloud/pull/136) · **no** `PlanOut.backup_retention_days` (#124/W1-28) |
 
 W1 es el único workstream que puede tocar cualquier ruta, y el único que escribe migraciones,
 regenera contratos (`make contracts`) y edita el harness de agentes.
