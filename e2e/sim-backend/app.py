@@ -17,7 +17,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Callable
 from urllib.parse import urlsplit
 
-from state import SimError, State, ToolMiss
+from state import SimError, State, ToolMiss, User
 
 MAX_BODY = 1_000_000
 STATE = State()
@@ -33,26 +33,32 @@ def _blob_token() -> str:
     return (os.environ.get("BLOB_READ_WRITE_TOKEN") or "").strip()
 
 
-def _blob_path() -> str:
+def _blob_key_base() -> str:
     # Prefer git branch so rolling alias deploys share one Blob (seed + SPA).
-    # Override with KOI_SIM_STATE_KEY when needed. Fall back to deployment id.
     raw = (
         os.environ.get("KOI_SIM_STATE_KEY")
         or os.environ.get("VERCEL_GIT_COMMIT_REF")
         or os.environ.get("VERCEL_DEPLOYMENT_ID")
         or "local"
     ).strip()
-    safe = "".join(ch if ch.isalnum() or ch in "-_" else "-" for ch in raw)[:80]
-    return f"koi-preview-sim-{safe}.pkl"
+    return "".join(ch if ch.isalnum() or ch in "-_" else "-" for ch in raw)[:80]
+
+
+def _blob_path() -> str:
+    return f"koi-preview-sim-{_blob_key_base()}.pkl"
+
+
+def _users_blob_path() -> str:
+    return f"koi-preview-sim-{_blob_key_base()}-users.json"
 
 
 def _persist_path() -> str:
     return (os.environ.get("KOI_SIM_PERSIST_PATH") or "").strip()
 
 
-def _blob_find_url(token: str) -> str | None:
-    pathname = _blob_path()
-    query = urllib.parse.urlencode({"prefix": pathname, "limit": "10"})
+def _blob_find_url(token: str, pathname: str | None = None) -> str | None:
+    target = pathname or _blob_path()
+    query = urllib.parse.urlencode({"prefix": target, "limit": "10"})
     req = urllib.request.Request(
         f"https://blob.vercel-storage.com?{query}",
         headers={
@@ -71,7 +77,7 @@ def _blob_find_url(token: str) -> str | None:
             continue
         pathname_found = item.get("pathname")
         url = item.get("url")
-        if pathname_found == pathname and isinstance(url, str) and url:
+        if pathname_found == target and isinstance(url, str) and url:
             return url
     first = blobs[0]
     if not isinstance(first, dict):
@@ -80,9 +86,9 @@ def _blob_find_url(token: str) -> str | None:
     return url if isinstance(url, str) and url else None
 
 
-def _read_blob_state_once(token: str) -> State | None:
+def _download_blob_bytes(token: str, pathname: str) -> bytes | None:
     try:
-        url = _blob_find_url(token)
+        url = _blob_find_url(token, pathname)
         if not url:
             return None
         req = urllib.request.Request(
@@ -92,16 +98,48 @@ def _read_blob_state_once(token: str) -> State | None:
         )
         with urllib.request.urlopen(req, timeout=8) as resp:
             raw = resp.read()
+        return raw or None
+    except (
+        urllib.error.HTTPError,
+        urllib.error.URLError,
+        OSError,
+    ):
+        return None
+
+
+def _put_blob_bytes(token: str, pathname: str, raw: bytes, content_type: str) -> bool:
+    try:
+        query = urllib.parse.urlencode({"pathname": pathname})
+        req = urllib.request.Request(
+            f"https://vercel.com/api/blob?{query}",
+            data=raw,
+            headers={
+                "Authorization": f"Bearer {token}",
+                "x-api-version": "7",
+                "x-content-type": content_type,
+                "x-access": "private",
+                "x-add-random-suffix": "0",
+                "x-allow-overwrite": "1",
+            },
+            method="PUT",
+        )
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            resp.read()
+        return True
+    except (urllib.error.HTTPError, urllib.error.URLError, OSError):
+        return False
+
+
+def _read_blob_state_once(token: str) -> State | None:
+    try:
+        raw = _download_blob_bytes(token, _blob_path())
         if not raw:
             return None
         loaded = pickle.loads(raw)
         return loaded if isinstance(loaded, State) else None
     except (
-        urllib.error.HTTPError,
-        urllib.error.URLError,
         pickle.UnpicklingError,
         OSError,
-        json.JSONDecodeError,
         TypeError,
     ):
         return None
@@ -116,6 +154,67 @@ def _read_blob_state(token: str, *, attempts: int = 4) -> State | None:
         if attempt + 1 < attempts:
             time.sleep(0.15 * (attempt + 1))
     return None
+
+
+def _users_to_json(state: State) -> bytes:
+    rows = []
+    for user in state.users_by_id.values():
+        rows.append(
+            {
+                "id": user.id,
+                "email": user.email,
+                "password": user.password,
+                "full_name": user.full_name,
+                "role": user.role,
+                "status": user.status,
+                "email_verified": user.email_verified,
+                "nit": user.nit,
+                "created_at": user.created_at,
+            }
+        )
+    return json.dumps({"users": rows}, separators=(",", ":")).encode()
+
+
+def _merge_users_json(state: State, raw: bytes) -> None:
+    try:
+        payload = json.loads(raw.decode())
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return
+    rows = payload.get("users") if isinstance(payload, dict) else None
+    if not isinstance(rows, list):
+        return
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        user_id = row.get("id")
+        email = row.get("email")
+        if not isinstance(user_id, str) or not isinstance(email, str):
+            continue
+        if user_id in state.users_by_id:
+            continue
+        user = User(
+            id=user_id,
+            email=email.strip().lower(),
+            password=str(row.get("password") or ""),
+            full_name=str(row.get("full_name") or email),
+            role=str(row.get("role") or "client"),
+            status=str(row.get("status") or "active"),
+            email_verified=bool(row.get("email_verified", True)),
+            nit=row.get("nit") if isinstance(row.get("nit"), str) else None,
+            created_at=str(row.get("created_at") or "2020-01-01T00:00:00Z"),
+            verify_token=None,
+        )
+        state.users_by_id[user.id] = user
+        state.users_by_email[user.email] = user
+
+
+def _load_users_sidecar(token: str, state: State) -> None:
+    for attempt in range(4):
+        raw = _download_blob_bytes(token, _users_blob_path())
+        if raw:
+            _merge_users_json(state, raw)
+            return
+        time.sleep(0.1 * (attempt + 1))
 
 
 def _merge_state(writer: State, remote: State) -> None:
@@ -173,10 +272,19 @@ def load_persisted_state(*, force: bool = False) -> None:
                 # Preserve in-flight mutations if any; prefer remote for GET refresh.
                 _merge_state(loaded, STATE)
             STATE = loaded
+            _load_users_sidecar(token, STATE)
             _PERSIST_LOADED = True
             _BLOB_LOAD_OK = True
             _LAST_BLOB_LOAD_AT = now
             return
+        # Pickle miss: still try the small users sidecar so HMAC auth can proceed.
+        if not STATE.users_by_id:
+            _load_users_sidecar(token, STATE)
+            if STATE.users_by_id:
+                _PERSIST_LOADED = True
+                _BLOB_LOAD_OK = True
+                _LAST_BLOB_LOAD_AT = now
+                return
         # Keep in-memory STATE; never replace a populated warm cache with empty.
         _BLOB_LOAD_OK = False
         return
@@ -206,27 +314,12 @@ def save_persisted_state() -> None:
             # Avoid clobbering a populated blob with an empty cold start.
             return
         raw = pickle.dumps(STATE, protocol=pickle.HIGHEST_PROTOCOL)
-        try:
-            query = urllib.parse.urlencode({"pathname": _blob_path()})
-            req = urllib.request.Request(
-                f"https://vercel.com/api/blob?{query}",
-                data=raw,
-                headers={
-                    "Authorization": f"Bearer {token}",
-                    "x-api-version": "7",
-                    "x-content-type": "application/octet-stream",
-                    "x-access": "private",
-                    "x-add-random-suffix": "0",
-                    "x-allow-overwrite": "1",
-                },
-                method="PUT",
-            )
-            with urllib.request.urlopen(req, timeout=8) as resp:
-                resp.read()
+        users_raw = _users_to_json(STATE)
+        wrote = _put_blob_bytes(token, _blob_path(), raw, "application/octet-stream")
+        _put_blob_bytes(token, _users_blob_path(), users_raw, "application/json")
+        if wrote:
             _LAST_BLOB_LOAD_AT = time.monotonic()
             return
-        except (urllib.error.HTTPError, urllib.error.URLError, OSError):
-            pass
     path = _persist_path()
     if not path:
         return

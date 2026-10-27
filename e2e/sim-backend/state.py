@@ -182,15 +182,56 @@ def _token_secret() -> bytes:
     return hashlib.sha256(raw).digest()
 
 
-def issue_access_token(user_id: str, *, hours: int = 12) -> str:
-    """HMAC token any serverless instance can validate without shared session memory."""
+def issue_access_token(user: "User", *, hours: int = 12) -> str:
+    """HMAC token with user claims — validates on any instance without Blob sessions."""
+    import base64
+    import json as _json
+
     exp = int((utcnow() + timedelta(hours=hours)).timestamp())
-    body = f"{user_id}.{exp}"
+    payload = {
+        "id": user.id,
+        "email": user.email,
+        "role": user.role,
+        "status": user.status,
+        "full_name": user.full_name,
+        "exp": exp,
+    }
+    body = (
+        base64.urlsafe_b64encode(_json.dumps(payload, separators=(",", ":")).encode())
+        .decode()
+        .rstrip("=")
+    )
     sig = hmac.new(_token_secret(), body.encode(), hashlib.sha256).hexdigest()[:32]
-    return f"sim.{body}.{sig}"
+    return f"sim2.{body}.{sig}"
 
 
-def parse_access_token(token: str) -> str | None:
+def parse_access_token(token: str) -> tuple[str, dict[str, object]] | None:
+    """Return (user_id, claims) for sim2 tokens, or (user_id, {}) for legacy sim tokens."""
+    import base64
+    import json as _json
+
+    if token.startswith("sim2."):
+        parts = token.split(".")
+        if len(parts) != 3:
+            return None
+        _, body, sig = parts
+        expected = hmac.new(_token_secret(), body.encode(), hashlib.sha256).hexdigest()[:32]
+        if not hmac.compare_digest(expected, sig):
+            return None
+        pad = "=" * (-len(body) % 4)
+        try:
+            payload = _json.loads(base64.urlsafe_b64decode(body + pad).decode())
+        except (ValueError, _json.JSONDecodeError, UnicodeDecodeError):
+            return None
+        if not isinstance(payload, dict):
+            return None
+        user_id = payload.get("id")
+        exp = payload.get("exp")
+        if not isinstance(user_id, str) or not user_id:
+            return None
+        if not isinstance(exp, int) or exp < int(utcnow().timestamp()):
+            return None
+        return user_id, payload
     if not token.startswith("sim."):
         return None
     parts = token.split(".")
@@ -205,7 +246,7 @@ def parse_access_token(token: str) -> str | None:
         return None
     if int(exp_raw) < int(utcnow().timestamp()):
         return None
-    return user_id
+    return user_id, {}
 
 
 @dataclass
@@ -478,7 +519,7 @@ class State:
                 raise SimError("email_not_verified")
             if user.status != "active":
                 raise SimError("account_suspended")
-            access = issue_access_token(user.id)
+            access = issue_access_token(user)
             refresh = "simr_" + secrets.token_urlsafe(24)
             self.sessions[access] = user.id
             return {
@@ -490,10 +531,41 @@ class State:
     def user_id_for_token(self, token: str) -> str:
         with self._lock:
             user_id = self.sessions.get(token)
-            if user_id is None:
-                user_id = parse_access_token(token)
+            claims: dict[str, object] = {}
+            if user_id is None or user_id not in self.users_by_id:
+                parsed = parse_access_token(token)
+                if parsed is None and user_id is None:
+                    raise SimError("token_invalid")
+                if parsed is not None:
+                    user_id, claims = parsed
             if user_id is None:
                 raise SimError("token_invalid")
+            if user_id not in self.users_by_id and claims:
+                # Blob miss on a cold instance: hydrate actor from signed claims.
+                email = claims.get("email")
+                role = claims.get("role")
+                status = claims.get("status")
+                full_name = claims.get("full_name")
+                if (
+                    isinstance(email, str)
+                    and isinstance(role, str)
+                    and isinstance(status, str)
+                    and isinstance(full_name, str)
+                ):
+                    user = User(
+                        id=user_id,
+                        email=email.strip().lower(),
+                        password="",
+                        full_name=full_name,
+                        role=role,
+                        status=status,
+                        email_verified=True,
+                        nit=None,
+                        created_at=iso(utcnow()),
+                        verify_token=None,
+                    )
+                    self.users_by_id[user.id] = user
+                    self.users_by_email[user.email] = user
             self._active_user(user_id)
             return user_id
 
