@@ -22,7 +22,7 @@ export function ResetPage() {
       })
     : null;
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLocalError(null);
     if (!token) return;
@@ -34,11 +34,7 @@ export function ResetPage() {
       setLocalError(new Error("La contraseña no cumple los requisitos mínimos."));
       return;
     }
-    try {
-      await resetMutation.mutateAsync({ token, new_password: password });
-    } catch {
-      // Handled via resetMutation.error
-    }
+    resetMutation.mutate({ token, new_password: password });
   }
 
   if (resetMutation.isSuccess) {
