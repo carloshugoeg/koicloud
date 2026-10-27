@@ -26,6 +26,7 @@ from app.core.errors import AppError, ErrorCode
 from app.core.models import Job, Node, Plan, Pond, PondStatus, Subscription, User
 from app.core.security import hash_password, hash_token
 from app.core.time import utc_now
+from app.modules.metering.samples import latest_sample_size_by_pond
 from app.schemas import ConnectionOut, JobOut, PondOut
 
 
@@ -33,7 +34,9 @@ def _database_name(pond_name: str) -> str:
     return pond_name.replace("-", "_")
 
 
-def pond_to_out(pond: Pond, status: PondStatus) -> PondOut:
+def pond_to_out(
+    pond: Pond, status: PondStatus, *, size_bytes: int | None = None
+) -> PondOut:
     return PondOut(
         id=pond.id,
         user_id=pond.user_id,
@@ -48,6 +51,7 @@ def pond_to_out(pond: Pond, status: PondStatus) -> PondOut:
         created_at=pond.created_at,
         last_restore_at=pond.last_restore_at,
         last_error=status.last_error,
+        size_bytes=size_bytes,
     )
 
 
@@ -86,8 +90,12 @@ class PondService:
         self.settings = settings
 
     async def list_for_user(self, actor: AuthContext) -> list[PondOut]:
-        rows = await self.session.execute(self._owned_query(UUID(actor.user_id)))
-        return [pond_to_out(pond, status) for pond, status in rows.all()]
+        rows = (await self.session.execute(self._owned_query(UUID(actor.user_id)))).all()
+        sizes = await latest_sample_size_by_pond(self.session, [pond.id for pond, _ in rows])
+        return [
+            pond_to_out(pond, status, size_bytes=sizes.get(pond.id))
+            for pond, status in rows
+        ]
 
     async def get_owned(self, actor: AuthContext, pond_id: UUID) -> tuple[Pond, PondStatus]:
         row = (
@@ -102,6 +110,14 @@ class PondService:
             raise AppError(ErrorCode.NOT_OWNER)
         return row[0], row[1]
 
+    async def to_out(self, pond: Pond, status: PondStatus) -> PondOut:
+        sizes = await latest_sample_size_by_pond(self.session, [pond.id])
+        return pond_to_out(pond, status, size_bytes=sizes.get(pond.id))
+
+    async def get_owned_out(self, actor: AuthContext, pond_id: UUID) -> PondOut:
+        pond, status = await self.get_owned(actor, pond_id)
+        return await self.to_out(pond, status)
+
     async def get_owned_by_name(self, actor: AuthContext, name: str) -> tuple[Pond, PondStatus]:
         row = (
             await self.session.execute(
@@ -111,6 +127,10 @@ class PondService:
         if row is None:
             raise AppError(ErrorCode.POND_NOT_FOUND)
         return row[0], row[1]
+
+    async def get_owned_by_name_out(self, actor: AuthContext, name: str) -> PondOut:
+        pond, status = await self.get_owned_by_name(actor, name)
+        return await self.to_out(pond, status)
 
     async def create(
         self, actor: AuthContext, *, name: str, engine_version: str
@@ -158,7 +178,7 @@ class PondService:
             await self.session.flush()
         except IntegrityError as exc:
             raise self._translate_integrity(exc) from exc
-        return pond_to_out(pond, status), job_to_out(job)
+        return await self.to_out(pond, status), job_to_out(job)
 
     async def connection_for_owned(self, actor: AuthContext, pond_id: UUID) -> ConnectionOut:
         pond, _status = await self.get_owned(actor, pond_id)
@@ -185,7 +205,7 @@ class PondService:
             pond=pond,
             kind=BackupKind.PRE_DELETE,
         )
-        return pond_to_out(pond, status), [job_to_out(backup_job)]
+        return await self.to_out(pond, status), [job_to_out(backup_job)]
 
     async def retry_failed(self, actor: AuthContext, pond_id: UUID) -> JobOut:
         pond, status = await self.get_owned(actor, pond_id)
