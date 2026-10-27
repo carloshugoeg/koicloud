@@ -572,9 +572,9 @@ class State:
                             created_at=iso(utcnow()),
                             verify_token=None,
                         )
+                        # Id map only — never users_by_email, or login can see
+                        # password="" and Blob saves can publish the stub.
                         self.users_by_id[user.id] = user
-                        if existing is None:
-                            self.users_by_email[user.email] = user
             self._active_user(user_id)
             return user_id
 
