@@ -210,6 +210,19 @@ class BillingService:
         payment.status = PaymentStatus.SUCCEEDED
         payment.processed_at = now
         invoice.status = InvoiceStatus.PAID
+        # Supersede other active rows so ensure_subscription / get_me stay single-row.
+        prior = (
+            await self.session.execute(
+                select(Subscription).where(
+                    Subscription.user_id == subscription.user_id,
+                    Subscription.status == SubscriptionStatus.ACTIVE,
+                    Subscription.id != subscription.id,
+                )
+            )
+        ).scalars().all()
+        for row in prior:
+            row.status = SubscriptionStatus.CANCELED
+            row.cancel_at_period_end = True
         subscription.status = SubscriptionStatus.ACTIVE
         subscription.current_period_start = now
         subscription.current_period_end = now + timedelta(minutes=plan.validity_minutes)

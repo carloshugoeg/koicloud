@@ -78,16 +78,24 @@ test("mcp tools via preview /mcp", async ({ page, baseURL }) => {
       : `status=${authFail.status} code=${String(authFail.body.code ?? "")}`,
   );
 
-  const init = await rpc(page, mcpUrl, auth, "initialize", {
-    protocolVersion: "2024-11-05",
-    capabilities: {},
-    clientInfo: { name: "gate", version: "0" },
-  });
-  const listed = await rpc(page, mcpUrl, auth, "tools/list", {});
-  const tools = Array.isArray((listed.result as { tools?: unknown } | undefined)?.tools)
-    ? ((listed.result as { tools: Array<{ name?: string }> }).tools)
-    : [];
-  const names = new Set(tools.map((t) => t.name).filter(Boolean));
+  // Hosted preview can lag on agent_access Blob after rotate — retry handshake.
+  let init: RpcPayload = {};
+  let listed: RpcPayload = {};
+  let names = new Set<string>();
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    init = await rpc(page, mcpUrl, auth, "initialize", {
+      protocolVersion: "2024-11-05",
+      capabilities: {},
+      clientInfo: { name: "gate", version: "0" },
+    });
+    listed = await rpc(page, mcpUrl, auth, "tools/list", {});
+    const tools = Array.isArray((listed.result as { tools?: unknown } | undefined)?.tools)
+      ? ((listed.result as { tools: Array<{ name?: string }> }).tools)
+      : [];
+    names = new Set(tools.map((t) => t.name).filter(Boolean) as string[]);
+    if (init.result && names.size > 0) break;
+    await page.waitForTimeout(800 * (attempt + 1));
+  }
   const needed = [...READ_TOOLS, ...MUT_TOOLS];
   if (init.result && needed.every((name) => names.has(name))) {
     record("reconnect", "pass", `initialize + tools/list (${names.size} tools)`);
@@ -257,9 +265,12 @@ function toolCode(payload: RpcPayload): string | undefined {
   const result = payload.result as
     | { structuredContent?: { code?: string }; code?: string }
     | undefined;
-  if (!result || typeof result !== "object") return undefined;
-  if (typeof result.structuredContent?.code === "string") return result.structuredContent.code;
-  if (typeof result.code === "string") return result.code;
+  if (result && typeof result === "object") {
+    if (typeof result.structuredContent?.code === "string") return result.structuredContent.code;
+    if (typeof result.code === "string") return result.code;
+  }
+  // Defensive: catalog code at the JSON-RPC envelope root (should not happen after router fix).
+  if (typeof payload.code === "string") return payload.code;
   return undefined;
 }
 

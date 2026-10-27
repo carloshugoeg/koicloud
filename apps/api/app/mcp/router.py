@@ -3,8 +3,10 @@ from __future__ import annotations
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends
+from fastmcp.exceptions import NotFoundError, ToolError, ValidationError
 
 from app.core.auth import AuthContext
+from app.core.errors import ERROR_CATALOG, AppError, ErrorCode
 from app.mcp.context import clear_mcp_actor, set_mcp_actor
 from app.mcp.gate import mcp_gate_dependency
 from app.mcp.prompt import SYSTEM_PROMPT
@@ -65,6 +67,18 @@ async def mcp_jsonrpc(
     return JsonRpcResponse(jsonrpc="2.0", id=payload.id, result=result, error=None)
 
 
+def _tool_error_result(name: str, code: ErrorCode, message: str | None = None) -> dict[str, Any]:
+    """MCP tools/call error payload aligned with lib/errors.ts catalog codes."""
+    text = message or ERROR_CATALOG[code].message
+    return {
+        "content": [{"type": "text", "text": f"Error calling tool '{name}': {text}"}],
+        "structuredContent": {"code": code.value, "message": text},
+        "isError": True,
+        "code": code.value,
+        "message": text,
+    }
+
+
 async def _dispatch_jsonrpc(method: str, params: dict[str, Any]) -> dict[str, Any]:
     # MCP session handshake over the OpenAPI JSON-RPC surface (Accept: application/json).
     # Streamable HTTP clients use FastMCP via McpHybridASGI instead.
@@ -96,9 +110,24 @@ async def _dispatch_jsonrpc(method: str, params: dict[str, Any]) -> dict[str, An
         arguments = raw_args if isinstance(raw_args, dict) else {}
 
     if not tool_name:
-        return {"status": "error", "message": "tool name required"}
+        return _tool_error_result("tools/call", ErrorCode.INTERNAL_ERROR, "tool name required")
 
-    call_result = await mcp.call_tool(tool_name, arguments)
+    try:
+        call_result = await mcp.call_tool(tool_name, arguments)
+    except NotFoundError:
+        return _tool_error_result(
+            tool_name,
+            ErrorCode.INTERNAL_ERROR,
+            f"unknown tool '{tool_name}'",
+        )
+    except ValidationError as exc:
+        return _tool_error_result(tool_name, ErrorCode.INTERNAL_ERROR, str(exc))
+    except AppError as exc:
+        return _tool_error_result(tool_name, exc.code, exc.message)
+    except ToolError as exc:
+        # FastMCP may wrap domain failures; prefer catalog internal_error.
+        return _tool_error_result(tool_name, ErrorCode.INTERNAL_ERROR, str(exc))
+
     data = getattr(call_result, "data", None)
     if isinstance(data, dict):
         return data

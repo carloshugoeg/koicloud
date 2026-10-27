@@ -271,6 +271,37 @@ def mcp_alive(base: str, slug: str, password: str) -> int:
     return status
 
 
+def mcp_initialize_ok(base: str, slug: str, password: str) -> bool:
+    """Prove JSON-RPC initialize (Accept: application/json) before CI MCP suite."""
+    import time
+
+    payload = {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "initialize",
+        "params": {
+            "protocolVersion": "2024-11-05",
+            "capabilities": {},
+            "clientInfo": {"name": "gate-seed", "version": "0"},
+        },
+    }
+    for attempt in range(8):
+        status, body = request(base, "POST", "/mcp", payload, basic=f"{slug}:{password}")
+        result = body.get("result") if isinstance(body, dict) else None
+        server = result.get("serverInfo") if isinstance(result, dict) else None
+        if (
+            status == 200
+            and isinstance(server, dict)
+            and server.get("name") == "KoiCloud"
+        ):
+            return True
+        if status in {401, 403, 425, 429, 500, 502, 503, 504} and attempt < 7:
+            time.sleep(0.8 * (attempt + 1))
+            continue
+        break
+    return False
+
+
 def main() -> None:
     os.umask(0o077)
     raw_url = os.environ.get("KOI_SIM_BASE_URL", "")
@@ -373,6 +404,10 @@ def main() -> None:
         seed_fail("mcp_password", 0, {})
     if not isinstance(mcp.get("expires_at"), str) or not mcp["expires_at"]:
         seed_fail("mcp_expires", 0, {})
+    if not isinstance(mcp.get("slug"), str) or not mcp["slug"]:
+        seed_fail("mcp_slug", 0, {})
+    if not mcp_initialize_ok(base, str(mcp["slug"]), str(mcp["password"])):
+        seed_fail("mcp_initialize", 0, {"code": "agent_bad_credentials"})
 
     preview = os.environ.get("PLAYWRIGHT_BASE_URL", "").strip()
     if preview and out:

@@ -128,3 +128,65 @@ def test_mcp_get_connection_and_list_backups() -> None:
     assert set(backup_body.keys()) == {"backups", "next_cursor"}
     assert len(backup_body["backups"]) == 1
     assert backup_body["backups"][0]["id"] == backup_id
+
+
+def test_mcp_unknown_tool_returns_catalog_internal_error() -> None:
+    ensure_demo_user()
+    response = client.post(
+        "/mcp",
+        headers=mcp_headers(),
+        json={
+            "jsonrpc": "2.0",
+            "id": 20,
+            "method": "tools/call",
+            "params": {"name": "no_such_tool", "arguments": {}},
+        },
+    )
+    assert response.status_code == 200
+    result = response.json()["result"]
+    assert result["isError"] is True
+    assert result["structuredContent"]["code"] == "internal_error"
+    assert result["code"] == "internal_error"
+
+
+def test_mcp_missing_args_returns_catalog_internal_error() -> None:
+    ensure_demo_user()
+    response = client.post(
+        "/mcp",
+        headers=mcp_headers(),
+        json={
+            "jsonrpc": "2.0",
+            "id": 21,
+            "method": "tools/call",
+            "params": {"name": "get_pond", "arguments": {}},
+        },
+    )
+    assert response.status_code == 200
+    result = response.json()["result"]
+    assert result["isError"] is True
+    assert result["structuredContent"]["code"] == "internal_error"
+
+
+def test_mcp_unknown_pond_returns_catalog_pond_not_found() -> None:
+    ensure_demo_user()
+    response = client.post(
+        "/mcp",
+        headers=mcp_headers(),
+        json={
+            "jsonrpc": "2.0",
+            "id": 22,
+            "method": "tools/call",
+            "params": {
+                "name": "restore_backup",
+                "arguments": {
+                    "pond_name": "missing-pond",
+                    "backup_id": "00000000-0000-0000-0000-000000000000",
+                },
+            },
+        },
+    )
+    assert response.status_code == 200
+    result = response.json()["result"]
+    assert result["isError"] is True
+    assert result["structuredContent"]["code"] == "pond_not_found"
+    assert result["code"] == "pond_not_found"

@@ -284,6 +284,8 @@ class PondService:
         return node
 
     async def ensure_subscription(self, user: User) -> Subscription:
+        # Preview seed / repeated subscribe can leave several ACTIVE rows.
+        # Take the newest non-expired one (same rule as get_me).
         active = (
             await self.session.execute(
                 select(Subscription)
@@ -293,6 +295,7 @@ class PondService:
                     Subscription.current_period_end > utc_now(),
                 )
                 .order_by(Subscription.current_period_end.desc())
+                .limit(1)
             )
         ).scalar_one_or_none()
         if active is not None:
