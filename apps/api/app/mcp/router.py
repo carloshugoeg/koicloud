@@ -79,6 +79,18 @@ def _tool_error_result(name: str, code: ErrorCode, message: str | None = None) -
     }
 
 
+def _app_error_from(exc: BaseException) -> AppError | None:
+    """Unwrap AppError that FastMCP nests under ToolError.__cause__."""
+    current: BaseException | None = exc
+    seen: set[int] = set()
+    while current is not None and id(current) not in seen:
+        if isinstance(current, AppError):
+            return current
+        seen.add(id(current))
+        current = current.__cause__ or current.__context__
+    return None
+
+
 async def _dispatch_jsonrpc(method: str, params: dict[str, Any]) -> dict[str, Any]:
     # MCP session handshake over the OpenAPI JSON-RPC surface (Accept: application/json).
     # Streamable HTTP clients use FastMCP via McpHybridASGI instead.
@@ -125,7 +137,10 @@ async def _dispatch_jsonrpc(method: str, params: dict[str, Any]) -> dict[str, An
     except AppError as exc:
         return _tool_error_result(tool_name, exc.code, exc.message)
     except ToolError as exc:
-        # FastMCP may wrap domain failures; prefer catalog internal_error.
+        # FastMCP wraps tool body exceptions as ToolError; keep catalog codes.
+        nested = _app_error_from(exc)
+        if nested is not None:
+            return _tool_error_result(tool_name, nested.code, nested.message)
         return _tool_error_result(tool_name, ErrorCode.INTERNAL_ERROR, str(exc))
 
     data = getattr(call_result, "data", None)
