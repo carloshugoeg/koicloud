@@ -43,7 +43,7 @@ no existe todavía. `00-INDEX.md` no es un ticket y el agente lo ignora.
 | W1-32 | Admin subscriptions (#96 A7) | `w1-admin-subscriptions` | bloqueado · [#132](https://github.com/carloshugoeg/koicloud/pull/132) CCR #128 |
 | W1-33 | Pond stop/start + delete with backup first (Wave B1) | `w1-pond-stop-start` | en-curso · [#130](https://github.com/carloshugoeg/koicloud/pull/130) |
 | W1-34 | Expose size_bytes / admin totals / invoice link + MCP·CLI (A1) | `w1-expose-fields` | en-revision · [#136](https://github.com/carloshugoeg/koicloud/pull/136) · **no** `PlanOut.backup_retention_days` (#124/W1-28) |
-| W1-39 | Account E1-05 DELETE/me · change-password · resend (CCR #126) | `w1-account-e105` | en-curso · CCR [#126](https://github.com/carloshugoeg/koicloud/issues/126) |
+| W1-39 | Account E1-05 DELETE/me · change-password · resend (CCR #126) | `w1-account-e105` | en-revision · [#148](https://github.com/carloshugoeg/koicloud/pull/148) · CCR [#126](https://github.com/carloshugoeg/koicloud/issues/126) |
 
 W1 es el único workstream que puede tocar cualquier ruta, y el único que escribe migraciones,
 regenera contratos (`make contracts`) y edita el harness de agentes.
