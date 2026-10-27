@@ -19,8 +19,9 @@ depends_on:
 On Vercel **preview** deployments of `koicloud-web`:
 
 1. `POST /api/v1/auth/login` hits the **real** preview FastAPI entry (`apps/web/api/index.py` → `apps/api` app) — not the SPA `app.html` fallback — no more 405.
-2. Theme token utilities (`@theme inline`, `.shadow-*`) come from **#137** — this ticket does **not** ship a duplicate theme hunk.
+2. **Theme ownership (plano option B):** this PR (**#149 / W1**) is the **single owner** of the theme token block in `apps/web/src/index.css`: `@theme inline` KoiCloud `--color-*` tokens (turquoise, marigold, bone-raised, warn, …) **plus** `.shadow-print` / `.shadow-dialog` / `.shadow-focus`. **Done-when:** plan buttons render **filled** on preview (e.g. Elegir plan = `bg-turquoise-700`).
 3. Non-preview (`VERCEL_ENV≠preview`, including production) fail-closed: 404 JSON with generic `not_found` (not `pond_not_found`). Bodies over 1 MB → **413**.
+4. CTA one-line wrap (`whitespace-nowrap` on Elegir plan) lives on **#137** tip `907c76c` — not duplicated here.
 
 ## Entradas ya decididas (no se cambian)
 
@@ -28,7 +29,7 @@ On Vercel **preview** deployments of `koicloud-web`:
 - `KOI_DB_SCHEMA` search_path in `core/db.py` applies **only** when `VERCEL_ENV=preview`.
 - Ticket id is **W1-40** (W1-39 belongs to #148 account E1-05). Early commit message said W1-39 by mistake — do not rewrite history; this ticket is W1-40.
 - Preview hosting: `apps/web/api/index.py` + `prepare-preview-api.mjs` + `vercel.json` rewrites `/api/v1/*` and `/mcp` ahead of the SPA catch-all.
-- Theme ownership: **#137** (`w2-a2-web-gaps`). This PR drops its copy of `@theme` / `@layer base` / `.shadow-*` so the second merge does not conflict.
+- Theme token block owned by **#149 / W1** (not #137). #137 keeps plan card component styles (including CTA wrap).
 - No `KOI_PREVIEW_MOCK` — real preview API only when `VERCEL_ENV=preview`.
 - No OpenAPI / command signature / migration table changes.
 - Do not edit #137 or #138 branches.
@@ -36,11 +37,12 @@ On Vercel **preview** deployments of `koicloud-web`:
 ## Criterios de aceptación
 
 1. Preview `POST /api/v1/auth/login` returns API JSON (200 or catalog 4xx), never SPA 405.
-2. Theme utilities land via #137; this PR has **no** duplicate `@theme` block.
-3. `api/index.py` returns 404 JSON (`not_found`) when not preview; body > 1 MB → 413.
-4. `make check-web` and `make check-api` pass.
-5. Ticket + INDEX row; PR marked **HIGH lane**; never merge until Carlos says yes.
-6. Proof screenshots + axe committed under `media/preview-infra/` and embedded in the PR body.
+2. Tip `apps/web/src/index.css` ships the self-contained `@theme` + 3 shadow classes; built preview CSS emits `bg-turquoise-*` / `bg-marigold` / `bg-bone-raised` / `text-warn`.
+3. Plan buttons are **filled** on Vercel preview (done-when).
+4. `api/index.py` returns 404 JSON (`not_found`) when not preview; body > 1 MB → 413.
+5. `make check-web` and `make check-api` pass.
+6. Ticket + INDEX row; PR marked **HIGH lane**; never merge until Carlos says yes.
+7. Proof screenshots of `/app/plans` at 375/768/1440 with filled buttons.
 
 ## No tocar
 
@@ -52,4 +54,4 @@ Respondé `BLOQUEADO: requiere <CCR | ticket para Wn> porque <razón>` y pará.
 
 ## Referencia
 
-#142 (`w1-e2e-preview-verify`) preview entry pattern; #137 `@theme inline` (theme owner); gate fail on #138 confirm preview.
+#142 preview entry pattern; #137 plan card / CTA wrap (`907c76c`); gate confirm for #138.
