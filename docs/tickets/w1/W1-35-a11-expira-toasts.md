@@ -54,4 +54,4 @@ Respondé `BLOQUEADO: requiere <CCR | ticket para Wn> porque …` y pará solo s
 
 ## Referencia
 
-CCR [#135](https://github.com/carloshugoeg/koicloud/issues/135) · PR [#134](https://github.com/carloshugoeg/koicloud/pull/134) · ADR [013](../../adr/013-derived-backup-expiry.md).
+CCR [#135](https://github.com/carloshugoeg/koicloud/issues/135) · PR [#134](https://github.com/carloshugoeg/koicloud/pull/134).
