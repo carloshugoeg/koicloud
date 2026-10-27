@@ -38,7 +38,7 @@ The script allows `localhost`, `127.0.0.1`, and host names that end in `.test`. 
 
 ## Preview-hosted sim (Vercel)
 
-Preview deployments of `apps/web` mount the same sim behind `/api/v1/*` and `/mcp` via `api/preview-sim.py`. Production (`VERCEL_ENV=production`) returns 404 JSON from that function — never the in-memory sim.
+Preview deployments of `apps/web` host the real `apps/api` (SimulatedPaymentProvider + preview DB) behind `/api/v1/*` and `/mcp`. This local `e2e/sim-backend` toy remains for offline/dev only — it is not mounted on Vercel.
 
 ```bash
 export KOI_SIM_BASE_URL=https://<preview>.vercel.app
