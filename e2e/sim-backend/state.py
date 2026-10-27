@@ -388,7 +388,10 @@ class State:
         self.agents_by_slug: dict[str, Agent] = {}
         self._next_port = PORT_START
         self._invoice_n = 0
-        self._tools: dict[str, Callable[[str, dict[str, object]], dict[str, object]]] = {
+        self._bind_tools()
+
+    def _bind_tools(self) -> None:
+        self._tools = {
             "whoami": self._tool_whoami,
             "list_ponds": self._tool_list_ponds,
             "get_pond": self._tool_get_pond,
@@ -402,6 +405,17 @@ class State:
             "confirm_action": self._tool_confirm,
             "cancel_confirmation": self._tool_cancel,
         }
+
+    def __getstate__(self) -> dict[str, object]:
+        payload = dict(self.__dict__)
+        payload.pop("_lock", None)
+        payload.pop("_tools", None)
+        return payload
+
+    def __setstate__(self, payload: dict[str, object]) -> None:
+        self.__dict__.update(payload)
+        self._lock = threading.Lock()
+        self._bind_tools()
 
     def register(
         self,

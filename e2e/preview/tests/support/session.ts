@@ -1,6 +1,18 @@
 import { expect, type Page } from "@playwright/test";
-import type { Account } from "./creds";
-import { currentAccessToken } from "./proxy";
+import { loadGateCreds, type Account } from "./creds";
+import {
+  currentAccessToken,
+  publicPreviewOrigin,
+  resetSession as resetProxySession,
+} from "./proxy";
+
+type Stash = { accessToken: string; refreshToken: string };
+let apiSession: Stash | null = null;
+
+export function resetSession(): void {
+  resetProxySession();
+  apiSession = null;
+}
 
 export async function clickNav(page: Page, label: string): Promise<void> {
   const link = page.getByRole("link", { name: label, exact: true }).first();
@@ -18,6 +30,34 @@ export async function login(page: Page, account: Account): Promise<void> {
   await page.getByLabel("Correo").fill(account.email);
   await page.getByLabel("Contraseña").fill(account.password);
   await page.getByRole("button", { name: "Iniciar sesión" }).click();
+  // Mint an API token against the hosted sim (no Playwright route intercept).
+  await mintAccessToken(page, account);
+}
+
+async function mintAccessToken(page: Page, account?: Account): Promise<string> {
+  const existing = currentAccessToken() || apiSession?.accessToken;
+  if (existing) return existing;
+  const user = account ?? loadGateCreds().user;
+  const base = publicPreviewOrigin();
+  const response = await page.request.post(`${base}/api/v1/auth/login`, {
+    data: { email: user.email, password: user.password },
+    headers: { accept: "application/json", "content-type": "application/json" },
+  });
+  if (!response.ok()) {
+    throw new Error(`hosted login HTTP ${response.status()}`);
+  }
+  const body = (await response.json()) as {
+    access_token?: unknown;
+    refresh_token?: unknown;
+  };
+  if (typeof body.access_token !== "string" || !body.access_token) {
+    throw new Error("hosted login missing access_token");
+  }
+  apiSession = {
+    accessToken: body.access_token,
+    refreshToken: typeof body.refresh_token === "string" ? body.refresh_token : "",
+  };
+  return apiSession.accessToken;
 }
 
 export async function api(
@@ -25,7 +65,7 @@ export async function api(
   method: string,
   apiPath: string,
 ): Promise<{ status: number; json: unknown }> {
-  const token = currentAccessToken();
+  const token = await mintAccessToken(page);
   return page.evaluate(
     async ({ method, apiPath, token }) => {
       const headers: Record<string, string> = {};
@@ -104,7 +144,7 @@ export async function deletePond(page: Page, pondId: string): Promise<number> {
 }
 
 export async function ensureProPlan(page: Page): Promise<void> {
-  const token = currentAccessToken();
+  const token = await mintAccessToken(page);
   const result = await page.evaluate(
     async (accessToken) => {
       const headers: Record<string, string> = { "content-type": "application/json" };

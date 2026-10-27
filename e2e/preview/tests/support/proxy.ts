@@ -1,22 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { Page, Request } from "@playwright/test";
+import type { Page, Response } from "@playwright/test";
 
 const STORE_MEDIA =
   "/cursor/stores/bc-5a36cfa5-6bb5-4b3c-accc-c974d8337634/media/e2e-verify";
-
-const FORWARD = new Set([
-  "authorization",
-  "content-type",
-  "accept",
-  "accept-language",
-  "mcp-session-id",
-  "mcp-protocol-version",
-  "x-koi-surface",
-  "x-koi-confirm-token",
-  "x-koi-refresh-retry",
-]);
 
 type StashedSession = { accessToken: string; refreshToken: string };
 
@@ -29,6 +17,7 @@ export function lastPondGetStateSeen(): string {
 
 export function resetSession(): void {
   session = null;
+  lastPondGetState = "";
 }
 
 export function currentAccessToken(): string | null {
@@ -59,123 +48,67 @@ export function assertPreviewHost(href: string): void {
   }
 }
 
-function rewriteAgentUrls(pathname: string, bytes: Buffer): Buffer {
-  if (
-    !pathname.endsWith("/agent-access") &&
-    !pathname.endsWith("/agent-access/rotate")
-  ) {
-    return bytes;
-  }
-  try {
-    const body = JSON.parse(bytes.toString("utf8")) as Record<string, unknown>;
-    const preview = publicPreviewOrigin();
-    if (typeof body.url === "string") {
-      body.url = `${preview}/mcp`;
-    }
-    return Buffer.from(JSON.stringify(body), "utf8");
-  } catch {
-    return bytes;
-  }
+/** True when the preview deployment itself hosts the sim (no page.route). */
+export function hostedSimEnabled(): boolean {
+  const flag = (process.env.KOI_HOSTED_SIM || "").trim();
+  if (flag === "0") return false;
+  if (flag === "1") return true;
+  // Default on: preview URL is the API origin; local loopback sim is opt-in via KOI_HOSTED_SIM=0.
+  return true;
 }
 
+/**
+ * Attach session/pond observers. When the sim is hosted on the preview origin,
+ * do not intercept /api or /mcp — the Vercel function is the real backend.
+ */
 export async function installApiProxy(page: Page): Promise<void> {
-  const sim = (process.env.KOI_SIM_BASE_URL ?? "http://127.0.0.1:18080").replace(/\/$/, "");
-  await page.route(/\/api\/v1(?:\/|\?|$)|\/mcp(?:\/|\?|$)/, async (route) => {
-    const request = route.request();
-    if (request.method() === "OPTIONS") {
-      await route.fulfill({ status: 204, headers: cors(request) });
-      return;
-    }
-    const url = new URL(request.url());
-    const headers = new Headers();
-    for (const [key, value] of Object.entries(request.headers())) {
-      if (FORWARD.has(key.toLowerCase())) headers.set(key, value);
-    }
-    if (
-      !headers.has("authorization") &&
-      session?.accessToken &&
-      !url.pathname.endsWith("/auth/login") &&
-      !url.pathname.endsWith("/auth/register") &&
-      !url.pathname.includes("/mcp")
-    ) {
-      headers.set("authorization", `Bearer ${session.accessToken}`);
-    }
-    const raw = request.postDataBuffer();
-    const init: RequestInit = {
-      method: request.method(),
-      headers,
-      redirect: "manual",
-    };
-    if (raw && request.method() !== "GET" && request.method() !== "HEAD") {
-      init.body = new Uint8Array(raw);
-    }
-    let response: Response;
-    try {
-      response = await fetch(sim + url.pathname + url.search, init);
-    } catch {
-      await route.fulfill({
-        status: 502,
-        contentType: "application/json",
-        body: JSON.stringify({ code: "internal_error", message: "sim unreachable" }),
-        headers: cors(request),
-      });
-      return;
-    }
-    let bytes = Buffer.from(await response.arrayBuffer());
-    bytes = rewriteAgentUrls(url.pathname, bytes);
-    rememberSession(url.pathname, response.status, bytes);
-    rememberPondGet(request.method(), url.pathname, bytes);
-    const out: Record<string, string> = {
-      ...cors(request),
-      "cache-control": "no-store",
-    };
-    const contentType = response.headers.get("content-type");
-    if (contentType) out["content-type"] = contentType;
-    const mcpSession = response.headers.get("mcp-session-id");
-    if (mcpSession) out["mcp-session-id"] = mcpSession;
-    await route.fulfill({ status: response.status, body: bytes, headers: out });
+  page.on("response", (response) => {
+    void rememberFromResponse(response);
   });
+  if (hostedSimEnabled()) {
+    return;
+  }
+  // Legacy loopback path: forward preview /api/v1 + /mcp to KOI_SIM_BASE_URL.
+  const { installLoopbackForwarder } = await import("./loopback-forwarder");
+  await installLoopbackForwarder(page);
 }
 
-function rememberPondGet(method: string, pathname: string, bytes: Buffer): void {
-  if (method !== "GET" || !/\/api\/v1\/ponds\/[^/]+$/.test(pathname)) return;
+async function rememberFromResponse(response: Response): Promise<void> {
+  const url = response.url();
+  let pathname = "";
   try {
-    const body = JSON.parse(bytes.toString("utf8")) as { pond?: { observed_state?: unknown } };
-    if (typeof body.pond?.observed_state === "string") {
-      lastPondGetState = body.pond.observed_state;
+    pathname = new URL(url).pathname;
+  } catch {
+    return;
+  }
+  if (response.status() !== 200 && response.request().method() !== "GET") {
+    // still try pond GET below when 200
+  }
+  try {
+    if (
+      response.status() === 200 &&
+      (pathname.endsWith("/auth/login") || pathname.endsWith("/auth/refresh"))
+    ) {
+      const body = (await response.json()) as {
+        access_token?: unknown;
+        refresh_token?: unknown;
+      };
+      if (typeof body.access_token === "string") {
+        session = {
+          accessToken: body.access_token,
+          refreshToken: typeof body.refresh_token === "string" ? body.refresh_token : "",
+        };
+      }
+    }
+    if (response.request().method() === "GET" && /\/api\/v1\/ponds\/[^/]+$/.test(pathname)) {
+      const body = (await response.json()) as { pond?: { observed_state?: unknown } };
+      if (typeof body.pond?.observed_state === "string") {
+        lastPondGetState = body.pond.observed_state;
+      }
     }
   } catch {
-    lastPondGetState = "";
+    // Ignore non-JSON or already-consumed bodies.
   }
-}
-
-function rememberSession(pathname: string, status: number, bytes: Buffer): void {
-  if (status !== 200) return;
-  if (!pathname.endsWith("/auth/login") && !pathname.endsWith("/auth/refresh")) return;
-  try {
-    const body = JSON.parse(bytes.toString("utf8")) as {
-      access_token?: unknown;
-      refresh_token?: unknown;
-    };
-    if (typeof body.access_token !== "string") return;
-    session = {
-      accessToken: body.access_token,
-      refreshToken: typeof body.refresh_token === "string" ? body.refresh_token : "",
-    };
-  } catch {
-    session = null;
-  }
-}
-
-function cors(request: Request): Record<string, string> {
-  const origin = request.headers().origin ?? "*";
-  const requested = request.headers()["access-control-request-headers"] ?? "*";
-  return {
-    "access-control-allow-origin": origin,
-    "access-control-allow-headers": requested,
-    "access-control-allow-methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
-    "access-control-allow-credentials": "true",
-  };
 }
 
 const VIEWPORTS = [
@@ -204,7 +137,6 @@ function resolveMediaDir(): string | null {
 export async function capture(page: Page, slug: string): Promise<{ shot375: boolean; shot1440: boolean }> {
   const href = page.url();
   assertPreviewHost(href);
-  // Stamp the preview origin into the shot so reviewers see the Vercel host, not loopback.
   await page.evaluate((shown) => {
     let el = document.getElementById("e2e-preview-host");
     if (!el) {

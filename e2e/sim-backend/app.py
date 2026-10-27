@@ -6,8 +6,12 @@ import base64
 import binascii
 import json
 import os
+import pickle
 import re
 import sys
+import urllib.error
+import urllib.parse
+import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Callable
 from urllib.parse import urlsplit
@@ -16,6 +20,123 @@ from state import SimError, State, ToolMiss
 
 MAX_BODY = 1_000_000
 STATE = State()
+_BLOB_PATH = "koi-preview-sim-state.pkl"
+_PERSIST_LOADED = False
+
+
+def _blob_token() -> str:
+    return (os.environ.get("BLOB_READ_WRITE_TOKEN") or "").strip()
+
+
+def _persist_path() -> str:
+    return (os.environ.get("KOI_SIM_PERSIST_PATH") or "").strip()
+
+
+def _blob_find_url(token: str) -> str | None:
+    query = urllib.parse.urlencode({"prefix": _BLOB_PATH, "limit": "1"})
+    req = urllib.request.Request(
+        f"https://blob.vercel-storage.com?{query}",
+        headers={
+            "Authorization": f"Bearer {token}",
+            "x-api-version": "7",
+        },
+        method="GET",
+    )
+    with urllib.request.urlopen(req, timeout=8) as resp:
+        payload = json.loads(resp.read().decode("utf-8"))
+    blobs = payload.get("blobs") if isinstance(payload, dict) else None
+    if not isinstance(blobs, list) or not blobs:
+        return None
+    first = blobs[0]
+    if not isinstance(first, dict):
+        return None
+    url = first.get("url")
+    return url if isinstance(url, str) and url else None
+
+
+def load_persisted_state() -> None:
+    """Hydrate STATE from Blob (preferred) or local file.
+
+    With Blob, reload every request so warm instances see seed/writes from peers.
+    With only /tmp, load once per process (same container shares memory + file).
+    """
+    global STATE, _PERSIST_LOADED
+    token = _blob_token()
+    if token:
+        try:
+            url = _blob_find_url(token)
+            if url:
+                req = urllib.request.Request(
+                    url,
+                    headers={"Authorization": f"Bearer {token}"},
+                    method="GET",
+                )
+                with urllib.request.urlopen(req, timeout=8) as resp:
+                    raw = resp.read()
+                if raw:
+                    STATE = pickle.loads(raw)
+                    _PERSIST_LOADED = True
+                    return
+        except (
+            urllib.error.HTTPError,
+            urllib.error.URLError,
+            pickle.UnpicklingError,
+            OSError,
+            json.JSONDecodeError,
+        ):
+            return
+        return
+    if _PERSIST_LOADED:
+        return
+    _PERSIST_LOADED = True
+    path = _persist_path()
+    if not path:
+        return
+    try:
+        with open(path, "rb") as handle:
+            STATE = pickle.loads(handle.read())
+    except (FileNotFoundError, pickle.UnpicklingError, OSError):
+        return
+
+
+def save_persisted_state() -> None:
+    """Snapshot STATE so the next serverless instance can resume the gate seed."""
+    token = _blob_token()
+    raw = pickle.dumps(STATE, protocol=pickle.HIGHEST_PROTOCOL)
+    if token:
+        try:
+            query = urllib.parse.urlencode({"pathname": _BLOB_PATH})
+            req = urllib.request.Request(
+                f"https://vercel.com/api/blob?{query}",
+                data=raw,
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "x-api-version": "7",
+                    "x-content-type": "application/octet-stream",
+                    "x-access": "private",
+                    "x-add-random-suffix": "0",
+                    "x-allow-overwrite": "1",
+                },
+                method="PUT",
+            )
+            with urllib.request.urlopen(req, timeout=8) as resp:
+                resp.read()
+            return
+        except (urllib.error.HTTPError, urllib.error.URLError, OSError):
+            pass
+    path = _persist_path()
+    if not path:
+        return
+    try:
+        directory = os.path.dirname(path)
+        if directory:
+            os.makedirs(directory, exist_ok=True)
+        temporary = f"{path}.tmp"
+        with open(temporary, "wb") as handle:
+            handle.write(raw)
+        os.replace(temporary, path)
+    except OSError:
+        return
 
 HandlerFn = Callable[
     [State, dict[str, str], dict[str, str], bytes],
@@ -517,6 +638,7 @@ def dispatch(
     headers: dict[str, str],
     body: bytes,
 ) -> tuple[int, dict[str, object] | None]:
+    load_persisted_state()
     if method == "OPTIONS":
         return 204, None
     for route_method, pattern, handler in ROUTES:
@@ -525,7 +647,10 @@ def dispatch(
         match = pattern.match(path)
         if match is None:
             continue
-        return handler(STATE, match.groupdict(), headers, body)
+        result = handler(STATE, match.groupdict(), headers, body)
+        if method != "GET":
+            save_persisted_state()
+        return result
     raise SimError("pond_not_found", status=404, message="Ruta no encontrada")
 
 

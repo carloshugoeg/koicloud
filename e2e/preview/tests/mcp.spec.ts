@@ -2,7 +2,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 import { loadGateCreds, secretValues } from "./support/creds";
-import { artifactsDir, installApiProxy, publicPreviewOrigin, resetSession } from "./support/proxy";
+import { artifactsDir, installApiProxy, publicPreviewOrigin } from "./support/proxy";
+import { resetSession } from "./support/session";
 
 type McpRow = { tool: string; result: "pass" | "fail"; note: string };
 type RpcPayload = Record<string, unknown>;
@@ -227,8 +228,7 @@ async function rpc(
   method: string,
   params: Record<string, unknown>,
 ): Promise<RpcPayload> {
-  // Must use in-page fetch so Playwright page.route can proxy preview /mcp → sim.
-  // page.request bypasses page.route and hits Vercel static 405.
+  // In-page fetch hits the preview-hosted /mcp (no Playwright route intercept).
   return browserFetch(page, mcpUrl, {
     method: "POST",
     headers: {

@@ -5,7 +5,6 @@ import {
   installApiProxy,
   publicPreviewOrigin,
   recordFlow,
-  resetSession,
 } from "./support/proxy";
 import { errorNote } from "./support/redact";
 import {
@@ -15,6 +14,7 @@ import {
   ensureProPlan,
   login,
   purgePonds,
+  resetSession,
   stopPond,
   triggerBackup,
 } from "./support/session";

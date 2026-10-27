@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Idempotent gate seed for the local sim.
-# Refuses hosts other than localhost, 127.0.0.1, and *.test.
-# Also refuses production markers in the host.
+# Idempotent gate seed for the preview sim (loopback or hosted preview).
+# Allows localhost, 127.0.0.1, and *.test.
+# With KOI_ALLOW_PREVIEW_SEED=1, also allows non-production *.vercel.app hosts.
+# Always refuses koicloud.dev, koicloud.com, and production Vercel aliases.
 # Writes passwords only when KOI_GATE_CREDENTIALS_OUT is an absolute path.
 set -euo pipefail
 
@@ -16,7 +17,11 @@ import urllib.request
 
 ADMIN_EMAIL = "gate-admin@koicloud.test"
 USER_EMAIL = "gate-user@koicloud.test"
-PROD_MARKERS = ("koicloud.dev", "vercel.app", "koicloud.com")
+PROD_MARKERS = ("koicloud.dev", "koicloud.com")
+PROD_VERCEL_HOSTS = {
+    "koicloud-web.vercel.app",
+    "koicloud-web-hugos-projects-3379fa36.vercel.app",
+}
 
 
 def fail(message: str, code: int) -> None:
@@ -34,6 +39,13 @@ def classify(url: str) -> str:
     if any(marker in host for marker in PROD_MARKERS):
         return "prod"
     if host in {"localhost", "127.0.0.1"} or host.endswith(".test"):
+        return "ok"
+    if host.endswith(".vercel.app"):
+        allow = os.environ.get("KOI_ALLOW_PREVIEW_SEED", "").strip() == "1"
+        if not allow:
+            return "prod"
+        if host in PROD_VERCEL_HOSTS or "-git-main-" in host:
+            return "prod"
         return "ok"
     return "host"
 

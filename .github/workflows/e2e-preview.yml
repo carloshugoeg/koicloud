@@ -19,53 +19,51 @@ jobs:
       # Branch-tip Vercel preview for w1-e2e-preview-verify (#142). Never localhost.
       PLAYWRIGHT_BASE_URL: https://koicloud-web-git-w1-e2e-preview-verify-hugos-projects-3379fa36.vercel.app
       KOI_PUBLIC_BASE_URL: https://koicloud-web-git-w1-e2e-preview-verify-hugos-projects-3379fa36.vercel.app
-      KOI_SIM_BASE_URL: http://127.0.0.1:18080
+      # Hosted sim on the preview origin — no Playwright page.route for /api or /mcp.
+      KOI_HOSTED_SIM: "1"
+      KOI_SIM_BASE_URL: https://koicloud-web-git-w1-e2e-preview-verify-hugos-projects-3379fa36.vercel.app
+      KOI_ALLOW_PREVIEW_SEED: "1"
       PYTHON_VERSION: "3.12"
       NODE_VERSION: "22"
     steps:
       - uses: actions/checkout@v4
 
-      - name: Wait for SHA-exact Vercel preview
+      - name: Wait for SHA-exact preview with hosted sim
         run: |
           set -euo pipefail
           echo "Waiting for preview ${PLAYWRIGHT_BASE_URL} (sha=${GITHUB_SHA})"
-          for _ in $(seq 1 60); do
+          for _ in $(seq 1 90); do
             code=$(curl -sS -o /tmp/preview-home.html -w "%{http_code}" "$PLAYWRIGHT_BASE_URL/" || true)
-            if [ "$code" = "200" ]; then
-              echo "preview HTTP 200"
-              exit 0
+            health_code=$(curl -sS -o /tmp/preview-health.json -w "%{http_code}" "$PLAYWRIGHT_BASE_URL/api/v1/health" || true)
+            ctype=$(file -b --mime-type /tmp/preview-health.json 2>/dev/null || echo unknown)
+            if [ "$code" = "200" ] && [ "$health_code" = "200" ] && grep -q '"ok"' /tmp/preview-health.json; then
+              if grep -qi '<html' /tmp/preview-health.json; then
+                echo "health still HTML; retry"
+              else
+                echo "preview HTTP 200 + health JSON"
+                head -c 200 /tmp/preview-health.json; echo
+                exit 0
+              fi
             fi
-            echo "preview HTTP ${code}; retry"
+            echo "home=${code} health=${health_code} ctype=${ctype}; retry"
             sleep 10
           done
-          echo "preview did not become ready" >&2
+          echo "preview sim did not become ready" >&2
+          head -c 400 /tmp/preview-health.json >&2 || true
           exit 1
 
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Start sim backend
-        run: |
-          export KOI_PUBLIC_BASE_URL
-          python3 e2e/sim-backend/__main__.py > "$RUNNER_TEMP/sim.log" 2>&1 &
-          echo $! > "$RUNNER_TEMP/sim.pid"
-          for _ in $(seq 1 30); do
-            if curl -fsS "$KOI_SIM_BASE_URL/api/v1/health" >/dev/null; then
-              exit 0
-            fi
-            sleep 1
-          done
-          echo "sim did not become healthy" >&2
-          cat "$RUNNER_TEMP/sim.log" >&2
-          exit 1
-
-      - name: Seed gate users
+      - name: Seed gate users on hosted preview sim
         run: |
           echo "KOI_GATE_CREDENTIALS_OUT=$RUNNER_TEMP/gate-credentials.json" >> "$GITHUB_ENV"
           echo "KOI_E2E_MEDIA_DIR=$RUNNER_TEMP/e2e-verify-media" >> "$GITHUB_ENV"
           mkdir -p "$RUNNER_TEMP/e2e-verify-media"
           export KOI_GATE_CREDENTIALS_OUT="$RUNNER_TEMP/gate-credentials.json"
+          export KOI_SIM_BASE_URL
+          export KOI_ALLOW_PREVIEW_SEED
           bash scripts/seed-gate-preview.sh
 
       - uses: actions/setup-node@v4
@@ -78,13 +76,13 @@ jobs:
           npm ci
           npx playwright install --with-deps chromium
 
-      - name: MCP client suite via preview /mcp
+      - name: MCP client suite via preview /mcp (no intercept)
         id: mcp
         working-directory: e2e/preview
         run: npx playwright test tests/mcp.spec.ts
         continue-on-error: true
 
-      - name: Playwright preview suite
+      - name: Playwright preview suite (no /api intercept)
         id: playwright
         working-directory: e2e/preview
         run: npx playwright test tests/preview.spec.ts

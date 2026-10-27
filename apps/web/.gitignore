@@ -4,3 +4,4 @@ coverage/
 .chrome-for-testing/
 .DS_Store
 .env
+api/_koi_sim/

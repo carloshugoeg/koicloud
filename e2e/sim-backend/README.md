@@ -34,8 +34,20 @@ bash scripts/seed-gate-preview.sh
 
 Stdout prints `seeded`, `gate-admin@koicloud.test`, `gate-user@koicloud.test`, and the file path.
 
-The script allows `localhost`, `127.0.0.1`, and host names that end in `.test`. It refuses any other host. It also refuses a URL whose host contains `koicloud.dev`, `vercel.app`, or `koicloud.com`.
+The script allows `localhost`, `127.0.0.1`, and host names that end in `.test`. With `KOI_ALLOW_PREVIEW_SEED=1` it also allows non-production `*.vercel.app` hosts (the preview-hosted sim). It always refuses `koicloud.dev`, `koicloud.com`, and production Vercel aliases.
 
-A second run with the same credentials file logs in again and keeps a still-valid MCP password. Restart the process to drop memory.
+## Preview-hosted sim (Vercel)
 
-Ctrl-C stops the process.
+Preview deployments of `apps/web` mount the same sim behind `/api/v1/*` and `/mcp` via `api/preview-sim.py`. Production (`VERCEL_ENV=production`) returns 404 JSON from that function — never the in-memory sim.
+
+```bash
+export KOI_SIM_BASE_URL=https://<preview>.vercel.app
+export KOI_ALLOW_PREVIEW_SEED=1
+export KOI_GATE_CREDENTIALS_OUT=/absolute/path/credentials.json
+bash scripts/seed-gate-preview.sh
+curl -fsS "$KOI_SIM_BASE_URL/api/v1/health"
+```
+
+A second run with the same credentials file logs in again and keeps a still-valid MCP password. Restart the process (or a cold Vercel instance) to drop memory.
+
+Ctrl-C stops the local process.
