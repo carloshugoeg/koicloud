@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useResetPasswordMutation } from "@/api/hooks";
 import { AuthErrorBanner, AuthField, AuthLayout } from "@/features/auth/auth-layout";
 import { ApiError } from "@/lib/errors";
+import { isPasswordLongEnough, MIN_PASSWORD_LENGTH, passwordMinHelp } from "@/lib/password";
 
 export function ResetPage() {
   const [searchParams] = useSearchParams();
@@ -12,7 +13,7 @@ export function ResetPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [localError, setLocalError] = useState<ApiError | null>(null);
+  const [localError, setLocalError] = useState<Error | null>(null);
 
   const missingTokenError = !token
     ? new ApiError({
@@ -34,6 +35,10 @@ export function ResetPage() {
           request_id: "client_password_mismatch",
         }),
       );
+      return;
+    }
+    if (!isPasswordLongEnough(password)) {
+      setLocalError(new Error("La contraseña no cumple los requisitos mínimos."));
       return;
     }
     try {
@@ -123,11 +128,12 @@ export function ResetPage() {
             name="new_password"
             type={showPassword ? "text" : "password"}
             required
+            minLength={MIN_PASSWORD_LENGTH}
             autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••••"
-            help="Mínimo 8 caracteres."
+            help={passwordMinHelp()}
             suffix={
               <button
                 type="button"
@@ -144,6 +150,7 @@ export function ResetPage() {
             name="confirm_password"
             type={showPassword ? "text" : "password"}
             required
+            minLength={MIN_PASSWORD_LENGTH}
             autoComplete="new-password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}

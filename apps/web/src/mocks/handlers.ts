@@ -101,6 +101,14 @@ export const handlers = [
     return HttpResponse.json({ plans: fixtures.plans, next_cursor: null });
   }),
 
+  http.get(`${API_ROOT}/me`, () => {
+    return HttpResponse.json({
+      user: fixtures.session.user,
+      ponds_count: fixtures.ponds.length,
+      subscription: fixtures.subscriptionResponse.subscription,
+    });
+  }),
+
   http.post(`${API_ROOT}/subscriptions`, async ({ request }) => {
     const body = (await request.json()) as { plan_id?: string };
     if (!body?.plan_id) {
