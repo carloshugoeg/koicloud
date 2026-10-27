@@ -2,7 +2,7 @@
 id: W1-34
 workstream: W1
 persona: Carlos
-estado: en-revision
+estado: hecho
 rama: w1-expose-fields
 epica: "E3-03, E8-02, E9-01"
 sprint: S4
