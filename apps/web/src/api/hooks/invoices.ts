@@ -40,7 +40,6 @@ export async function downloadInvoicePdf(invoiceId: string) {
     throw new ApiError({
       code: "internal_error",
       message: "No se pudo descargar la factura.",
-      request_id: "unknown",
     });
   }
 

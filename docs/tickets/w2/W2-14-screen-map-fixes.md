@@ -2,7 +2,7 @@
 id: W2-14
 workstream: W2
 persona: Jason
-estado: en-revision
+estado: hecho
 rama: w2-screen-map-fixes
 epica: "E1-01"
 sprint: S4
