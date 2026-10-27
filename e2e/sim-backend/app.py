@@ -346,15 +346,23 @@ def save_persisted_state() -> None:
             # Avoid clobbering a populated blob with an empty cold start.
             return
         _strip_auth_stubs(STATE)
-        # Refuse to publish a users sidecar with zero passwords when remote had some.
-        if remote is not None and not any(u.password for u in STATE.users_by_id.values()):
-            if any(u.password for u in remote.users_by_id.values()):
-                return
+        has_passworded = any(u.password for u in STATE.users_by_id.values())
+        # Blob list/get stampedes leave memory with only claim stubs. After strip
+        # that is empty — never PUT that pickle or gate passwords disappear.
+        if not has_passworded:
+            retry = _read_blob_state(token, attempts=4)
+            if retry is not None:
+                _merge_state(STATE, retry)
+                _strip_auth_stubs(STATE)
+                has_passworded = any(u.password for u in STATE.users_by_id.values())
+                remote = retry
+                _BLOB_LOAD_OK = True
+        if not has_passworded:
+            return
         raw = pickle.dumps(STATE, protocol=pickle.HIGHEST_PROTOCOL)
         users_raw = _users_to_json(STATE)
         wrote = _put_blob_bytes(token, _blob_path(), raw, "application/octet-stream")
-        if users_raw != b'{"users":[]}':
-            _put_blob_bytes(token, _users_blob_path(), users_raw, "application/json")
+        _put_blob_bytes(token, _users_blob_path(), users_raw, "application/json")
         if wrote:
             _LAST_BLOB_LOAD_AT = time.monotonic()
             return
