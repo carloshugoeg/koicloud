@@ -21,7 +21,8 @@ GATE_USER_EMAIL = "gate-user@koicloud.test"
 NODE_ID = "sim-node"
 PORT_START = 15000
 PORT_END = 15999
-MCP_TTL = timedelta(minutes=30)
+# Gate mint must stay valid ≥24h; sim-only TTL (not production agent-access).
+MCP_TTL = timedelta(hours=36)
 CONFIRM_TTL = timedelta(minutes=5)
 PROMPT_SUMMARY = "Sos un asistente que opera KoiCloud (DBaaS académico)."
 
@@ -125,6 +126,10 @@ CATALOG: dict[str, tuple[int, str]] = {
     "admin_only": (403, "Esta operación requiere rol administrador"),
     "sql_readonly_violation": (400, "La query es de escritura pero el modo es read"),
     "node_unavailable": (503, "No hay nodos disponibles en este momento"),
+    # Sim-only MCP / restore codes (not production OpenAPI catalog).
+    "method_not_found": (404, "Herramienta MCP desconocida"),
+    "invalid_params": (400, "Falta un argumento requerido"),
+    "backup_not_found": (404, "No existe el respaldo solicitado"),
 }
 
 
@@ -377,6 +382,7 @@ class State:
         self.subs: dict[str, Subscription] = {}
         self.ponds: dict[str, Pond] = {}
         self.backups: dict[str, list[Backup]] = {}
+        self.sql_events: dict[str, list[dict[str, object]]] = {}
         self.pending: dict[str, Pending] = {}
         self.agents_by_user: dict[str, Agent] = {}
         self.agents_by_slug: dict[str, Agent] = {}
@@ -529,7 +535,25 @@ class State:
     def run_sql(self, user_id: str, pond_id: str, query: str, mode: str) -> dict[str, object]:
         with self._lock:
             self._owned_pond(user_id, pond_id)
-            return self._execute_sql(query, mode)
+            result = self._execute_sql(query, mode)
+            self._record_sql(user_id, pond_id, query, mode, result)
+            return result
+
+    def list_sql_history(self, user_id: str, pond_id: str) -> dict[str, object]:
+        with self._lock:
+            self._owned_pond(user_id, pond_id)
+            events = list(self.sql_events.get(pond_id, []))
+            return {"events": events, "next_cursor": None}
+
+    def list_admin_ponds(self, actor_id: str) -> dict[str, object]:
+        with self._lock:
+            self._require_admin(actor_id)
+            rows = [
+                self._admin_pond_out(pond)
+                for pond in sorted(self.ponds.values(), key=lambda row: row.created_at)
+                if pond.desired_state != "deleted"
+            ]
+            return {"ponds": rows, "next_cursor": None}
 
     def delete_pond(self, user_id: str, pond_id: str) -> dict[str, object]:
         # Preview delete always proposes. POST /confirm/{token} runs it.
@@ -765,6 +789,48 @@ class State:
             "active_subscription_plan": plan,
         }
 
+    def _admin_pond_out(self, pond: Pond) -> dict[str, object]:
+        owner = self.users_by_id.get(pond.user_id)
+        return {
+            "id": pond.id,
+            "owner_email": owner.email if owner is not None else "",
+            "name": pond.name,
+            "plan_id": pond.plan_id,
+            "node_id": NODE_ID,
+            "desired_state": pond.desired_state,
+            "observed_state": pond.observed_state,
+            "host_port": pond.host_port,
+            "created_at": pond.created_at,
+        }
+
+    def _record_sql(
+        self,
+        user_id: str,
+        pond_id: str,
+        query: str,
+        mode: str,
+        result: dict[str, object],
+    ) -> None:
+        normalized = mode.strip().lower() if mode else "read"
+        if normalized not in {"read", "write"}:
+            normalized = "read"
+        truncated = query if len(query) <= 4000 else query[:4000]
+        row_count = result.get("row_count")
+        duration = result.get("duration_ms")
+        event = {
+            "id": str(uuid.uuid4()),
+            "pond_id": pond_id,
+            "query_truncated": truncated,
+            "mode": normalized,
+            "row_count": row_count if isinstance(row_count, int) else 0,
+            "duration_ms": duration if isinstance(duration, int) else 0,
+            "executed_at": iso(utcnow()),
+        }
+        bucket = self.sql_events.setdefault(pond_id, [])
+        bucket.insert(0, event)
+        del bucket[50:]
+        _ = user_id  # actor-scoped in production; sim keeps pond-scoped stub.
+
     def _new_subscription(self, user: User, plan: dict[str, object]) -> dict[str, object]:
         self._invoice_n += 1
         start = utcnow()
@@ -984,7 +1050,7 @@ class State:
             backup_id = payload["backup_id"]
             found = any(row.id == backup_id for row in self.backups.get(pond.id, []))
             if not found:
-                raise SimError("pond_not_found")
+                raise SimError("backup_not_found")
             pond.last_restore_at = iso(utcnow())
             desired, observed, healthy = POND_APPLY["start"]
             pond.desired_state = desired
@@ -992,8 +1058,13 @@ class State:
             pond.healthy = healthy
             return {"job": _job("restore_pond", pond.id)}
         if action == "run_sql":
-            self._owned_pond(user_id, payload["pond_id"])
-            return self._execute_sql(payload["query"], payload.get("mode", "write"))
+            pond_id = payload["pond_id"]
+            self._owned_pond(user_id, pond_id)
+            query = payload["query"]
+            mode = payload.get("mode", "write")
+            result = self._execute_sql(query, mode)
+            self._record_sql(user_id, pond_id, query, mode, result)
+            return result
         raise SimError("confirmation_not_found")
 
     def _ensure_agent(self, user_id: str) -> Agent:
@@ -1029,7 +1100,7 @@ class State:
     def _need(self, args: dict[str, object], key: str) -> str:
         value = args.get(key)
         if not isinstance(value, str) or not value.strip():
-            raise SimError("token_invalid", message="Falta un argumento")
+            raise SimError("invalid_params", message=f"Falta el argumento '{key}'")
         return value
 
     def _tool_whoami(self, user_id: str, _args: dict[str, object]) -> dict[str, object]:
@@ -1090,7 +1161,7 @@ class State:
         backup_id = self._need(args, "backup_id")
         found = any(row.id == backup_id for row in self.backups.get(pond.id, []))
         if not found:
-            raise SimError("pond_not_found")
+            raise SimError("backup_not_found")
         summary = (
             f"Se restaurará el pond '{pond.name}' desde el respaldo {backup_id}. "
             "Expira en 5 min."
@@ -1117,7 +1188,9 @@ class State:
                 {"pond_id": pond.id, "query": query, "mode": "write"},
                 summary,
             )
-        return self._execute_sql(query, mode)
+        result = self._execute_sql(query, mode)
+        self._record_sql(user_id, pond.id, query, mode, result)
+        return result
 
     def _tool_confirm(self, user_id: str, args: dict[str, object]) -> dict[str, object]:
         token = self._need(args, "token")

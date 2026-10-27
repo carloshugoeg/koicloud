@@ -6,6 +6,8 @@ Create ends in `running`. The sim applies start in the same request because it h
 
 `DELETE /api/v1/ponds/{id}` returns `409` with `confirmation_required`. `POST /api/v1/confirm/{token}` runs the delete. MCP mutators use the same two steps. Read SQL does not.
 
+Read stubs match OpenAPI shapes: `GET /api/v1/ponds/{id}/sql/history` and `GET /api/v1/admin/ponds`. MCP tool misses return `method_not_found`, missing args `invalid_params`, and a bad restore id `backup_not_found` (sim-only codes).
+
 ## Start the sim
 
 Run this from the repo root.

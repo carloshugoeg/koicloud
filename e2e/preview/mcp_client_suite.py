@@ -70,28 +70,58 @@ def _secrets(payload: dict) -> list[str]:
     return found
 
 
-def _rpc(url: str, auth: str, method: str, params: dict | None = None, req_id: int = 1) -> dict:
-    body = json.dumps({"jsonrpc": "2.0", "id": req_id, "method": method, "params": params or {}}).encode()
+def _http(
+    url: str,
+    *,
+    method: str = "GET",
+    headers: dict[str, str] | None = None,
+    body: dict | None = None,
+) -> tuple[int, dict]:
+    raw_body = None if body is None else json.dumps(body).encode()
     req = urllib.request.Request(
         url,
-        data=body,
+        data=raw_body,
+        method=method,
+        headers=headers or {},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            raw = resp.read().decode("utf-8")
+            payload = json.loads(raw) if raw else {}
+            return resp.status, payload if isinstance(payload, dict) else {}
+    except urllib.error.HTTPError as exc:
+        raw = exc.read().decode("utf-8")
+        try:
+            payload = json.loads(raw)
+        except json.JSONDecodeError:
+            payload = {"error": {"message": f"http_{exc.code}"}}
+        return exc.code, payload if isinstance(payload, dict) else {}
+
+
+def _rpc(url: str, auth: str, method: str, params: dict | None = None, req_id: int = 1) -> dict:
+    _status, payload = _http(
+        url,
         method="POST",
         headers={
             "content-type": "application/json",
             "authorization": auth,
             "accept": "application/json",
         },
+        body={"jsonrpc": "2.0", "id": req_id, "method": method, "params": params or {}},
     )
-    try:
-        with urllib.request.urlopen(req, timeout=20) as resp:
-            raw = resp.read().decode("utf-8")
-            return json.loads(raw) if raw else {}
-    except urllib.error.HTTPError as exc:
-        raw = exc.read().decode("utf-8")
-        try:
-            return json.loads(raw)
-        except json.JSONDecodeError:
-            return {"error": {"message": f"http_{exc.code}"}}
+    return payload
+
+
+def _tool_code(payload: dict) -> str | None:
+    result = payload.get("result")
+    if not isinstance(result, dict):
+        return None
+    structured = result.get("structuredContent")
+    if isinstance(structured, dict) and isinstance(structured.get("code"), str):
+        return structured["code"]
+    if isinstance(result.get("code"), str):
+        return result["code"]
+    return None
 
 
 def main() -> int:
@@ -108,6 +138,7 @@ def main() -> int:
     )
     sim = os.environ.get("KOI_SIM_BASE_URL") or creds.get("sim_base_url") or "http://127.0.0.1:18080"
     base = str(preview or sim).rstrip("/")
+    api_base = str(os.environ.get("KOI_SIM_BASE_URL") or creds.get("sim_base_url") or sim).rstrip("/")
     mcp_url = f"{base}/mcp"
     if "127.0.0.1" in mcp_url or "localhost" in mcp_url:
         print("warning: MCP URL is loopback; prefer PLAYWRIGHT_BASE_URL preview host", file=sys.stderr)
@@ -128,13 +159,17 @@ def main() -> int:
     def record(tool: str, result: str, note: str) -> None:
         rows.append({"tool": tool, "result": result, "note": _redact(note, hidden)})
 
-    # Auth failure
-    bad = _rpc(mcp_url, "Basic " + base64.b64encode(b"nope:wrong").decode(), "tools/call", {"name": "whoami"})
-    if bad.get("code") == "agent_bad_credentials" or bad.get("error") or bad.get("message"):
-        record("auth failure", "pass", "bad basic auth rejected")
-    else:
-        # sim returns problem json at HTTP layer
-        record("auth failure", "pass" if "agent_bad" in json.dumps(bad) else "fail", json.dumps(bad)[:120])
+    # Auth failure: invalid bearer → HTTP 401 token_invalid (catalog).
+    auth_status, auth_body = _http(
+        f"{api_base}/api/v1/me",
+        headers={"authorization": "Bearer not-a-valid-token", "accept": "application/json"},
+    )
+    auth_ok = auth_status == 401 and auth_body.get("code") == "token_invalid"
+    record(
+        "auth failure",
+        "pass" if auth_ok else "fail",
+        "HTTP 401 token_invalid" if auth_ok else f"status={auth_status} code={auth_body.get('code')}",
+    )
 
     # Reconnect with good creds via initialize + tools/list
     init = _rpc(mcp_url, auth, "initialize", {"protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": {"name": "gate", "version": "0"}})
@@ -148,6 +183,22 @@ def main() -> int:
 
     def call(tool: str, arguments: dict | None = None) -> dict:
         return _rpc(mcp_url, auth, "tools/call", {"name": tool, "arguments": arguments or {}})
+
+    unknown = call("no_such_tool")
+    unknown_code = _tool_code(unknown)
+    record(
+        "method_not_found",
+        "pass" if unknown_code == "method_not_found" else "fail",
+        unknown_code or "missing code",
+    )
+
+    missing = call("get_pond", {})
+    missing_code = _tool_code(missing)
+    record(
+        "invalid_params",
+        "pass" if missing_code == "invalid_params" else "fail",
+        missing_code or "missing code",
+    )
 
     # whoami
     who = call("whoami")
@@ -238,17 +289,36 @@ def main() -> int:
         except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, json.JSONDecodeError):
             backup_id = None
 
+    bad_restore = call(
+        "restore_backup",
+        {
+            "pond_name": pond_name,
+            "backup_id": "00000000-0000-0000-0000-000000000000",
+        },
+    )
+    bad_restore_code = _tool_code(bad_restore)
+    record(
+        "backup_not_found",
+        "pass" if bad_restore_code == "backup_not_found" else "fail",
+        bad_restore_code or "missing code",
+    )
+
     restore = call(
         "restore_backup",
         {
             "pond_name": pond_name,
-            "backup_id": backup_id or "00000000-0000-0000-0000-000000000000",
+            "backup_id": backup_id or "11111111-1111-1111-1111-111111111111",
         },
     )
     restore_body = restore.get("result") if isinstance(restore.get("result"), dict) else {}
     rtoken = restore_body.get("token")
-    restore_ok = bool(rtoken) or bool(restore_body.get("isError") or restore_body.get("code") or restore.get("error"))
-    record("restore_backup", "pass" if restore_ok else "fail", "propose or domain error")
+    restore_code = _tool_code(restore)
+    restore_ok = bool(rtoken) or restore_code in {"backup_not_found", "pond_not_found"}
+    record(
+        "restore_backup",
+        "pass" if restore_ok else "fail",
+        "propose or domain error" if restore_ok else (restore_code or "no result"),
+    )
     if rtoken:
         call("cancel_confirmation", {"token": rtoken})
 

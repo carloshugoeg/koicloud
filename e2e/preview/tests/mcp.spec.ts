@@ -50,14 +50,18 @@ test("mcp tools via preview /mcp", async ({ page, baseURL }) => {
     rows.push({ tool, result, note: redact(note, hidden) });
   };
 
-  const bad = await rpc(page, mcpUrl, basicAuth("nope", "wrong"), "tools/call", {
-    name: "whoami",
+  const authFail = await browserFetchStatus(page, `${preview}/api/v1/me`, {
+    method: "GET",
+    headers: {
+      authorization: "Bearer not-a-valid-token",
+      accept: "application/json",
+    },
   });
-  const badText = JSON.stringify(bad);
+  const authOk = authFail.status === 401 && authFail.body.code === "token_invalid";
   record(
     "auth failure",
-    badText.includes("agent_bad") || bad.error || bad.message ? "pass" : "fail",
-    "bad basic auth rejected",
+    authOk ? "pass" : "fail",
+    authOk ? "HTTP 401 token_invalid" : `status=${authFail.status} code=${String(authFail.body.code ?? "")}`,
   );
 
   const init = await rpc(page, mcpUrl, auth, "initialize", {
@@ -79,6 +83,22 @@ test("mcp tools via preview /mcp", async ({ page, baseURL }) => {
 
   const call = (tool: string, arguments_: Record<string, unknown> = {}) =>
     rpc(page, mcpUrl, auth, "tools/call", { name: tool, arguments: arguments_ });
+
+  const unknown = await call("no_such_tool");
+  const unknownCode = toolCode(unknown);
+  record(
+    "method_not_found",
+    unknownCode === "method_not_found" ? "pass" : "fail",
+    unknownCode || "missing code",
+  );
+
+  const missing = await call("get_pond", {});
+  const missingCode = toolCode(missing);
+  record(
+    "invalid_params",
+    missingCode === "invalid_params" ? "pass" : "fail",
+    missingCode || "missing code",
+  );
 
   const who = await call("whoami");
   record(
@@ -162,12 +182,24 @@ test("mcp tools via preview /mcp", async ({ page, baseURL }) => {
     }
   }
 
+  const badRestore = await call("restore_backup", {
+    pond_name: pondName,
+    backup_id: "00000000-0000-0000-0000-000000000000",
+  });
+  const badRestoreCode = toolCode(badRestore);
+  record(
+    "backup_not_found",
+    badRestoreCode === "backup_not_found" ? "pass" : "fail",
+    badRestoreCode || "missing code",
+  );
+
   const restore = await call("restore_backup", {
     pond_name: pondName,
-    backup_id: backupId || "00000000-0000-0000-0000-000000000000",
+    backup_id: backupId || "11111111-1111-1111-1111-111111111111",
   });
   const restoreBody = (restore.result as { token?: string; isError?: unknown; code?: unknown } | undefined) ?? {};
-  const restoreOk = Boolean(restoreBody.token || restoreBody.isError || restoreBody.code || restore.error);
+  const restoreCode = toolCode(restore);
+  const restoreOk = Boolean(restoreBody.token || restoreCode === "backup_not_found");
   record("restore_backup", restoreOk ? "pass" : "fail", "propose or domain error");
   if (restoreBody.token) {
     await call("cancel_confirmation", { token: restoreBody.token });
@@ -208,11 +240,30 @@ async function rpc(
   });
 }
 
+function toolCode(payload: RpcPayload): string | undefined {
+  const result = payload.result as
+    | { structuredContent?: { code?: string }; code?: string }
+    | undefined;
+  if (!result || typeof result !== "object") return undefined;
+  if (typeof result.structuredContent?.code === "string") return result.structuredContent.code;
+  if (typeof result.code === "string") return result.code;
+  return undefined;
+}
+
 async function browserFetch(
   page: Page,
   url: string,
   init: { method: string; headers: Record<string, string>; body?: unknown },
 ): Promise<RpcPayload> {
+  const wrapped = await browserFetchStatus(page, url, init);
+  return wrapped.body;
+}
+
+async function browserFetchStatus(
+  page: Page,
+  url: string,
+  init: { method: string; headers: Record<string, string>; body?: unknown },
+): Promise<{ status: number; body: RpcPayload }> {
   try {
     return (await page.evaluate(
       async ({ url, method, headers, body }) => {
@@ -222,11 +273,13 @@ async function browserFetch(
           body: body === undefined ? undefined : JSON.stringify(body),
         });
         const text = await response.text();
+        let parsed: RpcPayload = {};
         try {
-          return text ? (JSON.parse(text) as RpcPayload) : {};
+          parsed = text ? (JSON.parse(text) as RpcPayload) : {};
         } catch {
-          return { error: { message: `http_${response.status}` }, raw: text.slice(0, 120) };
+          parsed = { error: { message: `http_${response.status}` }, raw: text.slice(0, 120) };
         }
+        return { status: response.status, body: parsed };
       },
       {
         url,
@@ -234,9 +287,9 @@ async function browserFetch(
         headers: init.headers,
         body: init.body,
       },
-    )) as RpcPayload;
+    )) as { status: number; body: RpcPayload };
   } catch (error) {
-    return { error: { message: String(error) } };
+    return { status: 0, body: { error: { message: String(error) } } };
   }
 }
 

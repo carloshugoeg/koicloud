@@ -257,6 +257,24 @@ def route_sql(
     )
 
 
+def route_sql_history(
+    state: State,
+    groups: dict[str, str],
+    headers: dict[str, str],
+    _body: bytes,
+) -> tuple[int, dict[str, object]]:
+    return 200, state.list_sql_history(_bearer(state, headers), groups["pond_id"])
+
+
+def route_admin_ponds(
+    state: State,
+    _groups: dict[str, str],
+    headers: dict[str, str],
+    _body: bytes,
+) -> tuple[int, dict[str, object]]:
+    return 200, state.list_admin_ponds(_bearer(state, headers))
+
+
 def route_pond_delete(
     state: State,
     groups: dict[str, str],
@@ -440,12 +458,18 @@ def route_mcp_post(
         return 200, {"jsonrpc": "2.0", "id": rpc_id, "result": {}, "error": None}
     name, args = _split_tool(method, params)
     if not name:
-        missed = _tool_error("tools/call", SimError("token_invalid", message="tool name required"))
+        missed = _tool_error(
+            "tools/call",
+            SimError("method_not_found", message="tool name required"),
+        )
         return 200, {"jsonrpc": "2.0", "id": rpc_id, "result": missed, "error": None}
     try:
         result = state.mcp_call(user_id, name, args)
     except ToolMiss as exc:
-        missed = _tool_error(exc.name, SimError("token_invalid", message="unknown tool"))
+        missed = _tool_error(
+            exc.name,
+            SimError("method_not_found", message=f"unknown tool '{exc.name}'"),
+        )
         return 200, {"jsonrpc": "2.0", "id": rpc_id, "result": missed, "error": None}
     except SimError as exc:
         return 200, {"jsonrpc": "2.0", "id": rpc_id, "result": _tool_error(name, exc), "error": None}
@@ -468,12 +492,14 @@ ROUTES: list[tuple[str, re.Pattern[str], HandlerFn]] = [
     ("POST", re.compile(r"^/api/v1/ponds/(?P<pond_id>[^/]+)/backups$"), route_backup_create),
     ("GET", re.compile(r"^/api/v1/ponds/(?P<pond_id>[^/]+)/backups$"), route_backup_list),
     ("POST", re.compile(r"^/api/v1/ponds/(?P<pond_id>[^/]+)/sql$"), route_sql),
+    ("GET", re.compile(r"^/api/v1/ponds/(?P<pond_id>[^/]+)/sql/history$"), route_sql_history),
     ("GET", re.compile(r"^/api/v1/ponds/(?P<pond_id>[^/]+)/connection$"), route_connection),
     ("GET", re.compile(r"^/api/v1/ponds/(?P<pond_id>[^/]+)$"), route_pond_get),
     ("DELETE", re.compile(r"^/api/v1/ponds/(?P<pond_id>[^/]+)$"), route_pond_delete),
     ("POST", re.compile(r"^/api/v1/confirm/(?P<token>[^/]+)$"), route_confirm),
     ("DELETE", re.compile(r"^/api/v1/confirm/(?P<token>[^/]+)$"), route_cancel),
     ("GET", re.compile(r"^/api/v1/admin/users$"), route_admin_users),
+    ("GET", re.compile(r"^/api/v1/admin/ponds$"), route_admin_ponds),
     ("POST", re.compile(r"^/api/v1/admin/users/(?P<user_id>[^/]+)/suspend$"), route_suspend),
     ("POST", re.compile(r"^/api/v1/admin/users/(?P<user_id>[^/]+)/reactivate$"), route_reactivate),
     ("GET", re.compile(r"^/api/v1/usage$"), route_usage),
