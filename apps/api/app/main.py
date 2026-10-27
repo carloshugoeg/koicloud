@@ -4,15 +4,24 @@ from contextlib import asynccontextmanager
 from uuid import uuid4
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from app.api_v1 import router as api_v1_router
 from app.core.config import get_settings
-from app.core.errors import AppError, app_error_handler, unexpected_error_handler
+from app.core.errors import (
+    AppError,
+    ErrorCode,
+    app_error_handler,
+    payload_for_code,
+    unexpected_error_handler,
+)
 from app.internal_v1 import router as internal_v1_router
 from app.mcp.asgi import mcp_stream_app, wrap_with_mcp_stream
 from app.mcp.router import router as mcp_router
 from app.schemas import HealthResponse
+
+_PASSWORD_FIELDS = frozenset({"password", "new_password"})
 
 
 @asynccontextmanager
@@ -43,6 +52,30 @@ def create_app() -> FastAPI:
 
     app.add_exception_handler(AppError, app_error_handler)
     app.add_exception_handler(Exception, unexpected_error_handler)
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_error_handler(
+        request: Request, exc: RequestValidationError
+    ) -> JSONResponse:
+        request_id = getattr(request.state, "request_id", None)
+        for err in exc.errors():
+            loc = err.get("loc", ())
+            if err.get("type") == "string_too_short" and any(
+                part in _PASSWORD_FIELDS for part in loc
+            ):
+                return JSONResponse(
+                    status_code=422,
+                    content=payload_for_code(ErrorCode.PASSWORD_TOO_WEAK, request_id=request_id),
+                )
+        return JSONResponse(
+            status_code=422,
+            content={
+                "code": ErrorCode.INTERNAL_ERROR.value,
+                "message": "Solicitud inválida",
+                "request_id": request_id,
+                "detail": exc.errors(),
+            },
+        )
 
     @app.exception_handler(404)
     async def not_found_handler(request: Request, _: Exception) -> JSONResponse:

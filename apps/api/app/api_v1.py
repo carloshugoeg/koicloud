@@ -23,6 +23,7 @@ from app.core.config import get_settings
 from app.core.db import SessionLocal
 from app.core.deps import get_confirmation_token, get_surface
 from app.core.enums import AppSurface
+from app.core.rate_limit import check_rate_limit
 from app.modules.auth import AuthService
 from app.modules.auth.service import REFRESH_COOKIE
 from app.schemas import (
@@ -35,10 +36,12 @@ from app.schemas import (
     AuditEventListResponse,
     BackupListResponse,
     CancelSubscriptionResponse,
+    ChangePasswordRequest,
     ConfirmationRequiredResponse,
     ConnectionResponse,
     CreatePondRequest,
     CreatePondResponse,
+    DeleteMeRequest,
     DeletePondResponse,
     ErrorResponse,
     ForgotPasswordRequest,
@@ -57,6 +60,7 @@ from app.schemas import (
     RefreshTokenRequest,
     RegisterUserRequest,
     RegisterUserResponse,
+    ResendVerificationRequest,
     ResetPasswordRequest,
     RestoreBackupRequest,
     RetryFailedJobResponse,
@@ -188,6 +192,23 @@ async def reset_password(payload: ResetPasswordRequest) -> OkResponse:
 
 
 @router.post(
+    "/auth/resend-verification",
+    response_model=OkResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    operation_id="resend_verification",
+    tags=["auth"],
+    responses=_error_responses(429),
+)
+async def resend_verification(
+    payload: ResendVerificationRequest,
+    request: Request,
+) -> OkResponse:
+    client_host = request.client.host if request.client else "unknown"
+    check_rate_limit(f"auth:resend-verification:{client_host}", limit=3)
+    return await auth_commands.resend_verification(payload)
+
+
+@router.post(
     "/auth/logout",
     status_code=status.HTTP_204_NO_CONTENT,
     operation_id="revoke_refresh",
@@ -230,6 +251,41 @@ async def update_profile(
     actor: Annotated[AuthContext, Depends(get_current_user)],
 ) -> UserResponse:
     return await user_commands.update_profile(actor, payload)
+
+
+@router.post(
+    "/me/change-password",
+    status_code=status.HTTP_204_NO_CONTENT,
+    operation_id="change_password",
+    tags=["users"],
+    responses=_error_responses(401, 422),
+)
+async def change_password(
+    payload: ChangePasswordRequest,
+    request: Request,
+    actor: Annotated[AuthContext, Depends(get_current_user)],
+) -> Response:
+    await auth_commands.change_password(
+        actor,
+        payload,
+        current_refresh=request.cookies.get(REFRESH_COOKIE),
+    )
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.delete(
+    "/me",
+    response_model=OkResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    operation_id="delete_me",
+    tags=["users"],
+    responses=_error_responses(401, 422),
+)
+async def delete_me(
+    payload: DeleteMeRequest,
+    actor: Annotated[AuthContext, Depends(get_current_user)],
+) -> OkResponse:
+    return await user_commands.delete_me(actor, payload)
 
 
 @router.get(

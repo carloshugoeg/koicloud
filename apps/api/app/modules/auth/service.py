@@ -3,8 +3,10 @@ from __future__ import annotations
 from uuid import UUID
 
 from app.commands import auth as auth_commands
+from app.core.auth import AuthContext
 from app.core.enums import EmailTokenKind
 from app.schemas import (
+    ChangePasswordRequest,
     ForgotPasswordRequest,
     LoginRequest,
     LoginResponse,
@@ -12,6 +14,7 @@ from app.schemas import (
     RefreshTokenRequest,
     RegisterUserRequest,
     RegisterUserResponse,
+    ResendVerificationRequest,
     ResetPasswordRequest,
     TokenPairResponse,
     VerifyEmailRequest,
@@ -60,3 +63,18 @@ class AuthService:
     @staticmethod
     async def reset_password(payload: ResetPasswordRequest) -> OkResponse:
         return await auth_commands.reset_password(payload)
+
+    @staticmethod
+    async def resend_verification(payload: ResendVerificationRequest) -> OkResponse:
+        return await auth_commands.resend_verification(payload)
+
+    @staticmethod
+    async def change_password(
+        actor: AuthContext,
+        payload: ChangePasswordRequest,
+        *,
+        current_refresh: str | None = None,
+    ) -> None:
+        await auth_commands.change_password(
+            actor, payload, current_refresh=current_refresh
+        )

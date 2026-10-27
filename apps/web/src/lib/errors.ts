@@ -10,6 +10,7 @@ const CATALOG: Record<ApiProblem["code"], string> = {
   token_invalid: "El token enviado no es válido.",
   email_taken: "Ese correo ya está registrado.",
   password_too_weak: "La contraseña no cumple los requisitos mínimos.",
+  email_mismatch: "El correo no coincide.",
   plan_required: "Necesitás una suscripción activa para continuar.",
   quota_exceeded: "Alcanzaste el máximo de ponds de tu plan.",
   pond_name_taken: "Ese nombre de pond ya está en uso.",

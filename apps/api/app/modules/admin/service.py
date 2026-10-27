@@ -26,6 +26,7 @@ SENSITIVE_AUDIT_ACTIONS = (
     "reveal_agent_access",
     "delete_pond",
     "restore_backup",
+    "user.delete",
 )
 
 

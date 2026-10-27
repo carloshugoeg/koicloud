@@ -49,9 +49,12 @@ Notación: `M ROUTE → CommandOrService` con response resumido. `[C]` = requier
 | POST | `/auth/refresh` | `rotate_refresh` | Rota refresh y emite JWT | `{access_token, refresh_token}` |
 | POST | `/auth/forgot` | `send_reset_token` | Envía email de reset | `{ok:true}` |
 | POST | `/auth/reset` | `reset_password` | Consume token + nueva contraseña | `{ok:true}` |
+| POST | `/auth/resend-verification` | `resend_verification` | Reenvía token verify_email; siempre 202 | `{ok:true}` |
 | POST | `/auth/logout` | `revoke_refresh` | Revoca refresh actual | `204` |
 | GET | `/me` | `get_me` | Perfil del usuario logueado | `{user, subscription?, ponds_count}` |
 | PATCH | `/me` | `update_profile` | Actualiza `full_name`, `nit` | `{user}` |
+| POST | `/me/change-password` | `change_password` | current + new; revoca refresh salvo el actual | `204` |
+| DELETE | `/me` | `delete_me` | Soft-delete con confirm_email | `202 {ok:true}` |
 
 ### 2.2 Planes y suscripciones
 
@@ -308,7 +311,8 @@ Códigos estables (fuente única para clientes). El backend lanza `AppError(code
 | `token_expired` | 401 | JWT | “Sesión expirada, iniciá sesión otra vez” |
 | `token_invalid` | 401 | JWT / email / reset | — |
 | `email_taken` | 409 | register | “Ese correo ya está registrado” |
-| `password_too_weak` | 422 | register / reset | — |
+| `password_too_weak` | 422 | register / reset / change-password | — |
+| `email_mismatch` | 422 | DELETE /me | “El correo no coincide” |
 | `plan_required` | 409 | create_pond, restore | “Necesitás una suscripción activa” |
 | `quota_exceeded` | 409 | create_pond | “Alcanzaste el máximo de ponds del plan” |
 | `pond_name_taken` | 409 | create_pond | — |
@@ -325,7 +329,7 @@ Códigos estables (fuente única para clientes). El backend lanza `AppError(code
 | `agent_bad_credentials` | 401 | /mcp | — |
 | `not_owner` | 403 | cualquier recurso ajeno | — |
 | `admin_only` | 403 | rutas admin | — |
-| `rate_limited` | 429 | login/register/forgot/mcp | “Muchos intentos, esperá un momento” |
+| `rate_limited` | 429 | login/register/forgot/resend-verification/mcp | “Muchos intentos, esperá un momento” |
 | `disk_full` | 507 | create_pond / backup | — |
 | `internal_error` | 500 | genérico | “Algo salió mal, revisá los logs” |
 
@@ -442,6 +446,7 @@ Authorization: Bearer <token del agente=user via gate>
 | `POST /auth/login` | 10/min |
 | `POST /auth/register` | 5/min |
 | `POST /auth/forgot` | 3/min |
+| `POST /auth/resend-verification` | 3/min |
 | `/mcp` | 60/min por slug |
 | `POST /confirm/{token}` | 20/min por usuario |
 | `POST /ponds/{id}/sql` (write) | 10/min por usuario |

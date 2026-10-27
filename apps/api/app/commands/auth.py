@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.auth import AuthContext
 from app.core.db import SessionLocal
 from app.core.enums import EmailTokenKind, UserRole, UserStatus
 from app.core.errors import AppError, ErrorCode
@@ -24,6 +25,8 @@ from app.core.security import (
 )
 from app.core.time import utc_now
 from app.schemas import (
+    PASSWORD_MIN_LENGTH,
+    ChangePasswordRequest,
     ForgotPasswordRequest,
     LoginRequest,
     LoginResponse,
@@ -31,6 +34,7 @@ from app.schemas import (
     RefreshTokenRequest,
     RegisterUserRequest,
     RegisterUserResponse,
+    ResendVerificationRequest,
     ResetPasswordRequest,
     TokenPairResponse,
     UserOut,
@@ -139,12 +143,17 @@ async def issue_email_token(user_id: UUID, kind: EmailTokenKind) -> str:
 
 
 async def register_user(payload: RegisterUserRequest) -> RegisterUserResponse:
-    if len(payload.password) < 8:
+    if len(payload.password) < PASSWORD_MIN_LENGTH:
         raise AppError(ErrorCode.PASSWORD_TOO_WEAK)
 
     async with SessionLocal() as session:
         taken = (
-            await session.execute(select(User.id).where(User.email == payload.email))
+            await session.execute(
+                select(User.id).where(
+                    User.email == payload.email,
+                    User.deleted_at.is_(None),
+                )
+            )
         ).scalar_one_or_none()
         if taken is not None:
             raise AppError(ErrorCode.EMAIL_TAKEN)
@@ -186,7 +195,9 @@ async def verify_email(payload: VerifyEmailRequest) -> RegisterUserResponse:
 async def issue_tokens(payload: LoginRequest) -> LoginResponse:
     async with SessionLocal() as session:
         user = (
-            await session.execute(select(User).where(User.email == payload.email))
+            await session.execute(
+                select(User).where(User.email == payload.email, User.deleted_at.is_(None))
+            )
         ).scalar_one_or_none()
         if user is None or not verify_password(payload.password, user.password_hash):
             raise AppError(ErrorCode.INVALID_CREDENTIALS)
@@ -229,7 +240,7 @@ async def rotate_refresh(payload: RefreshTokenRequest) -> TokenPairResponse:
             raise AppError(ErrorCode.TOKEN_EXPIRED)
 
         user = await session.get(User, row.user_id)
-        if user is None:
+        if user is None or user.deleted_at is not None:
             raise AppError(ErrorCode.TOKEN_INVALID)
         if user.status == UserStatus.SUSPENDED:
             raise AppError(ErrorCode.ACCOUNT_SUSPENDED)
@@ -245,7 +256,9 @@ async def rotate_refresh(payload: RefreshTokenRequest) -> TokenPairResponse:
 async def send_reset_token(payload: ForgotPasswordRequest) -> OkResponse:
     async with SessionLocal() as session:
         user = (
-            await session.execute(select(User).where(User.email == payload.email))
+            await session.execute(
+                select(User).where(User.email == payload.email, User.deleted_at.is_(None))
+            )
         ).scalar_one_or_none()
         if user is not None:
             await _issue_email_token_row(session, user.id, EmailTokenKind.RESET_PASSWORD)
@@ -254,19 +267,70 @@ async def send_reset_token(payload: ForgotPasswordRequest) -> OkResponse:
 
 
 async def reset_password(payload: ResetPasswordRequest) -> OkResponse:
-    if len(payload.new_password) < 8:
+    if len(payload.new_password) < PASSWORD_MIN_LENGTH:
         raise AppError(ErrorCode.PASSWORD_TOO_WEAK)
 
     async with SessionLocal() as session:
         token = await _email_token_for(session, payload.token, EmailTokenKind.RESET_PASSWORD)
         user = await session.get(User, token.user_id)
-        if user is None:
+        if user is None or user.deleted_at is not None:
             raise AppError(ErrorCode.TOKEN_INVALID)
         token.consumed_at = utc_now()
         user.password_hash = hash_password(payload.new_password)
         await _revoke_all_refresh(session, user.id)
         await session.commit()
     return OkResponse(ok=True)
+
+
+async def resend_verification(payload: ResendVerificationRequest) -> OkResponse:
+    async with SessionLocal() as session:
+        user = (
+            await session.execute(
+                select(User).where(User.email == str(payload.email), User.deleted_at.is_(None))
+            )
+        ).scalar_one_or_none()
+        if user is not None and user.email_verified_at is None:
+            plaintext = await _issue_email_token_row(
+                session, user.id, EmailTokenKind.VERIFY_EMAIL
+            )
+            logger.info("verify_email token for %s: %s", payload.email, plaintext)
+        await session.commit()
+    return OkResponse(ok=True)
+
+
+async def change_password(
+    actor: AuthContext,
+    payload: ChangePasswordRequest,
+    *,
+    current_refresh: str | None = None,
+) -> None:
+    if len(payload.new_password) < PASSWORD_MIN_LENGTH:
+        raise AppError(ErrorCode.PASSWORD_TOO_WEAK)
+
+    user_id = UUID(actor.user_id)
+    async with SessionLocal() as session:
+        user = await session.get(User, user_id)
+        if user is None or user.deleted_at is not None:
+            raise AppError(ErrorCode.TOKEN_INVALID)
+        if not verify_password(payload.current_password, user.password_hash):
+            raise AppError(ErrorCode.INVALID_CREDENTIALS)
+
+        user.password_hash = hash_password(payload.new_password)
+        keep_hash = hash_token(current_refresh) if current_refresh else None
+        rows = (
+            await session.execute(
+                select(RefreshToken).where(
+                    RefreshToken.user_id == user_id,
+                    RefreshToken.revoked_at.is_(None),
+                )
+            )
+        ).scalars().all()
+        now = utc_now()
+        for row in rows:
+            if keep_hash is not None and row.token_hash == keep_hash:
+                continue
+            row.revoked_at = now
+        await session.commit()
 
 
 async def revoke_refresh(token: str | None) -> None:

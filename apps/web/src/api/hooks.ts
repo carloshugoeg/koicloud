@@ -43,17 +43,25 @@ export {
   type PondObservedState,
 } from "@/api/hooks/ponds";
 
-export { useMeQuery, type MeResponse } from "@/api/hooks/me";
+export {
+  useChangePasswordMutation,
+  useDeleteMeMutation,
+  useMeQuery,
+  useUpdateProfileMutation,
+  type MeResponse,
+} from "@/api/hooks/me";
 
 export {
   useForgotPasswordMutation,
   useLoginMutation,
   useRegisterMutation,
+  useResendVerificationMutation,
   useResetPasswordMutation,
   useVerifyEmailMutation,
   type ForgotPasswordPayload,
   type LoginPayload,
   type RegisterPayload,
+  type ResendVerificationPayload,
   type ResetPasswordPayload,
   type VerifyEmailPayload,
 } from "@/api/hooks/auth";

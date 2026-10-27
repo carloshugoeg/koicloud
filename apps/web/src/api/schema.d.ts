@@ -242,6 +242,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/resend-verification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resend Verification */
+        post: operations["resend_verification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/reset": {
         parameters: {
             query?: never;
@@ -373,11 +390,29 @@ export interface paths {
         get: operations["get_me"];
         put?: never;
         post?: never;
-        delete?: never;
+        /** Delete Me */
+        delete: operations["delete_me"];
         options?: never;
         head?: never;
         /** Update Profile */
         patch: operations["update_profile"];
+        trace?: never;
+    };
+    "/api/v1/me/change-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Change Password */
+        post: operations["change_password"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/plans": {
@@ -1087,6 +1122,19 @@ export interface components {
             subscription: components["schemas"]["SubscriptionOut"];
         };
         /**
+         * ChangePasswordRequest
+         * @example {
+         *       "current_password": "Sup3rSegura!2026",
+         *       "new_password": "NuevaClave!2026"
+         *     }
+         */
+        ChangePasswordRequest: {
+            /** Current Password */
+            current_password: string;
+            /** New Password */
+            new_password: string;
+        };
+        /**
          * ClaimJobRequest
          * @example {
          *       "max_types": [
@@ -1327,6 +1375,19 @@ export interface components {
         CreatePondResponse: {
             job: components["schemas"]["JobOut"];
             pond: components["schemas"]["PondOut"];
+        };
+        /**
+         * DeleteMeRequest
+         * @example {
+         *       "confirm_email": "carlos@koicloud.dev"
+         *     }
+         */
+        DeleteMeRequest: {
+            /**
+             * Confirm Email
+             * Format: email
+             */
+            confirm_email: string;
         };
         /**
          * DeletePondResponse
@@ -2157,6 +2218,19 @@ export interface components {
              * Format: uuid
              */
             user_id: string;
+        };
+        /**
+         * ResendVerificationRequest
+         * @example {
+         *       "email": "jason@koicloud.dev"
+         *     }
+         */
+        ResendVerificationRequest: {
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
         };
         /**
          * ResetPasswordRequest
@@ -3349,6 +3423,48 @@ export interface operations {
             };
         };
     };
+    resend_verification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResendVerificationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     reset_password: {
         parameters: {
             query?: never;
@@ -3783,6 +3899,50 @@ export interface operations {
             };
         };
     };
+    delete_me: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-KOI-Surface"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeleteMeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     update_profile: {
         parameters: {
             query?: never;
@@ -3823,6 +3983,48 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    change_password: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-KOI-Surface"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangePasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
         };

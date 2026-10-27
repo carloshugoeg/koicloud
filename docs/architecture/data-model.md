@@ -50,6 +50,7 @@ erDiagram
       user_status status
       timestamptz email_verified_at
       timestamptz created_at
+      timestamptz deleted_at
     }
     email_tokens {
       uuid id PK
@@ -224,11 +225,16 @@ erDiagram
 Cambios respecto a la Entrega 2:
 
 - `users.status` (`active | suspended`) explícito para el admin (E8-03).
+- `users.deleted_at` (nullable) para soft-delete de cuenta (CCR #126 / E1-05). Al borrar:
+  `deleted_at=now()`, `email := email || '.deleted.' || id`, se revocan refresh tokens,
+  se cancela la suscripción viva, se encolan deletes de ponds y se audita `user.delete`.
+  Login rechaza filas con `deleted_at IS NOT NULL`.
 - `pending_confirmations.summary` (texto humano) añadido para que CLI/MCP muestren el resumen sin recomputar.
 - `jobs.attempts`, `jobs.last_error`, `jobs.claimed_at`, `jobs.completed_at` — necesarios para el reconciler mínimo.
 - `backups.sha256`, `backups.size_bytes` — para auditoría del respaldo.
 - `sql_history.mode` (`read | write`) explícito.
-- `audit_events` mínimo (solo acciones sensibles: `suspend_user`, `reveal_agent_access`, `delete_pond`, `restore_backup`).
+- `audit_events` mínimo (acciones sensibles: `suspend_user`, `reveal_agent_access`,
+  `delete_pond`, `restore_backup`, `user.delete`).
 
 ---
 

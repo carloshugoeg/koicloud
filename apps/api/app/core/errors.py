@@ -18,6 +18,7 @@ class ErrorCode(StrEnum):
     TOKEN_INVALID = "token_invalid"
     EMAIL_TAKEN = "email_taken"
     PASSWORD_TOO_WEAK = "password_too_weak"
+    EMAIL_MISMATCH = "email_mismatch"
     PLAN_REQUIRED = "plan_required"
     QUOTA_EXCEEDED = "quota_exceeded"
     POND_NAME_TAKEN = "pond_name_taken"
@@ -53,6 +54,7 @@ ERROR_CATALOG: dict[ErrorCode, ErrorSpec] = {
     ErrorCode.TOKEN_INVALID: ErrorSpec(401, "Token inválido o mal formado"),
     ErrorCode.EMAIL_TAKEN: ErrorSpec(409, "Ese correo ya está registrado"),
     ErrorCode.PASSWORD_TOO_WEAK: ErrorSpec(422, "La contraseña no cumple el mínimo de seguridad"),
+    ErrorCode.EMAIL_MISMATCH: ErrorSpec(422, "El correo no coincide"),
     ErrorCode.PLAN_REQUIRED: ErrorSpec(409, "Necesitás una suscripción activa"),
     ErrorCode.QUOTA_EXCEEDED: ErrorSpec(409, "Ya alcanzaste el máximo de ponds de tu plan"),
     ErrorCode.POND_NAME_TAKEN: ErrorSpec(409, "Ya existe un pond con ese nombre"),

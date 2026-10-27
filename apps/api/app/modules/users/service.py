@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from app.commands import users as user_commands
 from app.core.auth import AuthContext
-from app.schemas import MeResponse, UpdateProfileRequest, UserResponse
+from app.schemas import DeleteMeRequest, MeResponse, OkResponse, UpdateProfileRequest, UserResponse
 
 
 class UserService:
@@ -17,3 +17,7 @@ class UserService:
         actor: AuthContext, payload: UpdateProfileRequest
     ) -> UserResponse:
         return await user_commands.update_profile(actor, payload)
+
+    @staticmethod
+    async def delete_me(actor: AuthContext, payload: DeleteMeRequest) -> OkResponse:
+        return await user_commands.delete_me(actor, payload)

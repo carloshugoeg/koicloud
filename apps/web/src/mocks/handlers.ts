@@ -65,6 +65,10 @@ export const handlers = [
     return HttpResponse.json({ ok: true });
   }),
 
+  http.post(`${API_ROOT}/auth/resend-verification`, () => {
+    return HttpResponse.json({ ok: true }, { status: 202 });
+  }),
+
   http.post(`${API_ROOT}/auth/refresh`, () => {
     return HttpResponse.json(fixtures.refreshed);
   }),
@@ -79,6 +83,63 @@ export const handlers = [
       ponds_count: fixtures.ponds.length,
       subscription: fixtures.subscriptionResponse.subscription,
     });
+  }),
+
+  http.patch(`${API_ROOT}/me`, async ({ request }) => {
+    const body = (await request.json()) as {
+      full_name?: string | null;
+      nit?: string | null;
+    };
+    return HttpResponse.json({
+      user: {
+        ...fixtures.session.user,
+        full_name: body.full_name ?? fixtures.session.user.full_name,
+        nit: body.nit === undefined ? fixtures.session.user.nit : body.nit,
+      },
+    });
+  }),
+
+  http.post(`${API_ROOT}/me/change-password`, async ({ request }) => {
+    const body = (await request.json()) as {
+      current_password?: string;
+      new_password?: string;
+    };
+    if ((body.new_password?.length ?? 0) < 10) {
+      return HttpResponse.json(
+        {
+          code: "password_too_weak",
+          message: "La contraseña no cumple los requisitos mínimos.",
+          request_id: "req_pw_weak",
+        },
+        { status: 422 },
+      );
+    }
+    if (body.current_password !== "Sup3rSegura!2026") {
+      return HttpResponse.json(
+        {
+          code: "invalid_credentials",
+          message: "Correo o contraseña incorrectos.",
+          request_id: "req_pw_bad",
+        },
+        { status: 401 },
+      );
+    }
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  http.delete(`${API_ROOT}/me`, async ({ request }) => {
+    const body = (await request.json()) as { confirm_email?: string };
+    if (body.confirm_email !== fixtures.session.user.email) {
+      return HttpResponse.json(
+        {
+          code: "email_mismatch",
+          message: "El correo no coincide.",
+          request_id: "req_email_mm",
+        },
+        { status: 422 },
+      );
+    }
+    return HttpResponse.json({ ok: true }, { status: 202 });
   }),
 
   http.post(`${API_ROOT}/subscriptions`, async ({ request }) => {

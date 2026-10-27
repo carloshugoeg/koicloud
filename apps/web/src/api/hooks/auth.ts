@@ -9,6 +9,7 @@ export type VerifyEmailPayload = components["schemas"]["VerifyEmailRequest"];
 export type LoginPayload = components["schemas"]["LoginRequest"];
 export type ForgotPasswordPayload = components["schemas"]["ForgotPasswordRequest"];
 export type ResetPasswordPayload = components["schemas"]["ResetPasswordRequest"];
+export type ResendVerificationPayload = components["schemas"]["ResendVerificationRequest"];
 
 export function useRegisterMutation() {
   return useMutation({
@@ -62,6 +63,18 @@ export function useResetPasswordMutation() {
   return useMutation({
     mutationFn: async (body: ResetPasswordPayload) => {
       const { data, error } = await apiClient.POST("/api/v1/auth/reset", { body });
+      if (error || !data) throw new ApiError(error);
+      return data;
+    },
+  });
+}
+
+export function useResendVerificationMutation() {
+  return useMutation({
+    mutationFn: async (body: ResendVerificationPayload) => {
+      const { data, error } = await apiClient.POST("/api/v1/auth/resend-verification", {
+        body,
+      });
       if (error || !data) throw new ApiError(error);
       return data;
     },

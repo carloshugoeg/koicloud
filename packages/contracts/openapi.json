@@ -664,6 +664,30 @@
         "title": "CancelSubscriptionResponse",
         "type": "object"
       },
+      "ChangePasswordRequest": {
+        "additionalProperties": false,
+        "example": {
+          "current_password": "Sup3rSegura!2026",
+          "new_password": "NuevaClave!2026"
+        },
+        "properties": {
+          "current_password": {
+            "title": "Current Password",
+            "type": "string"
+          },
+          "new_password": {
+            "minLength": 10,
+            "title": "New Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "current_password",
+          "new_password"
+        ],
+        "title": "ChangePasswordRequest",
+        "type": "object"
+      },
       "ClaimJobRequest": {
         "additionalProperties": false,
         "example": {
@@ -1073,6 +1097,24 @@
           "job"
         ],
         "title": "CreatePondResponse",
+        "type": "object"
+      },
+      "DeleteMeRequest": {
+        "additionalProperties": false,
+        "example": {
+          "confirm_email": "carlos@koicloud.dev"
+        },
+        "properties": {
+          "confirm_email": {
+            "format": "email",
+            "title": "Confirm Email",
+            "type": "string"
+          }
+        },
+        "required": [
+          "confirm_email"
+        ],
+        "title": "DeleteMeRequest",
         "type": "object"
       },
       "DeletePondResponse": {
@@ -2501,7 +2543,7 @@
             "title": "Nit"
           },
           "password": {
-            "minLength": 8,
+            "minLength": 10,
             "title": "Password",
             "type": "string"
           }
@@ -2538,6 +2580,24 @@
         "title": "RegisterUserResponse",
         "type": "object"
       },
+      "ResendVerificationRequest": {
+        "additionalProperties": false,
+        "example": {
+          "email": "jason@koicloud.dev"
+        },
+        "properties": {
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "title": "ResendVerificationRequest",
+        "type": "object"
+      },
       "ResetPasswordRequest": {
         "additionalProperties": false,
         "example": {
@@ -2546,7 +2606,7 @@
         },
         "properties": {
           "new_password": {
-            "minLength": 8,
+            "minLength": 10,
             "title": "New Password",
             "type": "string"
           },
@@ -4419,6 +4479,57 @@
         ]
       }
     },
+    "/api/v1/auth/resend-verification": {
+      "post": {
+        "operationId": "resend_verification",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResendVerificationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          }
+        },
+        "summary": "Resend Verification",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/api/v1/auth/reset": {
       "post": {
         "operationId": "reset_password",
@@ -4983,6 +5094,78 @@
       }
     },
     "/api/v1/me": {
+      "delete": {
+        "operationId": "delete_me",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-KOI-Surface",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Surface"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteMeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Me",
+        "tags": [
+          "users"
+        ]
+      },
       "get": {
         "operationId": "get_me",
         "parameters": [
@@ -5113,6 +5296,73 @@
           }
         ],
         "summary": "Update Profile",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/v1/me/change-password": {
+      "post": {
+        "operationId": "change_password",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-KOI-Surface",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Surface"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Change Password",
         "tags": [
           "users"
         ]

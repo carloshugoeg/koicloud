@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict, EmailStr, Field
 
 from app.core.base import SchemaModel
 from app.core.enums import (
@@ -22,6 +22,8 @@ from app.core.enums import (
     UserRole,
     UserStatus,
 )
+
+PASSWORD_MIN_LENGTH = 10
 
 EXAMPLE_USER_ID = "11111111-1111-1111-1111-111111111111"
 EXAMPLE_SUBSCRIPTION_ID = "22222222-2222-2222-2222-222222222222"
@@ -101,7 +103,7 @@ class UserOut(SchemaModel):
 
 class RegisterUserRequest(SchemaModel):
     email: str
-    password: str = Field(min_length=8)
+    password: str = Field(min_length=PASSWORD_MIN_LENGTH)
     full_name: str
     nit: str | None = None
 
@@ -153,11 +155,35 @@ class ForgotPasswordRequest(SchemaModel):
 
 class ResetPasswordRequest(SchemaModel):
     token: str
-    new_password: str = Field(min_length=8)
+    new_password: str = Field(min_length=PASSWORD_MIN_LENGTH)
 
     model_config = config_with_example(
         {"token": "reset_1u8v2m4cy1u3w8x4", "new_password": "NuevaClave!2026"}
     )
+
+
+class ResendVerificationRequest(SchemaModel):
+    email: EmailStr
+
+    model_config = config_with_example({"email": "jason@koicloud.dev"})
+
+
+class ChangePasswordRequest(SchemaModel):
+    current_password: str
+    new_password: str = Field(min_length=PASSWORD_MIN_LENGTH)
+
+    model_config = config_with_example(
+        {
+            "current_password": "Sup3rSegura!2026",
+            "new_password": "NuevaClave!2026",
+        }
+    )
+
+
+class DeleteMeRequest(SchemaModel):
+    confirm_email: EmailStr
+
+    model_config = config_with_example({"confirm_email": "carlos@koicloud.dev"})
 
 
 class TokenPairResponse(SchemaModel):
