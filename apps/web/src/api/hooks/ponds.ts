@@ -165,3 +165,20 @@ export function useStartPondMutation(pondId: string) {
     },
   });
 }
+
+export function useRetryFailedJobMutation(pondId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { data, error } = await apiClient.POST("/api/v1/ponds/{pond_id}/retry", {
+        params: { path: { pond_id: pondId } },
+      });
+      if (error || !data) throw new ApiError(error);
+      return data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["ponds"] });
+      void queryClient.invalidateQueries({ queryKey: ["ponds", pondId] });
+    },
+  });
+}

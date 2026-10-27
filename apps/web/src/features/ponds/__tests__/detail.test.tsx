@@ -83,6 +83,73 @@ describe("W2-06 Detalle del pond y conexión", () => {
     expect(screen.getByTestId("pond-failed")).toHaveTextContent("Último error: disk_full");
   });
 
+  it("enables Reintentar from Con fallas and keeps Detener/Iniciar disabled", async () => {
+    const user = userEvent.setup();
+    let getCount = 0;
+    const retry = vi.fn();
+    server.use(
+      http.get(`*/api/v1/ponds/${POND_ID}`, () => {
+        getCount += 1;
+        if (getCount === 1) {
+          return HttpResponse.json({
+            pond: {
+              ...fixtures.pond,
+              id: POND_ID,
+              desired_state: "running",
+              observed_state: "failed",
+              healthy: false,
+              last_error: "boom",
+            },
+          });
+        }
+        return HttpResponse.json({
+          pond: {
+            ...fixtures.pond,
+            id: POND_ID,
+            desired_state: "running",
+            observed_state: "pending",
+            healthy: false,
+            last_error: null,
+          },
+        });
+      }),
+      http.post(`*/api/v1/ponds/${POND_ID}/retry`, () => {
+        retry();
+        return HttpResponse.json(
+          {
+            job: {
+              id: "job_retry_01",
+              type: "start_pond",
+              status: "queued",
+              attempts: 0,
+              created_at: "2026-09-22T21:00:00Z",
+              node_id: "node-sv-01",
+              pond_id: POND_ID,
+              claimed_at: null,
+              completed_at: null,
+              last_error: null,
+            },
+          },
+          { status: 202 },
+        );
+      }),
+    );
+
+    renderDetail();
+    expect(await screen.findByTestId("pond-status-badge")).toHaveTextContent("Con fallas");
+    expect(screen.getByTestId("pond-stop")).toBeDisabled();
+    expect(screen.getByTestId("pond-start")).toBeDisabled();
+    expect(screen.getByTestId("pond-retry")).toBeEnabled();
+
+    await user.click(screen.getByTestId("pond-retry"));
+    await waitFor(() => {
+      expect(retry).toHaveBeenCalled();
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("pond-status-badge")).toHaveTextContent("En cola");
+    });
+  });
+
   it("shows connection fields and En línea badge for a running pond", async () => {
     renderDetail();
 

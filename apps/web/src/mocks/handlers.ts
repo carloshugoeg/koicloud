@@ -248,6 +248,26 @@ export const handlers = [
     );
   }),
 
+  http.post(`${API_ROOT}/ponds/:pondId/retry`, ({ params }) => {
+    return HttpResponse.json(
+      {
+        job: {
+          id: "job_retry_01",
+          type: "start_pond",
+          status: "queued",
+          attempts: 0,
+          created_at: "2026-09-22T21:00:00Z",
+          node_id: "node-sv-01",
+          pond_id: String(params.pondId),
+          claimed_at: null,
+          completed_at: null,
+          last_error: null,
+        },
+      },
+      { status: 202 },
+    );
+  }),
+
   http.get(`${API_ROOT}/usage`, ({ request }) => {
     const month = new URL(request.url).searchParams.get("month");
     if (month === fixtures.usageEmpty.month) {
