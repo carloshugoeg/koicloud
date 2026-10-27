@@ -51,12 +51,17 @@ async def get_me(actor: AuthContext) -> MeResponse:
                 )
             ).scalar_one()
         )
+        # Prefer the newest active row — preview seed (and retries) can leave
+        # more than one active subscription for the same user.
         subscription = (
             await session.execute(
-                select(Subscription).where(
+                select(Subscription)
+                .where(
                     Subscription.user_id == user_id,
                     Subscription.status == SubscriptionStatus.ACTIVE,
                 )
+                .order_by(Subscription.current_period_start.desc())
+                .limit(1)
             )
         ).scalar_one_or_none()
 

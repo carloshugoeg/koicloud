@@ -186,6 +186,10 @@ def ensure_user(base: str, email: str, password: str, full_name: str) -> str:
             # Password did not stick on every instance — upsert again.
             time.sleep(0.8 * (round_i + 1))
             continue
+        # Skip subscribe when an active plan already exists (idempotent seed).
+        mestatus, mebody = request(base, "GET", "/api/v1/me", token=access)
+        if mestatus == 200 and isinstance(mebody.get("subscription"), dict):
+            return access
         sstatus, sub = request(
             base,
             "POST",
