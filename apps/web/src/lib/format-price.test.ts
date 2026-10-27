@@ -1,43 +1,39 @@
 import { describe, expect, it } from "vitest";
-import {
-  formatPrice,
-  formatPricePeriod,
-  formatPriceWithPeriod,
-  invoicePreviewFromPlan,
-} from "@/lib/format-price";
+import { formatPrice, formatPricePeriod, formatPriceWithPeriod } from "@/lib/format-price";
 
 describe("formatPrice", () => {
-  it("formats monthly Micro", () => {
-    expect(formatPrice({ unit_price: 5, currency: "USD" })).toBe("USD 5");
+  it("formats monthly amounts with 4 decimals", () => {
+    expect(formatPrice({ unit_price: 5, currency: "USD" })).toBe("USD 5.0000");
   });
 
-  it("formats monthly Sandbox zero", () => {
-    expect(formatPrice({ unit_price: 0, currency: "USD" })).toBe("USD 0");
+  it("formats zero as USD 0.0000", () => {
+    expect(formatPrice({ unit_price: 0, currency: "USD" })).toBe("USD 0.0000");
   });
 
-  it("formats hourly Pro without showing USD 0.00", () => {
-    expect(formatPrice({ unit_price: 0.02, currency: "USD" })).toBe("USD 0.02");
+  it("formats Pro hourly as USD 0.0200 (never USD 0.00)", () => {
+    expect(formatPrice({ unit_price: 0.02, currency: "USD" })).toBe("USD 0.0200");
+    expect(formatPrice({ unit_price: 0.02, currency: "USD" })).not.toBe("USD 0.00");
   });
 
-  it("formats fractional monthly amounts from the API", () => {
-    expect(formatPrice({ unit_price: 7.5, currency: "USD" })).toBe("USD 7.5");
+  it("keeps four decimals for fractional monthly prices", () => {
+    expect(formatPrice({ unit_price: 7.5, currency: "USD" })).toBe("USD 7.5000");
   });
 });
 
 describe("formatPricePeriod", () => {
-  it("returns / mes for monthly plans", () => {
+  it("labels monthly catalog periods", () => {
     expect(
       formatPricePeriod({ billing_model: "monthly", validity_minutes: 43_200 }),
     ).toBe("/ mes");
   });
 
-  it("returns / hora for hourly plans", () => {
+  it("labels hourly catalog periods", () => {
     expect(
       formatPricePeriod({ billing_model: "hourly", validity_minutes: 43_200 }),
     ).toBe("/ hora");
   });
 
-  it("returns minutes for short-lived monthly plans", () => {
+  it("labels short sandbox validity", () => {
     expect(
       formatPricePeriod({ billing_model: "monthly", validity_minutes: 10 }),
     ).toBe("/ 10 min");
@@ -45,7 +41,7 @@ describe("formatPricePeriod", () => {
 });
 
 describe("formatPriceWithPeriod", () => {
-  it("combines price and period for comparison rows", () => {
+  it("joins Pro hourly catalog price and period", () => {
     expect(
       formatPriceWithPeriod({
         unit_price: 0.02,
@@ -53,24 +49,6 @@ describe("formatPriceWithPeriod", () => {
         billing_model: "hourly",
         validity_minutes: 43_200,
       }),
-    ).toBe("USD 0.02 / hora");
-  });
-});
-
-describe("invoicePreviewFromPlan", () => {
-  it("splits IVA for monthly Micro from unit_price", () => {
-    expect(invoicePreviewFromPlan({ unit_price: 5, billing_model: "monthly" })).toEqual({
-      subtotal: "4.4643",
-      iva: "0.5357",
-      total: "5.0000",
-    });
-  });
-
-  it("returns zeros for hourly Pro preview", () => {
-    expect(invoicePreviewFromPlan({ unit_price: 0.02, billing_model: "hourly" })).toEqual({
-      subtotal: "0.0000",
-      iva: "0.0000",
-      total: "0.0000",
-    });
+    ).toBe("USD 0.0200 / hora");
   });
 });

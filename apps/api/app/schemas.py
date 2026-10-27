@@ -200,7 +200,7 @@ class PlanOut(SchemaModel):
     price_monthly_usd: float
     billing_model: Literal["monthly", "hourly"]
     unit_price: float
-    currency: str
+    currency: Literal["USD"] = Field(json_schema_extra={"enum": ["USD"]})
     max_ponds: int
     max_storage_gb: int
     validity_minutes: int

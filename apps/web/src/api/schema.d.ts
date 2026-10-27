@@ -1982,8 +1982,12 @@ export interface components {
              * @enum {string}
              */
             billing_model: "monthly" | "hourly";
-            /** Currency */
-            currency: string;
+            /**
+             * Currency
+             * @constant
+             * @enum {string}
+             */
+            currency: "USD";
             /** Description */
             description: string;
             /** Id */

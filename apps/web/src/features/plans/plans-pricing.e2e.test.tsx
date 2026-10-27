@@ -82,9 +82,13 @@ describe("E2E: plans page + checkout mirror GET /plans Pro price", () => {
 
     await user.click(screen.getByRole("button", { name: "Elegir plan Pro" }));
     const dialog = await screen.findByRole("dialog");
-    expect(dialog).toHaveTextContent(`Precio de catálogo: ${expected}`);
+    expect(dialog).toHaveTextContent(expected);
+    expect(dialog).toHaveTextContent("/ hora");
+    expect(screen.getByTestId("checkout-catalog-price")).toBeInTheDocument();
+    expect(screen.queryByTestId("checkout-invoice-from-api")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("checkout-invoice-total")).not.toBeInTheDocument();
     // Must never show a zero catalog price for Pro when API returns a rate
-    expect(dialog).not.toHaveTextContent("USD 0.00");
-    expect(screen.getByTestId("plan-card-pro")).not.toHaveTextContent("USD 0.00");
+    expect(dialog.textContent ?? "").not.toMatch(/USD 0\.00(?!\d)/);
+    expect(screen.getByTestId("plan-card-pro").textContent ?? "").not.toMatch(/USD 0\.00(?!\d)/);
   });
 });

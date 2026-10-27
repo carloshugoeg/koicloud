@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { HttpResponse, http } from "msw";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
@@ -39,12 +39,12 @@ describe("W2-03 Planes y Checkout flow", () => {
     expect(screen.getByRole("heading", { name: "Micro" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Pro" })).toBeInTheDocument();
 
-    // Valores dinámicos en tarjetas (desde GET /plans via formatPrice)
-    expect(screen.getAllByText("USD 0").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("USD 5").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("USD 0.02").length).toBeGreaterThanOrEqual(1);
+    // Valores dinámicos en tarjetas (desde GET /plans via formatPrice, 4 dp)
+    expect(screen.getAllByText("USD 0.0000").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("USD 5.0000").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("USD 0.0200").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Recomendado")).toBeInTheDocument();
-    expect(screen.getByText("USD 0.02 / hora")).toBeInTheDocument();
+    expect(screen.getByText("USD 0.0200 / hora")).toBeInTheDocument();
 
     // Tabla comparativa densa
     expect(screen.getByRole("heading", { name: "Comparativa de características" })).toBeInTheDocument();
@@ -65,11 +65,12 @@ describe("W2-03 Planes y Checkout flow", () => {
     expect(screen.getByText("Pago simulado: no se realiza ningún cobro real.")).toBeInTheDocument();
     expect(screen.getByText("CF si no tienes NIT")).toBeInTheDocument();
 
-    // Desglose de factura previa Micro desde unit_price del plan (API)
-    expect(screen.getByText("Vista previa de factura")).toBeInTheDocument();
-    expect(screen.getByText("USD 4.4643")).toBeInTheDocument();
-    expect(screen.getByText("USD 0.5357")).toBeInTheDocument();
-    expect(screen.getAllByText("USD 5").length).toBeGreaterThanOrEqual(1);
+    // Solo precio de catálogo — sin subtotal/IVA/total del cliente (CCR #151)
+    expect(screen.getByTestId("checkout-catalog-price")).toBeInTheDocument();
+    expect(screen.getAllByText("USD 5.0000").length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByText("USD 4.4643")).not.toBeInTheDocument();
+    expect(screen.queryByText("USD 0.5357")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("checkout-invoice-from-api")).not.toBeInTheDocument();
   });
 
   it("shows the same Pro unit_price from GET /plans on cards and checkout", async () => {
@@ -77,23 +78,25 @@ describe("W2-03 Planes y Checkout flow", () => {
     renderPlansRoute("/app/planes");
 
     const pro = fixtures.plans.find((p) => p.id === "pro")!;
-    const expected = `USD ${pro.unit_price}`;
+    const expected = `USD ${Number(pro.unit_price).toFixed(4)}`;
     expect(await screen.findByTestId("plan-card-pro")).toHaveTextContent(expected);
     expect(screen.getByText(`${expected} / hora`)).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Elegir plan Pro" }));
     const dialog = await screen.findByRole("dialog");
-    expect(dialog).toHaveTextContent(`Precio de catálogo: ${expected}`);
+    expect(dialog).toHaveTextContent(expected);
+    expect(dialog).toHaveTextContent("/ hora");
   });
 
-  it("submits checkout successfully, displays success feedback, and navigates toward pond creation", async () => {
+  it("submits checkout and shows InvoiceOut totals from the API (no client math)", async () => {
     const user = userEvent.setup();
-    const router = renderPlansRoute("/app/planes");
+    renderPlansRoute("/app/planes");
 
     const chooseMicroBtn = await screen.findByRole("button", { name: "Elegir plan Micro" });
     await user.click(chooseMicroBtn);
 
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    expect(screen.queryByText(/IVA \(12%\)/i)).not.toBeInTheDocument();
 
     await user.type(screen.getByLabelText("NIT (opcional)"), "0614-220999-101-3");
     await user.type(screen.getByLabelText("Número de tarjeta simulada"), "4242 4242 4242 4242");
@@ -102,10 +105,10 @@ describe("W2-03 Planes y Checkout flow", () => {
 
     await user.click(screen.getByRole("button", { name: "Confirmar contratación" }));
 
-    // Redirección hacia /app/ponds/new
-    await waitFor(() => {
-      expect(router.state.location.pathname).toBe("/app/ponds/new");
-    });
+    const invoicePanel = await screen.findByTestId("checkout-invoice-from-api");
+    const expectedTotal = `USD ${Number(fixtures.subscriptionResponse.invoice.total_usd).toFixed(4)}`;
+    expect(invoicePanel).toBeInTheDocument();
+    expect(screen.getByTestId("checkout-invoice-total")).toHaveTextContent(expectedTotal);
   });
 
   it("guards against double submit while checkout is pending", async () => {
@@ -133,7 +136,7 @@ describe("W2-03 Planes y Checkout flow", () => {
     );
 
     const user = userEvent.setup();
-    const router = renderPlansRoute("/app/planes");
+    renderPlansRoute("/app/planes");
 
     const chooseMicroBtn = await screen.findByRole("button", { name: "Elegir plan Micro" });
     await user.click(chooseMicroBtn);
@@ -155,9 +158,7 @@ describe("W2-03 Planes y Checkout flow", () => {
 
     releaseRequest();
 
-    await waitFor(() => {
-      expect(router.state.location.pathname).toBe("/app/ponds/new");
-    });
+    expect(await screen.findByTestId("checkout-invoice-from-api")).toBeInTheDocument();
     expect(postCount).toBe(1);
   });
 

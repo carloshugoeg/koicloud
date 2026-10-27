@@ -15,8 +15,9 @@ depends_on:
 Tracked from the pricing amendment comment on
 [#96](https://github.com/carloshugoeg/koicloud/issues/96#issuecomment-6428592682).
 **HIGH-RISK (money):** preview only; Carlos merges himself. Do not auto-merge.
-The OpenAPI `PlanOut` change is frozen-contract work — Carlos decides CCR/merge; this
-ticket does **not** claim a CCR was approved.
+CCR [#151](https://github.com/carloshugoeg/koicloud/issues/151) **approved** by Carlos
+2026-10-27 (option B / amendment r4). This PR applies those fixes; merge still waits on
+Carlos after gate.
 
 ## Qué se ve
 

@@ -2189,6 +2189,10 @@
             "type": "string"
           },
           "currency": {
+            "const": "USD",
+            "enum": [
+              "USD"
+            ],
             "title": "Currency",
             "type": "string"
           },

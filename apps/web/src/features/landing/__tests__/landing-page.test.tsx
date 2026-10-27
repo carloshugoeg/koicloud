@@ -52,7 +52,7 @@ describe("E2-01 Landing pública y catálogo", () => {
     expect(screen.getByText("de crear a conectar")).toBeInTheDocument();
     expect(screen.getByText("superficies: web, CLI, MCP")).toBeInTheDocument();
     // Hero fact + Micro card both use formatPrice from GET /plans
-    expect(await screen.findAllByText("USD 5")).toHaveLength(2);
+    expect(await screen.findAllByText("USD 5.0000")).toHaveLength(2);
 
     expect(screen.getByRole("img", { name: "Estanque de peces koi" })).toBeInTheDocument();
     expect(screen.getByTestId("landing-sticky-cta")).toBeInTheDocument();
@@ -102,7 +102,7 @@ describe("E2-01 Landing pública y catálogo", () => {
     expect(screen.getByText("2 ponds · 3 GB")).toBeInTheDocument();
     expect(screen.getByText("4 ponds · 8 GB")).toBeInTheDocument();
     expect(screen.getByText("12 ponds · 30 GB")).toBeInTheDocument();
-    expect(screen.getAllByText("USD 7").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText("USD 7.0000").length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText("Recomendado")).toBeInTheDocument();
 
     expect(screen.getByText(/Pago simulado\./i)).toBeInTheDocument();

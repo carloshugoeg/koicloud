@@ -53,4 +53,15 @@ describe("no hard-coded catalog prices in web UI", () => {
 
     expect(violations, violations.join("\n")).toEqual([]);
   });
+
+  it("requires /app/uso to use shared formatPrice", () => {
+    const usoEntry = Object.entries(productionSources).find(([path]) =>
+      path.endsWith("/features/uso/uso-page.tsx"),
+    );
+    expect(usoEntry, "uso-page.tsx missing from scan").toBeDefined();
+    const [, text] = usoEntry!;
+    expect(text).toContain('from "@/lib/format-price"');
+    expect(text).toContain("formatPrice");
+    expect(text).not.toContain("Intl.NumberFormat");
+  });
 });
