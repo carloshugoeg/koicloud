@@ -830,13 +830,13 @@ class SuspendUserRequest(SchemaModel):
     confirm_text: str
     reason: str | None = Field(default=None, max_length=500)
 
-    @field_validator("reason")
+    @field_validator("reason", mode="before")
     @classmethod
-    def _trim_reason(cls, value: str | None) -> str | None:
-        if value is None:
-            return None
-        trimmed = value.strip()
-        return trimmed or None
+    def _trim_reason(cls, value: object) -> object:
+        if isinstance(value, str):
+            trimmed = value.strip()
+            return trimmed or None
+        return value
 
     model_config = config_with_example(
         {"confirm_text": "SUSPENDER", "reason": "abuso de recursos"}
