@@ -38,7 +38,7 @@ no existe todavía. `00-INDEX.md` no es un ticket y el agente lo ignora.
 | W1-27 | Plan pricing from `GET /plans` (#96 amendment) | `w1-plans-pricing` | en-revision ([PR #123](https://github.com/carloshugoeg/koicloud/pull/123)) · **money — no auto-merge** |
 | W1-28 | PlanOut.backup_retention_days constant (A3) | `w1-backup-retention` | en-revision · [#124](https://github.com/carloshugoeg/koicloud/pull/124) · (also briefly #121 / B3 NIT — #124 keeps retention) |
 | W1-29 | *(renumbered → W1-32 on #132)* | — | ver W1-32 |
-| W1-30 | Motivo de suspensión en bitácora + `user_not_found` | `w1-admin-suspend-reason` | en-revision ([PR #121](https://github.com/carloshugoeg/koicloud/pull/121); CCR [#125](https://github.com/carloshugoeg/koicloud/issues/125)) |
+| W1-30 | Motivo de suspensión en bitácora + `user_not_found` | `w1-admin-suspend-reason` | hecho ([PR #121](https://github.com/carloshugoeg/koicloud/pull/121); CCR [#125](https://github.com/carloshugoeg/koicloud/issues/125)) |
 | W1-31 | NIT checkout → invoice (#96 A2) | `w1-nit-checkout-invoice` | bloqueado · [#133](https://github.com/carloshugoeg/koicloud/pull/133) CCR #127 |
 | W1-32 | Admin subscriptions (#96 A7) | `w1-admin-subscriptions` | bloqueado · [#132](https://github.com/carloshugoeg/koicloud/pull/132) CCR #128 |
 | W1-33 | Pond stop/start + delete with backup first (Wave B1) | `w1-pond-stop-start` | en-curso · [#130](https://github.com/carloshugoeg/koicloud/pull/130) |
