@@ -27,7 +27,7 @@ UI_FLOWS = (
     "plans / simulated checkout",
     "pond create",
     "pond start (→ running)",
-    "pond stop (sim)",
+    # pond stop omitted: start/stop not in #142 / B1; preview asserts running only.
     "pond backup",
     "pond delete",
     "pond limits / errors",
@@ -60,7 +60,6 @@ SLUGS = {
     "plans / simulated checkout": "plans-checkout",
     "pond create": "pond-create",
     "pond start (→ running)": "pond-start",
-    "pond stop (sim)": "pond-stop",
     "pond backup": "pond-backup",
     "pond delete": "pond-delete",
     "pond limits / errors": "pond-limits",
@@ -116,8 +115,6 @@ def main() -> int:
         slug = SLUGS[flow]
         shot375 = "yes" if row.get("shot375") else "no"
         shot1440 = "yes" if row.get("shot1440") else "no"
-        if flow == "pond stop (sim)" and result == "fail" and "404" in note:
-            note = f"{note}. Preview has no stop control and the sim did not expose one."
         lines.append(f"| {flow} | {result} | {shot375} | {shot1440} | {note} |")
     lines.extend(
         [

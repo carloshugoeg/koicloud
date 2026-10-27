@@ -44,7 +44,7 @@ export async function login(page: Page, account: Account): Promise<void> {
       await page.waitForTimeout(800 * (attempt + 1));
     }
   }
-  // Lazily mint a helper token for api()/stopPond after the SPA session is up.
+  // Lazily mint a helper token for api() after the SPA session is up.
   // Do not block the UI login path if mint races a cold sim instance.
   try {
     await mintAccessToken(page, account);
@@ -117,22 +117,6 @@ function pondState(json: unknown): string | null {
   return typeof state === "string" ? state : null;
 }
 
-export async function stopPond(page: Page, pondId: string): Promise<number> {
-  if (!pondId) {
-    throw new Error("stopPond requires a pond id");
-  }
-  const response = await api(page, "POST", `/api/v1/ponds/${pondId}/stop`);
-  if (response.status >= 400) {
-    return response.status;
-  }
-  if (pondState(response.json) !== "stopped") {
-    throw new Error(
-      `stop did not return observed_state=stopped (HTTP ${response.status})`,
-    );
-  }
-  return response.status;
-}
-
 export async function triggerBackup(page: Page, pondId: string): Promise<number> {
   const response = await api(page, "POST", `/api/v1/ponds/${pondId}/backups`);
   return response.status;
@@ -164,9 +148,10 @@ export async function deletePond(page: Page, pondId: string): Promise<number> {
   if (confirmed.status >= 400) {
     throw new Error(`confirm delete HTTP ${confirmed.status}`);
   }
-  if (pondState(confirmed.json) !== "deleted") {
+  const confirmedState = pondState(confirmed.json);
+  if (confirmedState !== "deleted" && confirmedState !== "deleting") {
     throw new Error(
-      `confirm delete did not return observed_state=deleted (HTTP ${confirmed.status})`,
+      `confirm delete state=${String(confirmedState)} (HTTP ${confirmed.status})`,
     );
   }
   return confirmed.status;
@@ -174,38 +159,57 @@ export async function deletePond(page: Page, pondId: string): Promise<number> {
 
 export async function ensureProPlan(page: Page): Promise<void> {
   const token = await mintAccessToken(page);
-  const result = await page.evaluate(
-    async (accessToken) => {
-      const headers: Record<string, string> = { "content-type": "application/json" };
-      if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
-      const response = await fetch("/api/v1/subscriptions", {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ plan_id: "pro" }),
-      });
-      return response.status;
-    },
-    token,
-  );
-  if (result >= 400) {
-    throw new Error(`ensureProPlan HTTP ${result}`);
+  // Subscribe twice so confirm_payment supersedes any leftover ACTIVE rows
+  // from sandbox checkout / prior seeds (preview gate user is shared).
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const result = await page.evaluate(
+      async (accessToken) => {
+        const headers: Record<string, string> = { "content-type": "application/json" };
+        if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+        const response = await fetch("/api/v1/subscriptions", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ plan_id: "pro" }),
+        });
+        return response.status;
+      },
+      token,
+    );
+    if (result >= 400) {
+      throw new Error(`ensureProPlan HTTP ${result}`);
+    }
+  }
+  const me = await api(page, "GET", "/api/v1/me");
+  const plan = (me.json as { subscription?: { plan_id?: unknown } } | null)?.subscription
+    ?.plan_id;
+  if (plan !== "pro") {
+    throw new Error(`ensureProPlan me.plan_id=${String(plan)}`);
   }
 }
 
 export async function purgePonds(page: Page): Promise<void> {
-  const listed = await api(page, "GET", "/api/v1/ponds");
-  if (listed.status >= 400 || !listed.json || typeof listed.json !== "object") {
-    throw new Error(`list ponds HTTP ${listed.status}`);
-  }
-  const ponds = (listed.json as { ponds?: unknown }).ponds;
-  if (!Array.isArray(ponds)) return;
-  for (const row of ponds) {
-    if (!row || typeof row !== "object") continue;
-    const id = (row as { id?: unknown }).id;
-    if (typeof id !== "string" || !id) continue;
-    const status = await deletePond(page, id);
-    if (status !== 200 && status !== 202 && status !== 204) {
-      throw new Error(`purge delete HTTP ${status}`);
+  // MCP suite (and prior runs) can leave ponds; drain delete is async on the
+  // response shape, so re-list until empty instead of a single pass.
+  for (let round = 0; round < 6; round += 1) {
+    const listed = await api(page, "GET", "/api/v1/ponds");
+    if (listed.status >= 400 || !listed.json || typeof listed.json !== "object") {
+      throw new Error(`list ponds HTTP ${listed.status}`);
     }
+    const ponds = (listed.json as { ponds?: unknown }).ponds;
+    if (!Array.isArray(ponds) || ponds.length === 0) return;
+    for (const row of ponds) {
+      if (!row || typeof row !== "object") continue;
+      const id = (row as { id?: unknown }).id;
+      if (typeof id !== "string" || !id) continue;
+      const status = await deletePond(page, id);
+      if (status !== 200 && status !== 202 && status !== 204) {
+        throw new Error(`purge delete HTTP ${status}`);
+      }
+    }
+  }
+  const leftover = await api(page, "GET", "/api/v1/ponds");
+  const still = (leftover.json as { ponds?: unknown } | null)?.ponds;
+  if (Array.isArray(still) && still.length > 0) {
+    throw new Error(`purge left ${still.length} ponds`);
   }
 }

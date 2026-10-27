@@ -286,6 +286,7 @@ class PondService:
     async def ensure_subscription(self, user: User) -> Subscription:
         # Preview seed / repeated subscribe can leave several ACTIVE rows.
         # Take the newest non-expired one (same rule as get_me).
+        # Use .first() — never scalar_one* — so duplicates cannot 500 create_pond.
         active = (
             await self.session.execute(
                 select(Subscription)
@@ -297,7 +298,7 @@ class PondService:
                 .order_by(Subscription.current_period_end.desc())
                 .limit(1)
             )
-        ).scalar_one_or_none()
+        ).scalars().first()
         if active is not None:
             return active
         if not self.settings.auto_micro_subscription:

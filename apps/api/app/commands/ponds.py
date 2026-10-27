@@ -141,6 +141,8 @@ async def delete_pond(
         if settings.koi_preview_mock:
             from app.core.preview_mock import drain_preview_jobs
 
+            # backup_pond (pre_delete) enqueues delete_pond; drain both so the
+            # pond leaves list_ponds without a real node-agent.
             await drain_preview_jobs(session, settings, pond_id=pond_id)
         await session.commit()
         return DeletePondResponse(pond=pond, jobs=jobs)

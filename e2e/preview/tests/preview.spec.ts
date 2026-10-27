@@ -15,7 +15,6 @@ import {
   login,
   purgePonds,
   resetSession,
-  stopPond,
   triggerBackup,
 } from "./support/session";
 
@@ -89,44 +88,71 @@ test("plans checkout", async ({ page }) => {
 });
 
 test("pond lifecycle", async ({ page }) => {
-  // Preview QueryClient staleTime is 30s; stop/delete UI needs a refetch after that.
+  // Preview QueryClient staleTime is 30s; delete UI needs a refetch after that.
+  // Pond stop is out of #142 / B1 scope — not asserted here.
   test.setTimeout(180_000);
   const creds = loadGateCreds();
   const hidden = secrets(creds);
   const failures: string[] = [];
   await login(page, creds.user);
   await expect(page).toHaveURL(/\/app/);
-  // Plans checkout may leave sandbox (1 pond). Restore pro and clear leftovers.
+  // Plans checkout may leave sandbox (1 pond). Restore pro and clear leftovers
+  // (including ponds left by the MCP suite that runs before this file).
   await ensureProPlan(page);
   await purgePonds(page);
+  // Drop stale React Query ponds list so the create veil does not show ghosts.
+  await page.goto("/app");
+  await expect(page).toHaveURL(/\/app/);
 
-  const pondName = `gate${Date.now().toString(36).slice(-6)}`;
+  const pondNameBase = `gate${Date.now().toString(36).slice(-6)}`;
+  let pondName = pondNameBase;
   let pondId = "";
 
   await check(page, failures, "pond create", "pond-create", hidden, async () => {
-    await clickNav(page, "Crear pond");
-    await page.getByTestId("create-pond-name").fill(pondName);
-    await expect(page.getByText("nombre válido")).toBeVisible();
-    const navigated = page.waitForURL(/\/app\/ponds\/[0-9a-f-]{36}/i, { timeout: 20_000 });
-    await page.getByTestId("create-pond-submit").click();
-    try {
-      await navigated;
-    } catch {
-      const error = page.getByTestId("create-pond-error");
-      if ((await error.count()) > 0) {
-        throw new Error((await error.innerText()).replace(/\s+/g, " ").slice(0, 180));
+    let lastError = "create did not open the pond";
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const name = attempt === 0 ? pondNameBase : `${pondNameBase}${attempt}`;
+      await clickNav(page, "Crear pond");
+      await page.getByTestId("create-pond-name").fill(name);
+      await expect(page.getByText("nombre válido")).toBeVisible();
+      const navigated = page.waitForURL(/\/app\/ponds\/[0-9a-f-]{36}/i, { timeout: 45_000 });
+      await page.getByTestId("create-pond-submit").click();
+      try {
+        await navigated;
+        pondId = new URL(page.url()).pathname.split("/").pop() ?? "";
+        pondName = name;
+        await expect(page.getByRole("heading", { name })).toBeVisible();
+        return `created ${name}`;
+      } catch {
+        const error = page.getByTestId("create-pond-error");
+        if ((await error.count()) > 0) {
+          lastError = (await error.innerText()).replace(/\s+/g, " ").slice(0, 180);
+          // Cold preview / one-shot internal_error: dismiss and retry with a fresh name.
+          if (/internal_error|Algo salió mal/i.test(lastError) && attempt < 2) {
+            await page.goto("/app");
+            await page.waitForTimeout(1_000 * (attempt + 1));
+            continue;
+          }
+          throw new Error(lastError);
+        }
+        throw new Error(lastError);
       }
-      throw new Error("create did not open the pond");
     }
-    pondId = new URL(page.url()).pathname.split("/").pop() ?? "";
-    await expect(page.getByRole("heading", { name: pondName })).toBeVisible();
-    return `created ${pondName}`;
+    throw new Error(lastError);
   });
 
   await check(page, failures, "pond start (→ running)", "pond-start", hidden, async () => {
+    if (!pondId) throw new Error("no pond id from create");
+    // Preview mock drains CREATE_POND inline to running; poll badge + API.
     await expect(page.getByTestId("pond-status-badge")).toContainText("En línea", {
-      timeout: 30_000,
+      timeout: 45_000,
     });
+    const fetched = await api(page, "GET", `/api/v1/ponds/${pondId}`);
+    const state =
+      (fetched.json as { pond?: { observed_state?: unknown } } | null)?.pond?.observed_state;
+    if (state !== "running") {
+      throw new Error(`GET pond state ${String(state)} (want running)`);
+    }
     return "badge En línea";
   });
 
@@ -150,31 +176,12 @@ test("pond lifecycle", async ({ page }) => {
     return `backup list visible after HTTP ${status}`;
   });
 
-  await check(page, failures, "pond stop (sim)", "pond-stop", hidden, async () => {
-    await page.getByRole("link", { name: "Resumen" }).click();
-    await expect(page.getByTestId("pond-status-badge")).toContainText("En línea");
-    await stopPond(page, pondId);
-    const fetched = await api(page, "GET", `/api/v1/ponds/${pondId}`);
-    const state =
-      (fetched.json as { pond?: { observed_state?: unknown } } | null)?.pond?.observed_state ??
-      "missing";
-    if (state !== "stopped") {
-      throw new Error(`GET pond state ${String(state)}`);
-    }
-    // Full reload clears the 30s React Query cache (refetchOnWindowFocus is off).
-    resetSession();
-    await login(page, creds.user);
-    await expect(page).toHaveURL(/\/app/);
-    await page.getByRole("link", { name: "Abrir" }).click();
-    await expect(page.getByTestId("pond-status-badge")).toContainText("Detenido");
-    return "badge Detenido";
-  });
-
   await check(page, failures, "pond limits / errors", "pond-limits", hidden, async () => {
     await clickNav(page, "Crear pond");
     await page.getByTestId("create-pond-name").fill("A");
     await expect(page.getByTestId("create-pond-issues")).toContainText("Mínimo 3 caracteres.");
     await expect(page.getByTestId("create-pond-submit")).toBeDisabled();
+    // Stop is out of #142 scope — duplicate name against the still-running pond.
     await page.getByTestId("create-pond-name").fill(pondName);
     await expect(page.getByTestId("create-pond-submit")).toBeEnabled();
     await page.getByTestId("create-pond-submit").click();

@@ -53,6 +53,7 @@ async def get_me(actor: AuthContext) -> MeResponse:
         )
         # Prefer the newest active row — preview seed (and retries) can leave
         # more than one active subscription for the same user.
+        # .first() avoids MultipleResultsFound if limit is ever dropped.
         subscription = (
             await session.execute(
                 select(Subscription)
@@ -63,7 +64,7 @@ async def get_me(actor: AuthContext) -> MeResponse:
                 .order_by(Subscription.current_period_start.desc())
                 .limit(1)
             )
-        ).scalar_one_or_none()
+        ).scalars().first()
 
         return MeResponse(
             user=_user_out(user),
