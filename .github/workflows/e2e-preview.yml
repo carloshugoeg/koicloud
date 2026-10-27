@@ -39,26 +39,7 @@ jobs:
               -o /tmp/preview-health.json -w "%{http_code}" "$PLAYWRIGHT_BASE_URL/api/v1/health" || echo "000")
             echo "home=${code} health=${health_code}"
             if [ "$code" = "200" ] && [ "$health_code" = "200" ]; then
-              if python3 - "$GITHUB_SHA" <<'PY'
-import json, sys
-sha = sys.argv[1]
-try:
-    raw = open("/tmp/preview-health.json", encoding="utf-8").read()
-    data = json.loads(raw)
-except (OSError, json.JSONDecodeError):
-    print("health not JSON", file=sys.stderr)
-    raise SystemExit(1)
-if not isinstance(data, dict) or data.get("ok") is not True:
-    print(f"health not ok: {raw[:200]}", file=sys.stderr)
-    raise SystemExit(1)
-got = data.get("git_sha")
-if got != sha:
-    print(f"sha mismatch got={got!r} want={sha!r}", file=sys.stderr)
-    raise SystemExit(1)
-print(raw[:240])
-raise SystemExit(0)
-PY
-              then
+              if python3 e2e/preview/check_preview_health.py "$GITHUB_SHA" /tmp/preview-health.json; then
                 echo "preview HTTP 200 + health JSON for ${GITHUB_SHA}"
                 exit 0
               fi
