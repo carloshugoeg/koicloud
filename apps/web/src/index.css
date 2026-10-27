@@ -251,6 +251,22 @@ button:disabled {
   background: rgba(20, 33, 31, 0.32);
 }
 
+/* Create pond: opaque scrim (ink washed over bone) — page text cannot bleed through. */
+.create-pond-veil {
+  background: color-mix(in srgb, var(--ink) 72%, var(--bone));
+}
+
+/* Create-pond modal: panel fill via CSS vars (Tailwind bg-* tokens may not emit). */
+.create-pond-dialog {
+  background: var(--bone-raised);
+  border: 1px solid var(--line-control);
+  box-shadow: var(--shadow-dialog);
+}
+
+.create-pond-dialog__accent {
+  background: var(--turquoise-700);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .koi, .koi--x2 { animation: none; background-position-x: 0; }
   .pond-water-auth { animation: none; }

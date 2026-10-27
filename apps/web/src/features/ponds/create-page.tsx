@@ -2,22 +2,17 @@ import { type FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCreatePondMutation, useMeQuery, usePlansQuery } from "@/api/hooks";
 import { ApiError, problemToMessage } from "@/lib/errors";
-import { DashboardPage } from "@/features/ponds/dashboard-page";
 import { isPondNameValid, pondNameIssues } from "@/features/ponds/pond-name";
 
 export function CreatePondPage() {
   return (
-    <>
-      <div className="pointer-events-none select-none opacity-40" aria-hidden>
-        <DashboardPage />
-      </div>
-      <div
-        className="fixed inset-0 z-20 flex items-start justify-center overflow-y-auto bg-ink/30 px-4 py-10"
-        data-testid="create-pond-veil"
-      >
-        <CreatePondDialog />
-      </div>
-    </>
+    <div
+      className="create-pond-veil fixed inset-0 z-40 flex items-start justify-center overflow-y-auto px-4 py-10"
+      data-testid="create-pond-veil"
+      role="presentation"
+    >
+      <CreatePondDialog />
+    </div>
   );
 }
 
@@ -52,10 +47,10 @@ function CreatePondDialog() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="w-full max-w-[560px] overflow-hidden rounded-md border border-line bg-bone-raised shadow-sm"
+      className="create-pond-dialog w-full max-w-[560px] overflow-hidden rounded-md"
       data-testid="create-pond-dialog"
     >
-      <div className="h-1 bg-turquoise-700" />
+      <div className="create-pond-dialog__accent h-1" />
       <div className="space-y-4 p-5">
         <div>
           <h2 className="font-display text-2xl text-ink">Nuevo pond</h2>

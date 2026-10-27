@@ -37,6 +37,15 @@ function renderCreate() {
 }
 
 describe("W2-05 Crear pond", () => {
+  it("dims the page behind a create-pond veil and paints an opaque create panel", async () => {
+    renderCreate();
+    const veil = await screen.findByTestId("create-pond-veil");
+    expect(veil).toHaveClass("create-pond-veil");
+    expect(veil).not.toHaveClass("bg-ink/30");
+    const dialog = await screen.findByTestId("create-pond-dialog");
+    expect(dialog).toHaveClass("create-pond-dialog");
+  });
+
   it("shows the user's real subscription plan from GET /me, not a hardcoded Micro", async () => {
     server.use(
       http.get("*/api/v1/me", () =>
