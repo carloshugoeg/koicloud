@@ -27,6 +27,7 @@ from app.modules.auth import AuthService
 from app.modules.auth.service import REFRESH_COOKIE
 from app.schemas import (
     AdminPondListResponse,
+    AdminTotalsResponse,
     AdminUserListResponse,
     AdminUserResponse,
     AgentAccessOut,
@@ -720,6 +721,19 @@ async def admin_list_ponds(
     _: Annotated[AuthContext, Depends(get_admin_user)],
 ) -> AdminPondListResponse:
     return await admin_commands.admin_list_ponds()
+
+
+@router.get(
+    "/admin/totals",
+    response_model=AdminTotalsResponse,
+    operation_id="admin_get_totals",
+    tags=["admin"],
+    responses=_error_responses(401, 403),
+)
+async def admin_get_totals(
+    _: Annotated[AuthContext, Depends(get_admin_user)],
+) -> AdminTotalsResponse:
+    return await admin_commands.admin_get_totals()
 
 
 @router.get(

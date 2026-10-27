@@ -16,3 +16,4 @@ Estos registros aceptan A-01 a A-12. El resumen está en la sección 8 de `docs/
 | [010](010-docker-restart-no-reconciler.md) | Reinicio de contenedores a cargo del reconciler |
 | [011](011-local-disk-backups.md) | Respaldos en disco local |
 | [012](012-monorepo.md) | Un solo repositorio |
+| [013](013-derived-backup-expiry.md) | `BackupOut.expires_at` derivado (CCR #135) |
