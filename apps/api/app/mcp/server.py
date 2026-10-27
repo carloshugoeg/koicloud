@@ -97,7 +97,7 @@ async def run_sql(pond_name: str, query: str, mode: str = "read") -> dict[str, A
 
 @mcp.tool
 async def confirm_action(token: str) -> dict[str, Any]:
-    return await confirmation_commands.confirm_action(token)
+    return _dump(await confirmation_commands.confirm_action(token))
 
 
 @mcp.tool

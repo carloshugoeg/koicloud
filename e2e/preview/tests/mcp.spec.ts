@@ -45,7 +45,9 @@ test("mcp tools via preview /mcp", async ({ page, baseURL }) => {
   const mcpUrl = `${preview}/mcp`;
   const auth = basicAuth(creds.mcp.slug, creds.mcp.password);
   const rows: McpRow[] = [];
-  const pondName = "mcp-gate-pond";
+  // Unique name per run — a leftover mcp-gate-pond makes confirm_action fail with
+  // pond_name_taken after propose still returned a token.
+  const pondName = `mcp-gate-${Date.now().toString(36).slice(-6)}`;
 
   const record = (tool: string, result: "pass" | "fail", note: string) => {
     rows.push({ tool, result, note: redact(note, hidden) });
@@ -129,6 +131,19 @@ test("mcp tools via preview /mcp", async ({ page, baseURL }) => {
     "whoami email present",
   );
 
+  // Best-effort purge of leftover MCP ponds from prior failed runs (same agent user).
+  const prior = await call("list_ponds");
+  const priorPonds =
+    (prior.result as { ponds?: Array<{ name?: string }> } | undefined)?.ponds ?? [];
+  if (Array.isArray(priorPonds)) {
+    for (const row of priorPonds) {
+      if (typeof row?.name !== "string" || !row.name.startsWith("mcp-gate")) continue;
+      const doomed = await call("delete_pond", { name: row.name });
+      const doomToken = (doomed.result as { token?: string } | undefined)?.token;
+      if (doomToken) await call("confirm_action", { token: doomToken });
+    }
+  }
+
   const cancelProbe = await call("create_pond", { name: `${pondName}-cancel` });
   const cancelToken = (cancelProbe.result as { token?: string } | undefined)?.token;
   const cancel = await call("cancel_confirmation", { token: cancelToken || "missing" });
@@ -140,9 +155,16 @@ test("mcp tools via preview /mcp", async ({ page, baseURL }) => {
   record("create_pond", token ? "pass" : "fail", token ? "confirmation_required" : "no token");
 
   const confirm = await call("confirm_action", { token: token || "missing" });
-  const confirmed = confirm.result as { pond?: unknown; status?: string } | undefined;
-  const confirmOk = Boolean(confirmed?.pond || confirmed?.status === "confirmed");
-  record("confirm_action", confirmOk ? "pass" : "fail", confirmOk ? "create confirmed" : "confirm failed");
+  const confirmed = (confirm.result as { pond?: unknown; status?: string } | undefined) ?? {};
+  const confirmCode = toolCode(confirm);
+  const confirmOk = Boolean(confirmed.pond || confirmed.status === "confirmed");
+  record(
+    "confirm_action",
+    confirmOk ? "pass" : "fail",
+    confirmOk
+      ? "create confirmed"
+      : `confirm failed code=${confirmCode || "none"} keys=${Object.keys(confirmed).sort().join(",")}`,
+  );
 
   const ponds = await call("list_ponds");
   record(

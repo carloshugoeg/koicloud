@@ -98,8 +98,9 @@ test("pond lifecycle", async ({ page }) => {
   // (including ponds left by the MCP suite that runs before this file).
   await ensureProPlan(page);
   await purgePonds(page);
-  // Drop stale React Query ponds list so the create veil does not show ghosts.
-  await page.goto("/app");
+  // Auth is in-memory (zustand) — a full reload would dump the session to /login.
+  // Re-login to clear the React Query ponds cache without losing the SPA session.
+  await login(page, creds.user);
   await expect(page).toHaveURL(/\/app/);
 
   const pondNameBase = `gate${Date.now().toString(36).slice(-6)}`;
