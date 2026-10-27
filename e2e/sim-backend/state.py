@@ -177,6 +177,37 @@ def same_secret(left: str, right: str) -> bool:
     )
 
 
+def _token_secret() -> bytes:
+    raw = (os.environ.get("KOI_SIM_TOKEN_SECRET") or "koi-preview-sim-token").encode()
+    return hashlib.sha256(raw).digest()
+
+
+def issue_access_token(user_id: str, *, hours: int = 12) -> str:
+    """HMAC token any serverless instance can validate without shared session memory."""
+    exp = int((utcnow() + timedelta(hours=hours)).timestamp())
+    body = f"{user_id}.{exp}"
+    sig = hmac.new(_token_secret(), body.encode(), hashlib.sha256).hexdigest()[:32]
+    return f"sim.{body}.{sig}"
+
+
+def parse_access_token(token: str) -> str | None:
+    if not token.startswith("sim."):
+        return None
+    parts = token.split(".")
+    if len(parts) != 4:
+        return None
+    _, user_id, exp_raw, sig = parts
+    if not user_id or not exp_raw.isdigit():
+        return None
+    body = f"{user_id}.{exp_raw}"
+    expected = hmac.new(_token_secret(), body.encode(), hashlib.sha256).hexdigest()[:32]
+    if not hmac.compare_digest(expected, sig):
+        return None
+    if int(exp_raw) < int(utcnow().timestamp()):
+        return None
+    return user_id
+
+
 @dataclass
 class User:
     id: str
@@ -447,7 +478,7 @@ class State:
                 raise SimError("email_not_verified")
             if user.status != "active":
                 raise SimError("account_suspended")
-            access = "sim_" + secrets.token_urlsafe(24)
+            access = issue_access_token(user.id)
             refresh = "simr_" + secrets.token_urlsafe(24)
             self.sessions[access] = user.id
             return {
@@ -459,6 +490,8 @@ class State:
     def user_id_for_token(self, token: str) -> str:
         with self._lock:
             user_id = self.sessions.get(token)
+            if user_id is None:
+                user_id = parse_access_token(token)
             if user_id is None:
                 raise SimError("token_invalid")
             self._active_user(user_id)

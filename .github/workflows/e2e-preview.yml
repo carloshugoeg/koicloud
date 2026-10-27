@@ -65,6 +65,7 @@ jobs:
           export KOI_SIM_BASE_URL
           export KOI_ALLOW_PREVIEW_SEED
           bash scripts/seed-gate-preview.sh
+          python3 e2e/preview/check_seed_login.py
 
       - uses: actions/setup-node@v4
         with:
