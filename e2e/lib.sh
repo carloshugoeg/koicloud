@@ -16,35 +16,82 @@ py_json() {
   python3 -c "import json,sys; ${1}"
 }
 
+# Last HTTP status survives command-substitution subshells via this file.
+API_HTTP_FILE="${REPORT_DIR}/.last-http"
+
+last_http() {
+  cat "$API_HTTP_FILE" 2>/dev/null || echo ""
+}
+
+# HTTP helpers always capture status. Non-2xx dies unless allow_http lists the code.
+# Broken confirm / 4xx / 5xx therefore cannot print OK downstream.
+_api_curl() {
+  local method="$1"
+  local path="$2"
+  local body="${3:-}"
+  local token="${4:-}"
+  local surface="${5:-}"
+  local allow_http="${6:-}"
+  local tmp code args=()
+  tmp="$(mktemp)"
+  args=(-sS -o "$tmp" -w "%{http_code}" -X "$method" "${API_BASE}${path}")
+  [[ -n "$token" ]] && args+=(-H "Authorization: Bearer $token")
+  [[ -n "$surface" ]] && args+=(-H "X-KOI-Surface: $surface")
+  if [[ -n "$body" ]]; then
+    args+=(-H 'Content-Type: application/json' -d "$body")
+  fi
+  code="$(curl "${args[@]}")" || {
+    rm -f "$tmp"
+    printf '%s\n' "000" >"$API_HTTP_FILE"
+    die "curl transport failed $method $path"
+  }
+  printf '%s\n' "$code" >"$API_HTTP_FILE"
+  if [[ "$code" =~ ^2 ]]; then
+    cat "$tmp"
+    rm -f "$tmp"
+    return 0
+  fi
+  if [[ -n "$allow_http" ]]; then
+    local allowed=0 a
+    for a in $allow_http; do
+      if [[ "$code" == "$a" ]]; then
+        allowed=1
+        break
+      fi
+    done
+    if (( allowed )); then
+      cat "$tmp"
+      rm -f "$tmp"
+      return 0
+    fi
+  fi
+  printf '[e2e] FAIL: HTTP %s %s %s body=%s\n' "$code" "$method" "$path" "$(head -c 500 "$tmp")" >&2
+  rm -f "$tmp"
+  exit 1
+}
+
 api_post() {
   local path="$1"
   local body="$2"
   local token="${3:-}"
   local surface="${4:-}"
-  local extra=()
-  [[ -n "$token" ]] && extra+=(-H "Authorization: Bearer $token")
-  [[ -n "$surface" ]] && extra+=(-H "X-KOI-Surface: $surface")
-  curl -sS -X POST "${API_BASE}${path}" \
-    -H 'Content-Type: application/json' \
-    "${extra[@]}" \
-    -d "$body"
+  local allow_http="${5:-}"
+  _api_curl POST "$path" "$body" "$token" "$surface" "$allow_http"
 }
 
 api_get() {
   local path="$1"
   local token="${2:-}"
-  local extra=()
-  [[ -n "$token" ]] && extra+=(-H "Authorization: Bearer $token")
-  curl -sS "${API_BASE}${path}" "${extra[@]}"
+  local allow_http="${3:-}"
+  _api_curl GET "$path" "" "$token" "" "$allow_http"
 }
 
 api_delete() {
   local path="$1"
   local token="$2"
   local surface="${3:-cli}"
-  curl -sS -X DELETE "${API_BASE}${path}" \
-    -H "Authorization: Bearer $token" \
-    -H "X-KOI-Surface: $surface"
+  local allow_http="${4:-}"
+  _api_curl DELETE "$path" "" "$token" "$surface" "$allow_http"
 }
 
 wait_http() {
@@ -52,7 +99,7 @@ wait_http() {
   local tries="${2:-90}"
   local i=0
   while (( i < tries )); do
-    if curl -fsS "$url" >/dev/null 2>&1; then
+    if curl -fsS --fail-with-body "$url" >/dev/null 2>&1; then
       return 0
     fi
     sleep 2
@@ -125,6 +172,34 @@ for b in d.get('backups') or []:
     log "backup status=$status"
     [[ "$status" == "succeeded" ]] && return 0
     [[ "$status" == "failed" ]] && return 1
+    sleep 3
+    i=$((i + 3))
+  done
+  return 1
+}
+
+# After delete confirm: wait until GET is 404 or observed_state/desired_state is deleted.
+poll_pond_gone() {
+  local pond_id="$1"
+  local token="$2"
+  local i=0 body state desired code
+  while (( i < 180 )); do
+    body="$(api_get "/ponds/$pond_id" "$token" "404")"
+    code="$(last_http)"
+    if [[ "$code" == "404" ]]; then
+      log "pond GET → 404"
+      return 0
+    fi
+    state="$(
+      echo "$body" | py_json "d=json.load(sys.stdin); p=d.get('pond') if isinstance(d.get('pond'), dict) else d; print((p or {}).get('observed_state') or '')" 2>/dev/null || true
+    )"
+    desired="$(
+      echo "$body" | py_json "d=json.load(sys.stdin); p=d.get('pond') if isinstance(d.get('pond'), dict) else d; print((p or {}).get('desired_state') or '')" 2>/dev/null || true
+    )"
+    log "pond after-delete observed=$state desired=$desired http=$code"
+    if [[ "$state" == "deleted" || "$desired" == "deleted" ]]; then
+      return 0
+    fi
     sleep 3
     i=$((i + 3))
   done

@@ -125,16 +125,29 @@ poll_backup_succeeded "$POND_ID" "$BACKUP_ID" "$TOKEN" || {
 }
 ok "backup $BACKUP_ID"
 
-trace "delete" "DELETE pond propose→confirm"
-DEL_JSON="$(api_delete "/ponds/$POND_ID" "$TOKEN" "cli")"
+trace "delete" "DELETE pond propose→confirm→GET gone"
+# Propose returns 409 confirmation_required (CLI surface). Any other 4xx/5xx dies.
+DEL_JSON="$(api_delete "/ponds/$POND_ID" "$TOKEN" "cli" "409")"
 echo "$DEL_JSON" | tee "$REPORT_DIR/delete-propose.json" >/dev/null
+[[ "$(last_http)" == "409" ]] || die "delete propose expected HTTP 409, got $(last_http)"
+echo "$DEL_JSON" | py_json "d=json.load(sys.stdin); assert d.get('status')=='confirmation_required', d" \
+  || die "delete propose status"
 CONFIRM_TOKEN="$(
   echo "$DEL_JSON" | py_json "d=json.load(sys.stdin); print(d.get('token') or '')"
 )"
 [[ -n "$CONFIRM_TOKEN" ]] || die "delete did not return confirmation token"
+# Confirm must be 2xx. Broken confirm (4xx/5xx) exits before OK.
 CONFIRM_JSON="$(api_post "/confirm/$CONFIRM_TOKEN" '{}' "$TOKEN")"
+CONFIRM_HTTP="$(last_http)"
 echo "$CONFIRM_JSON" | tee "$REPORT_DIR/delete-confirm.json" >/dev/null
-ok "delete confirmed"
+echo "$CONFIRM_HTTP" >"$REPORT_DIR/delete-confirm.http"
+[[ "$CONFIRM_HTTP" =~ ^2 ]] || die "delete confirm expected 2xx, got $CONFIRM_HTTP"
+ok "delete confirmed HTTP $CONFIRM_HTTP"
+poll_pond_gone "$POND_ID" "$TOKEN" || {
+  "${COMPOSE[@]}" logs --tail 120 api worker node-agent >"$REPORT_DIR/delete-timeout-logs.txt" || true
+  die "pond still present after delete confirm"
+}
+ok "delete verified GET 404/deleted"
 
 cat >"$REPORT_DIR/summary.json" <<EOF
 {

@@ -38,7 +38,7 @@ services:
       POND_PORT_RANGE_START: ${POND_PORT_RANGE_START:-15000}
       POND_PORT_RANGE_END: ${POND_PORT_RANGE_END:-15999}
       MCP_ENABLED: ${MCP_ENABLED:-true}
-      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-console}
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER}
       PAYMENT_PROVIDER: ${PAYMENT_PROVIDER}
       INVOICE_DIR: ${INVOICE_DIR:-/var/lib/koicloud/invoices}
       BACKUP_DIR: ${BACKUP_DIR:-/var/lib/koicloud/backups}

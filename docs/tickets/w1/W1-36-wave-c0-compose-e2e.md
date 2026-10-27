@@ -25,16 +25,17 @@ contra un stack compose local. En un VPS real: copiar env y correr `deploy.sh`.
 - Rama existente: `w1-wave-c0-compose-e2e` (nombre histórico del wave; slug del ticket).
 - Alcance: `infra/` + `e2e/` (+ workflow `e2e-compose` mínimo). Sin tocar apps A1/A2.
 - `PAYMENT_PROVIDER` obligatorio en prod: compose sin default `:-simulated`; `deploy.sh` lo exige con `need`.
+- `EMAIL_PROVIDER` obligatorio en prod: compose sin default `:-console`; `deploy.sh` lo exige con `need`.
 - No inventar IP/DNS; proof de deploy solo contra contenedor SSH local.
 - No mergear este PR desde el agente; ship tras LGTM + gate (+ ventana Carlos, lane alta).
 
 ## Criterios de aceptación
 
 1. `bash infra/scripts/check-prod-compose.sh` OK (compose + Caddy + names-only env).
-2. `infra/deploy.sh` toma `user@host`; host apply en `infra/scripts/deploy.sh` es idempotente.
+2. `infra/deploy.sh` toma `user@host`; host apply en `infra/scripts/deploy.sh` es idempotente (CI: `check-deploy-idempotent.sh` ×2).
 3. `infra/.env.production.example` lista cada secreto sin valores.
 4. Healthchecks en db/api/worker/caddy; worker no usa `pgrep python` genérico.
-5. Job CI `e2e-compose` verde: registro → plan → pago simulado → pond → SQL → backup → delete.
+5. Job CI `e2e-compose` verde: registro → plan → pago simulado → pond → SQL → backup → delete (confirm 2xx + GET 404/deleted; HTTP helpers fail on unexpected 4xx/5xx).
 6. `proof-local-deploy.sh` usa `KOI_PROD_ENV` temporal; rechaza si existe `infra/env/prod.env`.
 
 ## No tocar

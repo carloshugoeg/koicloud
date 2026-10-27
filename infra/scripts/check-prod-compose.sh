@@ -95,6 +95,16 @@ for line in env_names.splitlines():
     key, _, val = line.partition("=")
     if val.strip():
         missing.append(f".env.production.example must have no values ({key})")
+prod_src = Path("infra/docker-compose.prod.yml").read_text(encoding="utf-8")
+if "EMAIL_PROVIDER:-console" in prod_src or "EMAIL_PROVIDER: ${EMAIL_PROVIDER:-console}" in prod_src:
+    missing.append("prod compose must not default EMAIL_PROVIDER to console")
+if "PAYMENT_PROVIDER:-simulated" in prod_src:
+    missing.append("prod compose must not default PAYMENT_PROVIDER to simulated")
+deploy_src = Path("infra/scripts/deploy.sh").read_text(encoding="utf-8")
+if "need EMAIL_PROVIDER" not in deploy_src:
+    missing.append("deploy.sh must need EMAIL_PROVIDER")
+if "need PAYMENT_PROVIDER" not in deploy_src:
+    missing.append("deploy.sh must need PAYMENT_PROVIDER")
 if missing:
     raise SystemExit("\n".join(missing))
 print("prod compose + Caddyfile + http overlay + names-only env OK")
