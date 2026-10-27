@@ -2,16 +2,19 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app.commands import admin as admin_commands
 from app.core.auth import AuthContext
 from app.core.db import SessionLocal
-from app.core.enums import ActorKind
+from app.core.enums import ActorKind, PondDesiredState, PondObservedState
 from app.core.models import AuditEvent, Pond, PondStatus, User
+from app.modules.metering.samples import latest_sample_size_by_pond
 from app.schemas import (
     AdminPondListResponse,
     AdminPondOut,
+    AdminTotalsOut,
+    AdminTotalsResponse,
     AdminUserListResponse,
     AdminUserResponse,
     AuditEventListResponse,
@@ -56,6 +59,7 @@ class AdminService:
                     .order_by(Pond.created_at.desc())
                 )
             ).all()
+            sizes = await latest_sample_size_by_pond(session, [pond.id for pond, _, _ in rows])
             ponds = [
                 AdminPondOut(
                     id=pond.id,
@@ -67,10 +71,46 @@ class AdminService:
                     observed_state=status.observed_state,
                     host_port=pond.host_port,
                     created_at=pond.created_at,
+                    size_bytes=sizes.get(pond.id),
+                    last_error=status.last_error,
                 )
                 for pond, status, owner_email in rows
             ]
             return AdminPondListResponse(ponds=ponds, next_cursor=None)
+
+    @staticmethod
+    async def totals() -> AdminTotalsResponse:
+        async with SessionLocal() as session:
+            users = int(
+                (await session.execute(select(func.count()).select_from(User))).scalar_one()
+            )
+            ponds = int(
+                (
+                    await session.execute(
+                        select(func.count())
+                        .select_from(Pond)
+                        .where(Pond.desired_state != PondDesiredState.DELETED)
+                    )
+                ).scalar_one()
+            )
+            ponds_running = int(
+                (
+                    await session.execute(
+                        select(func.count())
+                        .select_from(PondStatus)
+                        .join(Pond, Pond.id == PondStatus.pond_id)
+                        .where(
+                            PondStatus.observed_state == PondObservedState.RUNNING,
+                            Pond.desired_state != PondDesiredState.DELETED,
+                        )
+                    )
+                ).scalar_one()
+            )
+            return AdminTotalsResponse(
+                totals=AdminTotalsOut(
+                    users=users, ponds=ponds, ponds_running=ponds_running
+                )
+            )
 
     @staticmethod
     async def list_audit() -> AuditEventListResponse:

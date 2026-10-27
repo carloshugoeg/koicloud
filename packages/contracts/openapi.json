@@ -25,7 +25,8 @@
               "node_id": "node-sv-01",
               "observed_state": "running",
               "owner_email": "carlos@koicloud.dev",
-              "plan_id": "micro"
+              "plan_id": "micro",
+              "size_bytes": 124901
             }
           ]
         },
@@ -66,7 +67,8 @@
           "node_id": "node-sv-01",
           "observed_state": "running",
           "owner_email": "carlos@koicloud.dev",
-          "plan_id": "micro"
+          "plan_id": "micro",
+          "size_bytes": 124901
         },
         "properties": {
           "created_at": {
@@ -86,6 +88,17 @@
             "title": "Id",
             "type": "string"
           },
+          "last_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Error"
+          },
           "name": {
             "title": "Name",
             "type": "string"
@@ -104,6 +117,17 @@
           "plan_id": {
             "title": "Plan Id",
             "type": "string"
+          },
+          "size_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Size Bytes"
           }
         },
         "required": [
@@ -118,6 +142,55 @@
           "created_at"
         ],
         "title": "AdminPondOut",
+        "type": "object"
+      },
+      "AdminTotalsOut": {
+        "additionalProperties": false,
+        "example": {
+          "ponds": 51,
+          "ponds_running": 44,
+          "users": 38
+        },
+        "properties": {
+          "ponds": {
+            "title": "Ponds",
+            "type": "integer"
+          },
+          "ponds_running": {
+            "title": "Ponds Running",
+            "type": "integer"
+          },
+          "users": {
+            "title": "Users",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "users",
+          "ponds",
+          "ponds_running"
+        ],
+        "title": "AdminTotalsOut",
+        "type": "object"
+      },
+      "AdminTotalsResponse": {
+        "additionalProperties": false,
+        "example": {
+          "totals": {
+            "ponds": 51,
+            "ponds_running": 44,
+            "users": 38
+          }
+        },
+        "properties": {
+          "totals": {
+            "$ref": "#/components/schemas/AdminTotalsOut"
+          }
+        },
+        "required": [
+          "totals"
+        ],
+        "title": "AdminTotalsResponse",
         "type": "object"
       },
       "AdminUserListResponse": {
@@ -574,6 +647,7 @@
             "current_period_end": "2026-10-22T20:00:00Z",
             "current_period_start": "2026-09-22T20:00:00Z",
             "id": "22222222-2222-2222-2222-222222222222",
+            "invoice_id": "33333333-3333-3333-3333-333333333333",
             "plan_id": "micro",
             "status": "active",
             "user_id": "11111111-1111-1111-1111-111111111111"
@@ -982,6 +1056,7 @@
             "node_id": "node-sv-01",
             "observed_state": "pending",
             "plan_id": "micro",
+            "size_bytes": 124901,
             "user_id": "11111111-1111-1111-1111-111111111111"
           }
         },
@@ -1034,6 +1109,7 @@
             "node_id": "node-sv-01",
             "observed_state": "deleting",
             "plan_id": "micro",
+            "size_bytes": 124901,
             "user_id": "11111111-1111-1111-1111-111111111111"
           }
         },
@@ -1858,6 +1934,7 @@
             "current_period_end": "2026-10-22T20:00:00Z",
             "current_period_start": "2026-09-22T20:00:00Z",
             "id": "22222222-2222-2222-2222-222222222222",
+            "invoice_id": "33333333-3333-3333-3333-333333333333",
             "plan_id": "micro",
             "status": "active",
             "user_id": "11111111-1111-1111-1111-111111111111"
@@ -2162,6 +2239,7 @@
               "node_id": "node-sv-01",
               "observed_state": "running",
               "plan_id": "micro",
+              "size_bytes": 124901,
               "user_id": "11111111-1111-1111-1111-111111111111"
             }
           ]
@@ -2219,6 +2297,7 @@
           "node_id": "node-sv-01",
           "observed_state": "running",
           "plan_id": "micro",
+          "size_bytes": 124901,
           "user_id": "11111111-1111-1111-1111-111111111111"
         },
         "properties": {
@@ -2285,6 +2364,17 @@
             "title": "Plan Id",
             "type": "string"
           },
+          "size_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Size Bytes"
+          },
           "user_id": {
             "format": "uuid",
             "title": "User Id",
@@ -2321,6 +2411,7 @@
             "node_id": "node-sv-01",
             "observed_state": "running",
             "plan_id": "micro",
+            "size_bytes": 124901,
             "user_id": "11111111-1111-1111-1111-111111111111"
           }
         },
@@ -2738,6 +2829,7 @@
             "current_period_end": "2026-10-22T20:00:00Z",
             "current_period_start": "2026-09-22T20:00:00Z",
             "id": "22222222-2222-2222-2222-222222222222",
+            "invoice_id": "33333333-3333-3333-3333-333333333333",
             "plan_id": "micro",
             "status": "active",
             "user_id": "11111111-1111-1111-1111-111111111111"
@@ -2771,6 +2863,7 @@
               "current_period_end": "2026-10-22T20:00:00Z",
               "current_period_start": "2026-09-22T20:00:00Z",
               "id": "22222222-2222-2222-2222-222222222222",
+              "invoice_id": "33333333-3333-3333-3333-333333333333",
               "plan_id": "micro",
               "status": "active",
               "user_id": "11111111-1111-1111-1111-111111111111"
@@ -2810,6 +2903,7 @@
           "current_period_end": "2026-10-22T20:00:00Z",
           "current_period_start": "2026-09-22T20:00:00Z",
           "id": "22222222-2222-2222-2222-222222222222",
+          "invoice_id": "33333333-3333-3333-3333-333333333333",
           "plan_id": "micro",
           "status": "active",
           "user_id": "11111111-1111-1111-1111-111111111111"
@@ -2833,6 +2927,18 @@
             "format": "uuid",
             "title": "Id",
             "type": "string"
+          },
+          "invoice_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invoice Id"
           },
           "plan_id": {
             "title": "Plan Id",
@@ -3430,6 +3536,80 @@
           }
         ],
         "summary": "Admin List Ponds",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/totals": {
+      "get": {
+        "operationId": "admin_get_totals",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-KOI-Surface",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Surface"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminTotalsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Admin Get Totals",
         "tags": [
           "admin"
         ]
