@@ -4,7 +4,6 @@ import os
 import re
 from collections.abc import AsyncIterator
 
-from sqlalchemy import event, text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -41,7 +40,8 @@ _schema = resolve_preview_schema(
 )
 _connect_args: dict[str, object] = {}
 if _schema:
-    _connect_args["server_settings"] = {"search_path": _schema}
+    # Preview only: set search_path via libpq server_settings (no per-session SET).
+    _connect_args["server_settings"] = {"search_path": f"{_schema}, public"}
 
 engine: AsyncEngine = create_async_engine(
     settings.database_url,
@@ -53,17 +53,6 @@ engine: AsyncEngine = create_async_engine(
 SessionLocal = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
 
-if _schema:
-
-    @event.listens_for(engine.sync_engine, "connect")
-    def _set_search_path(dbapi_connection: object, _connection_record: object) -> None:
-        cursor = dbapi_connection.cursor()  # type: ignore[attr-defined]  # DBAPI connection
-        cursor.execute(f"SET search_path TO {_schema}, public")
-        cursor.close()
-
-
 async def get_session() -> AsyncIterator[AsyncSession]:
     async with SessionLocal() as session:
-        if _schema:
-            await session.execute(text(f"SET search_path TO {_schema}, public"))
         yield session

@@ -60,10 +60,12 @@ def _disabled_app() -> Any:
         methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
     )
     async def off(full_path: str = "") -> JSONResponse:
+        # Generic not-found shape (catalog-style). Not pond_not_found — this
+        # path is the fail-closed preview entry, not a missing pond.
         return JSONResponse(
             status_code=404,
             content={
-                "code": "pond_not_found",
+                "code": "not_found",
                 "message": "Preview API is not available in this deployment",
                 "request_id": None,
             },
@@ -176,6 +178,10 @@ def _forward_query(handler: BaseHTTPRequestHandler) -> str:
     return "&".join(kept)
 
 
+class BodyTooLarge(Exception):
+    """Request body exceeds MAX_BODY."""
+
+
 def _read_body(handler: BaseHTTPRequestHandler) -> bytes:
     raw_length = handler.headers.get("Content-Length", "0")
     try:
@@ -185,7 +191,7 @@ def _read_body(handler: BaseHTTPRequestHandler) -> bytes:
     if length <= 0:
         return b""
     if length > MAX_BODY:
-        return b""
+        raise BodyTooLarge()
     return handler.rfile.read(length)
 
 
@@ -258,7 +264,18 @@ def _serve(handler: BaseHTTPRequestHandler) -> None:
 
     path = _original_path(handler)
     query = _forward_query(handler)
-    body = _read_body(handler)
+    try:
+        body = _read_body(handler)
+    except BodyTooLarge:
+        raw = b'{"message":"Request body too large","request_id":null}'
+        handler.send_response(413)
+        handler.send_header("Content-Type", "application/json")
+        handler.send_header("Content-Length", str(len(raw)))
+        handler.end_headers()
+        if handler.command != "HEAD":
+            handler.wfile.write(raw)
+        return
+
     headers: list[tuple[bytes, bytes]] = []
     for key, value in handler.headers.items():
         headers.append((key.lower().encode("latin-1"), value.encode("latin-1")))

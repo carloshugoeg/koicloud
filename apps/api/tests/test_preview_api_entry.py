@@ -63,10 +63,28 @@ async def test_non_preview_entry_returns_404_json(
     status, raw = await _post_login(mod._get_app())
     assert status == 404
     assert b"Preview API is not available" in raw
-    assert b"pond_not_found" in raw
+    assert b"not_found" in raw
+    assert b"pond_not_found" not in raw
 
 
 def test_preview_flag(monkeypatch: pytest.MonkeyPatch) -> None:
     assert _load_index(monkeypatch, "preview")._preview() is True
     assert _load_index(monkeypatch, "production")._preview() is False
     assert _load_index(monkeypatch, None)._preview() is False
+
+
+def test_read_body_over_max_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+    mod = _load_index(monkeypatch, "production")
+
+    class _Handler:
+        headers = {"Content-Length": str(mod.MAX_BODY + 1)}
+
+        class _Rfile:
+            @staticmethod
+            def read(_n: int) -> bytes:
+                return b"x"
+
+        rfile = _Rfile()
+
+    with pytest.raises(mod.BodyTooLarge):
+        mod._read_body(_Handler())  # type: ignore[arg-type]  # minimal stub for BaseHTTPRequestHandler
