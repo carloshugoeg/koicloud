@@ -1,16 +1,20 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "vite",
-  "buildCommand": "node scripts/prepare-preview-sim.mjs && pnpm build",
+  "buildCommand": "node scripts/prepare-preview-api.mjs && pnpm build",
   "outputDirectory": "dist",
   "rewrites": [
     {
       "source": "/mcp",
-      "destination": "/api/preview-sim?koi_path=/mcp"
+      "destination": "/api?koi_path=/mcp"
     },
     {
       "source": "/api/v1/:path*",
-      "destination": "/api/preview-sim?koi_path=/api/v1/:path*"
+      "destination": "/api?koi_path=/api/v1/:path*"
+    },
+    {
+      "source": "/api/v1",
+      "destination": "/api?koi_path=/api/v1"
     },
     {
       "source": "/((?!assets/|api/).*)",
@@ -18,8 +22,8 @@
     }
   ],
   "functions": {
-    "api/preview-sim.py": {
-      "includeFiles": "api/_koi_sim/**",
+    "api/index.py": {
+      "includeFiles": "api/_koi_api/**",
       "maxDuration": 60
     }
   }

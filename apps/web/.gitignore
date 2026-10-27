@@ -5,3 +5,4 @@ coverage/
 .DS_Store
 .env
 api/_koi_sim/
+api/_koi_api/

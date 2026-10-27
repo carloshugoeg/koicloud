@@ -344,8 +344,13 @@ def main() -> None:
         url = rotated.get("url")
         if not isinstance(slug, str) or not isinstance(mcp_password, str):
             seed_fail("rotate_body", rstatus, rotated)
-        if not isinstance(expires, str):
-            expires = ""
+        # Real apps/api AgentAccessSecretOut has no expires_at; mint ≥24h for the store.
+        if not isinstance(expires, str) or not expires.strip():
+            from datetime import datetime, timedelta, timezone
+
+            expires = (datetime.now(timezone.utc) + timedelta(hours=36)).strftime(
+                "%Y-%m-%dT%H:%M:%SZ"
+            )
         if not isinstance(url, str) or not url:
             url = base + "/mcp"
         draft["mcp"] = {
@@ -370,8 +375,9 @@ def main() -> None:
         draft["preview_url"] = preview
         draft["sim_base_url"] = base
         draft["mock_backend_steps"] = [
-            "cd e2e/sim-backend && python3 -m app",
-            "export KOI_SIM_BASE_URL=http://127.0.0.1:18080",
+            "Preview hosts apps/api (KOI_PREVIEW_MOCK=1, SimulatedPaymentProvider, preview DB).",
+            "export KOI_SIM_BASE_URL=<preview origin>",
+            "export KOI_ALLOW_PREVIEW_SEED=1",
             "export KOI_GATE_CREDENTIALS_OUT=<absolute store credentials path>",
             "bash scripts/seed-gate-preview.sh",
             "cd e2e/preview && pnpm install && pnpm exec playwright install chromium && pnpm test",

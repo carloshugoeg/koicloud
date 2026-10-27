@@ -39,6 +39,11 @@ class Settings(BaseSettings):
     mcp_demo_slug: str = "demo-agent"
     mcp_demo_password: str = "koicloud-demo"
 
+    # Preview-only mock on Vercel: fake node heartbeat + sync job drain.
+    # Never enable against production data.
+    koi_preview_mock: bool = False
+    koi_db_schema: str = ""
+
     default_limit: int = Field(default=50, ge=1, le=100)
 
 

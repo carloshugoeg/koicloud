@@ -46,13 +46,22 @@ async def create_pond(
         )
 
     async with SessionLocal() as session:
-        pond, job = await PondService(session, get_settings()).create(
+        settings = get_settings()
+        service = PondService(session, settings)
+        pond_out, job = await service.create(
             actor,
             name=payload.name,
             engine_version=payload.engine_version,
         )
+        if settings.koi_preview_mock:
+            from app.core.preview_mock import drain_preview_jobs
+            from app.modules.ponds.service import pond_to_out
+
+            await drain_preview_jobs(session, settings, pond_id=pond_out.id)
+            pond_model, status = await service.get_owned(actor, pond_out.id)
+            pond_out = pond_to_out(pond_model, status)
         await session.commit()
-        return CreatePondResponse(pond=pond, job=job)
+        return CreatePondResponse(pond=pond_out, job=job)
 
 
 async def get_pond(actor: AuthContext, pond_id: UUID) -> PondResponse:
@@ -88,7 +97,12 @@ async def retry_failed_job(
             payload={"pond_id": str(pond_id)},
         )
     async with SessionLocal() as session:
-        job = await PondService(session, get_settings()).retry_failed(actor, pond_id)
+        settings = get_settings()
+        job = await PondService(session, settings).retry_failed(actor, pond_id)
+        if settings.koi_preview_mock:
+            from app.core.preview_mock import drain_preview_jobs
+
+            await drain_preview_jobs(session, settings, pond_id=pond_id)
         await session.commit()
         return RetryFailedJobResponse(job=job)
 
@@ -122,6 +136,11 @@ async def delete_pond(
         )
 
     async with SessionLocal() as session:
-        pond, jobs = await PondService(session, get_settings()).delete(actor, pond_id)
+        settings = get_settings()
+        pond, jobs = await PondService(session, settings).delete(actor, pond_id)
+        if settings.koi_preview_mock:
+            from app.core.preview_mock import drain_preview_jobs
+
+            await drain_preview_jobs(session, settings, pond_id=pond_id)
         await session.commit()
         return DeletePondResponse(pond=pond, jobs=jobs)

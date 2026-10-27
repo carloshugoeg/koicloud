@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Assert preview /api/v1/health JSON matches the expected git sha."""
+"""Assert preview /api/v1/health JSON matches the expected git sha (real apps/api)."""
 
 from __future__ import annotations
 
@@ -17,14 +17,15 @@ def main() -> int:
     try:
         raw = path.read_text(encoding="utf-8")
         data = json.loads(raw)
-    except (OSError, json.JSONDecodeError):
+    except (OSError, json.JSONDecodeError, TypeError):
         print("health not JSON", file=sys.stderr)
         return 1
     if not isinstance(data, dict) or data.get("ok") is not True:
         print(f"health not ok: {raw[:200]}", file=sys.stderr)
         return 1
-    if data.get("sim") is not True:
-        print(f"health missing sim=true: {raw[:200]}", file=sys.stderr)
+    # Legacy toy sim marked sim=true; real apps/api does not.
+    if data.get("sim") is True:
+        print(f"health still on e2e sim toy: {raw[:200]}", file=sys.stderr)
         return 1
     got = data.get("git_sha")
     if got != sha:

@@ -43,9 +43,19 @@ async def trigger_backup(
         )
 
     async with SessionLocal() as session:
-        backup, job = await BackupService(session, get_settings()).trigger_on_demand(
+        settings = get_settings()
+        backup, job = await BackupService(session, settings).trigger_on_demand(
             actor, pond_id
         )
+        if settings.koi_preview_mock:
+            from app.core.models import Backup
+            from app.core.preview_mock import drain_preview_jobs
+            from app.modules.backups.service import backup_to_out
+
+            await drain_preview_jobs(session, settings, pond_id=pond_id)
+            row = await session.get(Backup, backup.id)
+            if row is not None:
+                backup = backup_to_out(row)
         await session.commit()
         return TriggerBackupResponse(backup=backup, job=job)
 
@@ -70,8 +80,13 @@ async def restore_backup(
         )
 
     async with SessionLocal() as session:
-        job = await BackupService(session, get_settings()).restore(
+        settings = get_settings()
+        job = await BackupService(session, settings).restore(
             actor, pond_id, payload.backup_id
         )
+        if settings.koi_preview_mock:
+            from app.core.preview_mock import drain_preview_jobs
+
+            await drain_preview_jobs(session, settings, pond_id=pond_id)
         await session.commit()
         return JobResponse(job=job)

@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
 from app.core.db import SessionLocal
 from app.core.enums import EmailTokenKind, UserRole, UserStatus
 from app.core.errors import AppError, ErrorCode
@@ -163,6 +164,16 @@ async def register_user(payload: RegisterUserRequest) -> RegisterUserResponse:
             await session.flush()
         except IntegrityError as exc:
             raise AppError(ErrorCode.EMAIL_TAKEN) from exc
+
+        settings = get_settings()
+        preview_gate = settings.koi_preview_mock and payload.email.endswith("@koicloud.test")
+        if preview_gate:
+            # Preview mock only: gate seed users are born verified (no mailer / no OpenAPI change).
+            user.email_verified_at = utc_now()
+            if payload.email == "gate-admin@koicloud.test":
+                user.role = UserRole.ADMIN
+            await session.commit()
+            return RegisterUserResponse(user_id=user.id, email_verified=True)
 
         plaintext = await _issue_email_token_row(session, user.id, EmailTokenKind.VERIFY_EMAIL)
         await session.commit()

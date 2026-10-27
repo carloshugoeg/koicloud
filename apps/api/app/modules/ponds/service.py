@@ -269,6 +269,11 @@ class PondService:
 
     async def ensure_live_node(self) -> Node:
         node = await self._upsert_node()
+        if self.settings.koi_preview_mock:
+            from app.core.preview_mock import refresh_preview_node
+
+            refreshed = await refresh_preview_node(self.session, self.settings)
+            return refreshed if refreshed is not None else node
         if node.status != NodeStatus.ALIVE:
             raise AppError(ErrorCode.NODE_UNAVAILABLE)
         if node.last_seen_at is None:
