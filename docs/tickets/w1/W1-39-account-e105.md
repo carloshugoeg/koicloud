@@ -2,7 +2,7 @@
 id: W1-39
 workstream: W1
 persona: Carlos
-estado: en_revision
+estado: en-revision
 rama: w1-account-e105
 epica: "E1-05"
 sprint: S4
