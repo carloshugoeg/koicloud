@@ -12,8 +12,13 @@ import { createAppRouter } from "@/app/router";
 import "./index.css";
 
 async function enableMocks() {
-  // Preview-only gate walks set VITE_ENABLE_MOCKS=true (never production).
-  if (import.meta.env.VITE_ENABLE_MOCKS === "true") {
+  // Keep the dynamic import reachable so Vite does not tree-shake MSW when the
+  // build-time env flag is unset. Production hosts never match `-git-…vercel.app`.
+  const envFlag = String(import.meta.env.VITE_ENABLE_MOCKS ?? "") === "true";
+  const vercelPreviewHost =
+    typeof window !== "undefined" &&
+    /-git-[\w.-]+\.vercel\.app$/i.test(window.location.hostname);
+  if (envFlag || vercelPreviewHost) {
     const { worker } = await import("@/mocks/browser");
     await worker.start({ onUnhandledRequest: "bypass" });
   }
