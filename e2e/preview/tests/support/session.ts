@@ -30,8 +30,13 @@ export async function login(page: Page, account: Account): Promise<void> {
   await page.getByLabel("Correo").fill(account.email);
   await page.getByLabel("Contraseña").fill(account.password);
   await page.getByRole("button", { name: "Iniciar sesión" }).click();
-  // Mint an API token against the hosted sim (no Playwright route intercept).
-  await mintAccessToken(page, account);
+  // Lazily mint a helper token for api()/stopPond after the SPA session is up.
+  // Do not block the UI login path if mint races a cold sim instance.
+  try {
+    await mintAccessToken(page, account);
+  } catch {
+    // api() will retry mint when needed.
+  }
 }
 
 async function mintAccessToken(page: Page, account?: Account): Promise<string> {

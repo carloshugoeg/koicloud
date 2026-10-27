@@ -20,7 +20,6 @@ from state import SimError, State, ToolMiss
 
 MAX_BODY = 1_000_000
 STATE = State()
-_BLOB_PATH = "koi-preview-sim-state.pkl"
 _PERSIST_LOADED = False
 
 
@@ -28,12 +27,20 @@ def _blob_token() -> str:
     return (os.environ.get("BLOB_READ_WRITE_TOKEN") or "").strip()
 
 
+def _blob_path() -> str:
+    # Isolate state per Vercel deployment so concurrent previews/seeds do not clobber each other.
+    deploy = (os.environ.get("VERCEL_DEPLOYMENT_ID") or os.environ.get("KOI_SIM_STATE_KEY") or "local").strip()
+    safe = "".join(ch if ch.isalnum() or ch in "-_" else "-" for ch in deploy)[:80]
+    return f"koi-preview-sim-{safe}.pkl"
+
+
 def _persist_path() -> str:
     return (os.environ.get("KOI_SIM_PERSIST_PATH") or "").strip()
 
 
 def _blob_find_url(token: str) -> str | None:
-    query = urllib.parse.urlencode({"prefix": _BLOB_PATH, "limit": "1"})
+    pathname = _blob_path()
+    query = urllib.parse.urlencode({"prefix": pathname, "limit": "10"})
     req = urllib.request.Request(
         f"https://blob.vercel-storage.com?{query}",
         headers={
@@ -47,6 +54,13 @@ def _blob_find_url(token: str) -> str | None:
     blobs = payload.get("blobs") if isinstance(payload, dict) else None
     if not isinstance(blobs, list) or not blobs:
         return None
+    for item in blobs:
+        if not isinstance(item, dict):
+            continue
+        pathname_found = item.get("pathname")
+        url = item.get("url")
+        if pathname_found == pathname and isinstance(url, str) and url:
+            return url
     first = blobs[0]
     if not isinstance(first, dict):
         return None
@@ -105,7 +119,7 @@ def save_persisted_state() -> None:
     raw = pickle.dumps(STATE, protocol=pickle.HIGHEST_PROTOCOL)
     if token:
         try:
-            query = urllib.parse.urlencode({"pathname": _BLOB_PATH})
+            query = urllib.parse.urlencode({"pathname": _blob_path()})
             req = urllib.request.Request(
                 f"https://vercel.com/api/blob?{query}",
                 data=raw,
