@@ -1,0 +1,556 @@
+"""HTTP shell for the preview sim. Domain rules live in state.py."""
+
+from __future__ import annotations
+
+import base64
+import binascii
+import json
+import os
+import re
+import sys
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from typing import Callable
+from urllib.parse import urlsplit
+
+from state import SimError, State, ToolMiss
+
+MAX_BODY = 1_000_000
+STATE = State()
+
+HandlerFn = Callable[
+    [State, dict[str, str], dict[str, str], bytes],
+    tuple[int, dict[str, object] | None],
+]
+
+
+def _json_dict(raw: bytes) -> dict[str, object]:
+    if not raw:
+        return {}
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise SimError("token_invalid", message="JSON inválido") from exc
+    if not isinstance(data, dict):
+        raise SimError("token_invalid", message="JSON inválido")
+    return data
+
+
+def _need_str(data: dict[str, object], key: str) -> str:
+    value = data.get(key)
+    if not isinstance(value, str):
+        raise SimError("token_invalid", message="Solicitud inválida")
+    return value
+
+
+def _bearer(state: State, headers: dict[str, str]) -> str:
+    header = headers.get("authorization", "")
+    if not header.lower().startswith("bearer "):
+        raise SimError("token_invalid")
+    token = header.split(" ", 1)[1].strip()
+    if not token:
+        raise SimError("token_invalid")
+    return state.user_id_for_token(token)
+
+
+def _basic(headers: dict[str, str]) -> tuple[str, str]:
+    header = headers.get("authorization", "")
+    if not header.lower().startswith("basic "):
+        raise SimError("agent_bad_credentials")
+    encoded = header.split(" ", 1)[1].strip()
+    try:
+        decoded = base64.b64decode(encoded, validate=True).decode("utf-8")
+        slug, password = decoded.split(":", 1)
+    except (ValueError, binascii.Error, UnicodeDecodeError) as exc:
+        raise SimError("agent_bad_credentials") from exc
+    if not slug or not password:
+        raise SimError("agent_bad_credentials")
+    return slug, password
+
+
+def _base_url(headers: dict[str, str]) -> str:
+    host = headers.get("host", "127.0.0.1:18080")
+    return "http://" + host
+
+
+def route_health(
+    _state: State,
+    _groups: dict[str, str],
+    _headers: dict[str, str],
+    _body: bytes,
+) -> tuple[int, dict[str, object]]:
+    return 200, {"ok": True, "git_sha": "sim-backend"}
+
+
+def route_register(
+    state: State,
+    _groups: dict[str, str],
+    _headers: dict[str, str],
+    body: bytes,
+) -> tuple[int, dict[str, object]]:
+    data = _json_dict(body)
+    nit = data.get("nit")
+    status, payload = state.register(
+        email=_need_str(data, "email"),
+        password=_need_str(data, "password"),
+        full_name=_need_str(data, "full_name"),
+        nit=nit if isinstance(nit, str) else None,
+    )
+    return status, payload
+
+
+def route_verify(
+    state: State,
+    _groups: dict[str, str],
+    _headers: dict[str, str],
+    body: bytes,
+) -> tuple[int, dict[str, object]]:
+    data = _json_dict(body)
+    return 200, state.verify(_need_str(data, "token"))
+
+
+def route_login(
+    state: State,
+    _groups: dict[str, str],
+    _headers: dict[str, str],
+    body: bytes,
+) -> tuple[int, dict[str, object]]:
+    data = _json_dict(body)
+    return 200, state.login(_need_str(data, "email"), _need_str(data, "password"))
+
+
+def route_plans(
+    state: State,
+    _groups: dict[str, str],
+    _headers: dict[str, str],
+    _body: bytes,
+) -> tuple[int, dict[str, object]]:
+    return 200, state.plans()
+
+
+def route_me(
+    state: State,
+    _groups: dict[str, str],
+    headers: dict[str, str],
+    _body: bytes,
+) -> tuple[int, dict[str, object]]:
+    return 200, state.me(_bearer(state, headers))
+
+
+def route_subscribe(
+    state: State,
+    _groups: dict[str, str],
+    headers: dict[str, str],
+    body: bytes,
+) -> tuple[int, dict[str, object]]:
+    data = _json_dict(body)
+    return 202, state.subscribe(_bearer(state, headers), _need_str(data, "plan_id"))
+
+
+def route_subscriptions(
+    state: State,
+    _groups: dict[str, str],
+    headers: dict[str, str],
+    _body: bytes,
+) -> tuple[int, dict[str, object]]:
+    return 200, state.list_subscriptions(_bearer(state, headers))
+
+
+def route_pond_create(
+    state: State,
+    _groups: dict[str, str],
+    headers: dict[str, str],
+    body: bytes,
+) -> tuple[int, dict[str, object]]:
+    data = _json_dict(body)
+    engine = data.get("engine_version")
+    engine_version = engine if isinstance(engine, str) and engine else "16"
+    return 202, state.create_pond(
+        _bearer(state, headers),
+        _need_str(data, "name"),
+        engine_version,
+    )
+
+
+def route_pond_list(
+    state: State,
+    _groups: dict[str, str],
+    headers: dict[str, str],
+    _body: bytes,
+) -> tuple[int, dict[str, object]]:
+    return 200, state.list_ponds(_bearer(state, headers))
+
+
+def route_pond_get(
+    state: State,
+    groups: dict[str, str],
+    headers: dict[str, str],
+    _body: bytes,
+) -> tuple[int, dict[str, object]]:
+    return 200, state.get_pond(_bearer(state, headers), groups["pond_id"])
+
+
+def route_connection(
+    state: State,
+    groups: dict[str, str],
+    headers: dict[str, str],
+    _body: bytes,
+) -> tuple[int, dict[str, object]]:
+    return 200, state.connection(_bearer(state, headers), groups["pond_id"])
+
+
+def route_stop(
+    state: State,
+    groups: dict[str, str],
+    headers: dict[str, str],
+    _body: bytes,
+) -> tuple[int, dict[str, object]]:
+    return 200, state.apply_pond(_bearer(state, headers), groups["pond_id"], "stop")
+
+
+def route_start(
+    state: State,
+    groups: dict[str, str],
+    headers: dict[str, str],
+    _body: bytes,
+) -> tuple[int, dict[str, object]]:
+    return 200, state.apply_pond(_bearer(state, headers), groups["pond_id"], "start")
+
+
+def route_backup_create(
+    state: State,
+    groups: dict[str, str],
+    headers: dict[str, str],
+    _body: bytes,
+) -> tuple[int, dict[str, object]]:
+    return 202, state.trigger_backup(_bearer(state, headers), groups["pond_id"])
+
+
+def route_backup_list(
+    state: State,
+    groups: dict[str, str],
+    headers: dict[str, str],
+    _body: bytes,
+) -> tuple[int, dict[str, object]]:
+    return 200, state.list_backups(_bearer(state, headers), groups["pond_id"])
+
+
+def route_sql(
+    state: State,
+    groups: dict[str, str],
+    headers: dict[str, str],
+    body: bytes,
+) -> tuple[int, dict[str, object]]:
+    data = _json_dict(body)
+    mode = data.get("mode")
+    mode_text = mode if isinstance(mode, str) and mode else "read"
+    return 200, state.run_sql(
+        _bearer(state, headers),
+        groups["pond_id"],
+        _need_str(data, "query"),
+        mode_text,
+    )
+
+
+def route_pond_delete(
+    state: State,
+    groups: dict[str, str],
+    headers: dict[str, str],
+    _body: bytes,
+) -> tuple[int, dict[str, object]]:
+    user_id = _bearer(state, headers)
+    token = headers.get("x-koi-confirm-token", "").strip()
+    if token:
+        _action, payload = state.confirm(user_id, token, expect="delete_pond")
+        return 202, payload
+    return 409, state.delete_pond(user_id, groups["pond_id"])
+
+
+def route_confirm(
+    state: State,
+    groups: dict[str, str],
+    headers: dict[str, str],
+    _body: bytes,
+) -> tuple[int, dict[str, object]]:
+    action, payload = state.confirm(_bearer(state, headers), groups["token"])
+    status = 200 if action == "run_sql" else 202
+    return status, payload
+
+
+def route_cancel(
+    state: State,
+    groups: dict[str, str],
+    headers: dict[str, str],
+    _body: bytes,
+) -> tuple[int, None]:
+    state.cancel(_bearer(state, headers), groups["token"])
+    return 204, None
+
+
+def route_suspend(
+    state: State,
+    groups: dict[str, str],
+    headers: dict[str, str],
+    body: bytes,
+) -> tuple[int, dict[str, object]]:
+    data = _json_dict(body)
+    return 200, state.suspend(
+        _bearer(state, headers),
+        groups["user_id"],
+        _need_str(data, "confirm_text"),
+    )
+
+
+def route_reactivate(
+    state: State,
+    groups: dict[str, str],
+    headers: dict[str, str],
+    _body: bytes,
+) -> tuple[int, dict[str, object]]:
+    return 200, state.reactivate(_bearer(state, headers), groups["user_id"])
+
+
+def route_agent_get(
+    state: State,
+    _groups: dict[str, str],
+    headers: dict[str, str],
+    _body: bytes,
+) -> tuple[int, dict[str, object]]:
+    return 200, state.agent_get(_bearer(state, headers), _base_url(headers))
+
+
+def route_agent_rotate(
+    state: State,
+    _groups: dict[str, str],
+    headers: dict[str, str],
+    _body: bytes,
+) -> tuple[int, dict[str, object]]:
+    return 200, state.agent_rotate(_bearer(state, headers), _base_url(headers))
+
+
+def route_agent_toggle(
+    state: State,
+    _groups: dict[str, str],
+    headers: dict[str, str],
+    body: bytes,
+) -> tuple[int, dict[str, object]]:
+    data = _json_dict(body)
+    enabled = data.get("enabled")
+    if not isinstance(enabled, bool):
+        raise SimError("token_invalid", message="Solicitud inválida")
+    return 200, state.agent_toggle(_bearer(state, headers), enabled)
+
+
+def _tool_error(name: str, exc: SimError) -> dict[str, object]:
+    text = exc.message
+    return {
+        "content": [{"type": "text", "text": f"Error calling tool '{name}': {text}"}],
+        "structuredContent": {"code": exc.code, "message": text},
+        "isError": True,
+    }
+
+
+def _split_tool(method: str, params: dict[str, object]) -> tuple[str, dict[str, object]]:
+    if method in {"tools/call", "call_tool"}:
+        raw_name = params.get("name") or params.get("tool") or ""
+        raw_args = params.get("arguments")
+        if raw_args is None:
+            raw_args = params.get("params")
+        args = raw_args if isinstance(raw_args, dict) else {}
+        return str(raw_name), args
+    return method, params
+
+
+def route_mcp_get(
+    state: State,
+    _groups: dict[str, str],
+    headers: dict[str, str],
+    _body: bytes,
+) -> tuple[int, dict[str, object]]:
+    slug, password = _basic(headers)
+    state.mcp_user(slug, password)
+    return 200, state.mcp_info()
+
+
+def route_mcp_post(
+    state: State,
+    _groups: dict[str, str],
+    headers: dict[str, str],
+    body: bytes,
+) -> tuple[int, dict[str, object] | None]:
+    slug, password = _basic(headers)
+    user_id = state.mcp_user(slug, password)
+    if not body:
+        raise SimError("token_invalid", message="JSON inválido")
+    try:
+        payload = json.loads(body)
+    except json.JSONDecodeError as exc:
+        raise SimError("token_invalid", message="JSON inválido") from exc
+    if not isinstance(payload, dict):
+        raise SimError("token_invalid", message="JSON inválido")
+    method = payload.get("method")
+    if not isinstance(method, str) or not method:
+        raise SimError("token_invalid", message="JSON inválido")
+    params_raw = payload.get("params") or {}
+    params = params_raw if isinstance(params_raw, dict) else {}
+    rpc_id = payload.get("id")
+    if method.startswith("notifications/"):
+        return 202, None
+    if method == "initialize":
+        version = params.get("protocolVersion")
+        protocol = version if isinstance(version, str) and version else "2024-11-05"
+        result: dict[str, object] = {
+            "protocolVersion": protocol,
+            "capabilities": {"tools": {"listChanged": False}},
+            "serverInfo": {"name": "KoiCloud", "version": "sim"},
+        }
+        return 200, {"jsonrpc": "2.0", "id": rpc_id, "result": result, "error": None}
+    if method in {"tools/list", "list_tools"}:
+        result = state.tool_catalog()
+        return 200, {"jsonrpc": "2.0", "id": rpc_id, "result": result, "error": None}
+    if method == "ping":
+        return 200, {"jsonrpc": "2.0", "id": rpc_id, "result": {}, "error": None}
+    name, args = _split_tool(method, params)
+    if not name:
+        missed = _tool_error("tools/call", SimError("token_invalid", message="tool name required"))
+        return 200, {"jsonrpc": "2.0", "id": rpc_id, "result": missed, "error": None}
+    try:
+        result = state.mcp_call(user_id, name, args)
+    except ToolMiss as exc:
+        missed = _tool_error(exc.name, SimError("token_invalid", message="unknown tool"))
+        return 200, {"jsonrpc": "2.0", "id": rpc_id, "result": missed, "error": None}
+    except SimError as exc:
+        return 200, {"jsonrpc": "2.0", "id": rpc_id, "result": _tool_error(name, exc), "error": None}
+    return 200, {"jsonrpc": "2.0", "id": rpc_id, "result": result, "error": None}
+
+
+ROUTES: list[tuple[str, re.Pattern[str], HandlerFn]] = [
+    ("GET", re.compile(r"^/api/v1/health$"), route_health),
+    ("POST", re.compile(r"^/api/v1/auth/register$"), route_register),
+    ("POST", re.compile(r"^/api/v1/auth/verify$"), route_verify),
+    ("POST", re.compile(r"^/api/v1/auth/login$"), route_login),
+    ("GET", re.compile(r"^/api/v1/plans$"), route_plans),
+    ("GET", re.compile(r"^/api/v1/me$"), route_me),
+    ("POST", re.compile(r"^/api/v1/subscriptions$"), route_subscribe),
+    ("GET", re.compile(r"^/api/v1/subscriptions$"), route_subscriptions),
+    ("POST", re.compile(r"^/api/v1/ponds$"), route_pond_create),
+    ("GET", re.compile(r"^/api/v1/ponds$"), route_pond_list),
+    ("POST", re.compile(r"^/api/v1/ponds/(?P<pond_id>[^/]+)/stop$"), route_stop),
+    ("POST", re.compile(r"^/api/v1/ponds/(?P<pond_id>[^/]+)/start$"), route_start),
+    ("POST", re.compile(r"^/api/v1/ponds/(?P<pond_id>[^/]+)/backups$"), route_backup_create),
+    ("GET", re.compile(r"^/api/v1/ponds/(?P<pond_id>[^/]+)/backups$"), route_backup_list),
+    ("POST", re.compile(r"^/api/v1/ponds/(?P<pond_id>[^/]+)/sql$"), route_sql),
+    ("GET", re.compile(r"^/api/v1/ponds/(?P<pond_id>[^/]+)/connection$"), route_connection),
+    ("GET", re.compile(r"^/api/v1/ponds/(?P<pond_id>[^/]+)$"), route_pond_get),
+    ("DELETE", re.compile(r"^/api/v1/ponds/(?P<pond_id>[^/]+)$"), route_pond_delete),
+    ("POST", re.compile(r"^/api/v1/confirm/(?P<token>[^/]+)$"), route_confirm),
+    ("DELETE", re.compile(r"^/api/v1/confirm/(?P<token>[^/]+)$"), route_cancel),
+    ("POST", re.compile(r"^/api/v1/admin/users/(?P<user_id>[^/]+)/suspend$"), route_suspend),
+    ("POST", re.compile(r"^/api/v1/admin/users/(?P<user_id>[^/]+)/reactivate$"), route_reactivate),
+    ("GET", re.compile(r"^/api/v1/agent-access$"), route_agent_get),
+    ("POST", re.compile(r"^/api/v1/agent-access/rotate$"), route_agent_rotate),
+    ("POST", re.compile(r"^/api/v1/agent-access/toggle$"), route_agent_toggle),
+    ("GET", re.compile(r"^/mcp$"), route_mcp_get),
+    ("POST", re.compile(r"^/mcp$"), route_mcp_post),
+]
+
+
+def dispatch(
+    method: str,
+    path: str,
+    headers: dict[str, str],
+    body: bytes,
+) -> tuple[int, dict[str, object] | None]:
+    if method == "OPTIONS":
+        return 204, None
+    for route_method, pattern, handler in ROUTES:
+        if route_method != method:
+            continue
+        match = pattern.match(path)
+        if match is None:
+            continue
+        return handler(STATE, match.groupdict(), headers, body)
+    raise SimError("pond_not_found", status=404, message="Ruta no encontrada")
+
+
+class Handler(BaseHTTPRequestHandler):
+    protocol_version = "HTTP/1.1"
+
+    def log_message(self, _format: str, *_args: object) -> None:
+        # Confirm tokens sit in the path. Do not write the request line.
+        return
+
+    def _read_body(self) -> bytes:
+        raw_length = self.headers.get("Content-Length", "0")
+        try:
+            length = int(raw_length)
+        except ValueError:
+            length = 0
+        if length < 0 or length > MAX_BODY:
+            raise SimError("token_invalid", message="Solicitud inválida")
+        if length == 0:
+            return b""
+        return self.rfile.read(length)
+
+    def _serve(self) -> None:
+        try:
+            body = self._read_body()
+            headers = {key.lower(): value for key, value in self.headers.items()}
+            path = urlsplit(self.path).path
+            status, payload = dispatch(self.command, path, headers, body)
+        except SimError as exc:
+            status = exc.status
+            payload = exc.body()
+        except Exception as exc:
+            sys.stderr.write(f"sim error {type(exc).__name__}\n")
+            status = 500
+            payload = {
+                "code": "internal_error",
+                "message": "Algo salió mal, revisá los logs",
+                "request_id": None,
+            }
+        self._send(status, payload)
+
+    def _send(self, status: int, payload: dict[str, object] | None) -> None:
+        raw = b"" if payload is None else json.dumps(payload).encode()
+        self.close_connection = True
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(raw)))
+        self.send_header("Connection", "close")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header(
+            "Access-Control-Allow-Headers",
+            "Authorization, Content-Type, X-KOI-Surface, X-KOI-Confirm-Token, "
+            "X-KOI-Agent-Password, Idempotency-Key, Accept, MCP-Protocol-Version, "
+            "Mcp-Session-Id",
+        )
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
+        if self.command == "POST" and urlsplit(self.path).path == "/mcp":
+            session = self.headers.get("Mcp-Session-Id") or "sim-session"
+            self.send_header("Mcp-Session-Id", session)
+        self.end_headers()
+        if raw:
+            self.wfile.write(raw)
+
+    def do_GET(self) -> None:
+        self._serve()
+
+    def do_POST(self) -> None:
+        self._serve()
+
+    def do_DELETE(self) -> None:
+        self._serve()
+
+    def do_OPTIONS(self) -> None:
+        self._serve()
+
+
+def main() -> None:
+    host = os.environ.get("KOI_SIM_HOST", "127.0.0.1")
+    port = int(os.environ.get("KOI_SIM_PORT", "18080"))
+    server = ThreadingHTTPServer((host, port), Handler)
+    print(f"sim listening http://{host}:{port}", flush=True)
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        server.server_close()
