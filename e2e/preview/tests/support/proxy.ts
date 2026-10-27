@@ -180,6 +180,7 @@ function cors(request: Request): Record<string, string> {
 
 const VIEWPORTS = [
   { tag: "375", width: 375, height: 812 },
+  { tag: "768", width: 768, height: 1024 },
   { tag: "1440", width: 1440, height: 900 },
 ] as const;
 
@@ -201,7 +202,10 @@ function resolveMediaDir(): string | null {
   return ensureWritableDir(STORE_MEDIA) ? STORE_MEDIA : null;
 }
 
-export async function capture(page: Page, slug: string): Promise<{ shot375: boolean; shot1440: boolean }> {
+export async function capture(
+  page: Page,
+  slug: string,
+): Promise<{ shot375: boolean; shot768: boolean; shot1440: boolean }> {
   const href = page.url();
   assertPreviewHost(href);
   // Stamp the preview origin into the shot so reviewers see the Vercel host, not loopback.
@@ -234,7 +238,7 @@ export async function capture(page: Page, slug: string): Promise<{ shot375: bool
   const artifacts = artifactsDir();
   const media = resolveMediaDir();
   fs.mkdirSync(artifacts, { recursive: true });
-  const flags = { shot375: false, shot1440: false };
+  const flags = { shot375: false, shot768: false, shot1440: false };
   for (const viewport of VIEWPORTS) {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
     const file = `${slug}-${viewport.tag}.png`;
@@ -244,6 +248,7 @@ export async function capture(page: Page, slug: string): Promise<{ shot375: bool
       fs.copyFileSync(local, path.join(media, file));
     }
     if (viewport.tag === "375") flags.shot375 = true;
+    if (viewport.tag === "768") flags.shot768 = true;
     if (viewport.tag === "1440") flags.shot1440 = true;
   }
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -255,6 +260,7 @@ export type FlowRow = {
   result: "pass" | "fail";
   note: string;
   shot375: boolean;
+  shot768: boolean;
   shot1440: boolean;
 };
 

@@ -310,13 +310,16 @@ async function recordFailure(
   error: unknown,
 ): Promise<void> {
   let shot375 = false;
+  let shot768 = false;
   let shot1440 = false;
   try {
     const shots = await capture(page, slug);
     shot375 = shots.shot375;
+    shot768 = shots.shot768;
     shot1440 = shots.shot1440;
   } catch {
     shot375 = false;
+    shot768 = false;
     shot1440 = false;
   }
   recordFlow({
@@ -324,6 +327,7 @@ async function recordFailure(
     result: "fail",
     note: errorNote(error, hidden),
     shot375,
+    shot768,
     shot1440,
   });
 }

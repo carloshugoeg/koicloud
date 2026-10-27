@@ -106,8 +106,8 @@ def main() -> int:
         "",
         "## Pond and product flows",
         "",
-        "| Flow | Result | 375 | 1440 | Notes |",
-        "|------|--------|-----|------|-------|",
+        "| Flow | Result | 375 | 768 | 1440 | Notes |",
+        "|------|--------|-----|-----|------|-------|",
     ]
     for flow in UI_FLOWS:
         row = ui_by_flow.get(flow, {})
@@ -115,10 +115,11 @@ def main() -> int:
         note = redact(_text(row.get("note")) or "not run", secrets)
         slug = SLUGS[flow]
         shot375 = "yes" if row.get("shot375") else "no"
+        shot768 = "yes" if row.get("shot768") else "no"
         shot1440 = "yes" if row.get("shot1440") else "no"
         if flow == "pond stop (sim)" and result == "fail" and "404" in note:
             note = f"{note}. Preview has no stop control and the sim did not expose one."
-        lines.append(f"| {flow} | {result} | {shot375} | {shot1440} | {note} |")
+        lines.append(f"| {flow} | {result} | {shot375} | {shot768} | {shot1440} | {note} |")
     lines.extend(
         [
             "",
