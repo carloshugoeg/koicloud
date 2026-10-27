@@ -69,6 +69,25 @@ describe("W2-10 Panel admin", () => {
     expect(screen.getByText(adminSuspendedUser.full_name)).toBeInTheDocument();
   });
 
+  it("closes the suspend dialog on Escape and returns focus to that row Suspender", async () => {
+    const user = userEvent.setup();
+    renderAdmin("/app/admin/users");
+    await screen.findByTestId("admin-users-page");
+
+    const suspendBtn = screen.getByTestId(`suspend-${adminClientUser.id}`);
+    await user.click(suspendBtn);
+
+    const dialog = await screen.findByRole("dialog", { name: /Suspender a/i });
+    expect(dialog).toHaveAttribute("aria-labelledby", "suspend-dialog-title");
+    expect(dialog).toHaveAttribute("aria-modal", "true");
+
+    await user.keyboard("{Escape}");
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: /Suspender a/i })).not.toBeInTheDocument();
+    });
+    expect(suspendBtn).toHaveFocus();
+  });
+
   it("suspends a user after email confirmation and motivo", async () => {
     const user = userEvent.setup();
     renderAdmin("/app/admin/users");
