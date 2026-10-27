@@ -45,7 +45,9 @@ export function CancelDialog({
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         event.preventDefault();
-        onDismiss();
+        if (!pending) {
+          onDismiss();
+        }
         return;
       }
 
@@ -79,7 +81,7 @@ export function CancelDialog({
       document.removeEventListener("keydown", onKeyDown);
       returnTarget?.focus();
     };
-  }, [onDismiss, returnFocusRef]);
+  }, [onDismiss, pending, returnFocusRef]);
 
   return (
     <div

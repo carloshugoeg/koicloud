@@ -90,6 +90,38 @@ describe("W2-15 Historial de suscripciones", () => {
     expect(trigger).toHaveFocus();
   });
 
+  it("does not dismiss on Escape while cancel is pending", async () => {
+    const user = userEvent.setup();
+    let releaseCancel: (() => void) | undefined;
+    const cancelGate = new Promise<void>((resolve) => {
+      releaseCancel = resolve;
+    });
+    server.use(
+      http.post("*/api/v1/subscriptions/:subscriptionId/cancel", async () => {
+        await cancelGate;
+        const subscription = {
+          ...fixtures.subscriptionResponse.subscription,
+          cancel_at_period_end: true,
+        };
+        return HttpResponse.json({ subscription }, { status: 202 });
+      }),
+    );
+    renderBilling();
+
+    await user.click(await screen.findByRole("button", { name: "Cancelar al corte" }));
+    const dialog = await screen.findByTestId("cancel-subscription-dialog");
+    await user.click(within(dialog).getByRole("button", { name: "Cancelar al corte" }));
+
+    expect(await within(dialog).findByRole("button", { name: "Cancelando…" })).toBeDisabled();
+    await user.keyboard("{Escape}");
+    expect(screen.getByTestId("cancel-subscription-dialog")).toBeInTheDocument();
+
+    releaseCancel?.();
+    await waitFor(() => {
+      expect(screen.queryByTestId("cancel-subscription-dialog")).not.toBeInTheDocument();
+    });
+  });
+
   it("shows an empty history without a pond", async () => {
     server.use(
       http.get("*/api/v1/subscriptions", () => {
