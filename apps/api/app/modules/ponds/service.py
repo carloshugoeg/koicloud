@@ -270,20 +270,24 @@ class PondService:
             status=JobStatus.QUEUED,
             payload=dict(failed.payload or self._agent_payload(pond)),
         )
-        status.observed_state = PondObservedState.PENDING
+        # CCR #131 UI phases: retry must show starting/stopping, never pending/En cola.
         status.healthy = False
         status.last_error = None
         status.updated_at = utc_now()
         if failed.type == JobType.CREATE_POND:
             pond.desired_state = PondDesiredState.RUNNING
+            status.observed_state = PondObservedState.STOPPED
         elif failed.type == JobType.START_POND:
             pond.desired_state = PondDesiredState.RUNNING
+            status.observed_state = PondObservedState.STOPPED
         elif failed.type == JobType.STOP_POND:
             pond.desired_state = PondDesiredState.STOPPED
             status.observed_state = PondObservedState.RUNNING
         elif failed.type == JobType.DELETE_POND:
             pond.desired_state = PondDesiredState.DELETED
             status.observed_state = PondObservedState.DELETING
+        else:
+            status.observed_state = PondObservedState.PENDING
 
         self.session.add(job)
         await self.session.flush()
