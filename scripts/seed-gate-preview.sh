@@ -117,11 +117,11 @@ def seed_fail(step: str, status: int, body: dict) -> None:
     raise SystemExit(1)
 
 
-def login_with_retry(base: str, email: str, password: str) -> str | None:
+def login_with_retry(base: str, email: str, password: str) -> tuple[str | None, int, dict]:
     import time
 
     last_status, last_body = 0, {}
-    for attempt in range(6):
+    for attempt in range(10):
         last_status, last_body = request(
             base,
             "POST",
@@ -129,28 +129,61 @@ def login_with_retry(base: str, email: str, password: str) -> str | None:
             {"email": email, "password": password},
         )
         if last_status == 200 and isinstance(last_body.get("access_token"), str):
-            return last_body["access_token"]
+            return last_body["access_token"], last_status, last_body
         # Blob lag after register/reseed on a cold preview instance.
-        if last_status in {401, 403, 404, 425, 429, 500, 502, 503, 504} and attempt < 5:
-            time.sleep(1.2 * (attempt + 1))
+        if last_status in {401, 403, 404, 425, 429, 500, 502, 503, 504} and attempt < 9:
+            time.sleep(0.8 * (attempt + 1))
             continue
         break
-    seed_fail("login", last_status, last_body if isinstance(last_body, dict) else {})
-    return None
+    return None, last_status, last_body if isinstance(last_body, dict) else {}
 
 
 def ensure_user(base: str, email: str, password: str, full_name: str) -> str:
-    status, body = request(
-        base,
-        "POST",
-        "/api/v1/auth/register",
-        {"email": email, "password": password, "full_name": full_name},
-    )
-    if status == 409 and code_of(body) == "email_taken":
-        # Idempotent re-seed: same email already present. Login must work with
-        # the password from KOI_GATE_CREDENTIALS_OUT (or this run's draft).
-        access = login_with_retry(base, email, password)
-        assert access is not None
+    """Upsert gate user, then prove login against the same base URL before continuing."""
+    import time
+
+    last_status, last_body = 0, {}
+    for round_i in range(8):
+        status, body = request(
+            base,
+            "POST",
+            "/api/v1/auth/register",
+            {"email": email, "password": password, "full_name": full_name},
+        )
+        last_status, last_body = status, body
+        if status == 409 and code_of(body) == "email_taken":
+            # Host without preview reseed — keep trying login with our password.
+            pass
+        elif status not in {200, 201}:
+            if round_i < 7:
+                time.sleep(0.8 * (round_i + 1))
+                continue
+            seed_fail("register", status, body)
+        elif body.get("email_verified") is not True:
+            token = body.get("verify_token")
+            if not isinstance(token, str) or not token:
+                if round_i < 7:
+                    time.sleep(0.8 * (round_i + 1))
+                    continue
+                seed_fail("verify_token", status, body)
+            verified = False
+            for attempt in range(6):
+                vstatus, vbody = request(base, "POST", "/api/v1/auth/verify", {"token": token})
+                if vstatus == 200 and vbody.get("email_verified") is True:
+                    verified = True
+                    break
+                time.sleep(0.8 * (attempt + 1))
+            if not verified and round_i < 7:
+                time.sleep(0.8 * (round_i + 1))
+                continue
+            if not verified:
+                seed_fail("verify", vstatus, vbody if isinstance(vbody, dict) else {})
+
+        access, lstatus, lbody = login_with_retry(base, email, password)
+        if access is None:
+            # Password did not stick on every instance — upsert again.
+            time.sleep(0.8 * (round_i + 1))
+            continue
         sstatus, sub = request(
             base,
             "POST",
@@ -159,37 +192,13 @@ def ensure_user(base: str, email: str, password: str, full_name: str) -> str:
             token=access,
         )
         if sstatus not in {200, 201, 202}:
-            seed_fail("subscribe", sstatus, sub)
+            # Auth worked; subscription may race — retry upsert round.
+            time.sleep(0.8 * (round_i + 1))
+            last_status, last_body = sstatus, sub
+            continue
         return access
-    if status not in {200, 201}:
-        seed_fail("register", status, body)
-    if body.get("email_verified") is not True:
-        token = body.get("verify_token")
-        if not isinstance(token, str) or not token:
-            seed_fail("verify_token", status, body)
-        import time
-
-        vstatus, vbody = 0, {}
-        for attempt in range(5):
-            vstatus, vbody = request(base, "POST", "/api/v1/auth/verify", {"token": token})
-            if vstatus == 200 and vbody.get("email_verified") is True:
-                break
-            if attempt < 4:
-                time.sleep(1.2 * (attempt + 1))
-        else:
-            seed_fail("verify", vstatus, vbody if isinstance(vbody, dict) else {})
-    access = login_with_retry(base, email, password)
-    assert access is not None
-    sstatus, sub = request(
-        base,
-        "POST",
-        "/api/v1/subscriptions",
-        {"plan_id": "pro"},
-        token=access,
-    )
-    if sstatus not in {200, 201, 202}:
-        seed_fail("subscribe", sstatus, sub)
-    return access
+    seed_fail("login", last_status, last_body if isinstance(last_body, dict) else {})
+    raise SystemExit(1)
 
 
 def load_record(path: str) -> dict | None:
@@ -273,12 +282,21 @@ def main() -> None:
         fail("refused credentials path", 2)
 
     record = load_record(out) if out else None
-    admin_password = secret_from(record, "admin")
-    user_password = secret_from(record, "user")
-    if admin_password is None:
-        admin_password = secrets_token()
-    if user_password is None:
-        user_password = secrets_token()
+    # Deterministic preview-sim fixtures so every CI run reseeds the same Blob rows.
+    # Override with KOI_GATE_*_PASSWORD; never print these values.
+    preview_seed = os.environ.get("KOI_ALLOW_PREVIEW_SEED", "").strip() == "1"
+    admin_password = (
+        os.environ.get("KOI_GATE_ADMIN_PASSWORD", "").strip()
+        or secret_from(record, "admin")
+        or ("KoiGateAdmin!preview-sim-v5" if preview_seed else None)
+        or secrets_token()
+    )
+    user_password = (
+        os.environ.get("KOI_GATE_USER_PASSWORD", "").strip()
+        or secret_from(record, "user")
+        or ("KoiGateUser!preview-sim-v5" if preview_seed else None)
+        or secrets_token()
+    )
 
     draft = {
         "base_url": base,

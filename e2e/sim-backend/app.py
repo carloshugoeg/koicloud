@@ -47,11 +47,11 @@ def _blob_key_base() -> str:
 def _blob_path() -> str:
     # Bump generation when durable schema/guards change so rolling alias
     # instances on older builds cannot pollute the live Blob key.
-    return f"koi-preview-sim-{_blob_key_base()}-v5.pkl"
+    return f"koi-preview-sim-{_blob_key_base()}-v6.pkl"
 
 
 def _users_blob_path() -> str:
-    return f"koi-preview-sim-{_blob_key_base()}-v5-users.json"
+    return f"koi-preview-sim-{_blob_key_base()}-v6-users.json"
 
 
 def _persist_path() -> str:
@@ -538,6 +538,10 @@ def route_register(
         full_name=_need_str(data, "full_name"),
         nit=nit if isinstance(nit, str) else None,
     )
+    # Flush users sidecar before the response so the next cold login sees the password.
+    blob = _blob_token()
+    if blob:
+        _save_users_sidecar_union(blob, STATE)
     return status, payload
 
 
@@ -549,14 +553,17 @@ def route_verify(
 ) -> tuple[int, dict[str, object]]:
     data = _json_dict(body)
     token = _need_str(data, "token")
-    try:
+    blob = _blob_token()
+    if not blob:
         return 200, state.verify(token)
+    load_persisted_state(force=True)
+    _load_users_sidecar(blob, STATE)
+    try:
+        return 200, STATE.verify(token)
     except SimError as exc:
         if exc.code != "token_invalid":
             raise
-        blob = _blob_token()
-        if not blob:
-            raise
+        time.sleep(0.2)
         load_persisted_state(force=True)
         _load_users_sidecar(blob, STATE)
         return 200, STATE.verify(token)
@@ -571,18 +578,20 @@ def route_login(
     data = _json_dict(body)
     email = _need_str(data, "email")
     password = _need_str(data, "password")
+    # Always rehydrate from the merge-only users sidecar before checking the password.
+    blob = _blob_token()
+    if blob:
+        load_persisted_state(force=True)
+        _load_users_sidecar(blob, STATE)
     try:
-        return 200, state.login(email, password)
+        return 200, STATE.login(email, password)
     except SimError as exc:
-        if exc.code != "invalid_credentials":
+        if exc.code != "invalid_credentials" or not blob:
             raise
-        # Pickle may have lost the user; users sidecar is the merge-only auth truth.
-        token = _blob_token()
-        if token:
-            load_persisted_state(force=True)
-            _load_users_sidecar(token, STATE)
-            return 200, STATE.login(email, password)
-        raise
+        time.sleep(0.2)
+        load_persisted_state(force=True)
+        _load_users_sidecar(blob, STATE)
+        return 200, STATE.login(email, password)
 
 
 def route_plans(
