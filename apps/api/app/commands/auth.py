@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
 from app.core.db import SessionLocal
 from app.core.enums import EmailTokenKind, UserRole, UserStatus
 from app.core.errors import AppError, ErrorCode
@@ -166,9 +167,14 @@ async def register_user(payload: RegisterUserRequest) -> RegisterUserResponse:
 
         plaintext = await _issue_email_token_row(session, user.id, EmailTokenKind.VERIFY_EMAIL)
         await session.commit()
-        # No mailer yet: surface the verify token once in API logs (pack R-03 console).
-        logger.info("verify_email token for %s: %s", payload.email, plaintext)
+        _log_verify_token_if_console(payload.email, plaintext)
         return RegisterUserResponse(user_id=user.id, email_verified=False)
+
+
+def _log_verify_token_if_console(email: str, plaintext: str) -> None:
+    """Surface plaintext verify token only for EMAIL_PROVIDER=console (pack R-03)."""
+    if get_settings().email_provider == "console":
+        logger.info("verify_email token for %s: %s", email, plaintext)
 
 
 async def verify_email(payload: VerifyEmailRequest) -> RegisterUserResponse:
