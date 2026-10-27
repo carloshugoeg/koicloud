@@ -38,6 +38,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/subscriptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin List Subscriptions */
+        get: operations["admin_list_subscriptions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/totals": {
         parameters: {
             query?: never;
@@ -784,6 +801,71 @@ export interface components {
             plan_id: string;
             /** Size Bytes */
             size_bytes?: number | null;
+        };
+        /**
+         * AdminSubscriptionListResponse
+         * @example {
+         *       "subscriptions": [
+         *         {
+         *           "cancel_at_period_end": false,
+         *           "current_period_end": "2026-10-22T20:00:00Z",
+         *           "current_period_start": "2026-09-22T20:00:00Z",
+         *           "id": "22222222-2222-2222-2222-222222222222",
+         *           "plan_id": "micro",
+         *           "status": "active",
+         *           "user_email": "carlos@koicloud.dev",
+         *           "user_id": "11111111-1111-1111-1111-111111111111"
+         *         }
+         *       ]
+         *     }
+         */
+        AdminSubscriptionListResponse: {
+            /** Next Cursor */
+            next_cursor?: string | null;
+            /** Subscriptions */
+            subscriptions: components["schemas"]["AdminSubscriptionOut"][];
+        };
+        /**
+         * AdminSubscriptionOut
+         * @example {
+         *       "cancel_at_period_end": false,
+         *       "current_period_end": "2026-10-22T20:00:00Z",
+         *       "current_period_start": "2026-09-22T20:00:00Z",
+         *       "id": "22222222-2222-2222-2222-222222222222",
+         *       "plan_id": "micro",
+         *       "status": "active",
+         *       "user_email": "carlos@koicloud.dev",
+         *       "user_id": "11111111-1111-1111-1111-111111111111"
+         *     }
+         */
+        AdminSubscriptionOut: {
+            /** Cancel At Period End */
+            cancel_at_period_end: boolean;
+            /**
+             * Current Period End
+             * Format: date-time
+             */
+            current_period_end: string;
+            /**
+             * Current Period Start
+             * Format: date-time
+             */
+            current_period_start: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Plan Id */
+            plan_id: string;
+            status: components["schemas"]["SubscriptionStatus"];
+            /** User Email */
+            user_email: string;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
         };
         /**
          * AdminTotalsOut
@@ -2719,6 +2801,55 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminPondListResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_list_subscriptions: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-KOI-Surface"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminSubscriptionListResponse"];
                 };
             };
             /** @description Unauthorized */

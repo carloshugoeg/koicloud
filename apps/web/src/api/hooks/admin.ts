@@ -5,6 +5,7 @@ import { ApiError } from "@/lib/errors";
 
 export type AdminUser = components["schemas"]["AdminUserOut"];
 export type AdminPond = components["schemas"]["AdminPondOut"];
+export type AdminSubscription = components["schemas"]["AdminSubscriptionOut"];
 export type AuditEvent = components["schemas"]["AuditEventOut"];
 
 export const SUSPEND_CONFIRM_TEXT = "SUSPENDER";
@@ -64,6 +65,19 @@ export function useAdminPondsQuery() {
     queryKey: ["admin", "ponds"],
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/admin/ponds");
+      if (error || !data) {
+        throw new ApiError(error);
+      }
+      return data;
+    },
+  });
+}
+
+export function useAdminSubscriptionsQuery() {
+  return useQuery({
+    queryKey: ["admin", "subscriptions"],
+    queryFn: async () => {
+      const { data, error } = await apiClient.GET("/api/v1/admin/subscriptions");
       if (error || !data) {
         throw new ApiError(error);
       }

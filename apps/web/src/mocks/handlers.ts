@@ -331,6 +331,13 @@ export const handlers = [
     return HttpResponse.json({ ponds: fixtures.adminPonds, next_cursor: null });
   }),
 
+  http.get(`${API_ROOT}/admin/subscriptions`, () => {
+    return HttpResponse.json({
+      subscriptions: fixtures.adminSubscriptions,
+      next_cursor: null,
+    });
+  }),
+
   http.get(`${API_ROOT}/admin/audit`, () => {
     return HttpResponse.json({ events: fixtures.adminAuditEvents, next_cursor: null });
   }),

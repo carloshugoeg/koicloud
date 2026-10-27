@@ -2,7 +2,7 @@
 id: W1-32
 workstream: W1
 persona: Carlos
-estado: bloqueado
+estado: en_revision
 rama: w1-admin-subscriptions
 epica: "E8-02"
 sprint: S4
@@ -20,11 +20,11 @@ suscripciones del sistema (email del dueño, plan, estado, periodo) vía
 
 ## Entradas ya decididas (no se cambian)
 
-- **CCR obligatorio:** [#128](https://github.com/carloshugoeg/koicloud/issues/128). No
-  implementar hasta que W1 lo apruebe en el issue. Ticket permanece `bloqueado`.
+- **CCR aprobado:** [#128](https://github.com/carloshugoeg/koicloud/issues/128) (amendment r3 /
+  issue [#96](https://github.com/carloshugoeg/koicloud/issues/96) comment 6445716121).
 - Amendment: issue [#96](https://github.com/carloshugoeg/koicloud/issues/96) A7 (risk high / money).
 - W2-10 marcó `hecho` las tres tablas; esta ruta quedó placeholder a propósito (sin endpoint).
-- Tras CCR: `AdminSubscriptionOut` + `admin_list_subscriptions` + pantalla + MSW + tests.
+- `AdminSubscriptionOut` + `admin_list_subscriptions` + pantalla + MSW + tests.
 - Paginación por cursor, sin filtros de query en v0 (precedente W3-12 ponds/audit).
 - **ID uniqueness:** W1-28 es [#124](https://github.com/carloshugoeg/koicloud/pull/124)
   retention; W1-30 es [#121](https://github.com/carloshugoeg/koicloud/pull/121) suspend;

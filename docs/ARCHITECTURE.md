@@ -67,7 +67,7 @@ flowchart TB
 | Mutar (CLI/MCP) | Primera llamada → `409 confirmation_required` + token; `POST /confirm/{token}` ejecuta el comando |
 | Respaldos | Worker agenda backup diario; restore encola job y pasa por confirmación en superficies no-Web |
 | Facturación | Planes y suscripciones en `billing`; pago simulado; PDF de factura con IVA |
-| Admin | Rutas bajo dependencia `get_admin_user`; listados de usuarios/ponds/auditoría y `GET /admin/totals` |
+| Admin | Rutas bajo dependencia `get_admin_user`; listados de usuarios/ponds/suscripciones/auditoría y `GET /admin/totals` |
 
 ---
 

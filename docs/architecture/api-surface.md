@@ -123,6 +123,7 @@ Todas requieren `role=admin`.
 | POST | `/admin/users/{id}/suspend` | `suspend_user` (siempre requiere confirm textual del admin en Web) | Suspende | `{user}` |
 | POST | `/admin/users/{id}/reactivate` | `reactivate_user` | Reactiva | `{user}` |
 | GET | `/admin/ponds` | `admin_list_ponds` | Todos los ponds; filtros | `[{admin_pond}]` con `size_bytes` y `last_error` |
+| GET | `/admin/subscriptions` | `admin_list_subscriptions` | Todas las suscripciones; sin filtros v0 | `{subscriptions:[{admin_subscription}], next_cursor}` |
 | GET | `/admin/totals` | `admin_get_totals` | Conteos globales, no por página | `{totals:{users, ponds, ponds_running}}`. `ponds` y `ponds_running` excluyen `desired_state=deleted`. `ponds_running` cuenta `observed_state=running` |
 | GET | `/admin/audit` | `admin_list_audit` | Últimos eventos sensibles | `[{event}]` |
 

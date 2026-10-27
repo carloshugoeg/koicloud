@@ -40,7 +40,7 @@ no existe todavía. `00-INDEX.md` no es un ticket y el agente lo ignora.
 | W1-29 | *(renumbered → W1-32 on #132)* | — | ver W1-32 |
 | W1-30 | Admin suspend reason in audit metadata | `w1-admin-suspend-reason` | en-revision · [#121](https://github.com/carloshugoeg/koicloud/pull/121) |
 | W1-31 | NIT checkout → invoice (#96 A2) | `w1-nit-checkout-invoice` | bloqueado · [#133](https://github.com/carloshugoeg/koicloud/pull/133) CCR #127 |
-| W1-32 | Admin subscriptions (#96 A7) | `w1-admin-subscriptions` | bloqueado · [#132](https://github.com/carloshugoeg/koicloud/pull/132) CCR #128 |
+| W1-32 | Admin subscriptions (#96 A7) | `w1-admin-subscriptions` | en_revision · [#132](https://github.com/carloshugoeg/koicloud/pull/132) CCR [#128](https://github.com/carloshugoeg/koicloud/issues/128) |
 | W1-33 | Pond stop/start + delete with backup first (Wave B1) | `w1-pond-stop-start` | en-curso · [#130](https://github.com/carloshugoeg/koicloud/pull/130) |
 | W1-34 | Expose size_bytes / admin totals / invoice link + MCP·CLI (A1) | `w1-expose-fields` | en-revision · [#136](https://github.com/carloshugoeg/koicloud/pull/136) · **no** `PlanOut.backup_retention_days` (#124/W1-28) |
 
