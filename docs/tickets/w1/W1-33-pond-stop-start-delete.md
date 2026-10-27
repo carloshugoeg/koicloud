@@ -74,4 +74,5 @@ No inventes endpoints, campos, tablas, códigos de error ni pantallas.
 
 `docs/architecture/diagrams/20-pond-lifecycle-stop-start-delete.mmd`,
 `docs/architecture/statecharts/pond-lifecycle/`, CCR #131, W1-17, W1-10,
-[how notes](https://github.com/carloshugoeg/koicloud/pull/130) from Wave B1 explorers.
+Wave B1 how notes on PR #130. PR body carries real `make check-web` /
+`check-cli` / `check-node-agent` output for the guards fence.
