@@ -1,0 +1,40 @@
+name: e2e-compose
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-compose-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compose-e2e:
+    name: compose-e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate prod compose + proxy + names-only env
+        run: bash infra/scripts/check-prod-compose.sh
+
+      - name: Run Wave C0 e2e suite against local compose
+        env:
+          E2E_REPORT_DIR: ${{ github.workspace }}/e2e/artifacts
+          AGENT_MODE: docker
+          NODE_PUBLIC_HOST: 127.0.0.1
+        run: |
+          chmod +x e2e/run.sh e2e/suite.sh e2e/lib.sh infra/deploy.sh infra/scripts/*.sh
+          bash e2e/run.sh
+
+      - name: Upload e2e report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-compose-report
+          path: e2e/artifacts/
+          if-no-files-found: warn

@@ -1,0 +1,37 @@
+# E2E overlay on the root stack + docker-agent.
+# Boots with: docker compose -f docker-compose.yml -f docker-compose.docker-agent.yml -f e2e/docker-compose.override.yml up -d --build
+#
+# Forces docker agent mode and stable ports for CI. Does not edit apps/.
+
+services:
+  api:
+    environment:
+      EMAIL_PROVIDER: console
+      PAYMENT_PROVIDER: simulated
+      JWT_SECRET: e2e-jwt-secret-not-for-production-00000000
+      NODE_TOKEN: e2e-node-token
+      NODE_ID: node-e2e
+      NODE_PUBLIC_HOST: 127.0.0.1
+      AGENT_MODE: docker
+
+  worker:
+    environment:
+      PAYMENT_PROVIDER: simulated
+      JWT_SECRET: e2e-jwt-secret-not-for-production-00000000
+      NODE_TOKEN: e2e-node-token
+      NODE_ID: node-e2e
+
+  node-agent:
+    environment:
+      AGENT_MODE: docker
+      NODE_ID: node-e2e
+      NODE_TOKEN: e2e-node-token
+      NODE_PUBLIC_HOST: 127.0.0.1
+      INTERNAL_API_URL: http://api:8000/internal/v1
+      BACKUP_DIR: /tmp/koicloud/backups
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - e2e_backups:/tmp/koicloud/backups
+
+volumes:
+  e2e_backups:
