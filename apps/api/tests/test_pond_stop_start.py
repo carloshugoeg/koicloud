@@ -223,3 +223,92 @@ def test_stop_failure_sets_error_then_retry() -> None:
     retried = client.post(f"/api/v1/ponds/{pond_id}/retry", headers=headers)
     assert retried.status_code == 202
     assert retried.json()["job"]["type"] == "stop_pond"
+
+
+def test_ccr131_r3_error_and_provisioning_transitions() -> None:
+    """Every CCR #131 r3 chart edge that the frozen contract can reach.
+
+    Chart edges covered:
+      stopping→error, starting→error, error→provisioning (via /retry),
+      provisioning→running, provisioning→error.
+
+    Chart edge error→starting via POST /start is *not* reachable: failed jobs
+    set observed=failed and start requires observed=stopped (409 pond_busy).
+    Recovery from error is POST /retry. Chart wrong on that arrow; contract kept.
+    """
+    reset_pond_tables()
+    headers = auth_headers()
+
+    # provisioning→error (create fails)
+    created = client.post("/api/v1/ponds", headers=headers, json={"name": "ccr131-prov-fail"})
+    assert created.status_code == 202
+    pond_id = created.json()["pond"]["id"]
+    create_job = created.json()["job"]["id"]
+    assert created.json()["pond"]["observed_state"] in {"pending", "provisioning"}
+    _complete_job(create_job, status="failed")
+    detail = client.get(f"/api/v1/ponds/{pond_id}", headers=headers)
+    assert detail.json()["pond"]["observed_state"] == "failed"
+
+    # error→provisioning via existing /retry (create_pond requeued)
+    retried = client.post(f"/api/v1/ponds/{pond_id}/retry", headers=headers)
+    assert retried.status_code == 202, retried.text
+    assert retried.json()["job"]["type"] == "create_pond"
+    retry_job = retried.json()["job"]["id"]
+    after_retry = client.get(f"/api/v1/ponds/{pond_id}", headers=headers)
+    assert after_retry.json()["pond"]["observed_state"] == "pending"
+    assert after_retry.json()["pond"]["desired_state"] == "running"
+
+    # provisioning→running
+    _complete_job(retry_job, result={"observed_state": "running"})
+    running = client.get(f"/api/v1/ponds/{pond_id}", headers=headers)
+    assert running.json()["pond"]["observed_state"] == "running"
+
+    # stopping→error
+    stop = client.post(f"/api/v1/ponds/{pond_id}/stop", headers=headers)
+    assert stop.status_code == 202
+    assert stop.json()["pond"]["desired_state"] == "stopped"
+    assert stop.json()["pond"]["observed_state"] == "running"
+    _complete_job(stop.json()["job"]["id"], status="failed")
+    stopped_fail = client.get(f"/api/v1/ponds/{pond_id}", headers=headers)
+    assert stopped_fail.json()["pond"]["observed_state"] == "failed"
+    assert stopped_fail.json()["pond"]["desired_state"] == "stopped"
+
+    # error→starting via POST /start: unreachable under contract (document 409)
+    unreachable = client.post(f"/api/v1/ponds/{pond_id}/start", headers=headers)
+    assert unreachable.status_code == 409
+    assert unreachable.json()["code"] == "pond_busy"
+
+    # recover stop failure via /retry → back toward stopping (not provisioning)
+    stop_retry = client.post(f"/api/v1/ponds/{pond_id}/retry", headers=headers)
+    assert stop_retry.status_code == 202
+    assert stop_retry.json()["job"]["type"] == "stop_pond"
+    _complete_job(stop_retry.json()["job"]["id"], result={"observed_state": "stopped"})
+    stopped_ok = client.get(f"/api/v1/ponds/{pond_id}", headers=headers)
+    assert stopped_ok.json()["pond"]["observed_state"] == "stopped"
+
+    # starting→error
+    start = client.post(f"/api/v1/ponds/{pond_id}/start", headers=headers)
+    assert start.status_code == 202
+    assert start.json()["pond"]["desired_state"] == "running"
+    assert start.json()["pond"]["observed_state"] == "stopped"
+    _complete_job(start.json()["job"]["id"], status="failed")
+    start_fail = client.get(f"/api/v1/ponds/{pond_id}", headers=headers)
+    assert start_fail.json()["pond"]["observed_state"] == "failed"
+    assert start_fail.json()["pond"]["desired_state"] == "running"
+
+    # error→starting via POST /start still unreachable; /retry requeues start_pond
+    still_busy = client.post(f"/api/v1/ponds/{pond_id}/start", headers=headers)
+    assert still_busy.status_code == 409
+    assert still_busy.json()["code"] == "pond_busy"
+
+    start_retry = client.post(f"/api/v1/ponds/{pond_id}/retry", headers=headers)
+    assert start_retry.status_code == 202
+    assert start_retry.json()["job"]["type"] == "start_pond"
+    after_start_retry = client.get(f"/api/v1/ponds/{pond_id}", headers=headers)
+    assert after_start_retry.json()["pond"]["observed_state"] == "pending"
+    assert after_start_retry.json()["pond"]["desired_state"] == "running"
+
+    _complete_job(start_retry.json()["job"]["id"], result={"observed_state": "running"})
+    final = client.get(f"/api/v1/ponds/{pond_id}", headers=headers)
+    assert final.json()["pond"]["observed_state"] == "running"
+
