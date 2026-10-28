@@ -11,17 +11,27 @@ import {
   confirmView,
   formatCountdown,
   parseConfirmLocation,
+  type ConfirmArrival,
 } from "@/features/confirm/proposal";
 
 export function ConfirmPage() {
   const location = useLocation();
-  const navigate = useNavigate();
-  const confirmAction = useConfirmActionMutation();
-  const discardConfirmation = useDiscardConfirmationMutation();
   const arrival = useMemo(
     () => parseConfirmLocation({ search: location.search, state: location.state }),
     [location.search, location.state],
   );
+  const proposalKey =
+    arrival.kind === "ready"
+      ? `${arrival.proposal.token}\0${arrival.proposal.summary}\0${arrival.proposal.expiresAt.toISOString()}`
+      : `invalid:${arrival.reason}`;
+
+  return <ConfirmSession key={proposalKey} arrival={arrival} />;
+}
+
+function ConfirmSession({ arrival }: { arrival: ConfirmArrival }) {
+  const navigate = useNavigate();
+  const confirmAction = useConfirmActionMutation();
+  const discardConfirmation = useDiscardConfirmationMutation();
   const [now, setNow] = useState(() => new Date());
   const [intent, setIntent] = useState<"confirm" | "discard" | null>(null);
   const intentRef = useRef<"confirm" | "discard" | null>(null);

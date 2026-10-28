@@ -172,6 +172,33 @@ describe("W2-16 confirm dialog", () => {
     expect(screen.queryByTestId("app-notice")).not.toBeInTheDocument();
   });
 
+  it("clears a stale catalog error when the confirm link changes", async () => {
+    const user = userEvent.setup();
+    const first = confirmSearch({
+      token: "conf_gate_r9_unknown_token" as ConfirmationProposal["token"],
+      summary: SUMMARY,
+      expiresAt: new Date(Date.now() + 5 * 60_000),
+    });
+    const router = renderAt(`/app/confirm${first}`);
+
+    await screen.findByTestId("confirm-summary");
+    await user.click(screen.getByRole("button", { name: "Confirmar" }));
+    expect(await screen.findByText("confirmation_not_found")).toBeInTheDocument();
+
+    const next = confirmSearch({
+      token: "conf_expired_gate_r9" as ConfirmationProposal["token"],
+      summary: "Otra propuesta",
+      expiresAt: new Date(Date.now() + 5 * 60_000),
+    });
+    await waitFor(async () => {
+      await router.navigate(`/app/confirm${next}`);
+      expect(screen.getByTestId("confirm-summary")).toHaveTextContent("Otra propuesta");
+    });
+    expect(screen.queryByText("confirmation_not_found")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("confirm-failure")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Confirmar" })).toBeEnabled();
+  });
+
   it("shows confirmation_expired and leaves Descartar available", async () => {
     const user = userEvent.setup();
     failConfirm(410, "confirmation_expired");

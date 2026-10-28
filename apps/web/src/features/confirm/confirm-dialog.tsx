@@ -123,7 +123,7 @@ export function ConfirmDialog({ view, onConfirm, onDiscard, onDismiss }: Confirm
             <div className="border-l-[3px] border-danger pl-3" role="alert" data-testid="confirm-failure">
               <p className="text-sm text-ink">{view.failure.message}</p>
               {view.failure.code ? (
-                <p className="mt-1 font-mono text-xs text-ink-faint">{view.failure.code}</p>
+                <p className="mt-1 font-mono text-xs text-ink-muted">{view.failure.code}</p>
               ) : null}
             </div>
           ) : null}
