@@ -1,0 +1,14 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.6.0 -- /workspace/apps/api/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /workspace/apps/api
+configfile: pyproject.toml
+plugins: platformdirs-4.12.2, asyncio-1.4.0, anyio-4.15.1
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 3 items
+
+app/modules/admin/tests/test_admin_users_api.py::test_suspend_user_stores_trimmed_reason_in_audit_metadata PASSED [ 33%]
+app/modules/admin/tests/test_admin_users_api.py::test_suspend_user_rejects_reason_over_500_chars PASSED [ 66%]
+app/modules/admin/tests/test_admin_users_api.py::test_suspend_missing_user_returns_user_not_found PASSED [100%]
+
+============================== 3 passed in 2.21s ===============================
