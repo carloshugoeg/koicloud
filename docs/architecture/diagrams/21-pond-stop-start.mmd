@@ -1,0 +1,30 @@
+---
+title: "Pond stop / start (CCR 131)"
+---
+stateDiagram-v2
+  [*] --> running
+
+  state "En línea" as running
+  state "Deteniendo…" as stopping
+  state "Detenido" as stopped
+  state "Iniciando…" as starting
+  state "Con fallas" as error
+
+  running --> stopping: POST /stop
+  stopping --> stopped: job stop ok
+  stopped --> starting: POST /start
+  starting --> running: job start ok
+
+  stopping --> error: job stop failed
+  starting --> error: job start failed
+
+  error --> stopping: POST /retry [stop_pond]
+  error --> starting: POST /retry [start_pond|create_pond]
+
+  %% 409 pond_busy — no phase change (documented, not drawn as self-loops):
+  %%   stopped  + POST /stop              → 409 (stop needs observed=running)
+  %%   running  + POST /start             → 409 (start needs observed=stopped)
+  %%   failed   + POST /start|/stop       → 409 (use POST /retry)
+  %%   stopping + POST /stop|/start       → 409 (job in flight)
+  %%   starting + POST /stop|/start       → 409 (job in flight)
+  %%   any + active queued|running job    → 409 (double-click / jobs_one_active)

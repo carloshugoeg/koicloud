@@ -25,6 +25,8 @@ Este directorio contiene las fuentes editables (`.mmd`) de los diagramas embebid
 | `17-pond-state-machine.mmd` | `data-model.md` §4.1 |
 | `18-job-state-machine.mmd` | `data-model.md` §4.2 |
 | `19-subscription-state-machine.mmd` | `data-model.md` §4.3 |
+| `20-pond-lifecycle-stop-start-delete.mmd` | Wave B1 agreed lifecycle (stop/start + delete with pre_delete backup). PNG beside the `.mmd`. Spec under `docs/architecture/statecharts/pond-lifecycle/`. |
+| `21-pond-stop-start.mmd` | CCR #131 stop/start flow (five phases: running, stopping, stopped, starting, error; `/retry` → stopping or starting by failed job type) + 409 `pond_busy` cases in-file and in `statecharts/pond-stop-start/README.md`. PNG/SVG beside the `.mmd`. |
 
 ## Cómo regenerar SVG
 

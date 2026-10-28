@@ -1,7 +1,7 @@
 # Contracts changelog
 
 - 2026-10-27 · CCR #151 PlanOut pricing · `PlanOut.currency` is the single-value enum `"USD"`; `unit_price` quantized to 4 decimals server-side. Pro hourly rate is one shared constant (`PRO_HOURLY_UNIT_PRICE_USD`) for GET /plans and metering. No migration.
-
+- 2026-10-27 · CCR #131 · `POST /ponds/{id}/stop` (`stop_pond`) and `POST /ponds/{id}/start` (`start_pond`) → `202 {pond, job}`. No migration.
 - 2026-10-26 · Issue #96 pricing amendment · `PlanOut` gains `billing_model` (`monthly`|`hourly`), `unit_price`, and `currency` on `GET /plans`. Display-only; `price_monthly_usd` and subscribe invoice math unchanged.
 - 2026-10-26 · CCR #125 admin suspend reason · `SuspendUserRequest.reason` optional (trim, max 500) stored in `audit_events.metadata.reason`. Error catalog gains `user_not_found` (404). No migration.
 - 2026-10-26 · Issue #96 amendment A1 · `PondOut.size_bytes`, `AdminPondOut.size_bytes` + `last_error`, `SubscriptionOut.invoice_id`, and `GET /admin/totals` (`admin_get_totals`). No migration.

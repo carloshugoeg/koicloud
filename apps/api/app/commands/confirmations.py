@@ -137,6 +137,20 @@ async def _dispatch(
             surface=AppSurface.MCP,
             confirm_token=confirm_token,
         )
+    elif action == "stop_pond":
+        result = await pond_commands.stop_pond(
+            actor,
+            UUID(str(payload["pond_id"])),
+            surface=AppSurface.MCP,
+            confirm_token=confirm_token,
+        )
+    elif action == "start_pond":
+        result = await pond_commands.start_pond(
+            actor,
+            UUID(str(payload["pond_id"])),
+            surface=AppSurface.MCP,
+            confirm_token=confirm_token,
+        )
     elif action == "retry_failed_job":
         result = await pond_commands.retry_failed_job(
             UUID(str(payload["pond_id"])),
