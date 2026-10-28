@@ -1,6 +1,7 @@
-import { HttpResponse, http } from "msw";
+import { HttpResponse, http, passthrough } from "msw";
 import type { components } from "@/api/schema";
 import { adminUser, fixtures } from "@/mocks/fixtures";
+import { isDemoLoginEmail, isRealPreviewBearer } from "@/mocks/preview-passthrough";
 
 const API_ROOT = "*/api/v1";
 const SUSPEND_CONFIRM_TEXT = "SUSPENDER";
@@ -46,6 +47,15 @@ export function resetAdminUsersState() {
 }
 
 export const handlers = [
+  // Real Preview sessions (JWT from seeded admin login) bypass MSW entirely.
+  // Returning undefined falls through to the demo handlers below (MSW 2).
+  http.all(`${API_ROOT}/*`, ({ request }) => {
+    if (isRealPreviewBearer(request)) {
+      return passthrough();
+    }
+    return undefined;
+  }),
+
   http.post(`${API_ROOT}/auth/register`, () => {
     return HttpResponse.json(
       {
@@ -65,8 +75,13 @@ export const handlers = [
 
   http.post(`${API_ROOT}/auth/login`, async ({ request }) => {
     const body = (await request.json()) as { email?: string };
-    // Preview/test-only admin seed (MSW). Never a real credential store.
-    if (body.email?.trim().toLowerCase() === adminUser.email) {
+    const email = body.email?.trim().toLowerCase() ?? "";
+    // Seeded Preview gate/admin logins must reach the real API (not MSW demo).
+    if (!isDemoLoginEmail(email)) {
+      return passthrough();
+    }
+    // Demo MSW admin (tests / local demo only). Never a real credential store.
+    if (email === adminUser.email.toLowerCase()) {
       return HttpResponse.json({
         access_token: "access_admin_token",
         refresh_token: "refresh_admin_token",
