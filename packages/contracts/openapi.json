@@ -2888,6 +2888,90 @@
         "title": "SQLResultResponse",
         "type": "object"
       },
+      "StartPondResponse": {
+        "additionalProperties": false,
+        "example": {
+          "job": {
+            "attempts": 0,
+            "created_at": "2026-09-22T20:00:00Z",
+            "id": "77777777-7777-7777-7777-777777777777",
+            "node_id": "node-sv-01",
+            "pond_id": "66666666-6666-6666-6666-666666666666",
+            "status": "queued",
+            "type": "start_pond"
+          },
+          "pond": {
+            "created_at": "2026-09-22T20:00:00Z",
+            "desired_state": "running",
+            "engine_version": "16",
+            "healthy": true,
+            "host_port": 15007,
+            "id": "66666666-6666-6666-6666-666666666666",
+            "name": "inventario-demo",
+            "node_id": "node-sv-01",
+            "observed_state": "stopped",
+            "plan_id": "micro",
+            "size_bytes": 124901,
+            "user_id": "11111111-1111-1111-1111-111111111111"
+          }
+        },
+        "properties": {
+          "job": {
+            "$ref": "#/components/schemas/JobOut"
+          },
+          "pond": {
+            "$ref": "#/components/schemas/PondOut"
+          }
+        },
+        "required": [
+          "pond",
+          "job"
+        ],
+        "title": "StartPondResponse",
+        "type": "object"
+      },
+      "StopPondResponse": {
+        "additionalProperties": false,
+        "example": {
+          "job": {
+            "attempts": 0,
+            "created_at": "2026-09-22T20:00:00Z",
+            "id": "77777777-7777-7777-7777-777777777777",
+            "node_id": "node-sv-01",
+            "pond_id": "66666666-6666-6666-6666-666666666666",
+            "status": "queued",
+            "type": "stop_pond"
+          },
+          "pond": {
+            "created_at": "2026-09-22T20:00:00Z",
+            "desired_state": "stopped",
+            "engine_version": "16",
+            "healthy": true,
+            "host_port": 15007,
+            "id": "66666666-6666-6666-6666-666666666666",
+            "name": "inventario-demo",
+            "node_id": "node-sv-01",
+            "observed_state": "running",
+            "plan_id": "micro",
+            "size_bytes": 124901,
+            "user_id": "11111111-1111-1111-1111-111111111111"
+          }
+        },
+        "properties": {
+          "job": {
+            "$ref": "#/components/schemas/JobOut"
+          },
+          "pond": {
+            "$ref": "#/components/schemas/PondOut"
+          }
+        },
+        "required": [
+          "pond",
+          "job"
+        ],
+        "title": "StopPondResponse",
+        "type": "object"
+      },
       "SubscribeRequest": {
         "additionalProperties": false,
         "example": {
@@ -6594,6 +6678,266 @@
         "summary": "List Sql History",
         "tags": [
           "sql"
+        ]
+      }
+    },
+    "/api/v1/ponds/{pond_id}/start": {
+      "post": {
+        "operationId": "start_pond",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pond_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Pond Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-KOI-Surface",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Surface"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-KOI-Confirm-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Confirm-Token"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StartPondResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfirmationRequiredResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Start Pond",
+        "tags": [
+          "ponds"
+        ]
+      }
+    },
+    "/api/v1/ponds/{pond_id}/stop": {
+      "post": {
+        "operationId": "stop_pond",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pond_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Pond Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-KOI-Surface",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Surface"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-KOI-Confirm-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Confirm-Token"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StopPondResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfirmationRequiredResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Stop Pond",
+        "tags": [
+          "ponds"
         ]
       }
     },

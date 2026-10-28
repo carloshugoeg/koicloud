@@ -64,6 +64,8 @@ from app.schemas import (
     RunSQLRequest,
     SQLHistoryResponse,
     SQLResultResponse,
+    StartPondResponse,
+    StopPondResponse,
     SubscribeRequest,
     SubscribeResponse,
     SubscriptionListResponse,
@@ -464,6 +466,52 @@ async def delete_pond(
     confirm_token: Annotated[str | None, Depends(get_confirmation_token)],
 ) -> Response:
     result = await pond_commands.delete_pond(
+        actor,
+        pond_id,
+        surface=surface,
+        confirm_token=confirm_token,
+    )
+    return _render(result, success_status=status.HTTP_202_ACCEPTED)
+
+
+@router.post(
+    "/ponds/{pond_id}/stop",
+    response_model=StopPondResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    operation_id="stop_pond",
+    tags=["ponds"],
+    responses=_error_responses(401, 403, 404, 409, 503, confirmation=True),
+)
+async def stop_pond(
+    pond_id: UUID,
+    actor: Annotated[AuthContext, Depends(get_current_user)],
+    surface: Annotated[AppSurface, Depends(get_surface)],
+    confirm_token: Annotated[str | None, Depends(get_confirmation_token)],
+) -> Response:
+    result = await pond_commands.stop_pond(
+        actor,
+        pond_id,
+        surface=surface,
+        confirm_token=confirm_token,
+    )
+    return _render(result, success_status=status.HTTP_202_ACCEPTED)
+
+
+@router.post(
+    "/ponds/{pond_id}/start",
+    response_model=StartPondResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    operation_id="start_pond",
+    tags=["ponds"],
+    responses=_error_responses(401, 403, 404, 409, 503, confirmation=True),
+)
+async def start_pond(
+    pond_id: UUID,
+    actor: Annotated[AuthContext, Depends(get_current_user)],
+    surface: Annotated[AppSurface, Depends(get_surface)],
+    confirm_token: Annotated[str | None, Depends(get_confirmation_token)],
+) -> Response:
+    result = await pond_commands.start_pond(
         actor,
         pond_id,
         surface=surface,

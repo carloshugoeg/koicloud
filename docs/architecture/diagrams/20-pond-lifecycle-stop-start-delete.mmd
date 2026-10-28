@@ -1,0 +1,73 @@
+---
+title: "Pond lifecycle"
+config:
+  markdownAutoWrap: false
+  state:
+    useMaxWidth: false
+---
+stateDiagram-v2
+  %% labels in full
+  classDef works fill:#f4f6f7,stroke:#566573,color:#1b2631
+  classDef wrong fill:#fdedec,stroke:#c0392b,color:#7b241c
+  classDef fixed fill:#e9f7ef,stroke:#1e8449,color:#145a32
+  classDef mixed fill:#fdebd0,stroke:#d35400,color:#7e5109
+  classDef after fill:#ffffff,stroke:#808b96,color:#566573
+  classDef worse fill:#f4ecf7,stroke:#7d3c98,color:#4a235a
+  classDef worksPath fill:#f4f6f7,stroke:#1f3a93,stroke-width:4px,color:#1b2631
+  classDef wrongPath fill:#fdedec,stroke:#1f3a93,stroke-width:4px,color:#7b241c
+  classDef fixedPath fill:#e9f7ef,stroke:#1f3a93,stroke-width:4px,color:#145a32
+  classDef mixedPath fill:#fdebd0,stroke:#1f3a93,stroke-width:4px,color:#7e5109
+  classDef afterPath fill:#ffffff,stroke:#1f3a93,stroke-width:4px,color:#566573
+  classDef worsePath fill:#f4ecf7,stroke:#1f3a93,stroke-width:4px,color:#4a235a
+  state "Legend" as legend {
+    state "Works" as legendWorks
+  }
+  class legendWorks works
+  state "Keep it off | Broken" as s0
+  state "Keep it off | Offline" as s1
+  state "Keep it off | Online" as s2
+  state "Keep it on | Broken" as s3
+  state "Keep it on | Not ready yet" as s4
+  state "Keep it on | Offline" as s5
+  state "Keep it on | Online" as s6
+  state "Remove it | Being removed" as s7
+  state "Remove it | Broken" as s8
+  state "Remove it | Gone" as s9
+  state "Remove it | Saving a last<br/>backup" as s10
+  [*] --> s4
+  s4 --> s6 : create finishes
+  s4 --> s3 : create fails
+  s6 --> s2 : you stop
+  s6 --> s10 : you delete
+  s6 --> s3 : restore fails
+  s3 --> s10 : you delete
+  s3 --> s6 : start finishes
+  s3 --> s4 : you retry create
+  s2 --> s10 : you delete
+  s2 --> s1 : stop finishes
+  s2 --> s0 : stop fails
+  s10 --> s7 : last backup finishes
+  s10 --> s8 : last backup fails
+  s1 --> s5 : you start
+  s1 --> s10 : you delete
+  s0 --> s10 : you delete
+  s0 --> s1 : stop finishes
+  s7 --> s9 : delete finishes
+  s7 --> s8 : delete fails
+  s8 --> s10 : you retry last backup
+  s8 --> s7 : you retry delete
+  s5 --> s10 : you delete
+  s5 --> s6 : start finishes
+  s5 --> s3 : start fails
+  s6 --> s6 : restore finishes
+  class s0 works
+  class s1 works
+  class s2 works
+  class s3 works
+  class s4 works
+  class s5 works
+  class s6 works
+  class s7 works
+  class s8 works
+  class s9 works
+  class s10 works

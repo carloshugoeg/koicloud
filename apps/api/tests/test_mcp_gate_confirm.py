@@ -42,6 +42,8 @@ def test_mcp_info_requires_gate_and_lists_tools() -> None:
     assert "confirm_action" in body["mutable_tools"]
     assert "restore_backup" in body["mutable_tools"]
     assert "run_sql" in body["mutable_tools"]
+    assert "stop_pond" in body["mutable_tools"]
+    assert "start_pond" in body["mutable_tools"]
 
 
 def test_mcp_create_pond_propose_and_confirm() -> None:

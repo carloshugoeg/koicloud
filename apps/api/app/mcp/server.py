@@ -70,6 +70,30 @@ async def delete_pond(name: str) -> dict[str, Any]:
 
 
 @mcp.tool
+async def stop_pond(name: str) -> dict[str, Any]:
+    actor = require_mcp_actor()
+    pond = await pond_commands.get_pond_by_name(actor, name)
+    result = await pond_commands.stop_pond(
+        actor,
+        pond.pond.id,
+        surface=AppSurface.MCP,
+    )
+    return _dump(result)
+
+
+@mcp.tool
+async def start_pond(name: str) -> dict[str, Any]:
+    actor = require_mcp_actor()
+    pond = await pond_commands.get_pond_by_name(actor, name)
+    result = await pond_commands.start_pond(
+        actor,
+        pond.pond.id,
+        surface=AppSurface.MCP,
+    )
+    return _dump(result)
+
+
+@mcp.tool
 async def restore_backup(pond_name: str, backup_id: str) -> dict[str, Any]:
     actor = require_mcp_actor()
     pond = await pond_commands.get_pond_by_name(actor, pond_name)
