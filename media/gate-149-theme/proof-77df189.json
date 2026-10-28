@@ -1,0 +1,46 @@
+{
+  "tip": "77df189",
+  "tipFull": "77df189f4cd4f15a6329f62ae1663a8ce6a84ead",
+  "preview": "https://koicloud-web-git-w1-preview-api-1348c2-hugos-projects-3379fa36.vercel.app",
+  "path": "/app/plans",
+  "viewports": [
+    375,
+    768,
+    1440
+  ],
+  "results": [
+    {
+      "width": 375,
+      "bgs": [
+        "rgb(10, 109, 100)",
+        "rgb(10, 109, 100)",
+        "rgb(10, 109, 100)"
+      ],
+      "filled": true,
+      "file": "plans-375-77df189.png"
+    },
+    {
+      "width": 768,
+      "bgs": [
+        "rgb(10, 109, 100)",
+        "rgb(10, 109, 100)",
+        "rgb(10, 109, 100)"
+      ],
+      "filled": true,
+      "file": "plans-768-77df189.png"
+    },
+    {
+      "width": 1440,
+      "bgs": [
+        "rgb(10, 109, 100)",
+        "rgb(10, 109, 100)",
+        "rgb(10, 109, 100)"
+      ],
+      "filled": true,
+      "file": "plans-1440-77df189.png"
+    }
+  ],
+  "themeOwner": "#149 / W1",
+  "ctaWrapOwner": "#137 907c76c",
+  "note": "Filled plan buttons = done-when. CTA wrap left to #137."
+}
