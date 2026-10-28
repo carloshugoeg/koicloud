@@ -6,7 +6,8 @@ import {
   type AgentAccess,
 } from "@/api/hooks/agent-access";
 import { ApiError, problemToMessage } from "@/lib/errors";
-import { buildAgentSnippet, SNIPPET_CLIENTS, type SnippetClientId } from "@/features/agent-access/snippets";
+import { AgentSnippets } from "@/features/agent-access/agent-snippets";
+import { buildAgentSnippet, type SnippetClientId } from "@/features/agent-access/snippets";
 
 type SecretPhase = { phase: "sealed" } | { phase: "revealed"; password: string } | { phase: "dismissed" };
 
@@ -240,40 +241,13 @@ function AgentAccessCard({
         ) : null}
       </section>
 
-      <section className="rounded-md border border-line bg-bone-raised p-5" data-testid="agent-snippets">
-        <div role="tablist" aria-label="Clientes del agente" className="flex flex-wrap gap-2">
-          {SNIPPET_CLIENTS.map((client) => {
-            const selected = tab === client.id;
-            return (
-              <button
-                key={client.id}
-                type="button"
-                role="tab"
-                aria-selected={selected}
-                className={
-                  selected
-                    ? "h-9 rounded-sm bg-turquoise-700 px-4 text-sm font-medium text-bone-raised"
-                    : "h-9 rounded-sm border border-line-control bg-bone px-4 text-sm font-medium text-ink"
-                }
-                onClick={() => onTab(client.id)}
-              >
-                {client.label}
-              </button>
-            );
-          })}
-        </div>
-        <pre className="mt-4 overflow-x-auto rounded-sm bg-ink p-4 font-mono text-xs text-bone-raised" data-testid="agent-snippet">
-          {snippet}
-        </pre>
-        <button
-          type="button"
-          className="mt-3 h-9 rounded-sm border border-line-control bg-bone-raised px-4 text-sm font-medium text-turquoise-700"
-          onClick={() => onCopy("snippet", snippet)}
-          data-testid="copy-agent-snippet"
-        >
-          {copied === "snippet" ? "Snippet copiado" : "Copiar snippet"}
-        </button>
-      </section>
+      <AgentSnippets
+        snippet={snippet}
+        tab={tab}
+        copied={copied === "snippet"}
+        onTab={onTab}
+        onCopy={() => onCopy("snippet", snippet)}
+      />
     </div>
   );
 }
