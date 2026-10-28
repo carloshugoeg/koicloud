@@ -1,10 +1,36 @@
 @import "tailwindcss";
 @import "./styles/data-states.css";
 
-/* TODO(#134/#137): primary button utilities (bg-turquoise-700, text-bone-raised)
-   render as plain text until @theme inline lands. Do NOT duplicate that block here —
-   PR #137 owns theme CSS. After #137 merges to main, merge origin/main into this
-   branch (merge commit only) and verify «Respaldar ahora» fills turquoise-700. */
+/* Preview-self-contained: Tailwind 4 emits color utilities from @theme only.
+   KoiCloud token colors (not #137's shadcn semantic aliases). */
+@theme inline {
+  --color-bone: var(--bone);
+  --color-bone-raised: var(--bone-raised);
+  --color-bone-sunk: var(--bone-sunk);
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+  --color-line: var(--line);
+  --color-line-control: var(--line-control);
+  --color-turquoise-100: var(--turquoise-100);
+  --color-turquoise-300: var(--turquoise-300);
+  --color-turquoise-500: var(--turquoise-500);
+  --color-turquoise-700: var(--turquoise-700);
+  --color-turquoise-900: var(--turquoise-900);
+  --color-green-100: var(--green-100);
+  --color-green-500: var(--green-500);
+  --color-green-700: var(--green-700);
+  --color-green-900: var(--green-900);
+  --color-koi: var(--koi);
+  --color-koi-soft: var(--koi-soft);
+  --color-marigold: var(--marigold);
+  --color-lagoon: var(--lagoon);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+}
 
 :root {
   /* ── Sustrato: papel ───────────────────────────────────────────── */
@@ -173,6 +199,18 @@ button:disabled {
   font-family: var(--font-display);
   font-variation-settings: "SOFT" 0, "WONK" 0, "opsz" 48;
   letter-spacing: -0.02em;
+}
+
+.shadow-print {
+  box-shadow: var(--shadow-print);
+}
+
+.shadow-dialog {
+  box-shadow: var(--shadow-dialog);
+}
+
+.shadow-focus {
+  box-shadow: var(--shadow-focus);
 }
 
 @keyframes koi-swim { to { background-position-x: -512px; } }

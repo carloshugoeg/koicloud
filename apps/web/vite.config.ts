@@ -2,11 +2,12 @@ import path from "node:path";
 import { fileURLToPath, URL } from "node:url";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
+import { forbidMocksInProduction } from "./src/vite-plugins/forbid-mocks-in-production";
 
 const rootDir = fileURLToPath(new URL(".", import.meta.url));
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), forbidMocksInProduction()],
   resolve: {
     alias: {
       "@": path.join(rootDir, "src"),

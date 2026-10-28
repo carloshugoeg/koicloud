@@ -2993,12 +2993,25 @@
       "SuspendUserRequest": {
         "additionalProperties": false,
         "example": {
-          "confirm_text": "SUSPENDER"
+          "confirm_text": "SUSPENDER",
+          "reason": "abuso de recursos"
         },
         "properties": {
           "confirm_text": {
             "title": "Confirm Text",
             "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
           }
         },
         "required": [
