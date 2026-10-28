@@ -553,6 +553,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ponds/{pond_id}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start Pond */
+        post: operations["start_pond"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ponds/{pond_id}/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stop Pond */
+        post: operations["stop_pond"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ready": {
         parameters: {
             query?: never;
@@ -2304,6 +2338,70 @@ export interface components {
             rows: unknown[][];
             /** Truncated */
             truncated: boolean;
+        };
+        /**
+         * StartPondResponse
+         * @example {
+         *       "job": {
+         *         "attempts": 0,
+         *         "created_at": "2026-09-22T20:00:00Z",
+         *         "id": "77777777-7777-7777-7777-777777777777",
+         *         "node_id": "node-sv-01",
+         *         "pond_id": "66666666-6666-6666-6666-666666666666",
+         *         "status": "queued",
+         *         "type": "start_pond"
+         *       },
+         *       "pond": {
+         *         "created_at": "2026-09-22T20:00:00Z",
+         *         "desired_state": "running",
+         *         "engine_version": "16",
+         *         "healthy": true,
+         *         "host_port": 15007,
+         *         "id": "66666666-6666-6666-6666-666666666666",
+         *         "name": "inventario-demo",
+         *         "node_id": "node-sv-01",
+         *         "observed_state": "stopped",
+         *         "plan_id": "micro",
+         *         "size_bytes": 124901,
+         *         "user_id": "11111111-1111-1111-1111-111111111111"
+         *       }
+         *     }
+         */
+        StartPondResponse: {
+            job: components["schemas"]["JobOut"];
+            pond: components["schemas"]["PondOut"];
+        };
+        /**
+         * StopPondResponse
+         * @example {
+         *       "job": {
+         *         "attempts": 0,
+         *         "created_at": "2026-09-22T20:00:00Z",
+         *         "id": "77777777-7777-7777-7777-777777777777",
+         *         "node_id": "node-sv-01",
+         *         "pond_id": "66666666-6666-6666-6666-666666666666",
+         *         "status": "queued",
+         *         "type": "stop_pond"
+         *       },
+         *       "pond": {
+         *         "created_at": "2026-09-22T20:00:00Z",
+         *         "desired_state": "stopped",
+         *         "engine_version": "16",
+         *         "healthy": true,
+         *         "host_port": 15007,
+         *         "id": "66666666-6666-6666-6666-666666666666",
+         *         "name": "inventario-demo",
+         *         "node_id": "node-sv-01",
+         *         "observed_state": "running",
+         *         "plan_id": "micro",
+         *         "size_bytes": 124901,
+         *         "user_id": "11111111-1111-1111-1111-111111111111"
+         *       }
+         *     }
+         */
+        StopPondResponse: {
+            job: components["schemas"]["JobOut"];
+            pond: components["schemas"]["PondOut"];
         };
         /**
          * SubscribeRequest
@@ -4616,6 +4714,164 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_pond: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-KOI-Surface"?: string | null;
+                "X-KOI-Confirm-Token"?: string | null;
+            };
+            path: {
+                pond_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StartPondResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfirmationRequiredResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    stop_pond: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-KOI-Surface"?: string | null;
+                "X-KOI-Confirm-Token"?: string | null;
+            };
+            path: {
+                pond_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StopPondResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfirmationRequiredResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
         };

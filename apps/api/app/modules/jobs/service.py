@@ -105,6 +105,10 @@ class JobService:
             status.observed_state = PondObservedState.RUNNING
             status.healthy = True
             status.last_error = None
+        elif payload.status == "succeeded" and job.type == JobType.STOP_POND:
+            status.observed_state = PondObservedState.STOPPED
+            status.healthy = False
+            status.last_error = None
         elif payload.status == "succeeded" and job.type == JobType.DELETE_POND:
             status.observed_state = PondObservedState.DELETED
             status.healthy = False

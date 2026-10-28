@@ -316,20 +316,22 @@ stateDiagram-v2
     pending --> provisioning: job create_pond claimed
     provisioning --> running: job succeeded
     provisioning --> failed: job failed (attempts=3)
-    running --> stopped: user stop (fuera de MVP)
+    running --> stopped: POST /stop + stop_pond succeeded
     running --> restoring: restore_pond claimed
     restoring --> running: restore succeeded
     restoring --> failed: restore failed
     running --> deleting: desired=deleted + backup_pond succeeded
     deleting --> deleted: delete_pond succeeded
     failed --> pending: user retry
-    stopped --> pending: user start
+    stopped --> running: POST /start + start_pond succeeded
     deleted --> [*]
 ```
 
-- `desired_state` es lo que el usuario pidió (`running` o `deleted` en MVP; `stopped` deja huella para el futuro pero no expone endpoint).
+- `desired_state` ∈ `running` | `stopped` | `deleted` (escrito por el usuario/comandos; `POST /ponds/{id}/stop|start` escribe `stopped`/`running`).
+- `stopping` / `starting` son fases UI (`desired ≠ observed` + job en vuelo); el enum observado no las incluye.
 - `observed_state` lo cambia el node-agent al completar jobs y en cada heartbeat.
 - El reconciler NO cambia estados; **encola jobs**.
+- Wrong-state o job activo en stop/start → `409 pond_busy` (sin código nuevo).
 
 ### 4.2 Job
 
