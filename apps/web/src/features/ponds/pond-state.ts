@@ -1,4 +1,4 @@
-import type { PondObservedState } from "@/api/hooks/ponds";
+import type { Pond, PondObservedState } from "@/api/hooks/ponds";
 
 export interface PondStateMeta {
   label: string;
@@ -58,6 +58,40 @@ export const POND_STATE_META: Record<PondObservedState, PondStateMeta> = {
   },
 };
 
+const STOPPING: PondStateMeta = {
+  label: "Deteniendo…",
+  badgeClass: "bg-turquoise-100 text-ink",
+  cellClass: "bg-turquoise-300",
+  glyph: "◐",
+};
+
+const STARTING: PondStateMeta = {
+  label: "Iniciando…",
+  badgeClass: "bg-turquoise-100 text-ink",
+  cellClass: "bg-turquoise-300",
+  glyph: "◐",
+};
+
 export function pondStateMeta(state: PondObservedState): PondStateMeta {
   return POND_STATE_META[state];
+}
+
+/** UI phase: stopping/starting when desired≠observed with stop/start in flight. */
+export function pondDisplayMeta(pond: Pick<Pond, "desired_state" | "observed_state">): PondStateMeta {
+  if (pond.desired_state === "stopped" && pond.observed_state === "running") {
+    return STOPPING;
+  }
+  if (pond.desired_state === "running" && pond.observed_state === "stopped") {
+    return STARTING;
+  }
+  return pondStateMeta(pond.observed_state);
+}
+
+export function pondLifecycleInFlight(
+  pond: Pick<Pond, "desired_state" | "observed_state">,
+): boolean {
+  return (
+    (pond.desired_state === "stopped" && pond.observed_state === "running") ||
+    (pond.desired_state === "running" && pond.observed_state === "stopped")
+  );
 }

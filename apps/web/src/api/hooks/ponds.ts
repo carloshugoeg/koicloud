@@ -29,8 +29,16 @@ export function pondIsTransient(state: PondObservedState | undefined): boolean {
   return Boolean(state && TRANSIENT_STATES.has(state));
 }
 
+export function pondNeedsPolling(pond: Pond | undefined): boolean {
+  if (!pond) return false;
+  if (pondIsTransient(pond.observed_state)) return true;
+  if (pond.desired_state === "stopped" && pond.observed_state === "running") return true;
+  if (pond.desired_state === "running" && pond.observed_state === "stopped") return true;
+  return false;
+}
+
 function pondsNeedPolling(ponds: Pond[] | undefined): boolean {
-  return Boolean(ponds?.some((pond) => pondIsTransient(pond.observed_state)));
+  return Boolean(ponds?.some((pond) => pondNeedsPolling(pond)));
 }
 
 export function usePondsQuery() {
@@ -52,8 +60,7 @@ export function useGetPond(pondId: string | undefined) {
       if (error || !data) throw new ApiError(error);
       return data.pond;
     },
-    refetchInterval: (query) =>
-      pondIsTransient(query.state.data?.observed_state) ? POLL_MS : false,
+    refetchInterval: (query) => (pondNeedsPolling(query.state.data) ? POLL_MS : false),
   });
 }
 
@@ -119,6 +126,59 @@ export function useRestoreBackupMutation(pondId: string) {
       void queryClient.invalidateQueries({ queryKey: ["ponds", pondId] });
       void queryClient.invalidateQueries({ queryKey: ["ponds", pondId, "backups"] });
       void queryClient.invalidateQueries({ queryKey: ["ponds"] });
+    },
+  });
+}
+
+export function useStopPondMutation(pondId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { data, error } = await apiClient.POST("/api/v1/ponds/{pond_id}/stop", {
+        params: { path: { pond_id: pondId } },
+      });
+      if (error || !data) throw new ApiError(error);
+      return data;
+    },
+    onSuccess: (data) => {
+      void queryClient.setQueryData(["ponds", pondId], data.pond);
+      void queryClient.invalidateQueries({ queryKey: ["ponds"] });
+      void queryClient.invalidateQueries({ queryKey: ["ponds", pondId] });
+    },
+  });
+}
+
+export function useStartPondMutation(pondId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { data, error } = await apiClient.POST("/api/v1/ponds/{pond_id}/start", {
+        params: { path: { pond_id: pondId } },
+      });
+      if (error || !data) throw new ApiError(error);
+      return data;
+    },
+    onSuccess: (data) => {
+      void queryClient.setQueryData(["ponds", pondId], data.pond);
+      void queryClient.invalidateQueries({ queryKey: ["ponds"] });
+      void queryClient.invalidateQueries({ queryKey: ["ponds", pondId] });
+    },
+  });
+}
+
+export function useRetryFailedJobMutation(pondId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { data, error } = await apiClient.POST("/api/v1/ponds/{pond_id}/retry", {
+        params: { path: { pond_id: pondId } },
+      });
+      if (error || !data) throw new ApiError(error);
+      return data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["ponds"] });
+      void queryClient.invalidateQueries({ queryKey: ["ponds", pondId] });
     },
   });
 }
