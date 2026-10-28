@@ -121,7 +121,7 @@ export const adminAuditEvents: AuditEvent[] = [
     actor_user_id: "22222222-2222-2222-2222-222222222222",
     target_kind: "user",
     target_id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
-    metadata: { motivo: "abuso de recursos", source: "web" },
+    metadata: { reason: "abuso de recursos", source: "web" },
   },
   {
     id: "cccccccc-cccc-cccc-cccc-cccccccccccc",

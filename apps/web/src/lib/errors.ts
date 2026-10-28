@@ -26,6 +26,7 @@ const CATALOG: Record<ApiProblem["code"], string> = {
   agent_bad_credentials: "Las credenciales del agente no son válidas.",
   not_owner: "No tenés permiso para ver ese recurso.",
   admin_only: "Esta pantalla es solo para administradores.",
+  user_not_found: "No existe el usuario solicitado.",
   rate_limited: "Hiciste demasiados intentos. Esperá un momento.",
   disk_full: "No hay espacio suficiente para completar la operación.",
   internal_error: "Algo salió mal. Revisá los logs e intentá de nuevo.",

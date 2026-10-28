@@ -1,0 +1,215 @@
+{
+  "tip": "dd60c7b",
+  "tipFull": "dd60c7b86163fee96a72469eb5247cb12c19b17f",
+  "preview": "https://koicloud-web-git-w1-preview-api-1348c2-hugos-projects-3379fa36.vercel.app",
+  "path": "/app/plans",
+  "viewports": [
+    375,
+    768,
+    1440
+  ],
+  "results": [
+    {
+      "width": 375,
+      "ok": true,
+      "details": [
+        {
+          "text": "Elegir plan Micro",
+          "box": {
+            "x": 58,
+            "y": 490,
+            "width": 259,
+            "height": 36
+          },
+          "bg": "rgb(10, 109, 100)",
+          "whiteSpace": "nowrap",
+          "overflow": "visible",
+          "textOverflow": "clip",
+          "clientWidth": 259,
+          "scrollWidth": 259,
+          "clientHeight": 36,
+          "scrollHeight": 36,
+          "noOverflow": true,
+          "filled": true,
+          "nowrap": true
+        },
+        {
+          "text": "Elegir plan Pro",
+          "box": {
+            "x": 57,
+            "y": 841,
+            "width": 261,
+            "height": 36
+          },
+          "bg": "rgb(10, 109, 100)",
+          "whiteSpace": "nowrap",
+          "overflow": "visible",
+          "textOverflow": "clip",
+          "clientWidth": 261,
+          "scrollWidth": 261,
+          "clientHeight": 36,
+          "scrollHeight": 36,
+          "noOverflow": true,
+          "filled": true,
+          "nowrap": true
+        },
+        {
+          "text": "Elegir plan Sandbox",
+          "box": {
+            "x": 57,
+            "y": 1191,
+            "width": 261,
+            "height": 36
+          },
+          "bg": "rgb(10, 109, 100)",
+          "whiteSpace": "nowrap",
+          "overflow": "visible",
+          "textOverflow": "clip",
+          "clientWidth": 261,
+          "scrollWidth": 261,
+          "clientHeight": 36,
+          "scrollHeight": 36,
+          "noOverflow": true,
+          "filled": true,
+          "nowrap": true
+        }
+      ],
+      "file": "plans-375-dd60c7b.png"
+    },
+    {
+      "width": 768,
+      "ok": true,
+      "details": [
+        {
+          "text": "Elegir plan Micro",
+          "box": {
+            "x": 138,
+            "y": 557,
+            "width": 137.328125,
+            "height": 36
+          },
+          "bg": "rgb(10, 109, 100)",
+          "whiteSpace": "nowrap",
+          "overflow": "visible",
+          "textOverflow": "clip",
+          "clientWidth": 137,
+          "scrollWidth": 137,
+          "clientHeight": 36,
+          "scrollHeight": 36,
+          "noOverflow": true,
+          "filled": true,
+          "nowrap": true
+        },
+        {
+          "text": "Elegir plan Pro",
+          "box": {
+            "x": 350.328125,
+            "y": 558,
+            "width": 139.328125,
+            "height": 36
+          },
+          "bg": "rgb(10, 109, 100)",
+          "whiteSpace": "nowrap",
+          "overflow": "visible",
+          "textOverflow": "clip",
+          "clientWidth": 139,
+          "scrollWidth": 139,
+          "clientHeight": 36,
+          "scrollHeight": 36,
+          "noOverflow": true,
+          "filled": true,
+          "nowrap": true
+        },
+        {
+          "text": "Elegir plan Sandbox",
+          "box": {
+            "x": 563.65625,
+            "y": 558,
+            "width": 139.328125,
+            "height": 36
+          },
+          "bg": "rgb(10, 109, 100)",
+          "whiteSpace": "nowrap",
+          "overflow": "visible",
+          "textOverflow": "clip",
+          "clientWidth": 139,
+          "scrollWidth": 139,
+          "clientHeight": 36,
+          "scrollHeight": 36,
+          "noOverflow": true,
+          "filled": true,
+          "nowrap": true
+        }
+      ],
+      "file": "plans-768-dd60c7b.png"
+    },
+    {
+      "width": 1440,
+      "ok": true,
+      "details": [
+        {
+          "text": "Elegir plan Micro",
+          "box": {
+            "x": 354,
+            "y": 494,
+            "width": 281.328125,
+            "height": 36
+          },
+          "bg": "rgb(10, 109, 100)",
+          "whiteSpace": "nowrap",
+          "overflow": "visible",
+          "textOverflow": "clip",
+          "clientWidth": 281,
+          "scrollWidth": 281,
+          "clientHeight": 36,
+          "scrollHeight": 36,
+          "noOverflow": true,
+          "filled": true,
+          "nowrap": true
+        },
+        {
+          "text": "Elegir plan Pro",
+          "box": {
+            "x": 710.328125,
+            "y": 495,
+            "width": 283.328125,
+            "height": 36
+          },
+          "bg": "rgb(10, 109, 100)",
+          "whiteSpace": "nowrap",
+          "overflow": "visible",
+          "textOverflow": "clip",
+          "clientWidth": 283,
+          "scrollWidth": 283,
+          "clientHeight": 36,
+          "scrollHeight": 36,
+          "noOverflow": true,
+          "filled": true,
+          "nowrap": true
+        },
+        {
+          "text": "Elegir plan Sandbox",
+          "box": {
+            "x": 1067.65625,
+            "y": 495,
+            "width": 283.34375,
+            "height": 36
+          },
+          "bg": "rgb(10, 109, 100)",
+          "whiteSpace": "nowrap",
+          "overflow": "visible",
+          "textOverflow": "clip",
+          "clientWidth": 283,
+          "scrollWidth": 283,
+          "clientHeight": 36,
+          "scrollHeight": 36,
+          "noOverflow": true,
+          "filled": true,
+          "nowrap": true
+        }
+      ],
+      "file": "plans-1440-dd60c7b.png"
+    }
+  ],
+  "note": "r6: whitespace-nowrap on Elegir plan CTAs; theme tokens owned by #149"
+}
