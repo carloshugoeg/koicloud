@@ -12,7 +12,9 @@ import { createAppRouter } from "@/app/router";
 import "./index.css";
 
 async function enableMocks() {
-  if (import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCKS === "true") {
+  // Preview-only: set VITE_ENABLE_MOCKS=true in Vercel Preview env (never Production).
+  // Do not key off hostname — git-main aliases would match a `-git-` regex.
+  if (import.meta.env.VITE_ENABLE_MOCKS === "true") {
     const { worker } = await import("@/mocks/browser");
     await worker.start({ onUnhandledRequest: "bypass" });
   }
