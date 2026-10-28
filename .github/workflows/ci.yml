@@ -137,6 +137,43 @@ jobs:
       - run: uv run ruff check .
       - run: uv run pytest -q
 
+  e2e-pond-lifecycle:
+    name: e2e-pond-lifecycle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+      - name: Install web
+        working-directory: apps/web
+        run: pnpm install --frozen-lockfile
+      - name: Install e2e
+        working-directory: e2e/pond-lifecycle
+        run: npm ci
+      - name: Install Playwright Chromium
+        working-directory: e2e/pond-lifecycle
+        run: npx playwright install --with-deps chromium
+      - name: Run pond-lifecycle Playwright
+        working-directory: e2e/pond-lifecycle
+        env:
+          CI: "true"
+        run: npx playwright test
+      - name: Upload Playwright artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-pond-lifecycle-artifacts
+          path: |
+            e2e/pond-lifecycle/artifacts/
+            e2e/pond-lifecycle/test-results/
+          if-no-files-found: ignore
+
   cli:
     name: cli
     runs-on: ubuntu-latest

@@ -1,13 +1,13 @@
 import { Link, useParams } from "react-router-dom";
 import {
-  pondIsTransient,
+  pondNeedsPolling,
   useGetConnection,
   useGetPond,
-  useRetryFailedJobMutation,
   useTriggerBackupMutation,
 } from "@/api/hooks/ponds";
 import { ConnectionCard } from "@/features/ponds/connection-card";
-import { pondStateMeta } from "@/features/ponds/pond-state";
+import { PondLifecycleActions } from "@/features/ponds/pond-lifecycle-actions";
+import { pondDisplayMeta, pondLifecycleInFlight } from "@/features/ponds/pond-state";
 import { ApiError, problemToMessage } from "@/lib/errors";
 import { toast } from "@/lib/toast";
 
@@ -16,7 +16,6 @@ export function PondDetailPage() {
   const pondQuery = useGetPond(pondId || undefined);
   const connectionQuery = useGetConnection(pondId || undefined);
   const backupMutation = useTriggerBackupMutation(pondId);
-  const retryMutation = useRetryFailedJobMutation(pondId);
 
   if (pondQuery.isPending) {
     return (
@@ -63,23 +62,14 @@ export function PondDetailPage() {
     );
   }
 
-  const meta = pondStateMeta(pond.observed_state);
-  const inProgress = pondIsTransient(pond.observed_state);
+  const meta = pondDisplayMeta(pond);
+  const inProgress = pondNeedsPolling(pond) || pondLifecycleInFlight(pond);
   const failed = pond.observed_state === "failed";
 
   async function handleBackupNow() {
     try {
       await backupMutation.mutateAsync();
       toast({ tone: "ok", message: "Respaldo encolado" });
-    } catch (error) {
-      toast({ tone: "danger", message: problemToMessage(error) });
-    }
-  }
-
-  async function handleRetry() {
-    try {
-      await retryMutation.mutateAsync();
-      toast({ tone: "ok", message: "Reintento encolado" });
     } catch (error) {
       toast({ tone: "danger", message: problemToMessage(error) });
     }
@@ -112,7 +102,7 @@ export function PondDetailPage() {
             </Link>
           </nav>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {pond.observed_state === "running" ? (
             <button
               type="button"
@@ -124,17 +114,7 @@ export function PondDetailPage() {
               {backupMutation.isPending ? "Respaldando…" : "Respaldar ahora"}
             </button>
           ) : null}
-          {pond.observed_state === "failed" ? (
-            <button
-              type="button"
-              className="h-9 rounded-sm bg-turquoise-700 px-4 text-sm font-medium text-bone-raised hover:bg-turquoise-900 disabled:bg-bone-sunk disabled:text-ink-faint"
-              data-testid="retry-failed"
-              disabled={retryMutation.isPending}
-              onClick={() => void handleRetry()}
-            >
-              {retryMutation.isPending ? "Reintentando…" : "Reintentar"}
-            </button>
-          ) : null}
+          <PondLifecycleActions pond={pond} />
         </div>
       </div>
 

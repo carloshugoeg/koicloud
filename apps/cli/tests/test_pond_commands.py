@@ -184,3 +184,93 @@ def test_pond_get_requires_login(runner) -> None:
     result = runner.invoke(app, ["pond", "get", "x"])
     assert result.exit_code == 1
     assert "Primero corré `koicloud login`" in result.output
+
+
+def test_pond_stop_proposes_without_auto_confirm(monkeypatch, runner, write_logged_in_config) -> None:
+    write_logged_in_config()
+    paths: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        paths.append(request.url.path)
+        if request.url.path.endswith("/ponds/by-name/stop-demo"):
+            return httpx.Response(
+                200,
+                json={
+                    "pond": {
+                        "id": "pond_stop",
+                        "name": "stop-demo",
+                        "desired_state": "running",
+                        "observed_state": "running",
+                    }
+                },
+            )
+        assert request.method == "POST"
+        assert request.url.path == "/api/v1/ponds/pond_stop/stop"
+        return httpx.Response(
+            409,
+            json={
+                "status": "confirmation_required",
+                "token": "conf-stop-pond",
+                "summary": "Se detendrá el pond 'stop-demo'. Expira en 5 min.",
+                "expires_at": "2026-10-02T20:05:00Z",
+                "next": {"cli_example": "koicloud confirm conf-stop-pond"},
+            },
+        )
+
+    monkeypatch.setattr(
+        "koicloud_cli.commands.create_client",
+        lambda: ApiClient(transport=httpx.MockTransport(handler)),
+    )
+
+    result = runner.invoke(app, ["pond", "stop", "stop-demo"])
+
+    assert result.exit_code == 0
+    assert "/api/v1/ponds/by-name/stop-demo" in paths
+    assert "/api/v1/ponds/pond_stop/stop" in paths
+    assert "Se detendrá el pond 'stop-demo'" in result.output
+    assert "Token: conf-stop-pond" in result.output
+
+
+def test_pond_start_proposes_without_auto_confirm(monkeypatch, runner, write_logged_in_config) -> None:
+    write_logged_in_config()
+    paths: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        paths.append(request.url.path)
+        if request.url.path.endswith("/ponds/by-name/start-demo"):
+            return httpx.Response(
+                200,
+                json={
+                    "pond": {
+                        "id": "pond_start",
+                        "name": "start-demo",
+                        "desired_state": "stopped",
+                        "observed_state": "stopped",
+                    }
+                },
+            )
+        assert request.method == "POST"
+        assert request.url.path == "/api/v1/ponds/pond_start/start"
+        return httpx.Response(
+            409,
+            json={
+                "status": "confirmation_required",
+                "token": "conf-start-pond",
+                "summary": "Se iniciará el pond 'start-demo'. Expira en 5 min.",
+                "expires_at": "2026-10-02T20:05:00Z",
+                "next": {"cli_example": "koicloud confirm conf-start-pond"},
+            },
+        )
+
+    monkeypatch.setattr(
+        "koicloud_cli.commands.create_client",
+        lambda: ApiClient(transport=httpx.MockTransport(handler)),
+    )
+
+    result = runner.invoke(app, ["pond", "start", "start-demo"])
+
+    assert result.exit_code == 0
+    assert "/api/v1/ponds/by-name/start-demo" in paths
+    assert "/api/v1/ponds/pond_start/start" in paths
+    assert "Se iniciará el pond 'start-demo'" in result.output
+    assert "Token: conf-start-pond" in result.output
