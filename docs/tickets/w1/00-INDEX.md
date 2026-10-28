@@ -44,7 +44,7 @@ no existe todavía. `00-INDEX.md` no es un ticket y el agente lo ignora.
 | [W1-33](W1-33-pond-stop-start.md) | Pond stop/start (CCR #131) | `w1-pond-stop-start` | hecho · [#130](https://github.com/carloshugoeg/koicloud/pull/130) · CCR [#131](https://github.com/carloshugoeg/koicloud/issues/131) approved |
 | W1-34 | Expose size_bytes / admin totals / invoice link + MCP·CLI (A1) | `w1-expose-fields` | hecho · [#136](https://github.com/carloshugoeg/koicloud/pull/136) · **no** `PlanOut.backup_retention_days` (#124/W1-28) |
 | W1-40 | Preview API rewrite + theme (HIGH lane; real preview API) | `w1-preview-api-theme-fix` | hecho · [#149](https://github.com/carloshugoeg/koicloud/pull/149) |
-| [W1-41](W1-41-preview-msw-passthrough.md) | Preview MSW passthrough for seeded gate admin (HIGH lane) | `w1-preview-msw-passthrough` | en-curso |
+| [W1-41](W1-41-preview-msw-passthrough.md) | Preview MSW passthrough for seeded gate admin (HIGH lane) | `w1-preview-msw-passthrough` | en-revision · [#156](https://github.com/carloshugoeg/koicloud/pull/156) |
 
 W1 es el único workstream que puede tocar cualquier ruta, y el único que escribe migraciones,
 regenera contratos (`make contracts`) y edita el harness de agentes.
