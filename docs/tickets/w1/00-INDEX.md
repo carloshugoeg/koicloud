@@ -40,13 +40,8 @@ no existe todavía. `00-INDEX.md` no es un ticket y el agente lo ignora.
 | W1-29 | *(renumbered → W1-32 on #132)* | — | ver W1-32 |
 | W1-30 | Motivo de suspensión en bitácora + `user_not_found` | `w1-admin-suspend-reason` | hecho ([PR #121](https://github.com/carloshugoeg/koicloud/pull/121); CCR [#125](https://github.com/carloshugoeg/koicloud/issues/125)) |
 | W1-31 | NIT checkout → invoice (#96 A2) | `w1-nit-checkout-invoice` | bloqueado · [#133](https://github.com/carloshugoeg/koicloud/pull/133) CCR #127 |
-<<<<<<< HEAD
 | W1-32 | Admin subscriptions (#96 A7) | `w1-admin-subscriptions` | en-revision · [#132](https://github.com/carloshugoeg/koicloud/pull/132) CCR [#128](https://github.com/carloshugoeg/koicloud/issues/128) |
-| W1-33 | Pond stop/start + delete with backup first (Wave B1) | `w1-pond-stop-start` | en-curso · [#130](https://github.com/carloshugoeg/koicloud/pull/130) |
-=======
-| W1-32 | Admin subscriptions (#96 A7) | `w1-admin-subscriptions` | bloqueado · [#132](https://github.com/carloshugoeg/koicloud/pull/132) CCR #128 |
 | [W1-33](W1-33-pond-stop-start.md) | Pond stop/start (CCR #131) | `w1-pond-stop-start` | en-revision · [#130](https://github.com/carloshugoeg/koicloud/pull/130) · CCR [#131](https://github.com/carloshugoeg/koicloud/issues/131) approved |
->>>>>>> origin/main
 | W1-34 | Expose size_bytes / admin totals / invoice link + MCP·CLI (A1) | `w1-expose-fields` | hecho · [#136](https://github.com/carloshugoeg/koicloud/pull/136) · **no** `PlanOut.backup_retention_days` (#124/W1-28) |
 | W1-40 | Preview API rewrite + theme (HIGH lane; real preview API) | `w1-preview-api-theme-fix` | hecho · [#149](https://github.com/carloshugoeg/koicloud/pull/149) |
 
