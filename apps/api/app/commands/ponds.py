@@ -17,6 +17,8 @@ from app.schemas import (
     PondListResponse,
     PondResponse,
     RetryFailedJobResponse,
+    StartPondResponse,
+    StopPondResponse,
 )
 
 
@@ -125,3 +127,51 @@ async def delete_pond(
         pond, jobs = await PondService(session, get_settings()).delete(actor, pond_id)
         await session.commit()
         return DeletePondResponse(pond=pond, jobs=jobs)
+
+
+async def stop_pond(
+    actor: AuthContext,
+    pond_id: UUID,
+    *,
+    surface: AppSurface,
+    confirm_token: str | None = None,
+) -> StopPondResponse | ConfirmationRequiredResponse:
+    if _requires_confirmation(surface, confirm_token):
+        async with SessionLocal() as session:
+            pond, _status = await PondService(session, get_settings()).get_owned(actor, pond_id)
+            pond_name = pond.name
+        return await build_confirmation(
+            actor=actor,
+            action="stop_pond",
+            summary=f"Se detendrá el pond '{pond_name}'. Expira en 5 min.",
+            payload={"pond_id": str(pond_id)},
+        )
+
+    async with SessionLocal() as session:
+        pond, job = await PondService(session, get_settings()).stop(actor, pond_id)
+        await session.commit()
+        return StopPondResponse(pond=pond, job=job)
+
+
+async def start_pond(
+    actor: AuthContext,
+    pond_id: UUID,
+    *,
+    surface: AppSurface,
+    confirm_token: str | None = None,
+) -> StartPondResponse | ConfirmationRequiredResponse:
+    if _requires_confirmation(surface, confirm_token):
+        async with SessionLocal() as session:
+            pond, _status = await PondService(session, get_settings()).get_owned(actor, pond_id)
+            pond_name = pond.name
+        return await build_confirmation(
+            actor=actor,
+            action="start_pond",
+            summary=f"Se iniciará el pond '{pond_name}'. Expira en 5 min.",
+            payload={"pond_id": str(pond_id)},
+        )
+
+    async with SessionLocal() as session:
+        pond, job = await PondService(session, get_settings()).start(actor, pond_id)
+        await session.commit()
+        return StartPondResponse(pond=pond, job=job)

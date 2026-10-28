@@ -64,6 +64,7 @@ flowchart TB
 | Paso | Qué pasa |
 |------|----------|
 | Crear pond (Web) | `POST /api/v1/ponds` → `create_pond` → fila en `ponds` + job `provision` → node-agent `claim` → `docker run` → heartbeat actualiza `observed` |
+| Stop/start pond | `POST /ponds/{id}/stop\|start` → `desired=stopped\|running` + job `stop_pond\|start_pond` → `202 {pond, job}`; wrong state / job in flight → `409 pond_busy`; CLI/MCP confirm first |
 | Mutar (CLI/MCP) | Primera llamada → `409 confirmation_required` + token; `POST /confirm/{token}` ejecuta el comando |
 | Respaldos | Worker agenda backup diario; restore encola job y pasa por confirmación en superficies no-Web |
 | Facturación | Planes y suscripciones en `billing`; pago simulado; `SubscribeRequest.nit` → `users.nit`; `InvoiceOut.nit` + PDF |

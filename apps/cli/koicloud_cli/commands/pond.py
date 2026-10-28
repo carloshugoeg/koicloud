@@ -205,6 +205,82 @@ def delete_pond(
     )
 
 
+@app.command("stop")
+def stop_pond(
+    name: str,
+    yes: str | None = YES_TOKEN_OPTION,
+    output: OutputFormat = OUTPUT_OPTION,
+) -> None:
+    """Detiene un pond en ejecución."""
+
+    client = None
+    try:
+        client = get_authenticated_client()
+        pond_payload = client.request("GET", f"ponds/by-name/{name}")
+        pond = extract_pond(pond_payload)
+        pond_id = pond.get("id")
+        if not pond_id:
+            raise ApiError(status_code=404, message="Pond sin id.", code="pond_not_found")
+        payload = client.resolve_mutation("POST", f"ponds/{pond_id}/stop", yes_token=yes)
+    except (ApiError, NotLoggedInError) as error:
+        exit_for_error(error)
+    finally:
+        if client is not None:
+            client.close()
+
+    pond = extract_pond(payload)
+    emit_mutation_result(
+        payload,
+        output=output,
+        title="Pond deteniendo",
+        rows=[pond] if pond else None,
+        columns=[
+            ("id", "ID"),
+            ("name", "Nombre"),
+            ("desired_state", "Deseado"),
+            ("observed_state", "Observado"),
+        ],
+    )
+
+
+@app.command("start")
+def start_pond(
+    name: str,
+    yes: str | None = YES_TOKEN_OPTION,
+    output: OutputFormat = OUTPUT_OPTION,
+) -> None:
+    """Inicia un pond detenido."""
+
+    client = None
+    try:
+        client = get_authenticated_client()
+        pond_payload = client.request("GET", f"ponds/by-name/{name}")
+        pond = extract_pond(pond_payload)
+        pond_id = pond.get("id")
+        if not pond_id:
+            raise ApiError(status_code=404, message="Pond sin id.", code="pond_not_found")
+        payload = client.resolve_mutation("POST", f"ponds/{pond_id}/start", yes_token=yes)
+    except (ApiError, NotLoggedInError) as error:
+        exit_for_error(error)
+    finally:
+        if client is not None:
+            client.close()
+
+    pond = extract_pond(payload)
+    emit_mutation_result(
+        payload,
+        output=output,
+        title="Pond iniciando",
+        rows=[pond] if pond else None,
+        columns=[
+            ("id", "ID"),
+            ("name", "Nombre"),
+            ("desired_state", "Deseado"),
+            ("observed_state", "Observado"),
+        ],
+    )
+
+
 def normalize_ponds(payload: Any) -> list[dict[str, Any]]:
     if isinstance(payload, list):
         return [row for row in payload if isinstance(row, dict)]

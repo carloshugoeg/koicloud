@@ -1,0 +1,10 @@
+{
+  "states": 10,
+  "steps": 21,
+  "arrows": 8,
+  "invariants": [
+    "TypeOK"
+  ],
+  "breaks": 0,
+  "source": "CCR #131 five phases; retry \u2192 stopping|starting by failed job type (no pending/provisioning)"
+}
