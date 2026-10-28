@@ -91,6 +91,22 @@ describe("W2-01 Auth flows (register, verify, login)", () => {
     });
   });
 
+  it("does not mock seeded Preview gate-admin login (passthrough to real API)", async () => {
+    const user = userEvent.setup();
+    renderAuthRoute("/login");
+
+    await user.type(screen.getByLabelText("Correo"), "gate-132-admin@koicloud.test");
+    await user.type(screen.getByLabelText("Contraseña"), "Sup3rSegura!2026");
+    await user.click(screen.getByRole("button", { name: "Iniciar sesión" }));
+
+    // Before the fix MSW returned fixtures.session for any email. Passthrough
+    // has no network here, so login must fail without a demo session.
+    await waitFor(() => {
+      expect(useAuthStore.getState().session).toBeNull();
+    });
+    expect(screen.queryByText("access_demo_token")).not.toBeInTheDocument();
+  });
+
   it("shows code-based error on login failure (invalid_credentials / email_not_verified)", async () => {
     server.use(
       http.post("*/api/v1/auth/login", () =>

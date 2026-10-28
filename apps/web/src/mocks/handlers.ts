@@ -1,6 +1,11 @@
-import { HttpResponse, http } from "msw";
+import { HttpResponse, http, passthrough } from "msw";
 import type { components } from "@/api/schema";
 import { adminUser, fixtures } from "@/mocks/fixtures";
+
+/** Demo emails MSW may answer. Seeded Preview admins must hit the real API. */
+const DEMO_LOGIN_EMAILS = new Set(
+  [adminUser.email, "demo@koicloud.dev"].map((email) => email.toLowerCase()),
+);
 
 const API_ROOT = "*/api/v1";
 const SUSPEND_CONFIRM_TEXT = "SUSPENDER";
@@ -65,8 +70,13 @@ export const handlers = [
 
   http.post(`${API_ROOT}/auth/login`, async ({ request }) => {
     const body = (await request.json()) as { email?: string };
-    // Preview/test-only admin seed (MSW). Never a real credential store.
-    if (body.email?.trim().toLowerCase() === adminUser.email) {
+    const email = body.email?.trim().toLowerCase() ?? "";
+    // Seeded Preview gate/admin logins must reach the real API (not MSW demo).
+    if (!DEMO_LOGIN_EMAILS.has(email)) {
+      return passthrough();
+    }
+    // Demo MSW admin (tests / local demo only). Never a real credential store.
+    if (email === adminUser.email.toLowerCase()) {
       return HttpResponse.json({
         access_token: "access_admin_token",
         refresh_token: "refresh_admin_token",
