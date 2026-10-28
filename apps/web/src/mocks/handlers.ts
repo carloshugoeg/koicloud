@@ -1,7 +1,11 @@
 import { HttpResponse, http, passthrough } from "msw";
 import type { components } from "@/api/schema";
 import { adminUser, fixtures } from "@/mocks/fixtures";
-import { isDemoLoginEmail, isRealPreviewBearer } from "@/mocks/preview-passthrough";
+import {
+  isDemoLoginEmail,
+  isDemoRefreshToken,
+  isRealPreviewBearer,
+} from "@/mocks/preview-passthrough";
 
 const API_ROOT = "*/api/v1";
 const SUSPEND_CONFIRM_TEXT = "SUSPENDER";
@@ -108,7 +112,13 @@ export const handlers = [
     return HttpResponse.json({ ok: true });
   }),
 
-  http.post(`${API_ROOT}/auth/refresh`, () => {
+  http.post(`${API_ROOT}/auth/refresh`, async ({ request }) => {
+    const body = (await request.json()) as { refresh_token?: string };
+    const refreshToken = body.refresh_token ?? "";
+    // Real Preview JWTs refresh without Authorization — must not get demo tokens.
+    if (!isDemoRefreshToken(refreshToken)) {
+      return passthrough();
+    }
     return HttpResponse.json(fixtures.refreshed);
   }),
 

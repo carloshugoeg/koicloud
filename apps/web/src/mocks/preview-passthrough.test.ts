@@ -60,4 +60,31 @@ describe("W1-41 Preview MSW passthrough", () => {
     const body = (await response?.json()) as { users?: unknown[] };
     expect(Array.isArray(body.users)).toBe(true);
   });
+
+  it("passthroughs /auth/refresh when refresh_token is not an MSW demo token", async () => {
+    const request = new Request("http://localhost/api/v1/auth/refresh", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        refresh_token: "eyJhbGciOiJIUzI1NiJ9.real-preview-refresh",
+      }),
+    });
+
+    const response = await getResponse(handlers, request);
+    expect(isPassthrough(response)).toBe(true);
+  });
+
+  it("still mocks /auth/refresh for demo refresh_demo_token", async () => {
+    const request = new Request("http://localhost/api/v1/auth/refresh", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: "refresh_demo_token" }),
+    });
+
+    const response = await getResponse(handlers, request);
+    expect(isPassthrough(response)).toBe(false);
+    expect(response?.status).toBe(200);
+    const body = (await response?.json()) as { access_token?: string };
+    expect(body.access_token).toBe("access_refreshed_token");
+  });
 });

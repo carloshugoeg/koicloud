@@ -13,6 +13,16 @@ export const DEMO_ACCESS_TOKENS = new Set([
   "access_refreshed_token",
 ]);
 
+/**
+ * Refresh tokens MSW itself issues. `client.ts` refresh posts JSON only
+ * (no Authorization), so Bearer passthrough never fires for /auth/refresh.
+ */
+export const DEMO_REFRESH_TOKENS = new Set([
+  "refresh_demo_token",
+  "refresh_admin_token",
+  "refresh_refreshed_token",
+]);
+
 /** Login emails MSW may answer. Everything else passthroughs to the real API. */
 export const DEMO_LOGIN_EMAILS = new Set(["demo@koicloud.dev", "admin@koicloud.dev"]);
 
@@ -29,4 +39,8 @@ export function isRealPreviewBearer(request: Request): boolean {
 
 export function isDemoLoginEmail(email: string): boolean {
   return DEMO_LOGIN_EMAILS.has(email.trim().toLowerCase());
+}
+
+export function isDemoRefreshToken(refreshToken: string): boolean {
+  return DEMO_REFRESH_TOKENS.has(refreshToken);
 }
