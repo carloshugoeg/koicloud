@@ -1,8 +1,14 @@
 """Preview-only admin seed for Vercel (never production).
 
-Reads KOI_PREVIEW_ADMIN_EMAIL / KOI_PREVIEW_ADMIN_PASSWORD from the
-deployment env. Idempotent upsert of a verified admin user plus a sample
-client subscription so /app/admin/suscripciones is walkable.
+Requires all of:
+  - VERCEL_ENV=preview
+  - KOI_PREVIEW_SEED=1 (explicit opt-in)
+  - KOI_PREVIEW_ADMIN_EMAIL / KOI_PREVIEW_ADMIN_PASSWORD
+  - DATABASE_URL that does not look like production
+
+Idempotent upsert of a verified admin plus a sample client subscription
+so /app/admin/subscriptions is walkable. The demo client gets its own
+random password (never the admin password).
 
 Credentials must never land in client bundles or PR comments — store them
 in the agent store and/or Vercel Preview env only.
@@ -11,17 +17,55 @@ in the agent store and/or Vercel Preview env only.
 from __future__ import annotations
 
 import os
+import secrets
 from datetime import datetime, timedelta, timezone
+from urllib.parse import urlparse
 from uuid import uuid4
+
+# Host / path markers that mean "this is not a preview scratch DB".
+_PROD_DB_MARKERS = (
+    "prod",
+    "production",
+    "koicloud.dev",
+    "primary.",
+    "-pooler.prod",
+)
 
 
 def _is_preview() -> bool:
     return (os.environ.get("VERCEL_ENV") or "").strip().lower() == "preview"
 
 
+def _seed_opt_in() -> bool:
+    return (os.environ.get("KOI_PREVIEW_SEED") or "").strip() == "1"
+
+
+def _database_url_looks_like_production(url: str) -> bool:
+    """Heuristic refuse: never seed against a URL that smells like prod."""
+    raw = (url or "").strip()
+    if not raw:
+        return True
+    normalized = raw.lower()
+    for prefix in (
+        "postgresql+asyncpg://",
+        "postgresql+psycopg://",
+        "postgres+asyncpg://",
+    ):
+        if normalized.startswith(prefix):
+            normalized = "postgresql://" + normalized[len(prefix) :]
+            break
+    parsed = urlparse(normalized)
+    host = parsed.hostname or ""
+    path = (parsed.path or "").lstrip("/")
+    haystack = f"{host}/{path}"
+    return any(marker in haystack for marker in _PROD_DB_MARKERS)
+
+
 def ensure_preview_admin() -> None:
-    """Upsert preview admin (+ sample subscription). No-op outside preview."""
+    """Upsert preview admin (+ sample subscription). No-op when unsafe."""
     if not _is_preview():
+        return
+    if not _seed_opt_in():
         return
 
     email = (os.environ.get("KOI_PREVIEW_ADMIN_EMAIL") or "").strip().lower()
@@ -36,10 +80,15 @@ def ensure_preview_admin() -> None:
     from app.core.security import hash_password
 
     settings = get_settings()
+    if _database_url_looks_like_production(settings.database_url):
+        return
+
     engine = create_engine(to_sync_database_url(settings.database_url))
     now = datetime.now(timezone.utc)
     period_end = now + timedelta(days=30)
     demo_email = "preview-client@koicloud.test"
+    # Distinct from admin — never reuse KOI_PREVIEW_ADMIN_PASSWORD.
+    client_password = secrets.token_urlsafe(24)
 
     try:
         with engine.begin() as connection:
@@ -111,7 +160,7 @@ def ensure_preview_admin() -> None:
                     {
                         "id": client_id,
                         "email": demo_email,
-                        "password_hash": hash_password(password),
+                        "password_hash": hash_password(client_password),
                         "full_name": "Preview Client",
                         "verified_at": now,
                     },

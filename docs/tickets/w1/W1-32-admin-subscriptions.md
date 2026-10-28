@@ -59,3 +59,18 @@ No inventes el path ni el schema.
 
 Imitá el panel de [#85](https://github.com/carloshugoeg/koicloud/pull/85) (W2-10) y el
 cierre money/open de [#123](https://github.com/carloshugoeg/koicloud/pull/123).
+
+## Decisiones tomadas
+
+- **Shared `--ink-faint` (gate r8 axe color-contrast):** raised the token in
+  `apps/web/src/index.css` from `#6B7A74` (~4.2:1 on `bone-raised`) to `#586762`
+  (≥4.5:1 on bone / bone-raised / bone-sunk / paper). Not a page-local override —
+  every `text-ink-faint` surface (admin error codes, disabled controls, axes)
+  inherits AA. Still reserved for non-paragraph use; prefer `ink-muted` for ayudas.
+- **Theme conflict with #149:** none. #149 owns `@theme` / shadow classes; this
+  change only darkens the existing `--ink-faint` custom property that #149 already
+  maps via `--color-ink-faint`. No `@theme` block edit on this branch beyond the
+  shared token value.
+- **Preview admin seed:** fail-closed — `VERCEL_ENV=preview` + `KOI_PREVIEW_SEED=1`
+  + non-prod `DATABASE_URL` heuristic. Demo client password is random and never
+  equals the admin password.
