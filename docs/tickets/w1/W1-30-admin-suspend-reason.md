@@ -2,7 +2,7 @@
 id: W1-30
 workstream: W1
 persona: Carlos
-estado: en-revision
+estado: hecho
 rama: w1-admin-suspend-reason
 epica: E8-01
 sprint: S4
