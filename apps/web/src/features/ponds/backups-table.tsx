@@ -7,7 +7,7 @@ export function BackupsTable({
   onRestore,
 }: {
   backups: Backup[];
-  onRestore: (backup: Backup) => void;
+  onRestore: (backup: Backup, trigger: HTMLButtonElement) => void;
 }) {
   return (
     <div className="overflow-x-auto rounded-md border border-line">
@@ -55,8 +55,9 @@ export function BackupsTable({
                   {backup.status === "succeeded" ? (
                     <button
                       type="button"
-                      className="text-sm font-medium text-turquoise-700 hover:text-turquoise-900"
-                      onClick={() => onRestore(backup)}
+                      className="text-sm font-medium text-turquoise-700 hover:text-turquoise-900 focus:shadow-focus"
+                      data-testid={`restore-${backup.id}`}
+                      onClick={(event) => onRestore(backup, event.currentTarget)}
                     >
                       Restaurar…
                     </button>

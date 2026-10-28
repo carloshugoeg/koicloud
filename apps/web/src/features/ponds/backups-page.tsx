@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   useGetPond,
@@ -22,6 +22,7 @@ export function BackupsPage() {
   const [selected, setSelected] = useState<Backup | null>(null);
   const [confirmName, setConfirmName] = useState("");
   const [queuedJobId, setQueuedJobId] = useState<string | null>(null);
+  const restoreTriggerRef = useRef<HTMLElement | null>(null);
 
   if (pondQuery.isPending || backupsQuery.isPending) {
     return (
@@ -140,7 +141,8 @@ export function BackupsPage() {
       ) : (
         <BackupsTable
           backups={backups}
-          onRestore={(backup) => {
+          onRestore={(backup, trigger) => {
+            restoreTriggerRef.current = trigger;
             setSelected(backup);
             setConfirmName("");
           }}
@@ -153,6 +155,7 @@ export function BackupsPage() {
           pondName={pond.name}
           confirmName={confirmName}
           pending={restoreMutation.isPending}
+          returnFocusRef={restoreTriggerRef}
           onConfirmName={setConfirmName}
           onCancel={() => {
             setSelected(null);

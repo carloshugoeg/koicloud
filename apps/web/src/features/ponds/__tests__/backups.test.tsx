@@ -85,6 +85,25 @@ describe("W2-08 Respaldos y restauración", () => {
     expect(confirm).toBeEnabled();
   });
 
+  it("closes the restore dialog on Escape and returns focus to Restaurar…", async () => {
+    const user = userEvent.setup();
+    renderBackups();
+
+    expect(await screen.findByTestId("backups-page")).toBeInTheDocument();
+    const restoreBtn = (await screen.findAllByRole("button", { name: "Restaurar…" }))[0];
+    await user.click(restoreBtn);
+
+    const dialog = await screen.findByRole("dialog", { name: /Restaurar respaldo/i });
+    expect(dialog).toHaveAttribute("aria-modal", "true");
+    expect(dialog).toHaveAttribute("aria-labelledby", "restore-title");
+
+    await user.keyboard("{Escape}");
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: /Restaurar respaldo/i })).not.toBeInTheDocument();
+    });
+    expect(restoreBtn).toHaveFocus();
+  });
+
   it("posts backup_id and shows the queued job on happy restore", async () => {
     const user = userEvent.setup();
     let postedBody: unknown = null;
