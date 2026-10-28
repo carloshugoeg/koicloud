@@ -40,10 +40,14 @@ REMEDIATE: dict[tuple[PondDesiredState, PondObservedState], JobType] = {
     (PondDesiredState.RUNNING, PondObservedState.PENDING): JobType.CREATE_POND,
     (PondDesiredState.RUNNING, PondObservedState.FAILED): JobType.CREATE_POND,
     (PondDesiredState.RUNNING, PondObservedState.DELETED): JobType.CREATE_POND,
+    (PondDesiredState.STOPPED, PondObservedState.RUNNING): JobType.STOP_POND,
+    (PondDesiredState.STOPPED, PondObservedState.FAILED): JobType.STOP_POND,
     (PondDesiredState.DELETED, PondObservedState.FAILED): JobType.DELETE_POND,
 }
 
-_DRIFT_RETRY_TYPES = frozenset({JobType.CREATE_POND, JobType.START_POND, JobType.DELETE_POND})
+_DRIFT_RETRY_TYPES = frozenset(
+    {JobType.CREATE_POND, JobType.START_POND, JobType.STOP_POND, JobType.DELETE_POND}
+)
 
 _PAYLOAD_KEYS = ("name", "host_port", "memory_mb", "cpus", "db_password_plain", "image")
 _ACTIVE = (JobStatus.QUEUED, JobStatus.RUNNING)

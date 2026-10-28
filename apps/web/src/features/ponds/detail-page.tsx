@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { pondIsTransient, useGetConnection, useGetPond } from "@/api/hooks/ponds";
+import { pondNeedsPolling, useGetConnection, useGetPond } from "@/api/hooks/ponds";
 import { ApiError, problemToMessage } from "@/lib/errors";
-import { pondStateMeta } from "@/features/ponds/pond-state";
+import { PondLifecycleActions } from "@/features/ponds/pond-lifecycle-actions";
+import { pondDisplayMeta, pondLifecycleInFlight } from "@/features/ponds/pond-state";
 
 const MASK = "••••••••";
 
@@ -58,8 +59,8 @@ export function PondDetailPage() {
     );
   }
 
-  const meta = pondStateMeta(pond.observed_state);
-  const inProgress = pondIsTransient(pond.observed_state);
+  const meta = pondDisplayMeta(pond);
+  const inProgress = pondNeedsPolling(pond) || pondLifecycleInFlight(pond);
   const failed = pond.observed_state === "failed";
   const connection = connectionQuery.data;
   const connectionPending = connectionQuery.isPending;
@@ -99,6 +100,7 @@ export function PondDetailPage() {
             </Link>
           </nav>
         </div>
+        <PondLifecycleActions pond={pond} />
       </div>
 
       {inProgress ? (

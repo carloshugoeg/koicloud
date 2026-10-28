@@ -83,6 +83,132 @@ describe("W2-06 Detalle del pond y conexión", () => {
     expect(screen.getByTestId("pond-failed")).toHaveTextContent("Último error: disk_full");
   });
 
+  it("enables Reintentar from Con fallas and shows Iniciando… after start retry", async () => {
+    const user = userEvent.setup();
+    let getCount = 0;
+    const retry = vi.fn();
+    server.use(
+      http.get(`*/api/v1/ponds/${POND_ID}`, () => {
+        getCount += 1;
+        if (getCount === 1) {
+          return HttpResponse.json({
+            pond: {
+              ...fixtures.pond,
+              id: POND_ID,
+              desired_state: "running",
+              observed_state: "failed",
+              healthy: false,
+              last_error: "boom",
+            },
+          });
+        }
+        return HttpResponse.json({
+          pond: {
+            ...fixtures.pond,
+            id: POND_ID,
+            desired_state: "running",
+            observed_state: "stopped",
+            healthy: false,
+            last_error: null,
+          },
+        });
+      }),
+      http.post(`*/api/v1/ponds/${POND_ID}/retry`, () => {
+        retry();
+        return HttpResponse.json(
+          {
+            job: {
+              id: "job_retry_01",
+              type: "start_pond",
+              status: "queued",
+              attempts: 0,
+              created_at: "2026-09-22T21:00:00Z",
+              node_id: "node-sv-01",
+              pond_id: POND_ID,
+              claimed_at: null,
+              completed_at: null,
+              last_error: null,
+            },
+          },
+          { status: 202 },
+        );
+      }),
+    );
+
+    renderDetail();
+    expect(await screen.findByTestId("pond-status-badge")).toHaveTextContent("Con fallas");
+    expect(screen.getByTestId("pond-stop")).toBeDisabled();
+    expect(screen.getByTestId("pond-start")).toBeDisabled();
+    expect(screen.getByTestId("pond-retry")).toBeEnabled();
+
+    await user.click(screen.getByTestId("pond-retry"));
+    await waitFor(() => {
+      expect(retry).toHaveBeenCalled();
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("pond-status-badge")).toHaveTextContent("Iniciando…");
+    });
+    expect(screen.queryByText("En cola")).not.toBeInTheDocument();
+  });
+
+  it("shows Deteniendo… after stop retry from Con fallas", async () => {
+    const user = userEvent.setup();
+    let getCount = 0;
+    server.use(
+      http.get(`*/api/v1/ponds/${POND_ID}`, () => {
+        getCount += 1;
+        if (getCount === 1) {
+          return HttpResponse.json({
+            pond: {
+              ...fixtures.pond,
+              id: POND_ID,
+              desired_state: "stopped",
+              observed_state: "failed",
+              healthy: false,
+              last_error: "stop boom",
+            },
+          });
+        }
+        return HttpResponse.json({
+          pond: {
+            ...fixtures.pond,
+            id: POND_ID,
+            desired_state: "stopped",
+            observed_state: "running",
+            healthy: false,
+            last_error: null,
+          },
+        });
+      }),
+      http.post(`*/api/v1/ponds/${POND_ID}/retry`, () =>
+        HttpResponse.json(
+          {
+            job: {
+              id: "job_retry_stop",
+              type: "stop_pond",
+              status: "queued",
+              attempts: 0,
+              created_at: "2026-09-22T21:00:00Z",
+              node_id: "node-sv-01",
+              pond_id: POND_ID,
+              claimed_at: null,
+              completed_at: null,
+              last_error: null,
+            },
+          },
+          { status: 202 },
+        ),
+      ),
+    );
+
+    renderDetail();
+    expect(await screen.findByTestId("pond-status-badge")).toHaveTextContent("Con fallas");
+    await user.click(screen.getByTestId("pond-retry"));
+    await waitFor(() => {
+      expect(screen.getByTestId("pond-status-badge")).toHaveTextContent("Deteniendo…");
+    });
+  });
+
   it("shows connection fields and En línea badge for a running pond", async () => {
     renderDetail();
 
@@ -114,6 +240,80 @@ describe("W2-06 Detalle del pond y conexión", () => {
     await waitFor(() => {
       expect(writeText).toHaveBeenCalledWith(fixtures.connection.uri);
     });
+  });
+
+  it("shows Detener enabled and Iniciar disabled for a running pond", async () => {
+    renderDetail();
+    expect(await screen.findByTestId("pond-detail")).toBeInTheDocument();
+    expect(screen.getByTestId("pond-stop")).toBeEnabled();
+    expect(screen.getByTestId("pond-start")).toBeDisabled();
+  });
+
+  it("stops a running pond and disables both buttons while stopping", async () => {
+    const user = userEvent.setup();
+    let getCount = 0;
+    server.use(
+      http.get(`*/api/v1/ponds/${POND_ID}`, () => {
+        getCount += 1;
+        if (getCount === 1) {
+          return HttpResponse.json({ pond: fixtures.pond });
+        }
+        return HttpResponse.json({
+          pond: {
+            ...fixtures.pond,
+            desired_state: "stopped",
+            observed_state: "running",
+          },
+        });
+      }),
+    );
+
+    renderDetail();
+    expect(await screen.findByTestId("pond-stop")).toBeEnabled();
+    await user.click(screen.getByTestId("pond-stop"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("pond-status-badge")).toHaveTextContent("Deteniendo…");
+    });
+    expect(screen.getByTestId("pond-stop")).toBeDisabled();
+    expect(screen.getByTestId("pond-start")).toBeDisabled();
+  });
+
+  it("starts a stopped pond", async () => {
+    const user = userEvent.setup();
+    let getCount = 0;
+    server.use(
+      http.get(`*/api/v1/ponds/${POND_ID}`, () => {
+        getCount += 1;
+        if (getCount === 1) {
+          return HttpResponse.json({
+            pond: {
+              ...fixtures.pond,
+              desired_state: "stopped",
+              observed_state: "stopped",
+            },
+          });
+        }
+        return HttpResponse.json({
+          pond: {
+            ...fixtures.pond,
+            desired_state: "running",
+            observed_state: "stopped",
+          },
+        });
+      }),
+    );
+
+    renderDetail();
+    expect(await screen.findByTestId("pond-start")).toBeEnabled();
+    expect(screen.getByTestId("pond-stop")).toBeDisabled();
+    await user.click(screen.getByTestId("pond-start"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("pond-status-badge")).toHaveTextContent("Iniciando…");
+    });
+    expect(screen.getByTestId("pond-stop")).toBeDisabled();
+    expect(screen.getByTestId("pond-start")).toBeDisabled();
   });
 
   it("shows catalog message for pond_not_found without a stack", async () => {

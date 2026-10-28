@@ -25,6 +25,8 @@ READ_ONLY_TOOLS = [
 MUTABLE_TOOLS = [
     "create_pond",
     "delete_pond",
+    "stop_pond",
+    "start_pond",
     "restore_backup",
     "run_sql",
     "confirm_action",

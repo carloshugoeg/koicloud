@@ -78,6 +78,8 @@ Notación: `M ROUTE → CommandOrService` con response resumido. `[C]` = requier
 | GET | `/ponds/by-name/{name}` | `get_pond_by_name` | Lookup por nombre | `{pond}` |
 | GET | `/ponds/{id}/connection` | `get_connection` | Host/port/user/pass/uri | `{connection}` |
 | POST | `/ponds/{id}/retry` | `retry_failed_job` [C-CLI/MCP] | Reencola último job failed | `202 {job}` |
+| POST | `/ponds/{id}/stop` | `stop_pond` [C-CLI/MCP] | `desired=stopped` + job `stop_pond` | `202 {pond, job}` |
+| POST | `/ponds/{id}/start` | `start_pond` [C-CLI/MCP] | `desired=running` + job `start_pond` | `202 {pond, job}` |
 | DELETE | `/ponds/{id}` | `delete_pond` [C-CLI/MCP] | Encola backup pre_delete + delete | `202 {pond, jobs[]}` |
 
 ### 2.4 Respaldos
@@ -181,6 +183,8 @@ Servidor **FastMCP** montado en el mismo proceso API. Cada tool es de ≤ 25 lí
 | `get_connection(name)` | URI y credenciales del pond | ✓ | — |
 | `create_pond(name)` | Encola creación | — | ✓ |
 | `delete_pond(name)` | Encola eliminación con backup previo | — | ✓ |
+| `stop_pond(name)` | Encola detención (`desired=stopped`) | — | ✓ |
+| `start_pond(name)` | Encola arranque (`desired=running`) | — | ✓ |
 | `list_subscriptions()` | Suscripciones del usuario | ✓ | — |
 | `list_backups(pond_name)` | Respaldos disponibles | ✓ | — |
 | `restore_backup(pond_name, backup_id)` | Encola restore | — | ✓ |
@@ -220,6 +224,8 @@ Servidor **FastMCP** montado en el mismo proceso API. Cada tool es de ≤ 25 lí
 | `koicloud pond get <name>` | `GET /ponds/by-name/{name}` | — |
 | `koicloud pond create <name>` | `POST /ponds` (con confirm) | Doble confirm |
 | `koicloud pond connection <name>` | `GET /ponds/{id}/connection` | Imprime URI copiable |
+| `koicloud pond stop <name>` | `POST /ponds/{id}/stop` (con confirm) | Doble confirm |
+| `koicloud pond start <name>` | `POST /ponds/{id}/start` (con confirm) | Doble confirm |
 | `koicloud pond delete <name>` | `DELETE /ponds/{id}` (con confirm) | Doble confirm |
 | `koicloud sql run --pond <name> -q "…"` | `POST /ponds/{id}/sql {mode:read}` | Modo read por defecto |
 | `koicloud sql run --pond <name> -q "…" --write` | `POST /ponds/{id}/sql {mode:write}` (con confirm) | Doble confirm |

@@ -545,6 +545,44 @@ class CreatePondResponse(SchemaModel):
     )
 
 
+class StopPondResponse(SchemaModel):
+    pond: PondOut
+    job: JobOut
+
+    model_config = config_with_example(
+        {
+            "pond": {
+                **PondOut.example_data(),
+                "desired_state": "stopped",
+                "observed_state": "running",
+            },
+            "job": {
+                **JobOut.example_data(),
+                "type": "stop_pond",
+            },
+        }
+    )
+
+
+class StartPondResponse(SchemaModel):
+    pond: PondOut
+    job: JobOut
+
+    model_config = config_with_example(
+        {
+            "pond": {
+                **PondOut.example_data(),
+                "desired_state": "running",
+                "observed_state": "stopped",
+            },
+            "job": {
+                **JobOut.example_data(),
+                "type": "start_pond",
+            },
+        }
+    )
+
+
 class RetryFailedJobResponse(SchemaModel):
     job: JobOut
 
