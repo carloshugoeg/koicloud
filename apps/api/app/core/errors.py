@@ -34,6 +34,7 @@ class ErrorCode(StrEnum):
     AGENT_BAD_CREDENTIALS = "agent_bad_credentials"
     NOT_OWNER = "not_owner"
     ADMIN_ONLY = "admin_only"
+    USER_NOT_FOUND = "user_not_found"
     RATE_LIMITED = "rate_limited"
     DISK_FULL = "disk_full"
     INTERNAL_ERROR = "internal_error"
@@ -73,6 +74,7 @@ ERROR_CATALOG: dict[ErrorCode, ErrorSpec] = {
     ErrorCode.AGENT_BAD_CREDENTIALS: ErrorSpec(401, "Credenciales MCP inválidas"),
     ErrorCode.NOT_OWNER: ErrorSpec(403, "No tenés acceso a este recurso"),
     ErrorCode.ADMIN_ONLY: ErrorSpec(403, "Esta operación requiere rol administrador"),
+    ErrorCode.USER_NOT_FOUND: ErrorSpec(404, "No existe el usuario solicitado"),
     ErrorCode.RATE_LIMITED: ErrorSpec(429, "Muchos intentos, esperá un momento"),
     ErrorCode.DISK_FULL: ErrorSpec(507, "No hay espacio suficiente para completar la operación"),
     ErrorCode.INTERNAL_ERROR: ErrorSpec(500, "Algo salió mal, revisá los logs"),
