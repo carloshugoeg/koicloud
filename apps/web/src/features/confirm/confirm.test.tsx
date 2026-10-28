@@ -151,6 +151,27 @@ describe("W2-16 confirm dialog", () => {
     expect(router.state.location.pathname).toBe("/app/confirm");
   });
 
+  it("default MSW rejects a fake token with confirmation_not_found", async () => {
+    const user = userEvent.setup();
+    const fake = "conf_gate_r9_unknown_token";
+    const search = confirmSearch({
+      token: fake as ConfirmationProposal["token"],
+      summary: SUMMARY,
+      expiresAt: new Date(Date.now() + 5 * 60_000),
+    });
+    const router = renderAt(`/app/confirm${search}`);
+
+    await screen.findByTestId("confirm-summary");
+    await user.click(screen.getByRole("button", { name: "Confirmar" }));
+
+    expect(await screen.findByText("No encontramos la confirmación solicitada.")).toBeInTheDocument();
+    expect(screen.getByText("confirmation_not_found")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Confirmar" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Descartar" })).toBeDisabled();
+    expect(router.state.location.pathname).toBe("/app/confirm");
+    expect(screen.queryByTestId("app-notice")).not.toBeInTheDocument();
+  });
+
   it("shows confirmation_expired and leaves Descartar available", async () => {
     const user = userEvent.setup();
     failConfirm(410, "confirmation_expired");
