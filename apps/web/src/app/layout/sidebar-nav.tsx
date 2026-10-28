@@ -53,7 +53,7 @@ export function SidebarNav({ isAdmin, collapsed, onNavigate }: SidebarNavProps) 
           {collapsed ? (
             <span className="sr-only">{group.label}</span>
           ) : (
-            <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-faint">
+            <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
               {group.label}
             </p>
           )}
