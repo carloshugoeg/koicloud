@@ -52,15 +52,36 @@ async function refreshTokens(refreshToken: string) {
   return (await response.json()) as RefreshResponse;
 }
 
+function mergeRequestHeaders(input: RequestInfo | URL, init: RequestInit = {}): Headers {
+  // openapi-fetch often passes a Request as `input` with headers/body already set.
+  // Building Headers only from init drops Request Content-Type and breaks FastAPI JSON bodies.
+  const headers = new Headers(input instanceof Request ? input.headers : undefined);
+  if (init.headers) {
+    new Headers(init.headers).forEach((value, key) => {
+      headers.set(key, value);
+    });
+  }
+  return headers;
+}
+
+function requestHasJsonBody(input: RequestInfo | URL, init: RequestInit = {}): boolean {
+  if (init.body instanceof FormData) return false;
+  if (init.body !== undefined && init.body !== null) return true;
+  if (!(input instanceof Request)) return false;
+  if (input.body === null || input.bodyUsed) return false;
+  const method = (init.method ?? input.method).toUpperCase();
+  return method !== "GET" && method !== "HEAD";
+}
+
 const fetchWithRefresh: typeof fetch = async (input, init = {}) => {
-  const headers = new Headers(init.headers);
+  const headers = mergeRequestHeaders(input, init);
   const session = useAuthStore.getState().session;
 
   if (session?.accessToken) {
     headers.set("Authorization", `Bearer ${session.accessToken}`);
   }
 
-  if (!headers.has("Content-Type") && init.body && !(init.body instanceof FormData)) {
+  if (!headers.has("Content-Type") && requestHasJsonBody(input, init)) {
     headers.set("Content-Type", "application/json");
   }
 
@@ -95,15 +116,11 @@ const fetchWithRefresh: typeof fetch = async (input, init = {}) => {
     refreshToken: refreshed.refresh_token,
   });
 
-  const retryHeaders = new Headers(init.headers);
+  const retryHeaders = mergeRequestHeaders(input, init);
   retryHeaders.set(RETRY_HEADER, "1");
   retryHeaders.set("Authorization", `Bearer ${refreshed.access_token}`);
 
-  if (
-    !retryHeaders.has("Content-Type") &&
-    init.body &&
-    !(init.body instanceof FormData)
-  ) {
+  if (!retryHeaders.has("Content-Type") && requestHasJsonBody(input, init)) {
     retryHeaders.set("Content-Type", "application/json");
   }
 
