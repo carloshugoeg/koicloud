@@ -2,7 +2,7 @@
 id: W1-40
 workstream: W1
 persona: Carlos
-estado: en-revision
+estado: hecho
 rama: w1-preview-api-theme-fix
 epica: E4-04
 sprint: S4
