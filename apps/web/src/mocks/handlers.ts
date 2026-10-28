@@ -1,6 +1,6 @@
 import { HttpResponse, http } from "msw";
 import type { components } from "@/api/schema";
-import { fixtures } from "@/mocks/fixtures";
+import { adminUser, fixtures } from "@/mocks/fixtures";
 
 const API_ROOT = "*/api/v1";
 const SUSPEND_CONFIRM_TEXT = "SUSPENDER";
@@ -13,6 +13,7 @@ type AgentAccessMock = {
 };
 
 type AdminUser = components["schemas"]["AdminUserOut"];
+type AuditEvent = components["schemas"]["AuditEventOut"];
 
 function freshAgentAccess(): AgentAccessMock {
   return { ...fixtures.agentAccess };
@@ -22,8 +23,16 @@ function freshAdminUsers(): AdminUser[] {
   return fixtures.adminUsers.map((user) => ({ ...user }));
 }
 
+function freshAdminAudit(): AuditEvent[] {
+  return fixtures.adminAuditEvents.map((event) => ({
+    ...event,
+    metadata: { ...event.metadata },
+  }));
+}
+
 let agentAccessState = freshAgentAccess();
 let adminUsersState = freshAdminUsers();
+let adminAuditState = freshAdminAudit();
 
 export const ROTATED_AGENT_PASSWORD = "rotated-once-secret";
 
@@ -33,6 +42,7 @@ export function resetAgentAccessState() {
 
 export function resetAdminUsersState() {
   adminUsersState = freshAdminUsers();
+  adminAuditState = freshAdminAudit();
 }
 
 export const handlers = [
@@ -53,7 +63,25 @@ export const handlers = [
     });
   }),
 
-  http.post(`${API_ROOT}/auth/login`, () => {
+  http.post(`${API_ROOT}/auth/login`, async ({ request }) => {
+    const body = (await request.json()) as { email?: string };
+    // Preview/test-only admin seed (MSW). Never a real credential store.
+    if (body.email?.trim().toLowerCase() === adminUser.email) {
+      return HttpResponse.json({
+        access_token: "access_admin_token",
+        refresh_token: "refresh_admin_token",
+        user: {
+          id: adminUser.id,
+          email: adminUser.email,
+          full_name: adminUser.full_name,
+          role: "admin" as const,
+          status: adminUser.status,
+          email_verified: true,
+          nit: "0614-220999-101-3",
+          created_at: adminUser.created_at,
+        },
+      });
+    }
     return HttpResponse.json(fixtures.session);
   }),
 
@@ -343,7 +371,7 @@ export const handlers = [
   }),
 
   http.post(`${API_ROOT}/admin/users/:userId/suspend`, async ({ params, request }) => {
-    const body = (await request.json()) as { confirm_text?: string };
+    const body = (await request.json()) as { confirm_text?: string; reason?: string };
     if (body.confirm_text !== SUSPEND_CONFIRM_TEXT) {
       return HttpResponse.json(
         {
@@ -353,11 +381,27 @@ export const handlers = [
         { status: 409 },
       );
     }
+    const trimmedReason = body.reason?.trim() ?? "";
+    if (trimmedReason.length > 500) {
+      return HttpResponse.json(
+        {
+          detail: [
+            {
+              type: "string_too_long",
+              loc: ["body", "reason"],
+              msg: "String should have at most 500 characters",
+              ctx: { max_length: 500 },
+            },
+          ],
+        },
+        { status: 422 },
+      );
+    }
     const userId = String(params.userId);
     const index = adminUsersState.findIndex((user) => user.id === userId);
     if (index < 0) {
       return HttpResponse.json(
-        { code: "internal_error", message: "user_not_found" },
+        { code: "user_not_found", message: "user_not_found" },
         { status: 404 },
       );
     }
@@ -367,6 +411,21 @@ export const handlers = [
       updated,
       ...adminUsersState.slice(index + 1),
     ];
+    if (trimmedReason) {
+      adminAuditState = [
+        {
+          id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa01",
+          actor_user_id: "22222222-2222-2222-2222-222222222222",
+          actor_kind: "admin",
+          target_kind: "user",
+          target_id: userId,
+          action: "suspend_user",
+          metadata: { reason: trimmedReason },
+          at: "2026-09-22T20:00:00Z",
+        },
+        ...adminAuditState,
+      ];
+    }
     return HttpResponse.json({ user: updated });
   }),
 
@@ -375,7 +434,7 @@ export const handlers = [
     const index = adminUsersState.findIndex((user) => user.id === userId);
     if (index < 0) {
       return HttpResponse.json(
-        { code: "internal_error", message: "user_not_found" },
+        { code: "user_not_found", message: "user_not_found" },
         { status: 404 },
       );
     }
@@ -393,6 +452,6 @@ export const handlers = [
   }),
 
   http.get(`${API_ROOT}/admin/audit`, () => {
-    return HttpResponse.json({ events: fixtures.adminAuditEvents, next_cursor: null });
+    return HttpResponse.json({ events: adminAuditState, next_cursor: null });
   }),
 ];

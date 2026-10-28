@@ -2502,12 +2502,15 @@ export interface components {
         /**
          * SuspendUserRequest
          * @example {
-         *       "confirm_text": "SUSPENDER"
+         *       "confirm_text": "SUSPENDER",
+         *       "reason": "abuso de recursos"
          *     }
          */
         SuspendUserRequest: {
             /** Confirm Text */
             confirm_text: string;
+            /** Reason */
+            reason?: string | null;
         };
         /**
          * ToggleAgentAccessRequest

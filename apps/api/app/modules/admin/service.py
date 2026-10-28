@@ -5,6 +5,7 @@ from uuid import UUID
 from sqlalchemy import func, select
 
 from app.commands import admin as admin_commands
+from app.core.auth import AuthContext
 from app.core.db import SessionLocal
 from app.core.enums import ActorKind, PondDesiredState, PondObservedState
 from app.core.models import AuditEvent, Pond, PondStatus, User
@@ -36,8 +37,13 @@ class AdminService:
         return await admin_commands.admin_list_users()
 
     @staticmethod
-    async def suspend_user(user_id: UUID, payload: SuspendUserRequest) -> AdminUserResponse:
-        return await admin_commands.suspend_user(user_id, payload)
+    async def suspend_user(
+        user_id: UUID,
+        payload: SuspendUserRequest,
+        *,
+        actor: AuthContext | None = None,
+    ) -> AdminUserResponse:
+        return await admin_commands.suspend_user(user_id, payload, actor=actor)
 
     @staticmethod
     async def reactivate_user(user_id: UUID) -> AdminUserResponse:
