@@ -3,12 +3,14 @@
 Requires all of:
   - VERCEL_ENV=preview
   - KOI_PREVIEW_SEED=1 (explicit opt-in)
-  - KOI_PREVIEW_ADMIN_EMAIL / KOI_PREVIEW_ADMIN_PASSWORD
   - DATABASE_URL that does not look like production
+  - At least one of:
+      KOI_PREVIEW_ADMIN_EMAIL / KOI_PREVIEW_ADMIN_PASSWORD
+      KOI_GATE_ADMIN_EMAIL / KOI_GATE_ADMIN_PASSWORD  (dedicated gate walk admin)
 
-Idempotent upsert of a verified admin plus a sample client subscription
+Idempotent upsert of verified admin(s) plus a sample client subscription
 so /app/admin/subscriptions is walkable. The demo client gets its own
-random password (never the admin password).
+random password (never an admin password).
 
 Credentials must never land in client bundles or PR comments — store them
 in the agent store and/or Vercel Preview env only.
@@ -19,6 +21,7 @@ from __future__ import annotations
 import os
 import secrets
 from datetime import datetime, timedelta, timezone
+from typing import Any
 from urllib.parse import urlparse
 from uuid import uuid4
 
@@ -61,16 +64,85 @@ def _database_url_looks_like_production(url: str) -> bool:
     return any(marker in haystack for marker in _PROD_DB_MARKERS)
 
 
+def _admin_pairs() -> list[tuple[str, str, str]]:
+    """Collect (email, password, full_name) pairs from preview env."""
+    pairs: list[tuple[str, str, str]] = []
+    preview_email = (os.environ.get("KOI_PREVIEW_ADMIN_EMAIL") or "").strip().lower()
+    preview_password = os.environ.get("KOI_PREVIEW_ADMIN_PASSWORD") or ""
+    if preview_email and preview_password:
+        pairs.append((preview_email, preview_password, "Preview Admin"))
+    gate_email = (os.environ.get("KOI_GATE_ADMIN_EMAIL") or "").strip().lower()
+    gate_password = os.environ.get("KOI_GATE_ADMIN_PASSWORD") or ""
+    if gate_email and gate_password:
+        pairs.append((gate_email, gate_password, "Gate Test Admin"))
+    return pairs
+
+
+def _upsert_admin(
+    connection: Any,
+    *,
+    email: str,
+    password_hash: str,
+    full_name: str,
+    verified_at: datetime,
+) -> None:
+    from sqlalchemy import text
+
+    admin_row = connection.execute(
+        text("SELECT id FROM users WHERE email = :email"),
+        {"email": email},
+    ).first()
+    if admin_row is None:
+        connection.execute(
+            text(
+                """
+                INSERT INTO users (
+                    id, email, password_hash, full_name, role, status,
+                    email_verified_at
+                )
+                VALUES (
+                    :id, :email, :password_hash, :full_name, 'admin',
+                    'active', :verified_at
+                )
+                """
+            ),
+            {
+                "id": str(uuid4()),
+                "email": email,
+                "password_hash": password_hash,
+                "full_name": full_name,
+                "verified_at": verified_at,
+            },
+        )
+    else:
+        connection.execute(
+            text(
+                """
+                UPDATE users
+                SET password_hash = :password_hash,
+                    role = 'admin',
+                    status = 'active',
+                    email_verified_at = COALESCE(email_verified_at, :verified_at)
+                WHERE email = :email
+                """
+            ),
+            {
+                "email": email,
+                "password_hash": password_hash,
+                "verified_at": verified_at,
+            },
+        )
+
+
 def ensure_preview_admin() -> None:
-    """Upsert preview admin (+ sample subscription). No-op when unsafe."""
+    """Upsert preview/gate admins (+ sample subscription). No-op when unsafe."""
     if not _is_preview():
         return
     if not _seed_opt_in():
         return
 
-    email = (os.environ.get("KOI_PREVIEW_ADMIN_EMAIL") or "").strip().lower()
-    password = os.environ.get("KOI_PREVIEW_ADMIN_PASSWORD") or ""
-    if not email or not password:
+    pairs = _admin_pairs()
+    if not pairs:
         return
 
     # Lazy imports: keep module importable for unit tests without apps/api on path.
@@ -87,55 +159,18 @@ def ensure_preview_admin() -> None:
     now = datetime.now(timezone.utc)
     period_end = now + timedelta(days=30)
     demo_email = "preview-client@koicloud.test"
-    # Distinct from admin — never reuse KOI_PREVIEW_ADMIN_PASSWORD.
+    # Distinct from every admin password.
     client_password = secrets.token_urlsafe(24)
 
     try:
         with engine.begin() as connection:
-            admin_row = connection.execute(
-                text("SELECT id FROM users WHERE email = :email"),
-                {"email": email},
-            ).first()
-            password_hash = hash_password(password)
-            if admin_row is None:
-                connection.execute(
-                    text(
-                        """
-                        INSERT INTO users (
-                            id, email, password_hash, full_name, role, status,
-                            email_verified_at
-                        )
-                        VALUES (
-                            :id, :email, :password_hash, :full_name, 'admin',
-                            'active', :verified_at
-                        )
-                        """
-                    ),
-                    {
-                        "id": str(uuid4()),
-                        "email": email,
-                        "password_hash": password_hash,
-                        "full_name": "Preview Admin",
-                        "verified_at": now,
-                    },
-                )
-            else:
-                connection.execute(
-                    text(
-                        """
-                        UPDATE users
-                        SET password_hash = :password_hash,
-                            role = 'admin',
-                            status = 'active',
-                            email_verified_at = COALESCE(email_verified_at, :verified_at)
-                        WHERE email = :email
-                        """
-                    ),
-                    {
-                        "email": email,
-                        "password_hash": password_hash,
-                        "verified_at": now,
-                    },
+            for email, password, full_name in pairs:
+                _upsert_admin(
+                    connection,
+                    email=email,
+                    password_hash=hash_password(password),
+                    full_name=full_name,
+                    verified_at=now,
                 )
 
             client_row = connection.execute(

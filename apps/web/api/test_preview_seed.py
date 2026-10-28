@@ -63,9 +63,24 @@ def test_ensure_preview_admin_noops_without_credentials(
     monkeypatch.setenv("KOI_PREVIEW_SEED", "1")
     monkeypatch.delenv("KOI_PREVIEW_ADMIN_EMAIL", raising=False)
     monkeypatch.delenv("KOI_PREVIEW_ADMIN_PASSWORD", raising=False)
+    monkeypatch.delenv("KOI_GATE_ADMIN_EMAIL", raising=False)
+    monkeypatch.delenv("KOI_GATE_ADMIN_PASSWORD", raising=False)
 
     preview_seed = _reload_seed()
     preview_seed.ensure_preview_admin()
+
+
+def test_admin_pairs_includes_gate_admin(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("KOI_PREVIEW_ADMIN_EMAIL", raising=False)
+    monkeypatch.delenv("KOI_PREVIEW_ADMIN_PASSWORD", raising=False)
+    monkeypatch.setenv("KOI_GATE_ADMIN_EMAIL", "gate-132-admin@koicloud.test")
+    monkeypatch.setenv("KOI_GATE_ADMIN_PASSWORD", "gate-only-password")
+
+    preview_seed = _reload_seed()
+    pairs = preview_seed._admin_pairs()
+    assert pairs == [
+        ("gate-132-admin@koicloud.test", "gate-only-password", "Gate Test Admin"),
+    ]
 
 
 @pytest.mark.parametrize(
