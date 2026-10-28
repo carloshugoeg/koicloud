@@ -691,9 +691,9 @@ async def admin_list_users(
 async def suspend_user(
     user_id: UUID,
     payload: SuspendUserRequest,
-    _: Annotated[AuthContext, Depends(get_admin_user)],
+    actor: Annotated[AuthContext, Depends(get_admin_user)],
 ) -> AdminUserResponse:
-    return await admin_commands.suspend_user(user_id, payload)
+    return await admin_commands.suspend_user(user_id, payload, actor=actor)
 
 
 @router.post(
