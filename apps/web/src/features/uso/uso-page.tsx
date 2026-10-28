@@ -8,6 +8,7 @@ import {
 } from "@/api/hooks";
 import type { components } from "@/api/schema";
 import { problemToMessage } from "@/lib/errors";
+import { formatPrice } from "@/lib/format-price";
 
 type UsagePond = components["schemas"]["UsagePondItem"];
 type Invoice = components["schemas"]["InvoiceOut"];
@@ -27,13 +28,9 @@ const MONTH_NAMES = [
   "Diciembre",
 ] as const;
 
-const MONEY_FORMATTER = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 4,
-});
-
+function formatUsd(amount: number): string {
+  return formatPrice({ unit_price: amount, currency: "USD" });
+}
 function currentMonthValue() {
   const now = new Date();
   const year = now.getUTCFullYear();
@@ -179,7 +176,7 @@ function InvoicePaper({
             <tr key={line.id} className="border-b border-line/70">
               <td className="py-3 text-ink">{line.description}</td>
               <td className="py-3 text-right font-mono text-ink">
-                {MONEY_FORMATTER.format(line.amount_usd)}
+                {formatUsd(line.amount_usd)}
               </td>
             </tr>
           ))}
@@ -189,15 +186,15 @@ function InvoicePaper({
       <dl className="ml-auto mt-5 w-full max-w-xs space-y-2 text-sm">
         <div className="flex justify-between gap-4">
           <dt className="text-ink-muted">Subtotal</dt>
-          <dd className="font-mono text-ink">{MONEY_FORMATTER.format(invoice.subtotal_usd)}</dd>
+          <dd className="font-mono tabular-nums text-ink">{formatUsd(invoice.subtotal_usd)}</dd>
         </div>
         <div className="flex justify-between gap-4">
           <dt className="text-ink-muted">IVA 12 %</dt>
-          <dd className="font-mono text-ink">{MONEY_FORMATTER.format(invoice.iva_usd)}</dd>
+          <dd className="font-mono tabular-nums text-ink">{formatUsd(invoice.iva_usd)}</dd>
         </div>
         <div className="flex justify-between gap-4 border-t border-ink pt-2 font-display text-xl">
           <dt>Total</dt>
-          <dd>{MONEY_FORMATTER.format(invoice.total_usd)}</dd>
+          <dd className="tabular-nums">{formatUsd(invoice.total_usd)}</dd>
         </div>
       </dl>
     </article>
@@ -344,7 +341,7 @@ export function UsoPage() {
                 Factura del período
               </p>
               <p className="font-display text-4xl text-ink">
-                {monthInvoice ? MONEY_FORMATTER.format(monthInvoice.total_usd) : "—"}
+                {monthInvoice ? formatUsd(monthInvoice.total_usd) : "—"}
               </p>
             </div>
           </div>

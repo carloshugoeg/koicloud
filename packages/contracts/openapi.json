@@ -2091,6 +2091,8 @@
           "plans": [
             {
               "active": true,
+              "billing_model": "monthly",
+              "currency": "USD",
               "description": "Pruebas internas (10 min)",
               "id": "sandbox",
               "max_ponds": 1,
@@ -2098,10 +2100,13 @@
               "name": "Sandbox",
               "postpaid": false,
               "price_monthly_usd": 0.0,
+              "unit_price": 0.0,
               "validity_minutes": 10
             },
             {
               "active": true,
+              "billing_model": "monthly",
+              "currency": "USD",
               "description": "1 pond, 1 GB, backups 7 d\u00edas",
               "id": "micro",
               "max_ponds": 1,
@@ -2109,10 +2114,13 @@
               "name": "Micro",
               "postpaid": false,
               "price_monthly_usd": 5.0,
+              "unit_price": 5.0,
               "validity_minutes": 43200
             },
             {
               "active": true,
+              "billing_model": "hourly",
+              "currency": "USD",
               "description": "Hasta 10 ponds, post-pago por uso",
               "id": "pro",
               "max_ponds": 10,
@@ -2120,6 +2128,7 @@
               "name": "Pro",
               "postpaid": true,
               "price_monthly_usd": 0.0,
+              "unit_price": 0.02,
               "validity_minutes": 43200
             }
           ]
@@ -2154,6 +2163,8 @@
         "additionalProperties": false,
         "example": {
           "active": true,
+          "billing_model": "monthly",
+          "currency": "USD",
           "description": "1 pond, 1 GB, backups 7 d\u00edas",
           "id": "micro",
           "max_ponds": 1,
@@ -2161,12 +2172,29 @@
           "name": "Micro",
           "postpaid": false,
           "price_monthly_usd": 5.0,
+          "unit_price": 5.0,
           "validity_minutes": 43200
         },
         "properties": {
           "active": {
             "title": "Active",
             "type": "boolean"
+          },
+          "billing_model": {
+            "enum": [
+              "monthly",
+              "hourly"
+            ],
+            "title": "Billing Model",
+            "type": "string"
+          },
+          "currency": {
+            "const": "USD",
+            "enum": [
+              "USD"
+            ],
+            "title": "Currency",
+            "type": "string"
           },
           "description": {
             "title": "Description",
@@ -2196,6 +2224,10 @@
             "title": "Price Monthly Usd",
             "type": "number"
           },
+          "unit_price": {
+            "title": "Unit Price",
+            "type": "number"
+          },
           "validity_minutes": {
             "title": "Validity Minutes",
             "type": "integer"
@@ -2206,6 +2238,9 @@
           "name",
           "description",
           "price_monthly_usd",
+          "billing_model",
+          "unit_price",
+          "currency",
           "max_ponds",
           "max_storage_gb",
           "validity_minutes",

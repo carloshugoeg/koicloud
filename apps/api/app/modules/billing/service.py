@@ -18,6 +18,7 @@ from app.core.models import Invoice, InvoiceLine, Payment, Plan, Subscription
 from app.core.time import utc_now
 from app.modules.billing.invoice_pdf import render_invoice_pdf, split_iva
 from app.modules.billing.payments.port import PaymentProvider
+from app.modules.billing.plan_pricing import plan_display_pricing
 from app.schemas import (
     InvoiceDetailResponse,
     InvoiceLineOut,
@@ -106,23 +107,26 @@ class BillingService:
                 select(Plan).where(Plan.active.is_(True)).order_by(Plan.id)
             )
         ).all()
-        return PlanListResponse(
-            plans=[
+        plans: list[PlanOut] = []
+        for row in rows:
+            billing_model, unit_price, currency = plan_display_pricing(row)
+            plans.append(
                 PlanOut(
                     id=row.id,
                     name=row.name,
                     description=row.description,
                     price_monthly_usd=float(row.price_monthly_usd),
+                    billing_model=billing_model,
+                    unit_price=unit_price,
+                    currency=currency,
                     max_ponds=row.max_ponds,
                     max_storage_gb=row.max_storage_gb,
                     validity_minutes=row.validity_minutes,
                     postpaid=row.postpaid,
                     active=row.active,
                 )
-                for row in rows
-            ],
-            next_cursor=None,
-        )
+            )
+        return PlanListResponse(plans=plans, next_cursor=None)
 
     async def list_subscriptions(self, actor: AuthContext) -> SubscriptionListResponse:
         rows = (
