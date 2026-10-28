@@ -117,7 +117,7 @@ export function PlansPage() {
             className="overflow-x-auto rounded-sm border border-line bg-paper"
             tabIndex={0}
             role="region"
-            aria-label="Comparativa de características"
+            aria-label="Comparativa de planes"
             data-testid="plans-comparison-table"
           >
             <div className="border-b border-line-control bg-bone-sunk px-4 py-3">

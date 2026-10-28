@@ -58,7 +58,7 @@ describe("W2-03 Planes y Checkout flow", () => {
   it("exposes a keyboard-reachable comparison table region", async () => {
     renderPlansRoute("/app/planes");
 
-    const region = await screen.findByRole("region", { name: "Comparativa de características" });
+    const region = await screen.findByRole("region", { name: "Comparativa de planes" });
     expect(region).toHaveAttribute("tabindex", "0");
     expect(region).toHaveAttribute("data-testid", "plans-comparison-table");
   });
