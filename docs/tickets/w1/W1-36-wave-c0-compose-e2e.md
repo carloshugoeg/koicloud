@@ -2,7 +2,7 @@
 id: W1-36
 workstream: W1
 persona: Carlos
-estado: hecho
+estado: en-revision
 rama: w1-wave-c0-compose-e2e
 epica: "E10-02, E10-03"
 sprint: S4
