@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { usePlansQuery, type PlanOut, type SubscribeResponse } from "@/api/hooks";
 import { formatPrice, formatPricePeriod, formatPriceWithPeriod } from "@/lib/format-price";
@@ -8,6 +8,7 @@ import { CheckoutModal } from "@/features/plans/checkout-modal";
 export function PlansPage() {
   const { data: plans, isPending, isError, error, refetch } = usePlansQuery();
   const [selectedPlan, setSelectedPlan] = useState<PlanOut | null>(null);
+  const chooseButtonRef = useRef<HTMLButtonElement | null>(null);
   const [subscriptionSuccess, setSubscriptionSuccess] = useState<SubscribeResponse | null>(null);
 
   const planById = (id: string) => plans?.find((plan) => plan.id === id);
@@ -113,7 +114,10 @@ export function PlansPage() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => setSelectedPlan(plan)}
+                    onClick={(event) => {
+                      chooseButtonRef.current = event.currentTarget;
+                      setSelectedPlan(plan);
+                    }}
                     className="mt-6 flex h-9 w-full items-center justify-center whitespace-nowrap rounded-sm bg-turquoise-700 px-3 text-sm font-medium text-bone-raised transition-colors duration-instant hover:bg-turquoise-900 sm:px-4"
                   >
                     Elegir plan {plan.name}
@@ -183,6 +187,7 @@ export function PlansPage() {
       {selectedPlan ? (
         <CheckoutModal
           plan={selectedPlan}
+          returnFocusRef={chooseButtonRef}
           onClose={() => setSelectedPlan(null)}
           onSuccess={(res) => {
             setSelectedPlan(null);

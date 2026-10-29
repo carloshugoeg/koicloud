@@ -294,6 +294,10 @@ button:disabled {
   background: rgba(20, 33, 31, 0.32);
 }
 
+.modal-page-inert {
+  visibility: hidden;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .koi, .koi--x2 { animation: none; background-position-x: 0; }
   .pond-water-auth { animation: none; }

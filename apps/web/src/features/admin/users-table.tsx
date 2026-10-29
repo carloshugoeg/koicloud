@@ -5,7 +5,7 @@ type UsersTableProps = {
   pondsComplete: boolean;
   pondCountByEmail: Map<string, number>;
   onSuspend: (user: AdminUser, trigger: HTMLButtonElement) => void;
-  onReactivate: (user: AdminUser) => void;
+  onReactivate: (user: AdminUser, trigger: HTMLButtonElement) => void;
 };
 
 export function UsersTable({
@@ -72,7 +72,7 @@ export function UsersTable({
                     type="button"
                     className="h-8 rounded-sm border border-line-control px-3 text-xs font-medium"
                     data-testid={`reactivate-${user.id}`}
-                    onClick={() => onReactivate(user)}
+                    onClick={(event) => onReactivate(user, event.currentTarget)}
                   >
                     Reactivar
                   </button>

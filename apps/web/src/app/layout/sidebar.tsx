@@ -143,7 +143,7 @@ export function SidebarSheet({
         tabIndex={-1}
         onClick={onClose}
       />
-      <aside
+      <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
@@ -165,7 +165,7 @@ export function SidebarSheet({
         <div className="mt-5">
           <SidebarNav isAdmin={isAdmin} collapsed={false} onNavigate={onClose} />
         </div>
-      </aside>
+      </div>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import {
   type ReactNode,
   type RefObject,
 } from "react";
+import { createPortal } from "react-dom";
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -43,6 +44,11 @@ export function ModalDialog({
     if (!dialog) {
       return;
     }
+
+    const root = document.getElementById("root");
+    root?.setAttribute("aria-hidden", "true");
+    root?.setAttribute("inert", "");
+    root?.classList.add("modal-page-inert");
 
     const preferred = initialFocusRef?.current;
     if (preferred) {
@@ -96,11 +102,14 @@ export function ModalDialog({
     document.addEventListener("keydown", onKeyDown);
     return () => {
       document.removeEventListener("keydown", onKeyDown);
+      root?.classList.remove("modal-page-inert");
+      root?.removeAttribute("inert");
+      root?.removeAttribute("aria-hidden");
       returnTarget?.focus();
     };
   }, [returnFocusRef, initialFocusRef]);
 
-  return (
+  return createPortal(
     <div className={className}>
       <button
         type="button"
@@ -119,6 +128,7 @@ export function ModalDialog({
       >
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

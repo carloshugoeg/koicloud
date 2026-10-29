@@ -36,7 +36,7 @@ export function RestoreDialog({
     >
       <div className="h-1 bg-danger" />
       <div className="space-y-4 p-5">
-        <h3 id="restore-title" className="font-display text-2xl text-ink">
+        <h3 id="restore-title" className="min-w-0 break-words font-display text-2xl text-ink">
           Restaurar respaldo del {formatWhen(backup.created_at)}
         </h3>
         <div className="rounded-sm border border-danger bg-danger-soft px-3 py-2 text-sm text-ink">

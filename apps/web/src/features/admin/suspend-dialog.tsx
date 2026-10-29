@@ -39,9 +39,9 @@ export function SuspendDialog({
     >
       <div className="h-1 bg-danger" />
       <div className="space-y-4 p-5">
-        <h3 id="suspend-dialog-title" className="font-display text-2xl text-ink">
+        <h2 id="suspend-dialog-title" className="break-words font-display text-2xl text-ink">
           Suspender a {user.full_name}
-        </h3>
+        </h2>
         <div className="rounded-sm border border-danger/40 bg-danger-soft px-3 py-2 text-sm text-ink">
           La cuenta no podrá iniciar sesión. Sus ponds siguen corriendo y no se borra ningún dato.
         </div>
@@ -65,7 +65,7 @@ export function SuspendDialog({
           />
           <span
             className={`mt-1 block font-mono text-[11px] tabular-nums ${
-              motivo.trim().length > 500 ? "text-danger" : "text-ink-faint"
+              motivo.trim().length > 500 ? "text-danger" : "text-ink-muted"
             }`}
             data-testid="suspend-motivo-count"
           >

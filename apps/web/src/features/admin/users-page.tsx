@@ -30,6 +30,7 @@ export function AdminUsersPage() {
   const [confirmEmail, setConfirmEmail] = useState("");
   const [motivo, setMotivo] = useState("");
   const suspendTriggerRef = useRef<HTMLElement | null>(null);
+  const reactivateTriggerRef = useRef<HTMLElement | null>(null);
 
   const pondsComplete =
     pondsQuery.isSuccess && isCompleteCursorPage(pondsQuery.data.next_cursor);
@@ -69,6 +70,11 @@ export function AdminUsersPage() {
     setMotivo("");
     suspend.reset();
     reactivate.reset();
+  }
+
+  function openReactivate(user: AdminUser, trigger: HTMLButtonElement) {
+    reactivateTriggerRef.current = trigger;
+    setDialog({ kind: "reactivate", user });
   }
 
   function openSuspend(user: AdminUser, trigger: HTMLButtonElement) {
@@ -161,7 +167,7 @@ export function AdminUsersPage() {
         pondsComplete={pondsComplete}
         pondCountByEmail={pondCountByEmail}
         onSuspend={openSuspend}
-        onReactivate={(user) => setDialog({ kind: "reactivate", user })}
+        onReactivate={openReactivate}
       />
 
       {usersQuery.data?.next_cursor ? <MoreResultsNote /> : null}
@@ -186,6 +192,7 @@ export function AdminUsersPage() {
           user={dialog.user}
           pending={reactivate.isPending}
           error={reactivate.error}
+          returnFocusRef={reactivateTriggerRef}
           onCancel={closeDialog}
           onSubmit={submitReactivate}
         />

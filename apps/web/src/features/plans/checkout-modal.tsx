@@ -1,6 +1,7 @@
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useState, type RefObject } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSubscribeMutation, type PlanOut, type SubscribeResponse } from "@/api/hooks";
+import { ModalDialog } from "@/components/modal-dialog";
 import { ApiError, problemToMessage } from "@/lib/errors";
 import { formatPrice, formatPricePeriod } from "@/lib/format-price";
 
@@ -8,9 +9,10 @@ export interface CheckoutModalProps {
   plan: PlanOut;
   onClose: () => void;
   onSuccess: (res: SubscribeResponse) => void;
+  returnFocusRef: RefObject<HTMLElement | null>;
 }
 
-export function CheckoutModal({ plan, onClose, onSuccess }: CheckoutModalProps) {
+export function CheckoutModal({ plan, onClose, onSuccess, returnFocusRef }: CheckoutModalProps) {
   const navigate = useNavigate();
   const subscribeMutation = useSubscribeMutation();
   const [nit, setNit] = useState("");
@@ -82,16 +84,16 @@ export function CheckoutModal({ plan, onClose, onSuccess }: CheckoutModalProps) 
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/30" role="dialog" aria-modal="true" aria-labelledby="checkout-title">
-      <div className="w-full max-w-lg rounded-sm border border-line-control bg-bone-raised p-6 shadow-dialog">
-        <div className="flex items-center justify-between border-b border-line pb-3">
-          <h2 id="checkout-title" className="font-display text-2xl text-ink">
-            Contratar plan {plan.name}
-          </h2>
-          <button type="button" onClick={onClose} aria-label="Cerrar diálogo" className="text-sm font-medium text-ink-muted hover:text-ink">
-            ✕
-          </button>
-        </div>
+    <ModalDialog
+      titleId="checkout-title"
+      onClose={onClose}
+      returnFocusRef={returnFocusRef}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/30 p-4"
+      panelClassName="relative z-10 max-h-[calc(100dvh-2rem)] w-full min-w-0 max-w-lg overflow-y-auto rounded-sm border border-line-control bg-bone-raised p-6 shadow-dialog"
+    >
+        <h2 id="checkout-title" className="break-words border-b border-line pb-3 font-display text-2xl text-ink">
+          Contratar plan {plan.name}
+        </h2>
 
         <div className="mt-4 rounded-sm border-l-4 border-marigold bg-marigold/10 p-3 text-xs font-medium text-ink">
           Pago simulado: no se realiza ningún cobro real.
@@ -202,7 +204,6 @@ export function CheckoutModal({ plan, onClose, onSuccess }: CheckoutModalProps) 
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </ModalDialog>
   );
 }
