@@ -1,0 +1,56 @@
+{
+  "tip": "a81ad3a",
+  "tipFull": "a81ad3a6646db9e806168d69337500c6f0b35bc1",
+  "preview": "https://koicloud-web-git-w2-confirm-dialog-hugos-projects-3379fa36.vercel.app",
+  "path": "/app/confirm",
+  "viewports": [
+    375,
+    768,
+    1440
+  ],
+  "results": [
+    {
+      "width": 375,
+      "file": "confirm-375-a81ad3a.png",
+      "colors": {
+        "bandBg": "rgb(227, 167, 44)",
+        "dialogBg": "rgb(251, 247, 236)",
+        "confirmBg": "rgb(10, 109, 100)",
+        "countdownColor": "rgb(138, 90, 10)",
+        "hasDialog": true,
+        "confirmText": "Confirmar"
+      }
+    },
+    {
+      "width": 768,
+      "file": "confirm-768-a81ad3a.png",
+      "colors": {
+        "bandBg": "rgb(227, 167, 44)",
+        "dialogBg": "rgb(251, 247, 236)",
+        "confirmBg": "rgb(10, 109, 100)",
+        "countdownColor": "rgb(138, 90, 10)",
+        "hasDialog": true,
+        "confirmText": "Confirmar"
+      }
+    },
+    {
+      "width": 1440,
+      "file": "confirm-1440-a81ad3a.png",
+      "colors": {
+        "bandBg": "rgb(227, 167, 44)",
+        "dialogBg": "rgb(251, 247, 236)",
+        "confirmBg": "rgb(10, 109, 100)",
+        "countdownColor": "rgb(138, 90, 10)",
+        "hasDialog": true,
+        "confirmText": "Confirmar"
+      }
+    }
+  ],
+  "axe": {
+    "violations": 0,
+    "seriousCritical": 0,
+    "ids": [],
+    "allIds": []
+  },
+  "loginShot": "login-a81ad3a.png"
+}
