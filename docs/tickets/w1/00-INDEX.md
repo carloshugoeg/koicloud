@@ -43,7 +43,7 @@ no existe todavía. `00-INDEX.md` no es un ticket y el agente lo ignora.
 | W1-32 | Admin subscriptions (#96 A7) | `w1-admin-subscriptions` | bloqueado · [#132](https://github.com/carloshugoeg/koicloud/pull/132) CCR #128 |
 | [W1-33](W1-33-pond-stop-start.md) | Pond stop/start (CCR #131) | `w1-pond-stop-start` | hecho · [#130](https://github.com/carloshugoeg/koicloud/pull/130) · CCR [#131](https://github.com/carloshugoeg/koicloud/issues/131) approved |
 | W1-34 | Expose size_bytes / admin totals / invoice link + MCP·CLI (A1) | `w1-expose-fields` | hecho · [#136](https://github.com/carloshugoeg/koicloud/pull/136) · **no** `PlanOut.backup_retention_days` (#124/W1-28) |
-| W1-35 | Columna Expira / `BackupOut.expires_at` (A11) | `w1-a11-expira-toasts` | hecho · [#134](https://github.com/carloshugoeg/koicloud/pull/134) · CCR [#135](https://github.com/carloshugoeg/koicloud/issues/135) |
+| W1-35 | Columna Expira / `BackupOut.expires_at` (A11) | `w1-a11-expira-toasts` | hecho · [#134](https://github.com/carloshugoeg/koicloud/pull/134) |
 | W1-40 | Preview API rewrite + theme (HIGH lane; real preview API) | `w1-preview-api-theme-fix` | hecho · [#149](https://github.com/carloshugoeg/koicloud/pull/149) |
 | [W1-42](W1-42-preview-login-e2e.md) | Regresión e2e del login en Preview | `w1-preview-login-gate` | en-revision |
 
