@@ -12,6 +12,7 @@ from app.core.enums import AppSurface
 from app.core.errors import AppError, ErrorCode
 from app.core.models import Plan
 from app.modules.billing.payments import get_payment_provider
+from app.modules.billing.plan_pricing import plan_display_pricing
 from app.modules.billing.service import BillingService
 from app.schemas import (
     CancelSubscriptionResponse,
@@ -37,11 +38,15 @@ def _requires_confirmation(surface: AppSurface, confirm_token: str | None) -> bo
 
 
 def _plan_to_out(plan: Plan) -> PlanOut:
+    billing_model, unit_price, currency = plan_display_pricing(plan)
     return PlanOut(
         id=plan.id,
         name=plan.name,
         description=plan.description,
         price_monthly_usd=float(plan.price_monthly_usd),
+        billing_model=billing_model,
+        unit_price=unit_price,
+        currency=currency,
         max_ponds=plan.max_ponds,
         max_storage_gb=plan.max_storage_gb,
         validity_minutes=plan.validity_minutes,

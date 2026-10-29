@@ -8,6 +8,7 @@ import {
 } from "@/api/hooks";
 import type { components } from "@/api/schema";
 import { problemToMessage } from "@/lib/errors";
+import { formatPrice } from "@/lib/format-price";
 import { InvoicePaper } from "@/features/uso/invoice-paper";
 
 type UsagePond = components["schemas"]["UsagePondItem"];
@@ -28,13 +29,9 @@ const MONTH_NAMES = [
   "Diciembre",
 ] as const;
 
-const MONEY_FORMATTER = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 4,
-});
-
+function formatUsd(amount: number): string {
+  return formatPrice({ unit_price: amount, currency: "USD" });
+}
 function currentMonthValue() {
   const now = new Date();
   const year = now.getUTCFullYear();
@@ -280,7 +277,7 @@ export function UsoPage() {
                 Factura del período
               </p>
               <p className="font-display text-4xl text-ink">
-                {monthInvoice ? MONEY_FORMATTER.format(monthInvoice.total_usd) : "—"}
+                {monthInvoice ? formatUsd(monthInvoice.total_usd) : "—"}
               </p>
             </div>
           </div>

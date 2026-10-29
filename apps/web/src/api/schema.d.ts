@@ -1947,6 +1947,8 @@ export interface components {
          *       "plans": [
          *         {
          *           "active": true,
+         *           "billing_model": "monthly",
+         *           "currency": "USD",
          *           "description": "Pruebas internas (10 min)",
          *           "id": "sandbox",
          *           "max_ponds": 1,
@@ -1954,10 +1956,13 @@ export interface components {
          *           "name": "Sandbox",
          *           "postpaid": false,
          *           "price_monthly_usd": 0,
+         *           "unit_price": 0,
          *           "validity_minutes": 10
          *         },
          *         {
          *           "active": true,
+         *           "billing_model": "monthly",
+         *           "currency": "USD",
          *           "description": "1 pond, 1 GB, backups 7 días",
          *           "id": "micro",
          *           "max_ponds": 1,
@@ -1965,10 +1970,13 @@ export interface components {
          *           "name": "Micro",
          *           "postpaid": false,
          *           "price_monthly_usd": 5,
+         *           "unit_price": 5,
          *           "validity_minutes": 43200
          *         },
          *         {
          *           "active": true,
+         *           "billing_model": "hourly",
+         *           "currency": "USD",
          *           "description": "Hasta 10 ponds, post-pago por uso",
          *           "id": "pro",
          *           "max_ponds": 10,
@@ -1976,6 +1984,7 @@ export interface components {
          *           "name": "Pro",
          *           "postpaid": true,
          *           "price_monthly_usd": 0,
+         *           "unit_price": 0.02,
          *           "validity_minutes": 43200
          *         }
          *       ]
@@ -1991,6 +2000,8 @@ export interface components {
          * PlanOut
          * @example {
          *       "active": true,
+         *       "billing_model": "monthly",
+         *       "currency": "USD",
          *       "description": "1 pond, 1 GB, backups 7 días",
          *       "id": "micro",
          *       "max_ponds": 1,
@@ -1998,12 +2009,24 @@ export interface components {
          *       "name": "Micro",
          *       "postpaid": false,
          *       "price_monthly_usd": 5,
+         *       "unit_price": 5,
          *       "validity_minutes": 43200
          *     }
          */
         PlanOut: {
             /** Active */
             active: boolean;
+            /**
+             * Billing Model
+             * @enum {string}
+             */
+            billing_model: "monthly" | "hourly";
+            /**
+             * Currency
+             * @constant
+             * @enum {string}
+             */
+            currency: "USD";
             /** Description */
             description: string;
             /** Id */
@@ -2018,6 +2041,8 @@ export interface components {
             postpaid: boolean;
             /** Price Monthly Usd */
             price_monthly_usd: number;
+            /** Unit Price */
+            unit_price: number;
             /** Validity Minutes */
             validity_minutes: number;
         };

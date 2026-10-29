@@ -2,15 +2,12 @@ import { type FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSubscribeMutation, type PlanOut, type SubscribeResponse } from "@/api/hooks";
 import { ApiError, problemToMessage } from "@/lib/errors";
+import { formatPrice, formatPricePeriod } from "@/lib/format-price";
 
 export interface CheckoutModalProps {
   plan: PlanOut;
   onClose: () => void;
   onSuccess: (res: SubscribeResponse) => void;
-}
-
-function formatUsd(value: number): string {
-  return `$${value.toFixed(4)}`;
 }
 
 export function CheckoutModal({ plan, onClose, onSuccess }: CheckoutModalProps) {
@@ -20,6 +17,7 @@ export function CheckoutModal({ plan, onClose, onSuccess }: CheckoutModalProps) 
   const [cardNumber, setCardNumber] = useState("");
   const [cardExpiry, setCardExpiry] = useState("");
   const [cardCvc, setCardCvc] = useState("");
+  const [issued, setIssued] = useState<SubscribeResponse | null>(null);
 
   async function handleCheckout(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -29,8 +27,7 @@ export function CheckoutModal({ plan, onClose, onSuccess }: CheckoutModalProps) 
         plan_id: plan.id,
         nit: trimmedNit ? trimmedNit : null,
       });
-      onSuccess(res);
-      navigate("/app/ponds/new");
+      setIssued(res);
     } catch {
       // Manejado con subscribeMutation.error
     }
@@ -38,6 +35,55 @@ export function CheckoutModal({ plan, onClose, onSuccess }: CheckoutModalProps) 
 
   const err = subscribeMutation.error;
   const problemCode = err instanceof ApiError ? err.problem?.code : undefined;
+
+  if (issued) {
+    const { invoice } = issued;
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/30" role="dialog" aria-modal="true" aria-labelledby="checkout-title">
+        <div className="w-full max-w-lg rounded-sm border border-line-control bg-bone-raised p-6 shadow-dialog">
+          <h2 id="checkout-title" className="font-display text-2xl text-ink">
+            Factura {invoice.number}
+          </h2>
+          <p className="mt-1 text-sm text-ink-muted">Líneas e importes desde el API (`InvoiceOut`).</p>
+          <div className="mt-4 rounded-sm border border-line bg-paper p-4" data-testid="checkout-invoice-from-api">
+            <dl className="space-y-2 text-sm">
+              <div className="flex justify-between gap-4">
+                <dt className="text-ink-muted">Subtotal</dt>
+                <dd className="font-mono tabular-nums text-ink">
+                  {formatPrice({ unit_price: invoice.subtotal_usd, currency: "USD" })}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-ink-muted">IVA 12 %</dt>
+                <dd className="font-mono tabular-nums text-ink">
+                  {formatPrice({ unit_price: invoice.iva_usd, currency: "USD" })}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-4 border-t border-line pt-2 font-medium">
+                <dt className="text-ink">Total</dt>
+                <dd className="font-mono tabular-nums text-ink" data-testid="checkout-invoice-total">
+                  {formatPrice({ unit_price: invoice.total_usd, currency: "USD" })}
+                </dd>
+              </div>
+            </dl>
+          </div>
+          <div className="mt-6 flex justify-end">
+            <button
+              type="button"
+              onClick={() => {
+                onSuccess(issued);
+                onClose();
+                navigate("/app/ponds/new");
+              }}
+              className="h-9 rounded-sm bg-turquoise-700 px-4 text-sm font-medium text-bone-raised hover:bg-turquoise-900"
+            >
+              Crear mi primer pond →
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/30" role="dialog" aria-modal="true" aria-labelledby="checkout-title">
@@ -55,21 +101,15 @@ export function CheckoutModal({ plan, onClose, onSuccess }: CheckoutModalProps) 
           Pago simulado: no se realiza ningún cobro real.
         </div>
 
-        <div className="mt-4 rounded-sm border border-line bg-paper p-4">
-          <p className="text-xs font-medium uppercase tracking-[0.16em] text-ink-muted">Vista previa de factura</p>
-          <div className="mt-2 space-y-1 text-sm">
-            <div className="flex justify-between">
-              <span className="text-ink-muted">Plan:</span>
-              <span className="text-ink">{plan.name}</span>
-            </div>
-            <div className="flex justify-between border-t border-line pt-1 font-medium">
-              <span className="text-ink">Total a pagar:</span>
-              <span className="font-mono tabular-nums text-ink">{formatUsd(plan.price_monthly_usd)}</span>
-            </div>
-            <p className="pt-1 text-xs text-ink-muted">
-              Subtotal, IVA y líneas salen de la factura del API al confirmar.
-            </p>
-          </div>
+        <div className="mt-4 rounded-sm border border-line bg-paper p-4" data-testid="checkout-catalog-price">
+          <p className="text-xs font-medium uppercase tracking-[0.16em] text-ink-muted">Precio de catálogo</p>
+          <p className="mt-2 font-display text-2xl tabular-nums text-ink">
+            {formatPrice(plan)}{" "}
+            <span className="text-sm font-sans font-normal text-ink-muted">{formatPricePeriod(plan)}</span>
+          </p>
+          <p className="mt-2 text-xs text-ink-muted">
+            Al confirmar, la factura del API trae los importes. Sin math de negocio en el navegador.
+          </p>
         </div>
 
         <form onSubmit={handleCheckout} className="mt-4 space-y-4">

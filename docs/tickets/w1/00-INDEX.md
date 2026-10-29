@@ -35,7 +35,7 @@ no existe todavía. `00-INDEX.md` no es un ticket y el agente lo ignora.
 | W1-24 | Revisión SOLID del control plane (P7 / #96) | `w1-solid-review` | hecho ([PR #101](https://github.com/carloshugoeg/koicloud/pull/101)) |
 | W1-25 | ADRs A-01..A-12 en `docs/adr/` | `w1-architecture-adrs` | hecho ([PR #106](https://github.com/carloshugoeg/koicloud/pull/106)) |
 | W1-26 | `scripts/demo-mcp-replay.py` (antes W4-09) | `w1-demo-replay` | hecho ([PR #110](https://github.com/carloshugoeg/koicloud/pull/110)) |
-| W1-27 | Plan pricing from GET /plans (#96) | `w1-plans-pricing` | en-revision · [#123](https://github.com/carloshugoeg/koicloud/pull/123) |
+| W1-27 | Plan pricing from `GET /plans` (#96 amendment) | `w1-plans-pricing` | hecho ([PR #123](https://github.com/carloshugoeg/koicloud/pull/123)) |
 | W1-28 | PlanOut.backup_retention_days constant (A3) | `w1-backup-retention` | en-revision · [#124](https://github.com/carloshugoeg/koicloud/pull/124) |
 | W1-29 | *(renumbered → W1-32 on #132)* | — | ver W1-32 |
 | W1-30 | Motivo de suspensión en bitácora + `user_not_found` | `w1-admin-suspend-reason` | hecho ([PR #121](https://github.com/carloshugoeg/koicloud/pull/121); CCR [#125](https://github.com/carloshugoeg/koicloud/issues/125)) |

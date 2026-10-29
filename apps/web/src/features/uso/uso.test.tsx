@@ -104,7 +104,7 @@ describe("W2-09 Uso del mes e historial de facturas", () => {
 
     expect(await screen.findByTestId("kpi-instance-hours")).toHaveTextContent("172.5");
     expect(screen.getByTestId("kpi-storage-gb-hours")).toHaveTextContent("43.6");
-    expect(screen.getByText("$5.00")).toBeInTheDocument();
+    expect(screen.getAllByText("USD 5.0000").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText(fixtures.usage.ponds[1].pond_name).length).toBeGreaterThan(0);
   });
 });
