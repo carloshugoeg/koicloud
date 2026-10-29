@@ -46,7 +46,7 @@ no existe todavía. `00-INDEX.md` no es un ticket y el agente lo ignora.
 | W1-35 | Columna Expira / `BackupOut.expires_at` (A11) | `w1-a11-expira-toasts` | hecho · [#134](https://github.com/carloshugoeg/koicloud/pull/134) |
 | W1-40 | Preview API rewrite + theme (HIGH lane; real preview API) | `w1-preview-api-theme-fix` | hecho · [#149](https://github.com/carloshugoeg/koicloud/pull/149) |
 | [W1-42](W1-42-preview-login-e2e.md) | Regresión e2e del login en Preview | `w1-preview-login-gate` | en-revision |
-| [W1-43](W1-43-pregate.md) | Pregate de lint, guardias, unitarias y e2e | `w1-pregate` | en-curso |
+| [W1-43](W1-43-pregate.md) | Pregate de lint, guardias, unitarias y e2e | `w1-pregate` | en-revision · [#160](https://github.com/carloshugoeg/koicloud/pull/160) |
 
 W1 es el único workstream que puede tocar cualquier ruta, y el único que escribe migraciones,
 regenera contratos (`make contracts`) y edita el harness de agentes.
