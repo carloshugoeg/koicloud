@@ -1,6 +1,12 @@
 import { Link } from "react-router-dom";
+import { usePlansQuery } from "@/api/hooks";
+import { formatPrice } from "@/lib/format-price";
 
 export function LandingHero() {
+  const { data: plans } = usePlansQuery();
+  const micro = plans?.find((plan) => plan.id === "micro");
+  const microPrice = micro ? formatPrice(micro) : "—";
+
   return (
     <section className="flex flex-col gap-8">
       <div>
@@ -43,8 +49,11 @@ export function LandingHero() {
             <div className="text-xs text-ink-muted">superficies: web, CLI, MCP</div>
           </div>
           <div>
-            <div className="font-display text-2xl font-semibold tabular-nums text-ink sm:text-3xl">
-              USD 5
+            <div
+              className="font-display text-2xl font-semibold tabular-nums text-ink sm:text-3xl"
+              data-testid="landing-hero-micro-price"
+            >
+              {microPrice}
             </div>
             <div className="text-xs text-ink-muted">plan Micro al mes</div>
           </div>
