@@ -35,7 +35,7 @@ no existe todavía. `00-INDEX.md` no es un ticket y el agente lo ignora.
 | W1-24 | Revisión SOLID del control plane (P7 / #96) | `w1-solid-review` | hecho ([PR #101](https://github.com/carloshugoeg/koicloud/pull/101)) |
 | W1-25 | ADRs A-01..A-12 en `docs/adr/` | `w1-architecture-adrs` | hecho ([PR #106](https://github.com/carloshugoeg/koicloud/pull/106)) |
 | W1-26 | `scripts/demo-mcp-replay.py` (antes W4-09) | `w1-demo-replay` | hecho ([PR #110](https://github.com/carloshugoeg/koicloud/pull/110)) |
-| W1-27 | Plan pricing from `GET /plans` (#96 amendment) | `w1-plans-pricing` | en-revision ([PR #123](https://github.com/carloshugoeg/koicloud/pull/123)) · **money — no auto-merge** |
+| W1-27 | Plan pricing from `GET /plans` (#96 amendment) | `w1-plans-pricing` | hecho ([PR #123](https://github.com/carloshugoeg/koicloud/pull/123)) · **money** |
 | W1-28 | PlanOut.backup_retention_days constant (A3) | `w1-backup-retention` | en-revision · [#124](https://github.com/carloshugoeg/koicloud/pull/124) |
 | W1-29 | *(renumbered → W1-32 on #132)* | — | ver W1-32 |
 | W1-30 | Motivo de suspensión en bitácora + `user_not_found` | `w1-admin-suspend-reason` | hecho ([PR #121](https://github.com/carloshugoeg/koicloud/pull/121); CCR [#125](https://github.com/carloshugoeg/koicloud/issues/125)) |
@@ -44,7 +44,7 @@ no existe todavía. `00-INDEX.md` no es un ticket y el agente lo ignora.
 | [W1-33](W1-33-pond-stop-start.md) | Pond stop/start (CCR #131) | `w1-pond-stop-start` | hecho · [#130](https://github.com/carloshugoeg/koicloud/pull/130) · CCR [#131](https://github.com/carloshugoeg/koicloud/issues/131) approved |
 | W1-34 | Expose size_bytes / admin totals / invoice link + MCP·CLI (A1) | `w1-expose-fields` | hecho · [#136](https://github.com/carloshugoeg/koicloud/pull/136) · **no** `PlanOut.backup_retention_days` (#124/W1-28) |
 | W1-35 | Columna Expira / `BackupOut.expires_at` (A11) | `w1-a11-expira-toasts` | hecho · [#134](https://github.com/carloshugoeg/koicloud/pull/134) |
-| W1-36 | Wave C0: compose prod, deploy.sh SSH, e2e compose CI | `w1-wave-c0-compose-e2e` | en-revision ([PR #140](https://github.com/carloshugoeg/koicloud/pull/140)) |
+| W1-36 | Wave C0: compose prod, deploy.sh SSH, e2e compose CI | `w1-wave-c0-compose-e2e` | hecho ([PR #140](https://github.com/carloshugoeg/koicloud/pull/140)) |
 | W1-40 | Preview API rewrite + theme (HIGH lane; real preview API) | `w1-preview-api-theme-fix` | hecho · [#149](https://github.com/carloshugoeg/koicloud/pull/149) |
 | [W1-42](W1-42-preview-login-e2e.md) | Regresión e2e del login en Preview | `w1-preview-login-gate` | hecho · [#159](https://github.com/carloshugoeg/koicloud/pull/159) |
 
