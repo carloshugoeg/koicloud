@@ -638,6 +638,7 @@ class BackupOut(SchemaModel):
     sha256: str
     created_at: datetime
     completed_at: datetime | None = None
+    expires_at: datetime | None = None
 
     model_config = config_with_example(
         {
@@ -650,6 +651,7 @@ class BackupOut(SchemaModel):
             "sha256": "1f3e7d3ab148b8be24af9b97a10d1655db8c613de0dc02f88f752230ec7776d0",
             "created_at": EXAMPLE_NOW,
             "completed_at": EXAMPLE_NOW,
+            "expires_at": "2026-09-29T20:00:00Z",
         }
     )
 
@@ -673,6 +675,7 @@ class TriggerBackupResponse(SchemaModel):
                 **BackupOut.example_data(),
                 "status": "queued",
                 "completed_at": None,
+                "expires_at": None,
             },
             "job": {**JobOut.example_data(), "type": "backup_pond"},
         }

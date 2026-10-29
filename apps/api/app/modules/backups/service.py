@@ -19,6 +19,7 @@ from app.core.enums import (
 from app.core.errors import AppError, ErrorCode
 from app.core.models import Backup, Job, Pond, PondStatus
 from app.core.time import utc_now
+from app.modules.backups.retention import expires_at_for
 from app.modules.ponds.service import PondService, job_to_out
 from app.schemas import BackupOut, JobOut
 
@@ -34,6 +35,7 @@ def backup_to_out(backup: Backup) -> BackupOut:
         sha256=backup.sha256 or "",
         created_at=backup.created_at,
         completed_at=backup.completed_at,
+        expires_at=expires_at_for(backup),
     )
 
 
