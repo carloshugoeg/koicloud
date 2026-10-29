@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { type PropsWithChildren, useState } from "react";
 import { SessionBootGate } from "@/app/session-boot-gate";
+import { ToastHost } from "@/lib/toast-host";
 
 function createQueryClient() {
   return new QueryClient({
@@ -23,6 +24,7 @@ export function AppProviders({ children }: PropsWithChildren) {
   return (
     <QueryClientProvider client={queryClient}>
       <SessionBootGate>{children}</SessionBootGate>
+      <ToastHost />
     </QueryClientProvider>
   );
 }
