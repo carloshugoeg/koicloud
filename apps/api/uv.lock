@@ -1036,6 +1036,7 @@ dependencies = [
     { name = "fastmcp" },
     { name = "fpdf2" },
     { name = "greenlet" },
+    { name = "httpx" },
     { name = "psycopg", extra = ["binary"] },
     { name = "pydantic-settings" },
     { name = "pyjwt" },
@@ -1046,7 +1047,6 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "httpx" },
     { name = "mypy" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -1063,6 +1063,7 @@ requires-dist = [
     { name = "fastmcp", specifier = ">=4.0.10" },
     { name = "fpdf2", specifier = ">=2.8.9" },
     { name = "greenlet" },
+    { name = "httpx" },
     { name = "psycopg", extras = ["binary"] },
     { name = "pydantic-settings" },
     { name = "pyjwt" },
@@ -1073,7 +1074,6 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "httpx" },
     { name = "mypy" },
     { name = "pytest" },
     { name = "pytest-asyncio" },

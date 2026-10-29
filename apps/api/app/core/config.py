@@ -38,6 +38,9 @@ class Settings(BaseSettings):
     mcp_enabled: bool = True
     mcp_demo_slug: str = "demo-agent"
     mcp_demo_password: str = "koicloud-demo"
+    email_provider: str = "console"
+    resend_api_key: str = ""
+    email_from: str = ""
 
     # Preview Neon schema (search_path). Applied only when VERCEL_ENV=preview.
     koi_db_schema: str = ""
