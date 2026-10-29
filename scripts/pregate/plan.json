@@ -1,0 +1,130 @@
+{
+  "version": 1,
+  "browserPath": "e2e/.browsers",
+  "preview": {
+    "denyHosts": ["localhost", "127.0.0.1", "::1", "0.0.0.0"],
+    "requireHttps": true,
+    "requireHostSuffix": ".vercel.app"
+  },
+  "forbiddenEnvKeys": ["VITE_ENABLE_MOCKS", "VERCEL_ENV"],
+  "inheritEnv": [
+    "PATH",
+    "HOME",
+    "LANG",
+    "LC_ALL",
+    "CI",
+    "PNPM_HOME",
+    "npm_config_cache",
+    "HTTP_PROXY",
+    "HTTPS_PROXY",
+    "NO_PROXY",
+    "http_proxy",
+    "https_proxy",
+    "no_proxy",
+    "GITHUB_REPOSITORY",
+    "GH_TOKEN",
+    "GITHUB_TOKEN",
+    "PLAYWRIGHT_BASE_URL",
+    "KOI_PUBLIC_BASE_URL",
+    "KOI_GATE_ADMIN_EMAIL",
+    "KOI_GATE_ADMIN_PASSWORD"
+  ],
+  "redactEnvKeys": ["KOI_GATE_ADMIN_PASSWORD", "KOI_GATE_ADMIN_EMAIL", "GH_TOKEN", "GITHUB_TOKEN"],
+  "steps": [
+    {
+      "kind": "serial",
+      "id": "runner-tests",
+      "title": "Pregate runner tests",
+      "cwd": ".",
+      "argv": ["node", "--test", "scripts/pregate/reduce.test.mjs"]
+    },
+    {
+      "kind": "serial",
+      "id": "web-install",
+      "title": "Install web dependencies",
+      "cwd": "apps/web",
+      "argv": ["pnpm", "install", "--frozen-lockfile"]
+    },
+    {
+      "kind": "serial",
+      "id": "web-lint",
+      "title": "Lint web",
+      "cwd": "apps/web",
+      "argv": ["pnpm", "lint"]
+    },
+    {
+      "kind": "serial",
+      "id": "guards-tree",
+      "title": "Docs guards",
+      "cwd": ".",
+      "argv": ["python3", "scripts/agent_guards.py", "tree"]
+    },
+    {
+      "kind": "serial",
+      "id": "web-unit",
+      "title": "Web unit tests",
+      "cwd": "apps/web",
+      "argv": ["pnpm", "test"]
+    },
+    {
+      "kind": "serial",
+      "id": "e2e-pond-install",
+      "title": "Install pond-lifecycle",
+      "cwd": "e2e/pond-lifecycle",
+      "argv": ["npm", "ci"]
+    },
+    {
+      "kind": "serial",
+      "id": "e2e-preview-install",
+      "title": "Install preview-login",
+      "cwd": "e2e/preview-login",
+      "argv": ["npm", "ci"]
+    },
+    {
+      "kind": "serial",
+      "id": "e2e-dialog-install",
+      "title": "Install dialog-viewport",
+      "cwd": "e2e/dialog-viewport",
+      "argv": ["npm", "ci"]
+    },
+    {
+      "kind": "serial",
+      "id": "playwright-chromium",
+      "title": "Install Chromium once",
+      "cwd": "e2e/pond-lifecycle",
+      "argv": ["npx", "playwright", "install", "--with-deps", "chromium"],
+      "env": { "PLAYWRIGHT_BROWSERS_PATH": "$browserPath" }
+    },
+    {
+      "kind": "parallel",
+      "id": "e2e",
+      "title": "Playwright",
+      "env": { "CI": "true", "PLAYWRIGHT_BROWSERS_PATH": "$browserPath" },
+      "members": [
+        {
+          "id": "e2e-pond-lifecycle",
+          "title": "pond-lifecycle",
+          "cwd": "e2e/pond-lifecycle",
+          "argv": ["npx", "playwright", "test"],
+          "locks": [{ "kind": "tcp", "port": 5173 }]
+        },
+        {
+          "id": "e2e-preview-login",
+          "title": "preview-login",
+          "cwd": "e2e/preview-login",
+          "argv": ["npx", "playwright", "test"],
+          "locks": [],
+          "preview": true,
+          "argvMustNotInclude": ["--grep", "--grep-invert"]
+        },
+        {
+          "id": "e2e-dialog-viewport",
+          "title": "dialog-viewport",
+          "cwd": "e2e/dialog-viewport",
+          "argv": ["npx", "playwright", "test"],
+          "locks": [{ "kind": "tcp", "port": 5174 }]
+        }
+      ]
+    }
+  ]
+}

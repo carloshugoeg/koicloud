@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "browserPath": "e2e/.browsers",
+  "preview": {
+    "denyHosts": ["localhost", "127.0.0.1", "::1", "0.0.0.0"],
+    "requireHttps": true,
+    "requireHostSuffix": ".vercel.app"
+  },
+  "forbiddenEnvKeys": ["VITE_ENABLE_MOCKS", "VERCEL_ENV"],
+  "inheritEnv": ["PATH", "HOME"],
+  "redactEnvKeys": [],
+  "steps": [
+    {
+      "kind": "serial",
+      "id": "boom",
+      "title": "Fail before the sentinel",
+      "cwd": ".",
+      "argv": ["node", "-e", "process.exit(3)"]
+    },
+    {
+      "kind": "serial",
+      "id": "sentinel",
+      "title": "Must not run",
+      "cwd": ".",
+      "argv": ["node", "-e", "require('node:fs').writeFileSync('scripts/pregate/fixtures/sentinel-did-run','x')"]
+    }
+  ]
+}

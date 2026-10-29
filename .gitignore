@@ -8,6 +8,7 @@ __pycache__/
 
 # Node
 node_modules/
+e2e/.browsers/
 dist/
 coverage/
 
