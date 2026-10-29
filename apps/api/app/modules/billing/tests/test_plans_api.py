@@ -17,6 +17,9 @@ SEEDED_PLANS: dict[str, dict[str, Any]] = {
         "name": "Sandbox",
         "description": "Pruebas internas (10 min)",
         "price_monthly_usd": 0.0,
+        "billing_model": "monthly",
+        "unit_price": 0.0,
+        "currency": "USD",
         "max_ponds": 1,
         "max_storage_gb": 1,
         "validity_minutes": 10,
@@ -28,6 +31,9 @@ SEEDED_PLANS: dict[str, dict[str, Any]] = {
         "name": "Micro",
         "description": "1 pond, 1 GB, backups 7 días",
         "price_monthly_usd": 5.0,
+        "billing_model": "monthly",
+        "unit_price": 5.0,
+        "currency": "USD",
         "max_ponds": 1,
         "max_storage_gb": 1,
         "validity_minutes": 43200,
@@ -39,6 +45,9 @@ SEEDED_PLANS: dict[str, dict[str, Any]] = {
         "name": "Pro",
         "description": "Hasta 10 ponds, post-pago por uso",
         "price_monthly_usd": 0.0,
+        "billing_model": "hourly",
+        "unit_price": 0.02,
+        "currency": "USD",
         "max_ponds": 10,
         "max_storage_gb": 20,
         "validity_minutes": 43200,
@@ -90,6 +99,9 @@ async def test_billing_service_list_plans() -> None:
         assert plan.name == expected["name"]
         assert plan.description == expected["description"]
         assert plan.price_monthly_usd == expected["price_monthly_usd"]
+        assert plan.billing_model == expected["billing_model"]
+        assert plan.unit_price == expected["unit_price"]
+        assert plan.currency == expected["currency"]
         assert plan.max_ponds == expected["max_ponds"]
         assert plan.max_storage_gb == expected["max_storage_gb"]
         assert plan.validity_minutes == expected["validity_minutes"]
@@ -108,6 +120,9 @@ def test_plan_schemas_have_openapi_examples() -> None:
     assert example["id"] == "micro"
     assert example["name"] == "Micro"
     assert example["price_monthly_usd"] == 5.0
+    assert example["billing_model"] == "monthly"
+    assert example["unit_price"] == 5.0
+    assert example["currency"] == "USD"
     assert example["active"] is True
 
     assert "PlanListResponse" in schemas
