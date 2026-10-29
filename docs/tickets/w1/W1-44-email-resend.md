@@ -1,5 +1,5 @@
 ---
-id: W1-41
+id: W1-44
 workstream: W1
 persona: Carlos
 estado: en-revision
@@ -10,7 +10,7 @@ pr: "#161"
 depends_on: W3-05
 ---
 
-# [W1-41] Proveedor de correo Resend (prod) con consola por defecto
+# [W1-44] Proveedor de correo Resend (prod) con consola por defecto
 
 ## Qué se ve
 
@@ -63,6 +63,12 @@ Respondé `BLOQUEADO: requiere <CCR | ticket para Wn> porque <razón>` y pará
 **solo** si hay que *editar* un contrato congelado o un archivo ajeno.
 Si el comando ya existe, llamalo. Si `depends_on` no aterrizó, `ESPERA`.
 No inventes endpoints, campos, tablas, códigos de error ni pantallas.
+
+## Decisiones
+
+- `send()` hace `httpx.post` bloqueante (hasta 2 × 10 s). Quien lo llame desde el
+  event loop debe correrlo en un hilo (o pasar a `httpx.AsyncClient`) cuando auth
+  lo cablee.
 
 ## Referencia
 
