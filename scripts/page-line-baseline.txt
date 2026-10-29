@@ -1,5 +1,4 @@
 # Pages already over the 250-line cap. The count is a ceiling: the file may shrink, not grow.
 apps/web/src/features/agent-access/agent-access-page.tsx 279
-apps/web/src/features/ponds/backups-page.tsx 265
 apps/web/src/features/ponds/dashboard-page.tsx 295
 apps/web/src/features/uso/uso-page.tsx 419

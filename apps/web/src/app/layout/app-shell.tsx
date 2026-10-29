@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from "react";
-import { Outlet, useMatches } from "react-router-dom";
+import { Outlet, useLocation, useMatches } from "react-router-dom";
 import { AppHeader } from "@/app/layout/app-header";
+import { readAppNotice } from "@/app/layout/app-notice";
 import { SidebarRail, SidebarSheet } from "@/app/layout/sidebar";
 import { useSidebarMode } from "@/app/layout/use-sidebar-mode";
 import { useAuthStore } from "@/lib/auth-store";
@@ -20,7 +21,9 @@ function readTitle(handle: unknown) {
 export function AppShell() {
   const session = useAuthStore((state) => state.session);
   const clearSession = useAuthStore((state) => state.clearSession);
+  const location = useLocation();
   const matches = useMatches();
+  const notice = readAppNotice(location.state);
   const currentTitle = readTitle(matches[matches.length - 1]?.handle);
   const mode = useSidebarMode();
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -66,6 +69,15 @@ export function AppShell() {
         ) : null}
 
         <main className="mx-auto w-full max-w-content flex-1 overflow-x-hidden px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+          {notice ? (
+            <p
+              className="mb-4 rounded-md border border-line bg-bone-raised px-4 py-3 text-sm text-ink"
+              data-testid="app-notice"
+              role="status"
+            >
+              {notice.text}
+            </p>
+          ) : null}
           <Outlet />
         </main>
       </div>

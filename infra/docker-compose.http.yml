@@ -1,0 +1,22 @@
+# Overlay: HTTP-only Caddy (no ACME). For local compose checks and CI proxy smoke.
+#   docker compose --env-file … \
+#     -f infra/docker-compose.prod.yml -f infra/docker-compose.http.yml up -d
+
+services:
+  caddy:
+    ports:
+      - "8080:80"
+    volumes:
+      - ./Caddyfile.http:/etc/caddy/Caddyfile:ro
+      - koicloud_web_http:/srv/koicloud/web:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:80/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+volumes:
+  koicloud_web_http:

@@ -240,6 +240,49 @@ export const handlers = [
     });
   }),
 
+  http.post(`${API_ROOT}/ponds/:pondId/backups`, ({ params }) => {
+    return HttpResponse.json(
+      {
+        backup: {
+          ...fixtures.backups[1],
+          completed_at: null,
+          expires_at: null,
+          id: "bbbbbbbb-2222-2222-2222-bbbbbbbbbbbb",
+          kind: "on_demand",
+          pond_id: String(params.pondId),
+          status: "queued",
+        },
+        job: {
+          attempts: 0,
+          created_at: "2026-10-26T15:00:00Z",
+          id: "job_backup_01",
+          node_id: "node-sv-01",
+          pond_id: String(params.pondId),
+          status: "queued",
+          type: "backup_pond",
+        },
+      },
+      { status: 202 },
+    );
+  }),
+
+  http.post(`${API_ROOT}/ponds/:pondId/retry`, ({ params }) => {
+    return HttpResponse.json(
+      {
+        job: {
+          attempts: 1,
+          created_at: "2026-10-26T15:00:00Z",
+          id: "job_retry_01",
+          node_id: "node-sv-01",
+          pond_id: String(params.pondId),
+          status: "queued",
+          type: "backup_pond",
+        },
+      },
+      { status: 202 },
+    );
+  }),
+
   http.post(`${API_ROOT}/ponds/:pondId/restore`, async ({ params }) => {
     return HttpResponse.json(
       {
@@ -499,5 +542,47 @@ export const handlers = [
     return HttpResponse.json({ events: adminAuditState, next_cursor: null });
   }),
 
+  http.post(`${API_ROOT}/confirm/:token`, ({ params }) => {
+    return respondConfirm("POST", String(params.token));
+  }),
 
+  http.delete(`${API_ROOT}/confirm/:token`, ({ params }) => {
+    return respondConfirm("DELETE", String(params.token));
+  }),
 ];
+
+/** OpenAPI example token. Anything else must match real API error codes. */
+const LIVE_CONFIRM_TOKENS = new Set(["conf_create_pond_demo"]);
+
+type ConfirmCatalogCode =
+  | "confirmation_not_found"
+  | "confirmation_expired"
+  | "confirmation_action_mismatch";
+
+function confirmProblem(status: 404 | 409 | 410, code: ConfirmCatalogCode) {
+  return HttpResponse.json(
+    { code, message: code, request_id: "req_confirm_mock" },
+    { status },
+  );
+}
+
+/**
+ * Mirror POST/DELETE /confirm/{token}: unknown → 404, expired → 410,
+ * action mismatch → 409 (POST only). Preview MSW must not accept a fake token.
+ */
+function respondConfirm(method: "POST" | "DELETE", token: string) {
+  const key = token.toLowerCase();
+  if (key.includes("expired")) {
+    return confirmProblem(410, "confirmation_expired");
+  }
+  if (method === "POST" && key.includes("mismatch")) {
+    return confirmProblem(409, "confirmation_action_mismatch");
+  }
+  if (LIVE_CONFIRM_TOKENS.has(token)) {
+    if (method === "DELETE") {
+      return new HttpResponse(null, { status: 204 });
+    }
+    return HttpResponse.json({});
+  }
+  return confirmProblem(404, "confirmation_not_found");
+}
