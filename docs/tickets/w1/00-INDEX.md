@@ -44,8 +44,9 @@ no existe todavía. `00-INDEX.md` no es un ticket y el agente lo ignora.
 | [W1-33](W1-33-pond-stop-start.md) | Pond stop/start (CCR #131) | `w1-pond-stop-start` | hecho · [#130](https://github.com/carloshugoeg/koicloud/pull/130) · CCR [#131](https://github.com/carloshugoeg/koicloud/issues/131) approved |
 | W1-34 | Expose size_bytes / admin totals / invoice link + MCP·CLI (A1) | `w1-expose-fields` | hecho · [#136](https://github.com/carloshugoeg/koicloud/pull/136) · **no** `PlanOut.backup_retention_days` (#124/W1-28) |
 | W1-35 | Columna Expira / `BackupOut.expires_at` (A11) | `w1-a11-expira-toasts` | hecho · [#134](https://github.com/carloshugoeg/koicloud/pull/134) |
+| W1-36 | Wave C0: compose prod, deploy.sh SSH, e2e compose CI | `w1-wave-c0-compose-e2e` | en-revision ([PR #140](https://github.com/carloshugoeg/koicloud/pull/140)) |
 | W1-40 | Preview API rewrite + theme (HIGH lane; real preview API) | `w1-preview-api-theme-fix` | hecho · [#149](https://github.com/carloshugoeg/koicloud/pull/149) |
-| [W1-42](W1-42-preview-login-e2e.md) | Regresión e2e del login en Preview | `w1-preview-login-gate` | en-revision |
+| [W1-42](W1-42-preview-login-e2e.md) | Regresión e2e del login en Preview | `w1-preview-login-gate` | hecho · [#159](https://github.com/carloshugoeg/koicloud/pull/159) |
 | [W1-43](W1-43-pregate.md) | Pregate de lint, guardias, unitarias y e2e | `w1-pregate` | en-revision · [#160](https://github.com/carloshugoeg/koicloud/pull/160) |
 
 W1 es el único workstream que puede tocar cualquier ruta, y el único que escribe migraciones,

@@ -15,7 +15,10 @@ coverage/
 # Local data
 .env
 .env.*
+!infra/.env.production.example
 infra/env/prod.env
+infra/env/prod.env.c0-proof
+e2e/artifacts/
 *.sqlite3
 .tmp/
 
