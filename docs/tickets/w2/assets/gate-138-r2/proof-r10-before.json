@@ -1,0 +1,21 @@
+{
+  "tip": "792d4c7-before",
+  "phase": "before",
+  "results": [
+    {
+      "id": "404",
+      "file": "confirm-404-before-792d4c7-before.png",
+      "codeClass": "mt-1 font-mono text-xs text-ink-faint"
+    },
+    {
+      "id": "410",
+      "file": "confirm-410-before-792d4c7-before.png",
+      "codeClass": "mt-1 font-mono text-xs text-ink-faint"
+    },
+    {
+      "id": "409",
+      "file": "confirm-409-before-792d4c7-before.png",
+      "codeClass": "mt-1 font-mono text-xs text-ink-faint"
+    }
+  ]
+}
