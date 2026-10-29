@@ -224,6 +224,9 @@ class PlanOut(SchemaModel):
     name: str
     description: str
     price_monthly_usd: float
+    billing_model: Literal["monthly", "hourly"]
+    unit_price: float
+    currency: Literal["USD"] = Field(json_schema_extra={"enum": ["USD"]})
     max_ponds: int
     max_storage_gb: int
     validity_minutes: int
@@ -236,6 +239,9 @@ class PlanOut(SchemaModel):
             "name": "Micro",
             "description": "1 pond, 1 GB, backups 7 días",
             "price_monthly_usd": 5.0,
+            "billing_model": "monthly",
+            "unit_price": 5.0,
+            "currency": "USD",
             "max_ponds": 1,
             "max_storage_gb": 1,
             "validity_minutes": 43200,
@@ -257,6 +263,9 @@ class PlanListResponse(SchemaModel):
                     "name": "Sandbox",
                     "description": "Pruebas internas (10 min)",
                     "price_monthly_usd": 0.0,
+                    "billing_model": "monthly",
+                    "unit_price": 0.0,
+                    "currency": "USD",
                     "max_ponds": 1,
                     "max_storage_gb": 1,
                     "validity_minutes": 10,
@@ -269,6 +278,9 @@ class PlanListResponse(SchemaModel):
                     "name": "Pro",
                     "description": "Hasta 10 ponds, post-pago por uso",
                     "price_monthly_usd": 0.0,
+                    "billing_model": "hourly",
+                    "unit_price": 0.02,
+                    "currency": "USD",
                     "max_ponds": 10,
                     "max_storage_gb": 20,
                     "validity_minutes": 43200,

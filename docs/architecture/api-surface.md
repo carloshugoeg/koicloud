@@ -60,7 +60,7 @@ Notación: `M ROUTE → CommandOrService` con response resumido. `[C]` = requier
 
 | M | Ruta | Command | Descripción | Response |
 |---|------|---------|-------------|----------|
-| GET | `/plans` | `list_plans` | Catálogo público | `[{plan}]` |
+| GET | `/plans` | `list_plans` | Catálogo público | `[{plan}]` con `billing_model`, `unit_price` (4 dp), `currency` enum `"USD"` (CCR #151) |
 | GET | `/subscriptions` | `list_my_subscriptions` | Historial del usuario | `[{subscription}]` con `invoice_id` (última factura por `issued_at`, o null) |
 | POST | `/subscriptions` | `subscribe` [C-CLI/MCP] | Contrata plan; genera invoice + payment simulado | `{subscription, invoice, payment}` |
 | POST | `/subscriptions/{id}/cancel` | `cancel_subscription` [C-CLI/MCP] | Cancela al fin del período | `{subscription}` |

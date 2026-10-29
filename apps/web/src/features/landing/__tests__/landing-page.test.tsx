@@ -29,7 +29,7 @@ function renderLandingRoute() {
 }
 
 describe("E2-01 Landing pública y catálogo", () => {
-  it("renders the hero section with heading, facts, and animated pond", () => {
+  it("renders the hero section with heading, facts, and animated pond", async () => {
     renderLandingRoute();
 
     expect(screen.getAllByText("KoiCloud").length).toBeGreaterThanOrEqual(1);
@@ -51,7 +51,8 @@ describe("E2-01 Landing pública y catálogo", () => {
     expect(screen.getByText("~40 s")).toBeInTheDocument();
     expect(screen.getByText("de crear a conectar")).toBeInTheDocument();
     expect(screen.getByText("superficies: web, CLI, MCP")).toBeInTheDocument();
-    expect(screen.getAllByText("USD 5").length).toBeGreaterThanOrEqual(1);
+    // Hero fact + Micro card both use formatPrice from GET /plans
+    expect(await screen.findAllByText("USD 5.0000")).toHaveLength(2);
 
     expect(screen.getByRole("img", { name: "Estanque de peces koi" })).toBeInTheDocument();
     expect(screen.getByTestId("landing-sticky-cta")).toBeInTheDocument();
@@ -71,12 +72,15 @@ describe("E2-01 Landing pública y catálogo", () => {
         max_ponds: 4,
         max_storage_gb: 8,
         price_monthly_usd: 7,
+        unit_price: 7,
       },
       {
         ...fixtures.plans[2],
         description: "MSW Pro custom",
         max_ponds: 12,
         max_storage_gb: 30,
+        unit_price: 0.02,
+        billing_model: "hourly" as const,
       },
     ];
 
@@ -98,7 +102,7 @@ describe("E2-01 Landing pública y catálogo", () => {
     expect(screen.getByText("2 ponds · 3 GB")).toBeInTheDocument();
     expect(screen.getByText("4 ponds · 8 GB")).toBeInTheDocument();
     expect(screen.getByText("12 ponds · 30 GB")).toBeInTheDocument();
-    expect(screen.getByText("USD 7")).toBeInTheDocument();
+    expect(screen.getAllByText("USD 7.0000").length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText("Recomendado")).toBeInTheDocument();
 
     expect(screen.getByText(/Pago simulado\./i)).toBeInTheDocument();
