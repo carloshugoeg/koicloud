@@ -6,7 +6,7 @@ estado: en-revision
 rama: w1-preview-login-gate
 epica: E4-04
 sprint: S4
-pr: ""
+pr: "https://github.com/carloshugoeg/koicloud/pull/159"
 depends_on: W1-40
 ---
 
