@@ -36,6 +36,8 @@ export {
   useListBackups,
   usePondsQuery,
   useRestoreBackupMutation,
+  useRetryFailedJobMutation,
+  useTriggerBackupMutation,
   pondIsTransient,
   type Backup,
   type Connection,
