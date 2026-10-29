@@ -2,11 +2,11 @@
 id: W1-41
 workstream: W1
 persona: Carlos
-estado: en-curso
+estado: en-revision
 rama: w1-email-resend
 epica: E1-01
 sprint: S4
-pr:
+pr: "#161"
 depends_on: W3-05
 ---
 
