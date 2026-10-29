@@ -36,7 +36,7 @@ flowchart TB
         R2["internal_v1.py<br/>/internal/v1"]
         CONF["commands/confirmations"]
         CMD["commands/*<br/>ponds · auth · billing · sql · …"]
-        MOD["modules/*<br/>auth · users · billing · ponds<br/>jobs · nodes · backups · metering<br/>sql_console · admin · agent_access"]
+        MOD["modules/*<br/>auth · users · billing · ponds<br/>jobs · nodes · backups · metering<br/>sql_console · admin · agent_access<br/>notifications"]
         WRK["workers/*<br/>scheduler · reconciler"]
     end
 
@@ -69,6 +69,7 @@ flowchart TB
 | Respaldos | Worker agenda backup diario; restore encola job y pasa por confirmación en superficies no-Web. `BackupOut.expires_at` se deriva al responder: 7 días después de `created_at` si el respaldo está `succeeded` y no es `pre_delete` |
 | Facturación | Planes y suscripciones en `billing`; pago simulado; PDF de factura con IVA. `GET /plans` expone `billing_model`, `unit_price` y `currency`; la Web formatea con `formatPrice` (sin precios hard-coded). |
 | Admin | Rutas bajo dependencia `get_admin_user`; listados de usuarios/ponds/auditoría y `GET /admin/totals`; `POST …/suspend` acepta `reason` opcional y lo guarda en `audit_events.metadata.reason` |
+| Correo | `send(template, to, context)` imprime el mensaje en stdout con `EMAIL_PROVIDER=console` (default) o si el proceso no instaló el gate. Con `resend`, el lifespan exige `RESEND_API_KEY` y `EMAIL_FROM` y hace POST a `https://api.resend.com/emails`, con un reintento. El log de fallo incluye plantilla y destinatario, y no la API key. Auth todavía no llama a `send()`. |
 
 ---
 
