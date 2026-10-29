@@ -66,12 +66,39 @@ function attach(stream, prefix, secrets) {
   });
 }
 
-function announce(spawnSpec, parent) {
-  const email = typeof parent.KOI_GATE_ADMIN_EMAIL === "string" && parent.KOI_GATE_ADMIN_EMAIL.length > 0;
+function gateAdminPresent(parent) {
+  const email = typeof parent.KOI_GATE_ADMIN_EMAIL === "string" && parent.KOI_GATE_ADMIN_EMAIL.trim().length > 0;
   const password = typeof parent.KOI_GATE_ADMIN_PASSWORD === "string" && parent.KOI_GATE_ADMIN_PASSWORD.length > 0;
+  return email && password;
+}
+
+/** Preview-login's gate-admin case fails closed without secrets. Skip only that title when unset. */
+export function argvForSpawn(spawnSpec, command, parent) {
+  const argv = [...spawnSpec.argv];
+  const playwright = argv.includes("playwright") && argv.includes("test");
+  if (!command.preview || !playwright || gateAdminPresent(parent)) {
+    return argv;
+  }
+  if (!argv.includes("--grep-invert")) {
+    argv.push("--grep-invert", "gate admin login");
+  }
+  return argv;
+}
+
+function announce(spawnSpec, parent, argv) {
+  const email =
+    typeof parent.KOI_GATE_ADMIN_EMAIL === "string" && parent.KOI_GATE_ADMIN_EMAIL.trim().length > 0;
+  const password =
+    typeof parent.KOI_GATE_ADMIN_PASSWORD === "string" && parent.KOI_GATE_ADMIN_PASSWORD.length > 0;
   console.log(
     `pregate ${spawnSpec.id} KOI_GATE_ADMIN_EMAIL ${email ? "set" : "missing"} KOI_GATE_ADMIN_PASSWORD ${password ? "set" : "missing"}`,
   );
+  if (argv.includes("--grep-invert")) {
+    console.log(
+      `pregate ${spawnSpec.id} skipping gate admin login (KOI_GATE_ADMIN_* missing); wrong-password Escape and axe still run`,
+    );
+  }
+  console.log(`pregate argv ${argv.join(" ")}`);
 }
 
 function runChild(spawnSpec, plan, parent, secrets, repoRoot, live) {
@@ -81,14 +108,16 @@ function runChild(spawnSpec, plan, parent, secrets, repoRoot, live) {
     console.error(`pregate plan ${built.error}`);
     return Promise.resolve({ id: spawnSpec.id, code: 2 });
   }
-  if (command.preview) {
-    announce(spawnSpec, parent);
-  }
+  const argv = argvForSpawn(spawnSpec, command, parent);
   console.log(`pregate start ${spawnSpec.id}`);
   console.log(`pregate cwd ${spawnSpec.cwd}`);
-  console.log(`pregate argv ${spawnSpec.argv.join(" ")}`);
+  if (command.preview) {
+    announce(spawnSpec, parent, argv);
+  } else {
+    console.log(`pregate argv ${argv.join(" ")}`);
+  }
   return new Promise((resolve) => {
-    const child = spawn(spawnSpec.argv[0], spawnSpec.argv.slice(1), {
+    const child = spawn(argv[0], argv.slice(1), {
       cwd: path.resolve(repoRoot, spawnSpec.cwd),
       env: built.env,
       shell: false,

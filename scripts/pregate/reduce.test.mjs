@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { runPlan } from "./run.mjs";
+import { argvForSpawn, runPlan } from "./run.mjs";
 import {
   PlanError,
   checkPreviewUrl,
@@ -266,10 +266,25 @@ test("runPlan stops before a later sentinel and redacts child output", async () 
     assert.match(previewText, /KOI_GATE_ADMIN_PASSWORD set/);
     assert.match(previewText, /\[redacted\]/);
     assert.equal(previewText.includes(secret), false);
+    assert.equal(previewText.includes("--grep-invert"), false);
     await rm(directory, { recursive: true, force: true });
   } finally {
     console.log = original;
   }
+});
+
+test("argvForSpawn skips gate admin when KOI_GATE_ADMIN_* are missing", () => {
+  const spawnSpec = { argv: ["npx", "playwright", "test"] };
+  const preview = { preview: true };
+  const without = argvForSpawn(spawnSpec, preview, {});
+  assert.deepEqual(without, ["npx", "playwright", "test", "--grep-invert", "gate admin login"]);
+  const withAdmin = argvForSpawn(spawnSpec, preview, {
+    KOI_GATE_ADMIN_EMAIL: "demo@example.com",
+    KOI_GATE_ADMIN_PASSWORD: "x",
+  });
+  assert.deepEqual(withAdmin, ["npx", "playwright", "test"]);
+  const pond = argvForSpawn(spawnSpec, { preview: false }, {});
+  assert.deepEqual(pond, ["npx", "playwright", "test"]);
 });
 
 test("node can see PATH for the fixture commands", () => {
