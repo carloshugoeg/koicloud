@@ -10,7 +10,8 @@ from app.core.config import get_settings, to_sync_database_url
 config = context.config
 
 if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+    # Keep app loggers enabled so pytest caplog still works after upgrade/downgrade.
+    fileConfig(config.config_file_name, disable_existing_loggers=False)
 
 settings = get_settings()
 config.set_main_option("sqlalchemy.url", to_sync_database_url(settings.database_url))
