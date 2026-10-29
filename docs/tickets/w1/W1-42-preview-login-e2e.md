@@ -2,11 +2,11 @@
 id: W1-42
 workstream: W1
 persona: Carlos
-estado: en-curso
+estado: en-revision
 rama: w1-preview-login-gate
 epica: E4-04
 sprint: S4
-pr:
+pr: ""
 depends_on: W1-40
 ---
 
