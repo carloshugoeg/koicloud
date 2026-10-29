@@ -68,7 +68,7 @@ export function SidebarSheet({
   onClose: () => void;
   returnFocusRef: RefObject<HTMLElement | null>;
 }) {
-  const dialogRef = useRef<HTMLElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
