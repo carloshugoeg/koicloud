@@ -1,47 +1,54 @@
 import { describe, expect, it } from "vitest";
-import { formatPeriod, formatPrice } from "@/lib/format-price";
-
-const sandbox = {
-  postpaid: false,
-  price_monthly_usd: 0,
-  validity_minutes: 10,
-};
-
-const micro = {
-  postpaid: false,
-  price_monthly_usd: 5,
-  validity_minutes: 43_200,
-};
-
-const pro = {
-  postpaid: true,
-  price_monthly_usd: 0,
-  validity_minutes: 43_200,
-};
+import { formatPrice, formatPricePeriod, formatPriceWithPeriod } from "@/lib/format-price";
 
 describe("formatPrice", () => {
-  it("prints monthly dollars from the plan", () => {
-    expect(formatPrice(micro)).toBe("$5");
-    expect(formatPrice(sandbox)).toBe("$0");
+  it("formats monthly amounts with 4 decimals", () => {
+    expect(formatPrice({ unit_price: 5, currency: "USD" })).toBe("USD 5.0000");
   });
 
-  it("prints Pospago when postpaid has no monthly rate", () => {
-    expect(formatPrice(pro)).toBe("Pospago");
-    expect(formatPeriod(pro)).toBeNull();
-    expect(formatPrice(pro)).not.toMatch(/0\.02/);
+  it("formats zero as USD 0.0000", () => {
+    expect(formatPrice({ unit_price: 0, currency: "USD" })).toBe("USD 0.0000");
   });
 
-  it("keeps a short free window and a monthly period", () => {
-    expect(formatPeriod(sandbox)).toBe("10 min");
-    expect(formatPeriod(micro)).toBe("al mes");
+  it("formats Pro hourly as USD 0.0200 (never USD 0.00)", () => {
+    expect(formatPrice({ unit_price: 0.02, currency: "USD" })).toBe("USD 0.0200");
+    expect(formatPrice({ unit_price: 0.02, currency: "USD" })).not.toBe("USD 0.00");
   });
 
-  it("does not invent an hourly rate for a priced postpaid plan", () => {
+  it("keeps four decimals for fractional monthly prices", () => {
+    expect(formatPrice({ unit_price: 7.5, currency: "USD" })).toBe("USD 7.5000");
+  });
+});
+
+describe("formatPricePeriod", () => {
+  it("labels monthly catalog periods", () => {
     expect(
-      formatPrice({ postpaid: true, price_monthly_usd: 12, validity_minutes: 43_200 }),
-    ).toBe("$12");
+      formatPricePeriod({ billing_model: "monthly", validity_minutes: 43_200 }),
+    ).toBe("/ mes");
+  });
+
+  it("labels hourly catalog periods", () => {
     expect(
-      formatPeriod({ postpaid: true, price_monthly_usd: 12, validity_minutes: 43_200 }),
-    ).toBe("al mes");
+      formatPricePeriod({ billing_model: "hourly", validity_minutes: 43_200 }),
+    ).toBe("/ hora");
+  });
+
+  it("labels short sandbox validity", () => {
+    expect(
+      formatPricePeriod({ billing_model: "monthly", validity_minutes: 10 }),
+    ).toBe("/ 10 min");
+  });
+});
+
+describe("formatPriceWithPeriod", () => {
+  it("joins Pro hourly catalog price and period", () => {
+    expect(
+      formatPriceWithPeriod({
+        unit_price: 0.02,
+        currency: "USD",
+        billing_model: "hourly",
+        validity_minutes: 43_200,
+      }),
+    ).toBe("USD 0.0200 / hora");
   });
 });

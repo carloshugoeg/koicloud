@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { usePlansQuery, type PlanOut, type SubscribeResponse } from "@/api/hooks";
-import { formatPeriod, formatPrice } from "@/lib/format-price";
+import { formatPrice, formatPricePeriod, formatPriceWithPeriod } from "@/lib/format-price";
 import { problemToMessage } from "@/lib/errors";
 import { CheckoutModal } from "@/features/plans/checkout-modal";
 
@@ -32,7 +32,10 @@ export function PlansPage() {
               <h2 className="mt-2 font-display text-2xl text-ink">¡Suscripción contratada con éxito!</h2>
               <p className="mt-1 text-sm text-ink-muted">
                 Tu plan <strong className="font-medium text-ink">{subscriptionSuccess.subscription.plan_id.toUpperCase()}</strong> está activo.
-                Factura emitida: <code className="font-mono text-xs">{subscriptionSuccess.invoice.number}</code> (${subscriptionSuccess.invoice.total_usd.toFixed(4)} USD).
+                Factura emitida: <code className="font-mono text-xs">{subscriptionSuccess.invoice.number}</code> ({formatPrice({
+                  unit_price: subscriptionSuccess.invoice.total_usd,
+                  currency: "USD",
+                })}).
               </p>
             </div>
             <Link
@@ -66,7 +69,6 @@ export function PlansPage() {
         <>
           <div className="grid gap-6 md:grid-cols-3">
             {(plans ?? []).map((plan) => {
-              const period = formatPeriod(plan);
               const isRecommended = plan.id === "micro";
               return (
                 <div
@@ -88,7 +90,7 @@ export function PlansPage() {
                     <p className="mt-2 text-sm text-ink-muted">{plan.description}</p>
                     <div className="mt-4 flex items-baseline gap-1">
                       <span className="font-display text-4xl text-ink tabular-nums">{formatPrice(plan)}</span>
-                      {period ? <span className="text-xs text-ink-muted">/ {period}</span> : null}
+                      <span className="text-xs text-ink-muted">{formatPricePeriod(plan)}</span>
                     </div>
                     <ul className="mt-6 space-y-2 text-sm text-ink">
                       <li className="flex items-center gap-2">
@@ -163,15 +165,11 @@ export function PlansPage() {
                 </tr>
                 <tr>
                   <td className="px-4 py-2.5 font-medium text-ink">Precio base</td>
-                  {(plans ?? []).map((plan) => {
-                    const period = formatPeriod(plan);
-                    const price = formatPrice(plan);
-                    return (
-                      <td key={plan.id} className="px-4 py-2.5 text-right font-mono tabular-nums text-ink">
-                        {period ? `${price} / ${period}` : price}
-                      </td>
-                    );
-                  })}
+                  {(plans ?? []).map((plan) => (
+                    <td key={plan.id} className="px-4 py-2.5 text-right font-mono tabular-nums text-ink">
+                      {formatPriceWithPeriod(plan)}
+                    </td>
+                  ))}
                 </tr>
               </tbody>
             </table>
