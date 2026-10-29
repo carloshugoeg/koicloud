@@ -1,0 +1,45 @@
+{
+  "tip": "c3fb084",
+  "phase": "after",
+  "preview": "https://koicloud-web-git-w2-confirm-dialog-hugos-projects-3379fa36.vercel.app",
+  "results": [
+    {
+      "id": "404",
+      "file": "confirm-404-after-c3fb084.png",
+      "codeClass": "mt-1 font-mono text-xs text-ink-muted",
+      "disabled": true
+    },
+    {
+      "id": "410",
+      "file": "confirm-410-after-c3fb084.png",
+      "codeClass": "mt-1 font-mono text-xs text-ink-muted",
+      "disabled": true
+    },
+    {
+      "id": "409",
+      "file": "confirm-409-after-c3fb084.png",
+      "codeClass": "mt-1 font-mono text-xs text-ink-muted",
+      "disabled": true
+    }
+  ],
+  "axeByState": {
+    "404": {
+      "violations": 0,
+      "seriousCritical": 0,
+      "ids": [],
+      "all": []
+    },
+    "409": {
+      "violations": 0,
+      "seriousCritical": 0,
+      "ids": [],
+      "all": []
+    },
+    "410": {
+      "violations": 0,
+      "seriousCritical": 0,
+      "ids": [],
+      "all": []
+    }
+  }
+}

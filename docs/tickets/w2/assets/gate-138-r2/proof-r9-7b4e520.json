@@ -1,0 +1,30 @@
+{
+  "tip": "7b4e520",
+  "preview": "https://koicloud-web-git-w2-confirm-dialog-hugos-projects-3379fa36.vercel.app",
+  "results": [
+    {
+      "id": "404",
+      "token": "conf_gate_r9_unknown_token",
+      "file": "confirm-404-7b4e520.png",
+      "disabled": true,
+      "failure": "No encontramos la confirmación solicitada.\n\nconfirmation_not_found",
+      "url": "https://koicloud-web-git-w2-confirm-dialog-hugos-projects-3379fa36.vercel.app/app/confirm?token=conf_gate_r9_unknown_token&summary=Propuesta+gate-r9+conf_gate_r9_unknown_token&expires_at=2026-10-28T18%3A18%3A34.483Z"
+    },
+    {
+      "id": "410",
+      "token": "conf_expired_gate_r9",
+      "file": "confirm-410-7b4e520.png",
+      "disabled": true,
+      "failure": "La confirmación ya expiró.\n\nconfirmation_expired",
+      "url": "https://koicloud-web-git-w2-confirm-dialog-hugos-projects-3379fa36.vercel.app/app/confirm?token=conf_expired_gate_r9&summary=Propuesta+gate-r9+conf_expired_gate_r9&expires_at=2026-10-28T18%3A18%3A36.698Z"
+    },
+    {
+      "id": "409",
+      "token": "conf_mismatch_gate_r9",
+      "file": "confirm-409-7b4e520.png",
+      "disabled": true,
+      "failure": "La confirmación no corresponde a esta acción.\n\nconfirmation_action_mismatch",
+      "url": "https://koicloud-web-git-w2-confirm-dialog-hugos-projects-3379fa36.vercel.app/app/confirm?token=conf_mismatch_gate_r9&summary=Propuesta+gate-r9+conf_mismatch_gate_r9&expires_at=2026-10-28T18%3A18%3A37.723Z"
+    }
+  ]
+}

@@ -6,6 +6,7 @@ import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { vi } from "vitest";
 import { appRoutes } from "@/app/router";
 import { useAuthStore } from "@/lib/auth-store";
+import { ToastHost } from "@/lib/toast-host";
 import { fixtures } from "@/mocks/fixtures";
 import { server } from "@/mocks/server";
 
@@ -33,6 +34,7 @@ function renderDetail(entry = `/app/ponds/${POND_ID}`) {
   render(
     <QueryClientProvider client={client}>
       <RouterProvider router={router} />
+      <ToastHost />
     </QueryClientProvider>,
   );
 }
@@ -240,6 +242,8 @@ describe("W2-06 Detalle del pond y conexión", () => {
     await waitFor(() => {
       expect(writeText).toHaveBeenCalledWith(fixtures.connection.uri);
     });
+    expect(screen.getByTestId("copy-uri")).toHaveTextContent("URI copiada");
+    expect(screen.getByTestId("toast")).toHaveTextContent("URI copiada");
   });
 
   it("shows Detener enabled and Iniciar disabled for a running pond", async () => {
@@ -331,5 +335,92 @@ describe("W2-06 Detalle del pond y conexión", () => {
     expect(screen.getByText("No encontramos ese pond.")).toBeInTheDocument();
     expect(screen.getByText("pond_not_found")).toBeInTheDocument();
     expect(screen.queryByText(/at Object|TypeError|stack/i)).not.toBeInTheDocument();
+  });
+
+  it("posts backup now as 202 while the pond is running", async () => {
+    const user = userEvent.setup();
+    let status = 0;
+    let confirmToken: string | null = "unset";
+    server.use(
+      http.post(`*/api/v1/ponds/${POND_ID}/backups`, ({ request }) => {
+        status = 202;
+        confirmToken = request.headers.get("X-KOI-Confirm-Token");
+        return HttpResponse.json(
+          {
+            backup: {
+              ...fixtures.backups[1],
+              completed_at: null,
+              expires_at: null,
+              status: "queued",
+            },
+            job: {
+              attempts: 0,
+              created_at: "2026-10-26T15:00:00Z",
+              id: "job_backup_01",
+              node_id: "node-sv-01",
+              pond_id: POND_ID,
+              status: "queued",
+              type: "backup_pond",
+            },
+          },
+          { status: 202 },
+        );
+      }),
+    );
+
+    renderDetail();
+    expect(await screen.findByTestId("pond-detail")).toBeInTheDocument();
+    expect(screen.queryByTestId("pond-retry")).not.toBeInTheDocument();
+    await user.click(screen.getByTestId("backup-now"));
+
+    expect(await screen.findByText("Respaldo encolado")).toBeInTheDocument();
+    expect(status).toBe(202);
+    expect(confirmToken).toBeNull();
+  });
+
+  it("posts retry as 202 when the pond failed (no confirm token)", async () => {
+    const user = userEvent.setup();
+    let status = 0;
+    let confirmToken: string | null = "unset";
+    server.use(
+      http.get(`*/api/v1/ponds/${POND_ID}`, () =>
+        HttpResponse.json({
+          pond: {
+            ...fixtures.pond,
+            healthy: false,
+            last_error: "driver timeout",
+            observed_state: "failed",
+          },
+        }),
+      ),
+      http.post(`*/api/v1/ponds/${POND_ID}/retry`, ({ request }) => {
+        status = 202;
+        confirmToken = request.headers.get("X-KOI-Confirm-Token");
+        return HttpResponse.json(
+          {
+            job: {
+              attempts: 1,
+              created_at: "2026-10-26T15:00:00Z",
+              id: "job_retry_01",
+              node_id: "node-sv-01",
+              pond_id: POND_ID,
+              status: "queued",
+              type: "backup_pond",
+            },
+          },
+          { status: 202 },
+        );
+      }),
+    );
+
+    renderDetail();
+    expect(await screen.findByTestId("pond-detail")).toBeInTheDocument();
+    expect(screen.queryByTestId("backup-now")).not.toBeInTheDocument();
+    await user.click(screen.getByTestId("pond-retry"));
+
+    await waitFor(() => {
+      expect(status).toBe(202);
+    });
+    expect(confirmToken).toBeNull();
   });
 });

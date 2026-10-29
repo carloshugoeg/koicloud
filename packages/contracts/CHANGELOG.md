@@ -1,6 +1,7 @@
 # Contracts changelog
 
 - 2026-10-27 · CCR #127 NIT checkout → invoice · `SubscribeRequest.nit?` (trim, empty→null, max 32); `InvoiceOut.nit` from `users.nit`. No migration.
+- 2026-10-27 · CCR #135 · `BackupOut.expires_at` (datetime \| null, derived; no column). Null when status≠succeeded or kind=pre_delete; else created_at + 7 days UTC. No migration. Does not land `PlanOut.backup_retention_days`.
 - 2026-10-27 · CCR #151 PlanOut pricing · `PlanOut.currency` is the single-value enum `"USD"`; `unit_price` quantized to 4 decimals server-side. Pro hourly rate is one shared constant (`PRO_HOURLY_UNIT_PRICE_USD`) for GET /plans and metering. No migration.
 - 2026-10-27 · CCR #131 · `POST /ponds/{id}/stop` (`stop_pond`) and `POST /ponds/{id}/start` (`start_pond`) → `202 {pond, job}`. No migration.
 - 2026-10-26 · Issue #96 pricing amendment · `PlanOut` gains `billing_model` (`monthly`|`hourly`), `unit_price`, and `currency` on `GET /plans`. Display-only; `price_monthly_usd` and subscribe invoice math unchanged.
