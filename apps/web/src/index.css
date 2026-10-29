@@ -294,8 +294,17 @@ button:disabled {
   background: rgba(20, 33, 31, 0.32);
 }
 
-.modal-page-inert {
-  visibility: hidden;
+/* One client-rect per text run so axe color-contrast does not mark
+   elmPartiallyObscuring when the live page behind the veil differs per line. */
+.modal-dialog-panel {
+  overflow-x: hidden;
+}
+
+.modal-dialog-panel :where(h1, h2, h3, h4, p) {
+  overflow: hidden;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 @media (prefers-reduced-motion: reduce) {

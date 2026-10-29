@@ -48,7 +48,6 @@ export function ModalDialog({
     const root = document.getElementById("root");
     root?.setAttribute("aria-hidden", "true");
     root?.setAttribute("inert", "");
-    root?.classList.add("modal-page-inert");
 
     const preferred = initialFocusRef?.current;
     if (preferred) {
@@ -102,12 +101,13 @@ export function ModalDialog({
     document.addEventListener("keydown", onKeyDown);
     return () => {
       document.removeEventListener("keydown", onKeyDown);
-      root?.classList.remove("modal-page-inert");
       root?.removeAttribute("inert");
       root?.removeAttribute("aria-hidden");
       returnTarget?.focus();
     };
   }, [returnFocusRef, initialFocusRef]);
+
+  const panelClasses = ["modal-dialog-panel", panelClassName].filter(Boolean).join(" ");
 
   return createPortal(
     <div className={className}>
@@ -123,7 +123,7 @@ export function ModalDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className={panelClassName}
+        className={panelClasses}
         data-testid={testId}
       >
         {children}

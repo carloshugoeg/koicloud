@@ -39,12 +39,12 @@ export function SuspendDialog({
     >
       <div className="h-1 bg-danger" />
       <div className="space-y-4 p-5">
-        <h2 id="suspend-dialog-title" className="break-words font-display text-2xl text-ink">
-          Suspender a {user.full_name}
+        <h2 id="suspend-dialog-title" className="font-display text-2xl text-ink">
+          {`Suspender a ${user.full_name}`}
         </h2>
-        <div className="rounded-sm border border-danger/40 bg-danger-soft px-3 py-2 text-sm text-ink">
+        <p className="rounded-sm border border-danger/40 bg-danger-soft px-3 py-2 text-sm text-ink">
           La cuenta no podrá iniciar sesión. Sus ponds siguen corriendo y no se borra ningún dato.
-        </div>
+        </p>
         <label className="block text-xs text-ink-muted">
           Escribe el correo de la cuenta para confirmar
           <input

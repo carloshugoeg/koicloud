@@ -89,21 +89,20 @@ export function CheckoutModal({ plan, onClose, onSuccess, returnFocusRef }: Chec
       onClose={onClose}
       returnFocusRef={returnFocusRef}
       className="fixed inset-0 z-50 flex items-center justify-center bg-ink/30 p-4"
-      panelClassName="relative z-10 max-h-[calc(100dvh-2rem)] w-full min-w-0 max-w-lg overflow-y-auto rounded-sm border border-line-control bg-bone-raised p-6 shadow-dialog"
+      panelClassName="relative z-10 max-h-[calc(100dvh-2rem)] w-full min-w-0 max-w-lg overflow-x-hidden overflow-y-auto rounded-sm border border-line-control bg-bone-raised p-6 shadow-dialog"
     >
-        <h2 id="checkout-title" className="break-words border-b border-line pb-3 font-display text-2xl text-ink">
-          Contratar plan {plan.name}
+        <h2 id="checkout-title" className="border-b border-line pb-3 font-display text-2xl text-ink">
+          {`Contratar plan ${plan.name}`}
         </h2>
 
-        <div className="mt-4 rounded-sm border-l-4 border-marigold bg-marigold/10 p-3 text-xs font-medium text-ink">
+        <p className="mt-4 rounded-sm border-l-4 border-marigold bg-marigold/10 p-3 text-xs font-medium text-ink">
           Pago simulado: no se realiza ningún cobro real.
-        </div>
+        </p>
 
         <div className="mt-4 rounded-sm border border-line bg-paper p-4" data-testid="checkout-catalog-price">
           <p className="text-xs font-medium uppercase tracking-[0.16em] text-ink-muted">Precio de catálogo</p>
           <p className="mt-2 font-display text-2xl tabular-nums text-ink">
-            {formatPrice(plan)}{" "}
-            <span className="text-sm font-sans font-normal text-ink-muted">{formatPricePeriod(plan)}</span>
+            {`${formatPrice(plan)} ${formatPricePeriod(plan)}`}
           </p>
           <p className="mt-2 text-xs text-ink-muted">
             Al confirmar, la factura del API trae los importes. Sin math de negocio en el navegador.
