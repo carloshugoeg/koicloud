@@ -465,4 +465,48 @@ export const handlers = [
   http.get(`${API_ROOT}/admin/audit`, () => {
     return HttpResponse.json({ events: adminAuditState, next_cursor: null });
   }),
+
+  http.post(`${API_ROOT}/confirm/:token`, ({ params }) => {
+    return respondConfirm("POST", String(params.token));
+  }),
+
+  http.delete(`${API_ROOT}/confirm/:token`, ({ params }) => {
+    return respondConfirm("DELETE", String(params.token));
+  }),
 ];
+
+/** OpenAPI example token. Anything else must match real API error codes. */
+const LIVE_CONFIRM_TOKENS = new Set(["conf_create_pond_demo"]);
+
+type ConfirmCatalogCode =
+  | "confirmation_not_found"
+  | "confirmation_expired"
+  | "confirmation_action_mismatch";
+
+function confirmProblem(status: 404 | 409 | 410, code: ConfirmCatalogCode) {
+  return HttpResponse.json(
+    { code, message: code, request_id: "req_confirm_mock" },
+    { status },
+  );
+}
+
+/**
+ * Mirror POST/DELETE /confirm/{token}: unknown → 404, expired → 410,
+ * action mismatch → 409 (POST only). Preview MSW must not accept a fake token.
+ */
+function respondConfirm(method: "POST" | "DELETE", token: string) {
+  const key = token.toLowerCase();
+  if (key.includes("expired")) {
+    return confirmProblem(410, "confirmation_expired");
+  }
+  if (method === "POST" && key.includes("mismatch")) {
+    return confirmProblem(409, "confirmation_action_mismatch");
+  }
+  if (LIVE_CONFIRM_TOKENS.has(token)) {
+    if (method === "DELETE") {
+      return new HttpResponse(null, { status: 204 });
+    }
+    return HttpResponse.json({});
+  }
+  return confirmProblem(404, "confirmation_not_found");
+}
