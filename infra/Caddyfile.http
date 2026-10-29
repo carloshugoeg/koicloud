@@ -1,0 +1,43 @@
+# HTTP-only reverse proxy for local compose / CI (no ACME).
+# Used by infra/docker-compose.http.yml. Do not use on a real VPS.
+
+:80 {
+	encode gzip
+
+	@internal path /internal /internal/*
+	respond @internal 403
+
+	handle /api/* {
+		reverse_proxy api:8000
+	}
+
+	handle /mcp* {
+		reverse_proxy api:8000
+	}
+
+	handle /docs* {
+		reverse_proxy api:8000
+	}
+
+	handle /redoc* {
+		reverse_proxy api:8000
+	}
+
+	handle /openapi.json {
+		reverse_proxy api:8000
+	}
+
+	handle /health {
+		reverse_proxy api:8000
+	}
+
+	handle /api/v1/health {
+		reverse_proxy api:8000
+	}
+
+	handle {
+		root * /srv/koicloud/web
+		try_files {path} /index.html
+		file_server
+	}
+}
