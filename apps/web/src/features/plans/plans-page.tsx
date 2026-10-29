@@ -101,6 +101,16 @@ export function PlansPage() {
                         <span className="text-xs text-turquoise-700">●</span>
                         <span>{plan.max_storage_gb} GB de almacenamiento</span>
                       </li>
+                      <li className="flex items-center gap-2">
+                        <span className="text-xs text-turquoise-700">●</span>
+                        <span>
+                          {plan.id === "sandbox"
+                            ? "Validez 10 minutos"
+                            : plan.id === "micro"
+                              ? "Respaldos diarios (7 d)"
+                              : "Hasta 10 ponds y 20 GB"}
+                        </span>
+                      </li>
                     </ul>
                   </div>
                   <button
@@ -127,7 +137,7 @@ export function PlansPage() {
                 Comparativa de características
               </h2>
             </div>
-            <table className="w-full text-left text-sm">
+            <table className="w-full text-left text-sm" role="table">
               <thead>
                 <tr className="border-b border-line-control bg-bone-sunk text-xs text-ink-muted">
                   <th className="px-4 py-2.5 font-medium">Característica</th>
@@ -139,7 +149,7 @@ export function PlansPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
-                <tr>
+                <tr className="hover:bg-bone-raised">
                   <td className="px-4 py-2.5 font-medium text-ink">Ponds simultáneos</td>
                   {(plans ?? []).map((plan) => (
                     <td key={plan.id} className="px-4 py-2.5 text-right font-mono tabular-nums text-ink">
@@ -147,7 +157,7 @@ export function PlansPage() {
                     </td>
                   ))}
                 </tr>
-                <tr>
+                <tr className="hover:bg-bone-raised">
                   <td className="px-4 py-2.5 font-medium text-ink">Almacenamiento por pond</td>
                   {(plans ?? []).map((plan) => (
                     <td key={plan.id} className="px-4 py-2.5 text-right font-mono tabular-nums text-ink">
@@ -155,15 +165,19 @@ export function PlansPage() {
                     </td>
                   ))}
                 </tr>
-                <tr>
+                <tr className="hover:bg-bone-raised">
                   <td className="px-4 py-2.5 font-medium text-ink">Respaldos automáticos</td>
                   {(plans ?? []).map((plan) => (
                     <td key={plan.id} className="px-4 py-2.5 text-right text-ink">
-                      —
+                      {plan.id === "sandbox"
+                        ? "No"
+                        : plan.id === "micro"
+                          ? "Diarios (7 días)"
+                          : "Diarios (30 días)"}
                     </td>
                   ))}
                 </tr>
-                <tr>
+                <tr className="hover:bg-bone-raised">
                   <td className="px-4 py-2.5 font-medium text-ink">Precio base</td>
                   {(plans ?? []).map((plan) => (
                     <td key={plan.id} className="px-4 py-2.5 text-right font-mono tabular-nums text-ink">
