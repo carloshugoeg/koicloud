@@ -37,6 +37,8 @@ services:
       POND_PORT_RANGE_END: ${POND_PORT_RANGE_END:-15999}
       MCP_ENABLED: ${MCP_ENABLED:-true}
       EMAIL_PROVIDER: ${EMAIL_PROVIDER:-console}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_FROM: ${EMAIL_FROM:-}
       INVOICE_DIR: ${INVOICE_DIR:-/var/lib/koicloud/invoices}
       BACKUP_DIR: ${BACKUP_DIR:-/var/lib/koicloud/backups}
     volumes:
