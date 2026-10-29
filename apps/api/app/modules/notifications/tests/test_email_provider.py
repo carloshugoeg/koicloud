@@ -335,6 +335,83 @@ def test_send_retries_resend_once_then_succeeds(monkeypatch: pytest.MonkeyPatch)
         _assert_resend_request(call, api_key=API_KEY)
 
 
+@pytest.mark.parametrize("status_code", [400, 401, 403, 404, 422])
+def test_send_resend_client_error_fails_without_retry(
+    monkeypatch: pytest.MonkeyPatch,
+    status_code: int,
+) -> None:
+    settings = _settings(monkeypatch, provider="resend", api_key=API_KEY, email_from=SENDER)
+    calls: list[CapturedPost] = []
+
+    def responder(_attempt: int) -> httpx.Response:
+        return httpx.Response(status_code, text="client error")
+
+    _bootstrap(settings, post=_capturing_post(calls, responder))
+    from app.modules.notifications.errors import NotificationDeliveryError
+
+    with pytest.raises(NotificationDeliveryError):
+        send("verify_email", RECIPIENT, VERIFY_CONTEXT)
+
+    assert len(calls) == 1
+    _assert_resend_request(calls[0], api_key=API_KEY)
+
+
+def test_send_retries_resend_429_then_succeeds(monkeypatch: pytest.MonkeyPatch) -> None:
+    settings = _settings(monkeypatch, provider="resend", api_key=API_KEY, email_from=SENDER)
+    calls: list[CapturedPost] = []
+
+    def responder(attempt: int) -> httpx.Response:
+        if attempt == 1:
+            return httpx.Response(429, text="rate limited")
+        return httpx.Response(200, json={"id": "msg_rate_limit"})
+
+    _bootstrap(settings, post=_capturing_post(calls, responder))
+    result = send("verify_email", RECIPIENT, VERIFY_CONTEXT)
+
+    assert len(calls) == 2
+    assert result.to == RECIPIENT
+    for call in calls:
+        _assert_resend_request(call, api_key=API_KEY)
+
+
+def test_send_retries_resend_5xx_then_succeeds(monkeypatch: pytest.MonkeyPatch) -> None:
+    settings = _settings(monkeypatch, provider="resend", api_key=API_KEY, email_from=SENDER)
+    calls: list[CapturedPost] = []
+
+    def responder(attempt: int) -> httpx.Response:
+        if attempt == 1:
+            return httpx.Response(500, text="upstream boom")
+        return httpx.Response(200, json={"id": "msg_5xx"})
+
+    _bootstrap(settings, post=_capturing_post(calls, responder))
+    result = send("verify_email", RECIPIENT, VERIFY_CONTEXT)
+
+    assert len(calls) == 2
+    assert result.to == RECIPIENT
+    for call in calls:
+        _assert_resend_request(call, api_key=API_KEY)
+
+
+def test_send_retries_resend_transport_error_then_succeeds(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = _settings(monkeypatch, provider="resend", api_key=API_KEY, email_from=SENDER)
+    calls: list[CapturedPost] = []
+
+    def responder(attempt: int) -> httpx.Response:
+        if attempt == 1:
+            raise httpx.ConnectError("connection refused")
+        return httpx.Response(200, json={"id": "msg_transport"})
+
+    _bootstrap(settings, post=_capturing_post(calls, responder))
+    result = send("verify_email", RECIPIENT, VERIFY_CONTEXT)
+
+    assert len(calls) == 2
+    assert result.to == RECIPIENT
+    for call in calls:
+        _assert_resend_request(call, api_key=API_KEY)
+
+
 def test_send_resend_api_error_raises_without_logging_key(
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
