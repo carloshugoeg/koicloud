@@ -28,8 +28,8 @@ export function ReactivateDialog({
       data-testid="reactivate-dialog"
     >
       <div className="space-y-4 p-5">
-        <h2 id="reactivate-dialog-title" className="font-display text-2xl text-ink">
-          {`Reactivar a ${user.full_name}`}
+        <h2 id="reactivate-dialog-title" className="break-words font-display text-2xl text-ink">
+          Reactivar a {user.full_name}
         </h2>
         <p className="text-sm text-ink-muted">
           La cuenta podrá iniciar sesión de nuevo. Confirmá para continuar.

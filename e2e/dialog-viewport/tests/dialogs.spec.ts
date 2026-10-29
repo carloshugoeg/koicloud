@@ -127,6 +127,28 @@ async function saveOpenDialogShot(page: Page, stem: string) {
   fs.writeFileSync(path.join(evidenceDir, `${stem}.png`), buffer);
 }
 
+/** Page behind the translucent veil shares viewport cells with wrapped dialog
+ *  text, so axe marks color-contrast incomplete (elmPartiallyObscuring) even
+ *  when the panel is opaque bone-raised. Keep real violations; ignore only that
+ *  obscured-page incomplete (ship review finding 3 on #160). */
+function isObscuredPageContrastIncomplete(
+  incomplete: Awaited<ReturnType<AxeBuilder["analyze"]>>["incomplete"][number],
+): boolean {
+  if (incomplete.id !== "color-contrast") {
+    return false;
+  }
+  return incomplete.nodes.every((node) =>
+    node.any.every(
+      (check) =>
+        check.id === "color-contrast" &&
+        check.data !== null &&
+        typeof check.data === "object" &&
+        "messageKey" in check.data &&
+        check.data.messageKey === "elmPartiallyObscuring",
+    ),
+  );
+}
+
 function contrastFailure(results: Awaited<ReturnType<AxeBuilder["analyze"]>>): string {
   const lines: string[] = [];
   for (const violation of results.violations) {
@@ -136,7 +158,7 @@ function contrastFailure(results: Awaited<ReturnType<AxeBuilder["analyze"]>>): s
     );
   }
   for (const incomplete of results.incomplete) {
-    if (incomplete.id === "color-contrast") {
+    if (incomplete.id === "color-contrast" && !isObscuredPageContrastIncomplete(incomplete)) {
       const sample = incomplete.nodes[0];
       lines.push(
         `incomplete color-contrast nodes=${incomplete.nodes.length} ${sample?.html ?? ""}`,
@@ -184,7 +206,9 @@ for (const item of CASES) {
       const detail = contrastFailure(axe);
       expect(axe.violations, detail).toEqual([]);
       expect(
-        axe.incomplete.filter((rule) => rule.id === "color-contrast"),
+        axe.incomplete.filter(
+          (rule) => rule.id === "color-contrast" && !isObscuredPageContrastIncomplete(rule),
+        ),
         detail,
       ).toEqual([]);
       expect(

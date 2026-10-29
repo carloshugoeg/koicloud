@@ -36,12 +36,13 @@ export function RestoreDialog({
     >
       <div className="h-1 bg-danger" />
       <div className="space-y-4 p-5">
-        <h3 id="restore-title" className="min-w-0 font-display text-2xl text-ink">
-          {`Restaurar respaldo del ${formatWhen(backup.created_at)}`}
+        <h3 id="restore-title" className="min-w-0 break-words font-display text-2xl text-ink">
+          Restaurar respaldo del {formatWhen(backup.created_at)}
         </h3>
-        <p className="rounded-sm border border-danger bg-danger-soft px-3 py-2 font-mono text-sm text-ink">
-          {`Esto borra los datos actuales de ${pondName} y los reemplaza por el respaldo. No se puede deshacer.`}
-        </p>
+        <div className="rounded-sm border border-danger bg-danger-soft px-3 py-2 text-sm text-ink">
+          Esto borra los datos actuales de <span className="font-mono font-medium">{pondName}</span> y
+          los reemplaza por el respaldo. No se puede deshacer.
+        </div>
         <label className="block space-y-1.5">
           <span className="text-xs font-medium uppercase tracking-[0.14em] text-ink-muted">
             Escribe el nombre del pond para confirmar

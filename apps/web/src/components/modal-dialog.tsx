@@ -28,7 +28,7 @@ export function ModalDialog({
   children,
   "data-testid": testId,
   initialFocusRef,
-  className = "fixed inset-0 z-40 flex items-center justify-center bg-ink/40 p-4",
+  className = "dialog-veil fixed inset-0 z-40 flex items-center justify-center p-4",
   panelClassName = "relative z-10 w-full max-w-md overflow-hidden rounded-md border border-line bg-bone-raised shadow-dialog",
   closeLabel = "Cerrar fondo del diálogo",
 }: ModalDialogProps) {
@@ -107,8 +107,6 @@ export function ModalDialog({
     };
   }, [returnFocusRef, initialFocusRef]);
 
-  const panelClasses = ["modal-dialog-panel", panelClassName].filter(Boolean).join(" ");
-
   return createPortal(
     <div className={className}>
       <button
@@ -123,7 +121,7 @@ export function ModalDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className={panelClasses}
+        className={panelClassName}
         data-testid={testId}
       >
         {children}
