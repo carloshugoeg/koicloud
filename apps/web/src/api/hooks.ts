@@ -36,6 +36,8 @@ export {
   useListBackups,
   usePondsQuery,
   useRestoreBackupMutation,
+  useRetryFailedJobMutation,
+  useTriggerBackupMutation,
   pondIsTransient,
   type Backup,
   type Connection,
@@ -79,6 +81,11 @@ export {
   type AgentAccess,
   type AgentAccessSecret,
 } from "@/api/hooks/agent-access";
+
+export {
+  useConfirmActionMutation,
+  useDiscardConfirmationMutation,
+} from "@/api/hooks/confirmations";
 
 export {
   useRunSqlMutation,

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from functools import lru_cache
+from typing import Self
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -33,6 +34,8 @@ class Settings(BaseSettings):
     node_stale_seconds: int = 90
     auto_micro_subscription: bool = True
     payment_provider: str = "simulated"
+    # Read from EMAIL_PROVIDER. Dev/e2e use console; production must not.
+    email_provider: str = "console"
     invoice_dir: str = "/var/lib/koicloud/invoices"
     backup_dir: str = "/var/lib/koicloud/backups"
     mcp_enabled: bool = True
@@ -47,6 +50,16 @@ class Settings(BaseSettings):
     # Comma-separated peer IPs (or "*") allowed to supply X-Forwarded-For.
     # Prod API sits behind Caddy on the Docker network (#140); set "*" there.
     trusted_proxy_ips: str = "127.0.0.1,::1"
+
+    @model_validator(mode="after")
+    def reject_console_email_in_production(self) -> Self:
+        env = self.environment.strip().lower()
+        provider = self.email_provider.strip().lower()
+        if env in {"production", "prod"} and provider == "console":
+            raise ValueError(
+                "EMAIL_PROVIDER=console is not allowed when ENVIRONMENT is production"
+            )
+        return self
 
 
 def to_sync_database_url(url: str) -> str:

@@ -1,4 +1,4 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { PlaceholderPage } from "@/components/placeholder-page";
 
 export { LoginPage } from "@/features/auth/login-page";
@@ -26,6 +26,19 @@ export { AgentAccessPage } from "@/features/agent-access/agent-access-page";
 
 export function AgentAccessAliasPage() {
   return <Navigate replace to="/app/acceso-agente" />;
+}
+
+export { ConfirmPage } from "@/features/confirm/confirm-page";
+
+export function ConfirmAliasPage() {
+  const location = useLocation();
+  return (
+    <Navigate
+      replace
+      to={{ pathname: "/app/confirm", search: location.search }}
+      state={location.state}
+    />
+  );
 }
 
 export { AdminUsersPage } from "@/features/admin/users-page";

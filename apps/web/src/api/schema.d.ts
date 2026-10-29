@@ -1074,6 +1074,7 @@ export interface components {
          *         {
          *           "completed_at": "2026-09-22T20:00:00Z",
          *           "created_at": "2026-09-22T20:00:00Z",
+         *           "expires_at": "2026-09-29T20:00:00Z",
          *           "id": "88888888-8888-8888-8888-888888888888",
          *           "kind": "daily",
          *           "pond_id": "66666666-6666-6666-6666-666666666666",
@@ -1096,6 +1097,7 @@ export interface components {
          * @example {
          *       "completed_at": "2026-09-22T20:00:00Z",
          *       "created_at": "2026-09-22T20:00:00Z",
+         *       "expires_at": "2026-09-29T20:00:00Z",
          *       "id": "88888888-8888-8888-8888-888888888888",
          *       "kind": "daily",
          *       "pond_id": "66666666-6666-6666-6666-666666666666",
@@ -1113,6 +1115,8 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** Expires At */
+            expires_at?: string | null;
             /**
              * Id
              * Format: uuid
