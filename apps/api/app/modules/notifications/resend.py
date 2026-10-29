@@ -69,6 +69,8 @@ def deliver_via_resend(
             continue
         if response.is_success:
             return
+        if response.status_code != 429 and response.status_code < 500:
+            break
     _raise_delivery_error(rendered.template, to, secret)
 
 
