@@ -2,7 +2,7 @@
 id: W1-35
 workstream: W1
 persona: Carlos
-estado: en-revision
+estado: hecho
 rama: w1-a11-expira-toasts
 epica: "#96 A11"
 sprint:
