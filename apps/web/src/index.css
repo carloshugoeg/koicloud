@@ -72,8 +72,6 @@
   --warn: #8a5a0a;
   --danger: #a81f2b;
   --danger-soft: #f6d9d9;
-
-  /* ── Velo modal: tinta sobre transparente (visual-guidelines §dialog) */
   --veil: color-mix(in srgb, var(--ink) 32%, transparent);
 
   /* ── Tipografía ────────────────────────────────────────────────── */
