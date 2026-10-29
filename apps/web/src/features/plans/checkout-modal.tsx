@@ -45,6 +45,9 @@ export function CheckoutModal({ plan, onClose, onSuccess }: CheckoutModalProps) 
             Factura {invoice.number}
           </h2>
           <p className="mt-1 text-sm text-ink-muted">Líneas e importes desde el API (`InvoiceOut`).</p>
+          <p className="mt-1 font-mono text-xs text-ink-muted">
+            NIT: <span className="text-ink">{invoice.nit ?? "—"}</span>
+          </p>
           <div className="mt-4 rounded-sm border border-line bg-paper p-4" data-testid="checkout-invoice-from-api">
             <dl className="space-y-2 text-sm">
               <div className="flex justify-between gap-4">

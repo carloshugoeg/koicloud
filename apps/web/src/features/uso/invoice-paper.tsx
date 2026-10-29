@@ -1,14 +1,12 @@
 import type { components } from "@/api/schema";
+import { formatPrice } from "@/lib/format-price";
 
 type Invoice = components["schemas"]["InvoiceOut"];
 type InvoiceLine = components["schemas"]["InvoiceLineOut"];
 
-const MONEY_FORMATTER = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 4,
-});
+function formatUsd(amount: number): string {
+  return formatPrice({ unit_price: amount, currency: "USD" });
+}
 
 export function InvoicePaper({
   invoice,
@@ -52,8 +50,8 @@ export function InvoicePaper({
           {lines.map((line) => (
             <tr key={line.id} className="border-b border-line/70">
               <td className="py-3 text-ink">{line.description}</td>
-              <td className="py-3 text-right font-mono text-ink">
-                {MONEY_FORMATTER.format(line.amount_usd)}
+              <td className="py-3 text-right font-mono tabular-nums text-ink">
+                {formatUsd(line.amount_usd)}
               </td>
             </tr>
           ))}
@@ -63,15 +61,15 @@ export function InvoicePaper({
       <dl className="ml-auto mt-5 w-full max-w-xs space-y-2 text-sm">
         <div className="flex justify-between gap-4">
           <dt className="text-ink-muted">Subtotal</dt>
-          <dd className="font-mono text-ink">{MONEY_FORMATTER.format(invoice.subtotal_usd)}</dd>
+          <dd className="font-mono tabular-nums text-ink">{formatUsd(invoice.subtotal_usd)}</dd>
         </div>
         <div className="flex justify-between gap-4">
           <dt className="text-ink-muted">IVA 12 %</dt>
-          <dd className="font-mono text-ink">{MONEY_FORMATTER.format(invoice.iva_usd)}</dd>
+          <dd className="font-mono tabular-nums text-ink">{formatUsd(invoice.iva_usd)}</dd>
         </div>
         <div className="flex justify-between gap-4 border-t border-ink pt-2 font-display text-xl">
           <dt>Total</dt>
-          <dd>{MONEY_FORMATTER.format(invoice.total_usd)}</dd>
+          <dd className="tabular-nums">{formatUsd(invoice.total_usd)}</dd>
         </div>
       </dl>
     </article>
