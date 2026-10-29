@@ -2,6 +2,8 @@
 # (architecture: koicloud.example until DNS exists). Do not invent IP/DNS.
 # ACME will not issue a certificate for .example — leave Caddy stopped
 # until the team points a real name at the machine.
+#
+# Local / CI HTTP-only proxy: use infra/Caddyfile.http with compose overlay.
 
 {$KOICLOUD_DOMAIN:koicloud.example} {
 	encode gzip
@@ -30,6 +32,10 @@
 	}
 
 	handle /health {
+		reverse_proxy api:8000
+	}
+
+	handle /api/v1/health {
 		reverse_proxy api:8000
 	}
 

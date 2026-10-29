@@ -83,8 +83,8 @@ Notación: `M ROUTE → CommandOrService` con response resumido. `[C]` = requier
 
 | M | Ruta | Command | Descripción | Response |
 |---|------|---------|-------------|----------|
-| GET | `/ponds/{id}/backups` | `list_backups` | Lista respaldos del pond | `[{backup}]` |
-| POST | `/ponds/{id}/backups` | `trigger_backup` [C-CLI/MCP] | Encola backup on-demand | `202 {backup, job}` |
+| GET | `/ponds/{id}/backups` | `list_backups` | Lista respaldos del pond | `[{backup}]` con `expires_at` derivado (null si status≠succeeded o kind=pre_delete; si no `created_at` + 7 d UTC). Sin columna en DB. |
+| POST | `/ponds/{id}/backups` | `trigger_backup` [C-CLI/MCP] | Encola backup on-demand | `202 {backup, job}` (`expires_at` null mientras queued/running) |
 | POST | `/ponds/{id}/restore` | `restore_backup` [C-CLI/MCP] | Encola restore con `{backup_id}` | `202 {job}` |
 
 ### 2.5 Consola SQL
