@@ -180,6 +180,43 @@ export const handlers = [
     return HttpResponse.json({ backups: fixtures.backups, next_cursor: null });
   }),
 
+
+  http.delete(`${API_ROOT}/ponds/:pondId`, ({ params }) => {
+    const pondId = String(params.pondId);
+    return HttpResponse.json(
+      {
+        pond: {
+          ...fixtures.pond,
+          id: pondId,
+          desired_state: "deleted",
+          observed_state: "deleting",
+        },
+        jobs: [
+          {
+            id: "job_pre_delete_01",
+            type: "backup_pond",
+            status: "queued",
+            attempts: 0,
+            created_at: "2026-09-22T21:10:00Z",
+            node_id: "node-sv-01",
+            pond_id: pondId,
+          },
+          {
+            id: "job_delete_01",
+            type: "delete_pond",
+            status: "queued",
+            attempts: 0,
+            created_at: "2026-09-22T21:10:00Z",
+            node_id: "node-sv-01",
+            pond_id: pondId,
+          },
+        ],
+      },
+      { status: 202 },
+    );
+  }),
+
+
   http.post(`${API_ROOT}/ponds/:pondId/sql`, async ({ request }) => {
     const body = (await request.json()) as { query?: string; mode?: string };
     if (!body?.query?.trim()) {
@@ -204,9 +241,10 @@ export const handlers = [
     return HttpResponse.json(fixtures.sqlResult);
   }),
 
-  http.get(`${API_ROOT}/ponds/:pondId/sql/history`, () => {
+  http.get(`${API_ROOT}/ponds/:pondId/sql/history`, ({ params }) => {
+    const pondId = String(params.pondId);
     return HttpResponse.json({
-      events: fixtures.sqlHistory,
+      events: fixtures.sqlHistory.filter((event) => event.pond_id === pondId),
       next_cursor: null,
     });
   }),

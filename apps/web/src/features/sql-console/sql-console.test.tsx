@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { HttpResponse, http } from "msw";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
@@ -51,6 +51,14 @@ function renderConsole(entry = `/app/ponds/${POND_ID}/consola`) {
 }
 
 describe("W2-07 Consola SQL", () => {
+  it("uses the control-plane header top margin on Consola", async () => {
+    renderConsole();
+    const header = await screen.findByTestId("app-header");
+    expect(header.className.split(/\s+/)).toContain("mt-2");
+    expect(header).toHaveTextContent("Control plane");
+    expect(header).toHaveTextContent("Consola SQL");
+  });
+
   it("runs SELECT and shows columns, rows, and meta", async () => {
     const user = userEvent.setup();
     renderConsole();
@@ -161,5 +169,30 @@ describe("W2-07 Consola SQL", () => {
     expect(headers).toHaveLength(2);
     expect(headers[0]).toHaveTextContent("?column?");
     expect(headers[1]).toHaveTextContent("?column?");
+  });
+
+  it("journey: pond tabs fixed order (consola)", async () => {
+    renderConsole(`/app/ponds/${POND_ID}/console`);
+
+    expect(await screen.findByTestId("sql-console")).toBeInTheDocument();
+    const nav = await screen.findByRole("navigation", { name: "Secciones del pond" });
+    const tabs = within(nav).getAllByRole("link");
+    expect(tabs.map((tab) => tab.textContent)).toEqual(["Resumen", "Respaldos", "Consola"]);
+    for (const tab of tabs) {
+      expect(tab.className).toMatch(/hover:/);
+      expect(tab.className).toMatch(/focus-visible:shadow-focus/);
+      tab.focus();
+      expect(tab).toHaveFocus();
+    }
+    expect(within(nav).getByRole("link", { current: "page" })).toHaveTextContent("Consola");
+  });
+
+  it("console: new pond has empty history", async () => {
+    const freshPondId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+    renderConsole(`/app/ponds/${freshPondId}/console`);
+
+    const history = await screen.findByTestId("sql-history");
+    expect(history).toHaveTextContent("Aún no hay consultas.");
+    expect(history).not.toHaveTextContent("SELECT * FROM invoices");
   });
 });
