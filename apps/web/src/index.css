@@ -42,7 +42,8 @@
   /* ── Tinta ─────────────────────────────────────────────────────── */
   --ink: #14211f;
   --ink-muted: #4c5b58;
-  --ink-faint: #6b7a74;
+  /* ≥4.5:1 on bone / bone-raised / bone-sunk / paper (axe AA for mono codes). */
+  --ink-faint: #586762;
 
   /* ── Líneas ────────────────────────────────────────────────────── */
   --line: #d8cfb8;
