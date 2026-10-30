@@ -2,7 +2,7 @@
 id: W1-44
 workstream: W1
 persona: Carlos
-estado: en-revision
+estado: hecho
 rama: w1-email-resend
 epica: E1-01
 sprint: S4
