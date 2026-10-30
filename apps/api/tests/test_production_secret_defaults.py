@@ -49,7 +49,19 @@ def test_production_with_non_default_secrets_starts() -> None:
     assert settings.node_token == _PROD_SAFE["node_token"]
 
 
-def test_development_still_allows_builtin_defaults() -> None:
+def test_development_still_allows_builtin_defaults(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # CI injects JWT_SECRET/NODE_TOKEN; clear them so Field defaults apply.
+    for name in (
+        "JWT_SECRET",
+        "POND_PASSWORD_KEY",
+        "NODE_TOKEN",
+        "MCP_DEMO_PASSWORD",
+        "ENVIRONMENT",
+        "EMAIL_PROVIDER",
+    ):
+        monkeypatch.delenv(name, raising=False)
     settings = Settings(environment="development", email_provider="console")
     assert settings.jwt_secret == "koicloud-dev-jwt-secret-change-me"
     assert settings.node_token == "koicloud-node-token"
