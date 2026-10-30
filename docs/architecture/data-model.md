@@ -18,6 +18,7 @@ Convenciones:
 erDiagram
     users ||--o{ email_tokens : "issues"
     users ||--o{ refresh_tokens : "keeps"
+    users ||--o{ revoked_access_tokens : "revokes"
     users ||--o{ subscriptions : "contracts"
     users ||--o{ ponds : "owns"
     users ||--o{ invoices : "receives"
@@ -65,6 +66,11 @@ erDiagram
       text token_hash UK
       timestamptz expires_at
       timestamptz revoked_at
+    }
+    revoked_access_tokens {
+      text jti PK
+      uuid user_id FK
+      timestamptz expires_at
     }
     plans {
       text id PK
@@ -303,6 +309,7 @@ Reglas de integridad relevantes:
 - `pond_status` está atado 1-1 a `ponds` (se crea junto en la misma transacción).
 - `invoices.number` es único a nivel global (`KC-{year}-{seq:06d}`).
 - `refresh_tokens` almacena solo el hash; nunca el valor.
+- `revoked_access_tokens.jti` es el `jti` del access JWT presentado en `POST /auth/logout`. No guarda el token. `get_current_user` responde 401 `token_invalid` si ese `jti` está en la tabla.
 
 ---
 

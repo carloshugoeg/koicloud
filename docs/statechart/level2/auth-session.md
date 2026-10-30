@@ -8,7 +8,7 @@ stateDiagram-v2
   Verified --> LoggedIn: POST /auth/login
   Verified --> Verified: bad password → 401 invalid_credentials
   LoggedIn --> LoggedIn: access expires → POST /auth/refresh (rotates)
-  LoggedIn --> Verified: POST /auth/logout (refresh revoked; access JWT lives ≤15 min)
+  LoggedIn --> Verified: POST /auth/logout (refresh revoked and access jti revoked)
   LoggedIn --> Verified: page reload (main: tokens in memory only) 
   Verified --> ResetPending: POST /auth/forgot
   ResetPending --> Verified: POST /auth/reset
@@ -24,7 +24,7 @@ stateDiagram-v2
 | A4 | Verified | login | ok creds, active | LoggedIn | access+refresh | `journey: login lands on pond list` |
 | A5 | Verified | login | bad creds | Verified | 401 | `journey: bad login stays on login` |
 | A6 | LoggedIn | access expired | refresh valid | LoggedIn | rotate tokens | `auth: expired access refreshes silently` |
-| A7 | LoggedIn | logout | — | Verified | refresh revoked; pond API must 401 | `auth: logout kills pond api access` |
+| A7 | LoggedIn | logout | — | Verified | refresh revoked and the presented access token returns 401 `token_invalid` | `auth: logout kills pond api access` |
 | A8 | LoggedIn | reload | — | LoggedIn | session restored | `journey: reload keeps session` |
 | A9 | Verified | forgot → reset | token valid | Verified | email, password changed | `auth: password reset flow` |
 | A10 | LoggedIn | admin suspends | — | Suspended | pond API must 403 | `admin: suspended user loses api access` |

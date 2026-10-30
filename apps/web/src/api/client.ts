@@ -95,6 +95,15 @@ const fetchWithRefresh: typeof fetch = async (input, init = {}) => {
   }
 
   const problem = await readProblem(response);
+  const requestUrl = response.url;
+  if (
+    problem?.code === "token_invalid" &&
+    session?.accessToken &&
+    !requestUrl.includes("/auth/")
+  ) {
+    useAuthStore.getState().clearSession();
+    return response;
+  }
   if (problem?.code !== "token_expired") {
     return response;
   }

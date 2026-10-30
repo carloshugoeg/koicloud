@@ -10,6 +10,14 @@ export type LoginPayload = components["schemas"]["LoginRequest"];
 export type ForgotPasswordPayload = components["schemas"]["ForgotPasswordRequest"];
 export type ResetPasswordPayload = components["schemas"]["ResetPasswordRequest"];
 
+export async function revokeSession() {
+  try {
+    await apiClient.POST("/api/v1/auth/logout", {});
+  } finally {
+    useAuthStore.getState().clearSession();
+  }
+}
+
 export function useRegisterMutation() {
   return useMutation({
     mutationFn: async (body: RegisterPayload) => {

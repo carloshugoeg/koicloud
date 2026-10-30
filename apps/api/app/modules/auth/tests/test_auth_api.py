@@ -235,6 +235,39 @@ async def _register_and_verify(client: AsyncClient, email: str) -> UUID:
     return user_id
 
 
+async def test_logout_rejects_reused_access_token() -> None:
+    """Replay of NoPondApiWhenLoggedOut / LogoutRevokesAccess: login, logout, reuse bearer."""
+    reset_auth_tables()
+
+    async with _make_client() as client:
+        await _register_and_verify(client, "logout-access@koicloud.dev")
+        login_res = await client.post(
+            "/api/v1/auth/login",
+            json={"email": "logout-access@koicloud.dev", "password": PASSWORD},
+        )
+        assert login_res.status_code == 200
+        access = login_res.json()["access_token"]
+
+        before = await client.get(
+            "/api/v1/me",
+            headers={"Authorization": f"Bearer {access}"},
+        )
+        assert before.status_code == 200
+
+        logout_res = await client.post(
+            "/api/v1/auth/logout",
+            headers={"Authorization": f"Bearer {access}"},
+        )
+        assert logout_res.status_code == 204
+
+        after = await client.get(
+            "/api/v1/me",
+            headers={"Authorization": f"Bearer {access}"},
+        )
+        assert after.status_code == 401
+        assert after.json()["code"] == "token_invalid"
+
+
 async def test_login_refresh_logout_api_happy_path() -> None:
     reset_auth_tables()
 

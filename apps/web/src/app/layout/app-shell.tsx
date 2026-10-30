@@ -4,6 +4,7 @@ import { AppHeader } from "@/app/layout/app-header";
 import { readAppNotice } from "@/app/layout/app-notice";
 import { SidebarRail, SidebarSheet } from "@/app/layout/sidebar";
 import { useSidebarMode } from "@/app/layout/use-sidebar-mode";
+import { revokeSession } from "@/api/hooks/auth";
 import { useAuthStore } from "@/lib/auth-store";
 
 function readTitle(handle: unknown) {
@@ -20,7 +21,9 @@ function readTitle(handle: unknown) {
 
 export function AppShell() {
   const session = useAuthStore((state) => state.session);
-  const clearSession = useAuthStore((state) => state.clearSession);
+  const logout = useCallback(() => {
+    void revokeSession();
+  }, []);
   const location = useLocation();
   const matches = useMatches();
   const notice = readAppNotice(location.state);
@@ -50,7 +53,7 @@ export function AppShell() {
           title={currentTitle}
           userName={session?.user.full_name ?? "Operador"}
           userEmail={session?.user.email ?? ""}
-          onLogout={clearSession}
+          onLogout={logout}
           onOpenNav={openSheet}
           showMenuButton={mode === "sheet"}
           menuButtonRef={menuButtonRef}
