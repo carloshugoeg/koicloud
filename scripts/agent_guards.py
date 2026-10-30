@@ -39,12 +39,15 @@ workflows from the default branch.
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import time
+import tomllib
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -294,6 +297,112 @@ def check_cli_tables(root: Path) -> list[Finding]:
     return findings
 
 
+DEP_NAME = re.compile(r"^([A-Za-z0-9][A-Za-z0-9._-]*)")
+REQ_PKG = re.compile(r"^([A-Za-z0-9][A-Za-z0-9._-]*)")
+
+
+def runtime_dependency_names(pyproject: Path) -> list[str]:
+    data = tomllib.loads(pyproject.read_text(encoding="utf-8"))
+    names: list[str] = []
+    for spec in data.get("project", {}).get("dependencies", []):
+        match = DEP_NAME.match(str(spec).strip())
+        if match is not None:
+            names.append(match.group(1))
+    return names
+
+
+def requirement_package_names(text: str) -> set[str]:
+    names: set[str] = set()
+    for line in text.splitlines():
+        s = line.strip()
+        if not s or s.startswith("#"):
+            continue
+        match = REQ_PKG.match(s.split(";", 1)[0].strip())
+        if match is not None:
+            names.add(match.group(1).lower().replace("_", "-"))
+    return names
+
+
+def _load_export_preview():
+    path = ROOT / "apps" / "web" / "scripts" / "export-preview-requirements.py"
+    spec = importlib.util.spec_from_file_location("export_preview_requirements", path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"Cannot load {path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def check_preview_requirements(root: Path) -> list[Finding]:
+    """Fail when Vercel preview requirements drift from apps/api runtime deps."""
+    rel = "apps/web/requirements.txt"
+    req_path = root / "apps" / "web" / "requirements.txt"
+    pyproject = root / "apps" / "api" / "pyproject.toml"
+    findings: list[Finding] = []
+    if not req_path.is_file():
+        return [
+            Finding(
+                "preview-requirements",
+                rel,
+                "Missing apps/web/requirements.txt. Run "
+                "python apps/web/scripts/export-preview-requirements.py",
+            )
+        ]
+    if not pyproject.is_file():
+        return [
+            Finding(
+                "preview-requirements",
+                "apps/api/pyproject.toml",
+                "Missing apps/api/pyproject.toml; cannot check preview requirements.",
+            )
+        ]
+
+    text = req_path.read_text(encoding="utf-8")
+    present = requirement_package_names(text)
+    missing = [
+        name
+        for name in runtime_dependency_names(pyproject)
+        if name.lower().replace("_", "-") not in present
+    ]
+    if missing:
+        joined = ", ".join(sorted(missing))
+        findings.append(
+            Finding(
+                "preview-requirements",
+                rel,
+                f"Missing runtime API dependencies: {joined}. "
+                "Run python apps/web/scripts/export-preview-requirements.py",
+            )
+        )
+
+    api_dir = root / "apps" / "api"
+    if shutil.which("uv") is None or not (api_dir / "uv.lock").is_file():
+        return findings
+
+    try:
+        export = _load_export_preview()
+        expected = export.render_preview_requirements(api_dir)
+    except (OSError, subprocess.CalledProcessError, RuntimeError) as exc:
+        findings.append(
+            Finding(
+                "preview-requirements",
+                rel,
+                f"Could not export preview requirements: {exc}",
+            )
+        )
+        return findings
+    if text != expected:
+        findings.append(
+            Finding(
+                "preview-requirements",
+                rel,
+                "Out of sync with export-preview-requirements.py output. "
+                "Run python apps/web/scripts/export-preview-requirements.py",
+            )
+        )
+    return findings
+
+
 def check_pr_body(body: str) -> list[Finding]:
     findings: list[Finding] = []
     for heading in HEADINGS:
@@ -492,6 +601,7 @@ def check_tree(root: Path, states: dict[int, str] | None = None) -> list[Finding
         check_tickets(root, states)
         + check_pages(root, baseline)
         + check_cli_tables(root)
+        + check_preview_requirements(root)
     )
 
 

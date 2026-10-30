@@ -13,8 +13,14 @@ SKIP = (
     re.compile(r"sys_platform\s*==\s*['\"]win32['\"]"),
     re.compile(r"sys_platform\s*==\s*['\"]emscripten['\"]"),
 )
+HEADER = (
+    "# Generated from apps/api for Vercel Python on Linux.\n"
+    "# Win32/emscripten-only deps omitted (Vercel uv sync --locked).\n"
+    "# Regen: python apps/web/scripts/export-preview-requirements.py\n"
+)
 
-def main() -> None:
+
+def render_preview_requirements(api: Path) -> str:
     raw = subprocess.check_output(
         [
             "uv",
@@ -25,7 +31,7 @@ def main() -> None:
             "--format",
             "requirements.txt",
         ],
-        cwd=API,
+        cwd=api,
         text=True,
     )
     pkgs: list[str] = []
@@ -36,12 +42,13 @@ def main() -> None:
         if any(p.search(s) for p in SKIP):
             continue
         pkgs.append(s.split(";", 1)[0].strip())
-    header = (
-        "# Generated from apps/api for Vercel Python on Linux.\n"
-        "# Win32/emscripten-only deps omitted (Vercel uv sync --locked).\n"
-        "# Regen: python apps/web/scripts/export-preview-requirements.py\n"
-    )
-    OUT.write_text(header + "\n".join(pkgs) + "\n")
+    return HEADER + "\n".join(pkgs) + "\n"
+
+
+def main() -> None:
+    text = render_preview_requirements(API)
+    OUT.write_text(text)
+    pkgs = [line for line in text.splitlines() if line and not line.startswith("#")]
     print(f"wrote {len(pkgs)} requirements → {OUT}")
 
 

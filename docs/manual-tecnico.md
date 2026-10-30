@@ -119,6 +119,8 @@ No commitees secretos reales.
 | `POND_PORT_RANGE_START` / `END` | Rango publicado de ponds | `15000`-`15999` |
 | `MCP_ENABLED` | Monta el servidor MCP | `true` |
 | `EMAIL_PROVIDER` | `console` (dev) o `resend` (prod) | `console` |
+| `RESEND_API_KEY` | Clave de la API de Resend. Vacía con `console`. | vacío |
+| `EMAIL_FROM` | Remitente en un dominio verificado en Resend. | vacío |
 | `INVOICE_DIR` | PDFs de factura en disco | `/var/lib/koicloud/invoices` |
 | `BACKUP_DIR` | Respaldos de ponds | `/var/lib/koicloud/backups` |
 | `KOI_DB_HOST_PORT` | Puerto host → Postgres Compose | `5432` por defecto |
@@ -140,9 +142,27 @@ Además de las variables de desarrollo, prod exige:
 | `INTERNAL_API_URL` | URL que usa el node-agent hacia la API interna |
 | `AGENT_MODE=docker` | Ponds reales en el host |
 | `NODE_PUBLIC_HOST` | Hostname o IP pública real (no placeholder) |
+| `RESEND_API_KEY` | Clave de Resend. Obligatoria si `EMAIL_PROVIDER=resend`. |
+| `EMAIL_FROM` | Dirección remitente del dominio verificado en Resend. |
 
 Checklist de secretos mínimos antes del primer start:
 `JWT_SECRET`, `NODE_TOKEN`, `POSTGRES_PASSWORD`, `POND_PASSWORD_KEY`, `NODE_PUBLIC_HOST`.
+Con `EMAIL_PROVIDER=resend`, sumá `RESEND_API_KEY` y `EMAIL_FROM`.
+
+### 2.2.1 Verificar el dominio en Resend
+
+Con `EMAIL_PROVIDER=console` (el default) la API imprime el correo en stdout y no llama a Resend.
+Con `EMAIL_PROVIDER=resend`, el proceso no arranca si `RESEND_API_KEY` o `EMAIL_FROM` están vacíos.
+
+1. Creá una API key en [resend.com](https://resend.com) y copiala en `RESEND_API_KEY`.
+2. Agregá el dominio de envío en el panel de Resend.
+3. Publicá en el DNS los registros que Resend muestra (SPF y DKIM).
+4. Esperá a que Resend marque el dominio como verificado.
+5. Poné en `EMAIL_FROM` una dirección de ese dominio.
+6. Dejá `EMAIL_PROVIDER=resend` y reiniciá la API.
+
+El compose de producción pasa `RESEND_API_KEY` y `EMAIL_FROM` al servicio `api`.
+Un error de envío se registra con la plantilla y el destinatario. Ese log no incluye la API key.
 
 ### 2.3 CLI
 

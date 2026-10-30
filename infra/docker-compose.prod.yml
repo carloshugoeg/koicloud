@@ -46,6 +46,8 @@ services:
       MCP_ENABLED: ${MCP_ENABLED:-true}
       MCP_DEMO_PASSWORD: ${MCP_DEMO_PASSWORD:?set MCP_DEMO_PASSWORD}
       EMAIL_PROVIDER: ${EMAIL_PROVIDER}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_FROM: ${EMAIL_FROM:-}
       PAYMENT_PROVIDER: ${PAYMENT_PROVIDER}
       INVOICE_DIR: ${INVOICE_DIR:-/var/lib/koicloud/invoices}
       BACKUP_DIR: ${BACKUP_DIR:-/var/lib/koicloud/backups}
