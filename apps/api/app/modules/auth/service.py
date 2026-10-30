@@ -54,7 +54,7 @@ class AuthService:
         access_jti: str | None = None,
         access_exp: int | None = None,
     ) -> None:
-        """Revoke the presented access token, and the refresh cookie or the whole family."""
+        """Prefer the cookie refresh. Without a cookie, revoke every refresh token for the user."""
         if refresh_token:
             await auth_commands.revoke_refresh(refresh_token)
         else:
