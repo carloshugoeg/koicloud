@@ -1,8 +1,4 @@
 #!/usr/bin/env bash
-# Re-run the KoiCloud pond/journey TLA+ models with plain TLC.
-# Needs Java 11+ and tla2tools.jar (TLA2TOOLS env var, default ./tla2tools.jar; v1.8.0).
-# Exit 0 only if PondLifecycle and UserJourneyFixed hold and UserJourneyAsIs still shows its known findings.
-# Two arguments (spec.tla config.cfg) check that pair only and skip the as-is census.
 set -uo pipefail
 cd "$(dirname "$0")"
 JAR="${TLA2TOOLS:-./tla2tools.jar}"
