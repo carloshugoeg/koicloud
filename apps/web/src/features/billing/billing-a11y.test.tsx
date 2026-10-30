@@ -122,4 +122,52 @@ describe("billing form errors", () => {
     expect(changePlan).toHaveAttribute("aria-expanded", "false");
     expect(screen.queryByRole("button", { name: "Elegir plan Micro" })).not.toBeInTheDocument();
   });
+
+  it("closes only the checkout dialog on Escape and returns focus to Elegir plan", async () => {
+    const user = userEvent.setup();
+    renderUso();
+
+    const changePlan = await screen.findByRole("button", { name: "Cambiar de plan" });
+    await user.click(changePlan);
+    const choose = await screen.findByRole("button", { name: "Elegir plan Micro" });
+    await user.click(choose);
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    expect(changePlan).toHaveAttribute("aria-expanded", "true");
+
+    await user.click(screen.getByLabelText("NIT (opcional)"));
+    expect(screen.getByLabelText("NIT (opcional)")).toHaveFocus();
+    await user.keyboard("{Escape}");
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(changePlan).toHaveAttribute("aria-expanded", "true");
+    expect(choose).toBeInTheDocument();
+    expect(choose).toHaveFocus();
+  });
+
+  it("closes only the invoice dialog on Escape and returns focus to Elegir plan", async () => {
+    const user = userEvent.setup();
+    renderUso();
+
+    const changePlan = await screen.findByRole("button", { name: "Cambiar de plan" });
+    await user.click(changePlan);
+    const choose = await screen.findByRole("button", { name: "Elegir plan Micro" });
+    await user.click(choose);
+    await user.type(screen.getByLabelText("NIT (opcional)"), "1000002-K");
+    await user.type(screen.getByLabelText("Número de tarjeta simulada"), "4242 4242 4242 4242");
+    await user.type(screen.getByLabelText("Expiración"), "12/30");
+    await user.type(screen.getByLabelText("CVC"), "123");
+    await user.click(screen.getByRole("button", { name: "Confirmar contratación" }));
+
+    expect(await screen.findByTestId("checkout-invoice-from-api")).toBeInTheDocument();
+    expect(changePlan).toHaveAttribute("aria-expanded", "true");
+    const invoiceAction = screen.getByRole("button", { name: "Crear mi primer pond →" });
+    invoiceAction.focus();
+    expect(invoiceAction).toHaveFocus();
+    await user.keyboard("{Escape}");
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("checkout-invoice-from-api")).not.toBeInTheDocument();
+    expect(changePlan).toHaveAttribute("aria-expanded", "true");
+    expect(choose).toHaveFocus();
+  });
 });
