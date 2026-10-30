@@ -45,6 +45,8 @@ def render_invoice_pdf(
     pdf.set_font("Helvetica", size=11)
     pdf.cell(0, 8, f"Codigo: {invoice.number}", new_x="LMARGIN", new_y="NEXT")
     pdf.cell(0, 8, f"Emitida: {invoice.issued_at.isoformat()}", new_x="LMARGIN", new_y="NEXT")
+    nit_label = invoice.nit if invoice.nit else "-"
+    pdf.cell(0, 8, f"NIT: {nit_label}", new_x="LMARGIN", new_y="NEXT")
     pdf.ln(4)
 
     pdf.set_font("Helvetica", style="B", size=11)

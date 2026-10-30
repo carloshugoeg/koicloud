@@ -84,10 +84,19 @@ def list_subscriptions(output: OutputFormat = OUTPUT_OPTION) -> None:
 @app.command("subscribe")
 def subscribe(
     plan_id: str,
+    nit: str | None = typer.Option(
+        None,
+        "--nit",
+        help="NIT del receptor (opcional; CF permitido).",
+    ),
     yes: str | None = YES_TOKEN_OPTION,
     output: OutputFormat = OUTPUT_OPTION,
 ) -> None:
-    """Contrata un plan. Ticket W4-04."""
+    """Contrata un plan. Ticket W4-04 / W1-31."""
+
+    body: dict[str, Any] = {"plan_id": plan_id}
+    if nit is not None:
+        body["nit"] = nit
 
     client = None
     try:
@@ -95,7 +104,7 @@ def subscribe(
         payload = client.resolve_mutation(
             "POST",
             "subscriptions",
-            payload={"plan_id": plan_id},
+            payload=body,
             yes_token=yes,
         )
     except (ApiError, NotLoggedInError) as error:

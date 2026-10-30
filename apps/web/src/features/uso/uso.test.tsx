@@ -36,8 +36,13 @@ describe("W2-09 Uso del mes e historial de facturas", () => {
     expect(await screen.findByTestId("kpi-instance-hours")).toHaveTextContent("172.5");
     expect(screen.getAllByText("inventario-demo").length).toBeGreaterThan(0);
     expect(await screen.findByText("KOI-202609-0001")).toBeInTheDocument();
+    expect(screen.getByText("0614-220999-101-3")).toBeInTheDocument();
     expect(screen.getByText("Subtotal")).toBeInTheDocument();
     expect(screen.getByText("IVA 12 %")).toBeInTheDocument();
+    // InvoicePaper amounts via formatPrice (CCR #151): USD + 4 decimals
+    expect(screen.getAllByText("USD 4.4643").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("USD 0.5357").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("USD 5.0000").length).toBeGreaterThanOrEqual(1);
 
     await user.selectOptions(screen.getByLabelText("Mes"), "2026-08");
 
