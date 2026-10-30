@@ -2,7 +2,7 @@
 id: W2-15
 workstream: W2
 persona: Carlos
-estado: en-revision
+estado: hecho
 rama: w2-a2-web-gaps
 epica: "E2-02 / E6 / E1"
 sprint: S5
