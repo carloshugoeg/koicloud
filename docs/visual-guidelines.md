@@ -95,7 +95,7 @@ Todo color, radio, espacio y duración viene de aquí. **Ningún hex literal en 
   /* ── Tinta ─────────────────────────────────────────────────────── */
   --ink:           #14211F;  /* texto principal, títulos */
   --ink-muted:     #4C5B58;  /* texto secundario, etiquetas, ayudas */
-  --ink-faint:     #6B7A74;  /* SOLO ≥24 px o no-texto — ver §3 */
+  --ink-faint:     #586762;  /* AA ≥4.5:1; reservado a no-párrafo — ver §3 */
 
   /* ── Líneas ────────────────────────────────────────────────────── */
   --line:          #D8CFB8;  /* hairline decorativa: divisores, bordes de tarjeta */
@@ -198,7 +198,7 @@ Si la versión de shadcn del proyecto espera tripletas HSL sin función (`--prim
 | `paper` | `#FFFCF4` | `44 100% 98%` |
 | `ink` | `#14211F` | `171 25% 10%` |
 | `ink-muted` | `#4C5B58` | `168 9% 33%` |
-| `ink-faint` | `#6B7A74` | `156 7% 45%` |
+| `ink-faint` | `#586762` | `165 8% 36%` |
 | `line` | `#D8CFB8` | `43 29% 78%` |
 | `line-control` | `#8C8778` | `45 8% 51%` |
 | `turquoise-100` | `#C6E9E4` | `171 44% 85%` |
@@ -228,7 +228,7 @@ Los ratios ya están medidos. Estas reglas no son sugerencias: tres tokens **no*
 | `ink` sobre `bone` | 14.05 | AAA — texto principal |
 | `ink` sobre `bone-raised` / `paper` | 15.48 / 16.17 | AAA |
 | `ink-muted` sobre `bone` | 6.05 | AA todo tamaño — secundario, etiquetas, ayudas |
-| **`ink-faint` sobre `bone`** | **3.82** | **Falla AA en texto normal.** Solo ≥24 px, o ≥19 px negrita, o no-texto (iconos, marcas de eje) |
+| `ink-faint` sobre `bone` | 5.04 | AA — aún reservado a no-párrafo (códigos mono, ejes, deshabilitado); preferí `ink-muted` para ayudas |
 | `turquoise-700` sobre `bone` | 5.26 | AA — enlaces, texto de acción, anillo de foco |
 | **`turquoise-500` sobre `bone`** | **2.89** | **Nunca texto.** Relleno, trazo de gráfico, barra de progreso |
 | `green-700` sobre `bone` | 5.39 | AA — texto de éxito |

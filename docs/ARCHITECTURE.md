@@ -69,7 +69,7 @@ flowchart TB
 | Mutar (CLI/MCP) | Primera llamada → `409 confirmation_required` + token; `POST /confirm/{token}` ejecuta el comando |
 | Respaldos | Worker agenda backup diario; restore encola job y pasa por confirmación en superficies no-Web. `BackupOut.expires_at` se deriva al responder: 7 días después de `created_at` si el respaldo está `succeeded` y no es `pre_delete` |
 | Facturación | Planes y suscripciones en `billing`; pago simulado; `SubscribeRequest.nit` → `users.nit`; `InvoiceOut.nit` + PDF con IVA. `GET /plans` expone `billing_model`, `unit_price` y `currency`; la Web formatea con `formatPrice` (sin precios hard-coded). |
-| Admin | Rutas bajo dependencia `get_admin_user`; listados de usuarios/ponds/auditoría y `GET /admin/totals`; `POST …/suspend` acepta `reason` opcional y lo guarda en `audit_events.metadata.reason` |
+| Admin | Rutas bajo dependencia `get_admin_user`; listados de usuarios/ponds/suscripciones/auditoría y `GET /admin/totals`; `POST …/suspend` acepta `reason` opcional y lo guarda en `audit_events.metadata.reason` |
 | Correo | `send(template, to, context)` imprime el mensaje en stdout con `EMAIL_PROVIDER=console` (default) o si el proceso no instaló el gate. Con `resend`, el lifespan exige `RESEND_API_KEY` y `EMAIL_FROM` y hace POST a `https://api.resend.com/emails`, con un reintento. El log de fallo incluye plantilla y destinatario, y no la API key. Auth todavía no llama a `send()`. |
 
 ---

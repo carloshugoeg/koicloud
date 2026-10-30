@@ -12,6 +12,7 @@ from app.core.errors import AppError, ErrorCode
 from app.core.models import AuditEvent, Subscription, User
 from app.schemas import (
     AdminPondListResponse,
+    AdminSubscriptionListResponse,
     AdminTotalsResponse,
     AdminUserListResponse,
     AdminUserOut,
@@ -106,6 +107,12 @@ async def admin_list_ponds() -> AdminPondListResponse:
     from app.modules.admin.service import AdminService
 
     return await AdminService.list_ponds()
+
+
+async def admin_list_subscriptions() -> AdminSubscriptionListResponse:
+    from app.modules.admin.service import AdminService
+
+    return await AdminService.list_subscriptions()
 
 
 async def admin_get_totals() -> AdminTotalsResponse:

@@ -3,6 +3,7 @@ import type { components } from "@/api/schema";
 type User = components["schemas"]["UserOut"];
 type AdminUser = components["schemas"]["AdminUserOut"];
 type AdminPond = components["schemas"]["AdminPondOut"];
+type AdminSubscription = components["schemas"]["AdminSubscriptionOut"];
 type AuditEvent = components["schemas"]["AuditEventOut"];
 type Plan = components["schemas"]["PlanOut"];
 type Pond = components["schemas"]["PondOut"];
@@ -85,6 +86,29 @@ export const adminPonds: AdminPond[] = [
     desired_state: "running",
     observed_state: "failed",
     created_at: "2026-09-18T11:00:00Z",
+  },
+];
+
+export const adminSubscriptions: AdminSubscription[] = [
+  {
+    id: "22222222-2222-2222-2222-222222222222",
+    user_id: "11111111-1111-1111-1111-111111111111",
+    user_email: "demo@koicloud.dev",
+    plan_id: "micro",
+    status: "active",
+    current_period_start: "2026-09-22T20:00:00Z",
+    current_period_end: "2026-10-22T20:00:00Z",
+    cancel_at_period_end: false,
+  },
+  {
+    id: "33333333-3333-3333-3333-333333333333",
+    user_id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    user_email: "mora@ejemplo.gt",
+    plan_id: "sandbox",
+    status: "canceled",
+    current_period_start: "2026-09-01T12:00:00Z",
+    current_period_end: "2026-09-12T12:00:00Z",
+    cancel_at_period_end: true,
   },
 ];
 
@@ -456,6 +480,7 @@ export const fixtures = {
   ] satisfies SQLHistoryItem[],
   adminUsers: [adminClientUser, adminSuspendedUser, adminUser] satisfies AdminUser[],
   adminPonds,
+  adminSubscriptions,
   adminAuditEvents,
   subscriptionResponse: {
     subscription: {

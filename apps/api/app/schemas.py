@@ -952,6 +952,42 @@ class AdminPondListResponse(SchemaModel):
     )
 
 
+class AdminSubscriptionOut(SchemaModel):
+    id: UUID
+    user_id: UUID
+    user_email: str
+    plan_id: str
+    status: SubscriptionStatus
+    current_period_start: datetime
+    current_period_end: datetime
+    cancel_at_period_end: bool
+
+    model_config = config_with_example(
+        {
+            "id": EXAMPLE_SUBSCRIPTION_ID,
+            "user_id": EXAMPLE_USER_ID,
+            "user_email": "carlos@koicloud.dev",
+            "plan_id": "micro",
+            "status": "active",
+            "current_period_start": EXAMPLE_NOW,
+            "current_period_end": "2026-10-22T20:00:00Z",
+            "cancel_at_period_end": False,
+        }
+    )
+
+
+class AdminSubscriptionListResponse(SchemaModel):
+    subscriptions: list[AdminSubscriptionOut]
+    next_cursor: str | None = None
+
+    model_config = config_with_example(
+        {
+            "subscriptions": [AdminSubscriptionOut.example_data()],
+            "next_cursor": None,
+        }
+    )
+
+
 class AdminTotalsOut(SchemaModel):
     users: int
     ponds: int

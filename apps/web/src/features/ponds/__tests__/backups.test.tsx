@@ -44,6 +44,14 @@ describe("W2-08 Respaldos y restauración", () => {
     vi.useRealTimers();
   });
 
+  it("uses the control-plane header top margin on Respaldos", async () => {
+    renderBackups();
+    const header = await screen.findByTestId("app-header");
+    expect(header.className.split(/\s+/)).toContain("mt-2");
+    expect(header).toHaveTextContent("Control plane");
+    expect(header).toHaveTextContent("Respaldos");
+  });
+
   it("lists backups and shows the pre_delete chip", async () => {
     renderBackups();
 
@@ -186,6 +194,8 @@ describe("W2-08 Respaldos y restauración", () => {
 
     renderBackups();
     await user.click(await screen.findByTestId("backup-now"));
+    const dialog = await screen.findByTestId("backup-confirm-dialog");
+    await user.click(within(dialog).getByTestId("backup-confirm-button"));
 
     expect(await screen.findByText("Respaldo encolado")).toBeInTheDocument();
     expect(status).toBe(202);
@@ -205,8 +215,21 @@ describe("W2-08 Respaldos y restauración", () => {
 
     renderBackups();
     await user.click(await screen.findByTestId("backup-now"));
+    const dialog = await screen.findByTestId("backup-confirm-dialog");
+    await user.click(within(dialog).getByTestId("backup-confirm-button"));
 
     expect(await screen.findByText("Ese pond ya tiene una operación en curso.")).toBeInTheDocument();
     expect(screen.queryByText("Respaldo encolado")).not.toBeInTheDocument();
+  });
+
+  // RF-15 — confirmación local antes de POST /backups desde la página de respaldos
+  it("confirms before queuing Respaldar ahora from the backups page", async () => {
+    const user = userEvent.setup();
+    renderBackups();
+    expect(await screen.findByTestId("backup-now")).toBeInTheDocument();
+    await user.click(screen.getByTestId("backup-now"));
+    const dialog = await screen.findByTestId("backup-confirm-dialog");
+    await user.click(within(dialog).getByTestId("backup-confirm-button"));
+    expect(await screen.findByText("Respaldo encolado")).toBeInTheDocument();
   });
 });
