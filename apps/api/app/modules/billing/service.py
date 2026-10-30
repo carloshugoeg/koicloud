@@ -14,7 +14,7 @@ from app.core.auth import AuthContext
 from app.core.config import Settings
 from app.core.enums import InvoiceStatus, PaymentStatus, SubscriptionStatus
 from app.core.errors import AppError, ErrorCode
-from app.core.models import Invoice, InvoiceLine, Payment, Plan, Subscription
+from app.core.models import Invoice, InvoiceLine, Payment, Plan, Subscription, User
 from app.core.time import utc_now
 from app.modules.billing.invoice_pdf import render_invoice_pdf, split_iva
 from app.modules.billing.payments.port import PaymentProvider
@@ -64,7 +64,7 @@ def subscription_to_out(
     )
 
 
-def invoice_to_out(row: Invoice) -> InvoiceOut:
+def invoice_to_out(row: Invoice, *, nit: str | None = None) -> InvoiceOut:
     return InvoiceOut(
         id=row.id,
         number=row.number,
@@ -76,6 +76,7 @@ def invoice_to_out(row: Invoice) -> InvoiceOut:
         status=row.status,
         issued_at=row.issued_at,
         pdf_path=row.pdf_path,
+        nit=nit,
     )
 
 
@@ -146,7 +147,9 @@ class BillingService:
             next_cursor=None,
         )
 
-    async def subscribe(self, actor: AuthContext, plan_id: str) -> SubscribeResponse:
+    async def subscribe(
+        self, actor: AuthContext, plan_id: str, *, nit: str | None = None
+    ) -> SubscribeResponse:
         if not plan_id:
             raise AppError(ErrorCode.PLAN_REQUIRED)
         plan = await self.session.get(Plan, plan_id)
@@ -154,6 +157,12 @@ class BillingService:
             raise AppError(ErrorCode.PLAN_REQUIRED)
 
         user_id = UUID(actor.user_id)
+        user = await self.session.get(User, user_id)
+        if user is None:
+            raise AppError(ErrorCode.TOKEN_INVALID)
+        if nit is not None:
+            user.nit = nit
+
         now = utc_now()
         subscription = Subscription(
             user_id=user_id,
@@ -177,9 +186,10 @@ class BillingService:
         await self.session.refresh(subscription)
         await self.session.refresh(invoice)
         await self.session.refresh(payment)
+        await self.session.refresh(user)
         return SubscribeResponse(
             subscription=subscription_to_out(subscription, invoice_id=invoice.id),
-            invoice=invoice_to_out(invoice),
+            invoice=invoice_to_out(invoice, nit=user.nit),
             payment=payment_to_out(payment),
         )
 
@@ -188,6 +198,7 @@ class BillingService:
         plan = await self.session.get(Plan, subscription.plan_id)
         if plan is None or not plan.active:
             raise AppError(ErrorCode.PLAN_REQUIRED)
+        user = await self.session.get(User, subscription.user_id)
         now = utc_now()
         subscription.status = SubscriptionStatus.PENDING_PAYMENT
         await self.session.flush()
@@ -203,7 +214,7 @@ class BillingService:
         await self.session.refresh(payment)
         return SubscribeResponse(
             subscription=subscription_to_out(subscription, invoice_id=invoice.id),
-            invoice=invoice_to_out(invoice),
+            invoice=invoice_to_out(invoice, nit=user.nit if user else None),
             payment=payment_to_out(payment),
         )
 
@@ -264,15 +275,18 @@ class BillingService:
         )
 
     async def list_invoices(self, actor: AuthContext) -> InvoiceListResponse:
+        user_id = UUID(actor.user_id)
+        user = await self.session.get(User, user_id)
         rows = (
             await self.session.scalars(
                 select(Invoice)
-                .where(Invoice.user_id == UUID(actor.user_id))
+                .where(Invoice.user_id == user_id)
                 .order_by(Invoice.issued_at.desc())
             )
         ).all()
+        nit = user.nit if user else None
         return InvoiceListResponse(
-            invoices=[invoice_to_out(row) for row in rows],
+            invoices=[invoice_to_out(row, nit=nit) for row in rows],
             next_cursor=None,
         )
 
@@ -285,13 +299,14 @@ class BillingService:
             )
         if invoice.user_id != UUID(actor.user_id):
             raise AppError(ErrorCode.NOT_OWNER)
+        user = await self.session.get(User, invoice.user_id)
         lines = (
             await self.session.scalars(
                 select(InvoiceLine).where(InvoiceLine.invoice_id == invoice.id)
             )
         ).all()
         return InvoiceDetailResponse(
-            invoice=invoice_to_out(invoice),
+            invoice=invoice_to_out(invoice, nit=user.nit if user else None),
             lines=[
                 InvoiceLineOut(
                     id=line.id,

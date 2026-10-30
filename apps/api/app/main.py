@@ -12,11 +12,13 @@ from app.core.errors import AppError, app_error_handler, unexpected_error_handle
 from app.internal_v1 import router as internal_v1_router
 from app.mcp.asgi import mcp_stream_app, wrap_with_mcp_stream
 from app.mcp.router import router as mcp_router
+from app.modules.notifications.service import bootstrap_email_gate
 from app.schemas import HealthResponse
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    bootstrap_email_gate(get_settings())
     async with mcp_stream_app.lifespan(app):
         yield
 

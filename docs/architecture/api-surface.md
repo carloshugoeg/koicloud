@@ -59,7 +59,7 @@ Notación: `M ROUTE → CommandOrService` con response resumido. `[C]` = requier
 |---|------|---------|-------------|----------|
 | GET | `/plans` | `list_plans` | Catálogo público | `[{plan}]` con `billing_model`, `unit_price` (4 dp), `currency` enum `"USD"` (CCR #151) |
 | GET | `/subscriptions` | `list_my_subscriptions` | Historial del usuario | `[{subscription}]` con `invoice_id` (última factura por `issued_at`, o null) |
-| POST | `/subscriptions` | `subscribe` [C-CLI/MCP] | Contrata plan; genera invoice + payment simulado | `{subscription, invoice, payment}` |
+| POST | `/subscriptions` | `subscribe` [C-CLI/MCP] | Contrata plan; body `{plan_id, nit?}` (nit trim, vacío→null, `CF` ok, max 32) → `users.nit`; genera invoice + payment simulado | `{subscription, invoice, payment}` (`InvoiceOut.nit` snapshot) |
 | POST | `/subscriptions/{id}/cancel` | `cancel_subscription` [C-CLI/MCP] | Cancela al fin del período | `{subscription}` |
 | GET | `/invoices` | `list_invoices` | Historial | `[{invoice}]` |
 | GET | `/invoices/{id}` | `get_invoice` | Detalle con líneas | `{invoice, lines[]}` |
