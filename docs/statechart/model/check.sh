@@ -21,7 +21,7 @@ else
 fi
 for run in "${runs[@]}"; do
   set -- $run; out=$(tlc "$1" "$2")
-  if echo "$out" | grep -q "No error has been found"; then echo "PASS $2"; else echo "FAIL $2"; echo "$out" | grep -E "violated|Error" | sort -u; fail=1; fi
+  if echo "$out" | grep -q "No error has been found" && ! echo "$out" | grep -qE "is violated|^Error:|Exception"; then echo "PASS $2"; else echo "FAIL $2"; echo "$out" | grep -E "violated|Error" | sort -u; fail=1; fi
 done
 if [ "$pair" -eq 1 ]; then
   exit $fail
