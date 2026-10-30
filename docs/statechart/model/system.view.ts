@@ -1,7 +1,7 @@
 export const title = "KoiCloud system (Level 1)";
 const P: Record<string, string> = { none: "No pond", provisioning: "Provisioning", running: "Online", stopped: "Stopped", failed: "Failed", deleting: "Deleting", deleted: "Deleted" };
 export const state = (v: any) => ({
-  Account: `${v.session === "in" ? "Logged in" : "Logged out"}${v.jwt ? ", token live" : ""}${v.status === "suspended" ? ", suspended" : ""}`,
+  Account: `${v.session === "in" ? "Logged in" : "Logged out"}${v.jwt ? ", access live" : ""}${v.status === "suspended" ? ", suspended" : ""}`,
   Agent: v.agentOn ? "Agent on" : "Agent off",
   Pond: P[v.pond],
 });

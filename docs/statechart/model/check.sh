@@ -13,7 +13,7 @@ for run in "PondLifecycle.tla PondLifecycle.cfg" "UserJourney.tla UserJourneyFix
   if echo "$out" | grep -q "No error has been found"; then echo "PASS $2"; else echo "FAIL $2"; echo "$out" | grep -E "violated|Error" | sort -u; fail=1; fi
 done
 echo "AS-IS findings on main (expected until #96 r6 ships):"
-for inv in TabsFixedOrder HistoryScoped ReloadKeepsSession PlansViaBilling NoChargeBadCard; do
+for inv in TabsFixedOrder HistoryScoped ReloadKeepsSession PlansViaBilling NoChargeBadCard LogoutRevokesAccess; do
   printf 'CONSTANT Fixed = FALSE\nSPECIFICATION Spec\nINVARIANT %s\n' "$inv" > /tmp/koi-asis.cfg
   if tlc UserJourney.tla /tmp/koi-asis.cfg | grep -q "is violated"; then echo "  BREAKS $inv"; else echo "  holds  $inv"; fi
 done

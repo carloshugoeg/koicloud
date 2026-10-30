@@ -15,6 +15,7 @@ Three TLA+ models (`System`, `PondLifecycle`, `UserJourney`), checked with TLC. 
 |---|---|
 | `PondLifecycle`: OneInFlightOp, NoStartOnDeleted, ConsoleOnlyWhenRunning | `apps/api/app/modules/ponds/service.py` (`_assert_no_active_job`, `stop`, `start`, `delete`, `retry_failed`, `get_owned`), `apps/api/app/modules/backups/service.py` (`restore`, backups), `apps/api/app/modules/sql_console/*`, `apps/node-agent/agent/handlers/*_pond.py`, `apps/web/src/features/ponds/pond-lifecycle-actions.tsx`, `pond-state.ts` |
 | `UserJourney`: TabsFixedOrder | `apps/web/src/features/ponds/detail-page.tsx`, `backups-page.tsx`, `apps/web/src/features/sql-console/sql-console-page.tsx` |
+| LogoutRevokesAccess | `apps/web/src/app/layout/app-header.tsx`, `apps/web/src/api/client.ts`, `apps/api/app/modules/auth/service.py` (`logout`), `apps/api/app/core/auth.py` (`get_current_user`) |
 | HistoryScoped | `apps/api/app/modules/sql_console/service.py` (`list_for_actor`), `apps/web/src/api/hooks/sql-console.ts`, `apps/web/src/mocks/handlers.ts` (sql/history) |
 | ReloadKeepsSession | `apps/web/src/lib/auth-store.ts`, `apps/web/src/app/session-boot-gate.tsx`, `apps/web/src/api/client.ts` |
 | PlansViaBilling | `apps/web/src/app/layout/nav-config.ts`, `apps/web/src/app/router.tsx`, `apps/web/src/features/uso/*`, `features/plans/plans-page.tsx` |

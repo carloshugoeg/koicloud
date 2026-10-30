@@ -24,7 +24,7 @@ stateDiagram-v2
 | A4 | Verified | login | ok creds, active | LoggedIn | access+refresh | `journey: login lands on pond list` |
 | A5 | Verified | login | bad creds | Verified | 401 | `journey: bad login stays on login` |
 | A6 | LoggedIn | access expired | refresh valid | LoggedIn | rotate tokens | `auth: expired access refreshes silently` |
-| A7 | LoggedIn | logout | — | Verified | refresh revoked; pond API must 401 | `auth: logout kills pond api access` |
+| A7 | LoggedIn | logout | — | Verified | refresh revoked. r6-7(a) also revokes the access token, so the old bearer gets 401. On main the access JWT still works for ≤15 min | `auth: logout kills pond api access` |
 | A8 | LoggedIn | reload | — | LoggedIn | session restored | `journey: reload keeps session` |
 | A9 | Verified | forgot → reset | token valid | Verified | email, password changed | `auth: password reset flow` |
 | A10 | LoggedIn | admin suspends | — | Suspended | pond API must 403 | `admin: suspended user loses api access` |
