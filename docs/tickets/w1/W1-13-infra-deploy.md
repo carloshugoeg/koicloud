@@ -2,57 +2,62 @@
 id: W1-13
 workstream: W1
 persona: Carlos
-estado: abierto
+estado: en-revision
 rama: w1-infra-deploy
 epica: "E10-02, E10-03"
 sprint: S4
-pr: "#100; earlier groundwork PR 39"
+pr: "https://github.com/carloshugoeg/koicloud/pull/162"
 depends_on:
 ---
 
 # [W1-13] Infra: Caddy, compose de producción, systemd, `deploy.yml`
 
-## ESPERA — host real
-
-`ESPERA: requires real host (VPS) — none provisioned by the team. Do not invent IP/DNS/provider.`
-Compose, Caddy template, systemd unit, `deploy.yml` (gated on env) and runbooks are in the repo; **cableado y deploy real siguen pendientes**. No fake deploy.
-
-Checklist de campos: `docs/runbooks/deploy.md`.
-
 ## Qué se ve
 
-`infra/docker-compose.prod.yml` deja de ser stub vacío. Caddy termina TLS y enruta
-`/api`, `/mcp` y estáticos. Unit systemd del node-agent. Workflow `deploy.yml` documentado
-para un **host real** ya provisionado por el equipo.
+El repo queda listo para **una** VM Oracle Cloud Always Free (Ampere ARM, Ubuntu)
+sin dominio de pago: hostname `<ip>.sslip.io` / `<ip>.nip.io`, Caddy con TLS,
+ponds reales (`AGENT_MODE=docker`), reutilizando `.github/workflows/deploy.yml` y
+ADR 003. **No** se ejecuta deploy real (la VM aún no existe). Runbook Despliegue
+en `docs/runbooks/deploy.md` (Manual técnico §3; ENTREGA-2 §6.3).
 
 ## Entradas ya decididas (no se cambian)
 
 - Esqueleto en `infra/` (Caddyfile, compose.prod, unit, env).
-- `deploy.yml` es de W4 con aprobación W1 (CODEOWNERS); este ticket prepara artefacto y
-  runbook, no inventa máquina.
+- `deploy.yml` gated on env; sin inventar IP/DNS en el workflow.
 - Health post-deploy: `GET /health` o `GET /api/v1/health`.
+- Host objetivo: Oracle Always Free + sslip.io (ADR 014). Render/Neon rechazados
+  (sin Docker socket → sin ponds reales). Costo $0.
+- Bases multi-arch (`postgres:16-alpine`, `python:3.12-slim`, `caddy:2.8-alpine`).
 
 ## Criterios de aceptación
 
-1. `docker compose -f infra/docker-compose.prod.yml config` valida en local.
-2. Caddyfile enruta API + MCP según architecture; sin secretos en el repo.
-3. Unit systemd del agent documentada en `docs/runbooks/`.
-4. Runbook de deploy nombra el host **solo si ya existe**; si no hay VPS, el ticket sigue
-   abierto y el PR solo deja compose/Caddy listos para cablear.
-
-## Requires real host — do not invent VPS
-
-No crear IP, DNS, ni provider ficticio. Sin host del curso/equipo: implementar archivos
-locales + runbook y dejar `estado: abierto` hasta el cableado real. Nunca fingir deploy.
+1. `docker compose -f infra/docker-compose.prod.yml config` valida en local
+   (`bash infra/scripts/check-prod-compose.sh` / `make check-infra`).
+2. Caddyfile toma el hostname de `KOICLOUD_DOMAIN` (sslip.io/nip.io documentados);
+   sin secretos en el repo.
+3. Unit systemd del agent documentada; `AGENT_MODE=docker` para ponds reales.
+4. Runbook Despliegue cubre: creación VM, puertos 80/443 y 15000-15999 (VCN +
+   iptables), Docker, tabla de vars con cómo generar cada valor, GitHub
+   `KOICLOUD_DEPLOY_HOST` / `_USER` / `_SSH_KNOWN_HOSTS` / `KOICLOUD_DEPLOY_SSH_KEY`,
+   primer deploy, update, rollback. Sin IP inventada.
+5. `ENVIRONMENT=production` rechaza defaults de `JWT_SECRET`, `POND_PASSWORD_KEY`,
+   `NODE_TOKEN`, `MCP_DEMO_PASSWORD` al arrancar (`tests/test_production_secret_defaults.py`).
+6. ADR 014 registra Oracle Always Free vs Render/Neon.
+7. `npm run pregate` verde. Cableado SSH real queda pendiente hasta existir la VM
+   (no fingir deploy).
 
 ## No tocar
 
-Demo script (`scripts/demo-vivo.sh`) salvo punteros. Pack de presentación. Credenciales.
+Demo script (`scripts/demo-vivo.sh`) salvo punteros. Pack de presentación.
+Credenciales / secretos de prod. Estado de otros tickets.
 
 ## Si algo falta
 
-`BLOQUEADO: requiere host real (VPS) porque no hay máquina provisionada` — y pará.
+`BLOQUEADO: requiere host real (VPS) porque no hay máquina provisionada` — solo
+si el criterio exige *ejecutar* el deploy. Preparar artefactos + runbook **no**
+está bloqueado.
 
 ## Referencia
 
-`docs/architecture/system-architecture.md` despliegue · `infra/` · E10-02/E10-03.
+`docs/architecture/system-architecture.md` despliegue · `infra/` · E10-02/E10-03 ·
+ENTREGA-2 §6.3 · ADR 003 · ADR 014.

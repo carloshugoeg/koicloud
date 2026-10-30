@@ -20,7 +20,7 @@ no existe todavía. `00-INDEX.md` no es un ticket y el agente lo ignora.
 | W1-10 | Respaldos diarios y restauración verificada | `w1-backups` | hecho ([PR #30](https://github.com/carloshugoeg/koicloud/pull/30)) |
 | W1-11 | Muestreo y agregación de consumo | `w1-metering` | hecho ([PR #36](https://github.com/carloshugoeg/koicloud/pull/36)) |
 | W1-12 | MCP: montaje, gate, prompt, tools mutantes y confirmaciones | `w1-mcp-gate-confirm` | hecho ([PR #27](https://github.com/carloshugoeg/koicloud/pull/27); follow-ups [#38](https://github.com/carloshugoeg/koicloud/pull/38)) |
-| W1-13 | Infra: Caddy, compose de producción, systemd, `deploy.yml` | `w1-infra-deploy` | abierto · groundwork [#39](https://github.com/carloshugoeg/koicloud/pull/39) · ESPERA host real |
+| W1-13 | Infra: Caddy, compose de producción, systemd, `deploy.yml` | `w1-infra-deploy` | en-revision · [#162](https://github.com/carloshugoeg/koicloud/pull/162) · Oracle Always Free + sslip.io (repo ready; VM cableado pendiente) · groundwork [#39](https://github.com/carloshugoeg/koicloud/pull/39) |
 | W1-14 | Guion de la demo y sus tres ensayos | `w1-guion-demo` | hecho (formaliza `scripts/demo-vivo.sh` + runbook ya en `main`) |
 | W1-18 | Demo vivo S3 (subscribe → usage → PDF+IVA → backup → restore) | `w1-demo-vivo-s3` | hecho ([PR #75](https://github.com/carloshugoeg/koicloud/pull/75)) |
 | W1-19 | Wire `admin_list_ponds` / `admin_list_audit` → AdminService | `w3-admin-ponds-bitacora` | hecho ([PR #82](https://github.com/carloshugoeg/koicloud/pull/82)) |
@@ -47,7 +47,7 @@ no existe todavía. `00-INDEX.md` no es un ticket y el agente lo ignora.
 | W1-36 | Wave C0: compose prod, deploy.sh SSH, e2e compose CI | `w1-wave-c0-compose-e2e` | hecho ([PR #140](https://github.com/carloshugoeg/koicloud/pull/140)) |
 | W1-40 | Preview API rewrite + theme (HIGH lane; real preview API) | `w1-preview-api-theme-fix` | hecho · [#149](https://github.com/carloshugoeg/koicloud/pull/149) |
 | [W1-42](W1-42-preview-login-e2e.md) | Regresión e2e del login en Preview | `w1-preview-login-gate` | hecho · [#159](https://github.com/carloshugoeg/koicloud/pull/159) |
-| [W1-44](W1-44-email-resend.md) | Proveedor de correo Resend (prod) + consola default | `w1-email-resend` | en-revision · [#161](https://github.com/carloshugoeg/koicloud/pull/161) |
+| [W1-44](W1-44-email-resend.md) | Proveedor de correo Resend (prod) + consola default | `w1-email-resend` | hecho · [#161](https://github.com/carloshugoeg/koicloud/pull/161) |
 
 W1 es el único workstream que puede tocar cualquier ruta, y el único que escribe migraciones,
 regenera contratos (`make contracts`) y edita el harness de agentes.
