@@ -11,7 +11,12 @@ paths = [
   '''packages/contracts/openapi\.json''',
   '''apps/web/src/api/schema\.d\.ts''',
   '''apps/api/app/schemas\.py''',
+  '''infra/scripts/check-prod-compose\.sh''',
+  '''infra/scripts/check-deploy-idempotent\.sh''',
+  '''infra/scripts/proof-local-deploy\.sh''',
+  '''infra/scripts/check-oracle-deploy-ready\.sh''',
 ]
 regexes = [
   '''7chvGNh8l4rbVgpH0wWJjCT2J8eQ6D8eW5DiKjR3owE=''',
+  '''gate-fixture-jwt-secret-32bytes''',
 ]
