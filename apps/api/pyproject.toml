@@ -19,6 +19,7 @@ dependencies = [
   "pyjwt",
   "slowapi",
   "greenlet",
+  "httpx",
   "sqlalchemy",
   "uvicorn[standard]",
   "fastmcp>=4.0.10",
@@ -27,7 +28,6 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-  "httpx",
   "mypy",
   "pytest",
   "pytest-asyncio",

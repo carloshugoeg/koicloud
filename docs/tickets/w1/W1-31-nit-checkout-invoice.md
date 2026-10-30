@@ -2,7 +2,7 @@
 id: W1-31
 workstream: W1
 persona: Carlos
-estado: en-revision
+estado: hecho
 rama: w1-nit-checkout-invoice
 epica: "E2-02, E2-06"
 sprint: S4
