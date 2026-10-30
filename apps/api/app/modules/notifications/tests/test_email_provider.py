@@ -359,16 +359,26 @@ def test_send_resend_client_error_fails_without_retry(
 def test_send_retries_resend_429_then_succeeds(monkeypatch: pytest.MonkeyPatch) -> None:
     settings = _settings(monkeypatch, provider="resend", api_key=API_KEY, email_from=SENDER)
     calls: list[CapturedPost] = []
+    slept: list[float] = []
 
     def responder(attempt: int) -> httpx.Response:
         if attempt == 1:
-            return httpx.Response(429, text="rate limited")
+            return httpx.Response(
+                429,
+                text="rate limited",
+                headers={"Retry-After": "1.25"},
+            )
         return httpx.Response(200, json={"id": "msg_rate_limit"})
 
+    monkeypatch.setattr(
+        "app.modules.notifications.resend.time.sleep",
+        lambda seconds: slept.append(seconds),
+    )
     _bootstrap(settings, post=_capturing_post(calls, responder))
     result = send("verify_email", RECIPIENT, VERIFY_CONTEXT)
 
     assert len(calls) == 2
+    assert slept == [1.25]
     assert result.to == RECIPIENT
     for call in calls:
         _assert_resend_request(call, api_key=API_KEY)
