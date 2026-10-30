@@ -2,11 +2,11 @@
 id: W1-45
 workstream: W1
 persona: Carlos
-estado: en-curso
+estado: en-revision
 rama: w1-auth-session-persist
 epica: E1-03
 sprint: S4
-pr:
+pr: "https://github.com/carloshugoeg/koicloud/pull/166"
 depends_on: W1-15 W3-02
 ---
 
