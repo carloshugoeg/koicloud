@@ -275,6 +275,8 @@ describe("W2-06 Detalle del pond y conexión", () => {
     renderDetail();
     expect(await screen.findByTestId("pond-stop")).toBeEnabled();
     await user.click(screen.getByTestId("pond-stop"));
+    const dialog = await screen.findByTestId("stop-confirm-dialog");
+    await user.click(within(dialog).getByTestId("stop-confirm-button"));
 
     await waitFor(() => {
       expect(screen.getByTestId("pond-status-badge")).toHaveTextContent("Deteniendo…");

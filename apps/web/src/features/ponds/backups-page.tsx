@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import { PondTabs } from "@/components/pond-tabs";
 import {
   useGetPond,
   useListBackups,
@@ -101,12 +102,7 @@ export function BackupsPage() {
           <p className="mt-1 text-sm text-ink-muted">
             Respaldo diario a las 03:15. Retención según el plan activo.
           </p>
-          <nav className="mt-3 flex flex-wrap gap-3 text-sm">
-            <Link className="text-turquoise-700" to={`/app/ponds/${pondId}`}>
-              Resumen
-            </Link>
-            <span className="font-medium text-ink">Respaldos</span>
-          </nav>
+          <PondTabs pondId={pondId} active="respaldos" />
         </div>
         <button
           type="button"

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { PondTabs } from "@/components/pond-tabs";
 import {
   pondNeedsPolling,
   useDeletePondMutation,
@@ -122,15 +123,7 @@ export function PondDetailPage() {
           <p className="mt-1 text-sm text-ink-muted">
             PostgreSQL {pond.engine_version} · plan {pond.plan_id} · nodo {pond.node_id}
           </p>
-          <nav className="mt-3 flex flex-wrap gap-3 text-sm">
-            <span className="font-medium text-ink">Resumen</span>
-            <Link className="text-turquoise-700" to={`/app/ponds/${pond.id}/backups`}>
-              Respaldos
-            </Link>
-            <Link className="text-turquoise-700" to={`/app/ponds/${pond.id}/console`}>
-              Consola
-            </Link>
-          </nav>
+          <PondTabs pondId={pond.id} active="resumen" />
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {pond.observed_state === "running" ? (
