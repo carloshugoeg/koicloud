@@ -57,6 +57,28 @@ class Settings(BaseSettings):
             )
         return self
 
+    @model_validator(mode="after")
+    def reject_default_secrets_in_production(self) -> Self:
+        """Refuse built-in defaults when ENVIRONMENT is production (W1-13)."""
+        env = self.environment.strip().lower()
+        if env not in {"production", "prod"}:
+            return self
+        offenders: list[str] = []
+        if self.jwt_secret == "koicloud-dev-jwt-secret-change-me":
+            offenders.append("JWT_SECRET")
+        if self.pond_password_key == "7chvGNh8l4rbVgpH0wWJjCT2J8eQ6D8eW5DiKjR3owE=":
+            offenders.append("POND_PASSWORD_KEY")
+        if self.node_token == "koicloud-node-token":
+            offenders.append("NODE_TOKEN")
+        if self.mcp_demo_password == "koicloud-demo":
+            offenders.append("MCP_DEMO_PASSWORD")
+        if offenders:
+            joined = ", ".join(offenders)
+            raise ValueError(
+                f"{joined} must not use the built-in default when ENVIRONMENT is production"
+            )
+        return self
+
 
 def to_sync_database_url(url: str) -> str:
     """Alembic uses a sync engine; asyncpg URLs raise MissingGreenlet."""

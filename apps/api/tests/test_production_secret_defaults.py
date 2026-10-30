@@ -7,7 +7,6 @@ from pydantic import ValidationError
 
 from app.core.config import Settings, get_settings
 
-
 _PROD_SAFE = {
     "environment": "production",
     "email_provider": "resend",

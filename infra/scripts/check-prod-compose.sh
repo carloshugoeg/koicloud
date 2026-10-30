@@ -41,6 +41,7 @@ NODE_PUBLIC_HOST=change-me-public-host
 POND_PORT_RANGE_START=15000
 POND_PORT_RANGE_END=15999
 MCP_ENABLED=true
+MCP_DEMO_PASSWORD=change-me-mcp-demo
 EMAIL_PROVIDER=${CHECK_EMAIL_PROVIDER}
 PAYMENT_PROVIDER=simulated
 INVOICE_DIR=/var/lib/koicloud/invoices
@@ -85,6 +86,7 @@ for name in (
     "JWT_SECRET",
     "NODE_TOKEN",
     "POND_PASSWORD_KEY",
+    "MCP_DEMO_PASSWORD",
     "KOICLOUD_DOMAIN",
     "NODE_PUBLIC_HOST",
 ):
@@ -143,7 +145,7 @@ POSTGRES_DB=koicloud
 DATABASE_URL=postgresql+asyncpg://koi:c0-console-reject-password-not-prod@db:5432/koicloud
 JWT_SECRET=c0-console-reject-jwt-secret-32bytes
 REFRESH_TTL_DAYS=30
-POND_PASSWORD_KEY=7chvGNh8l4rbVgpH0wWJjCT2J8eQ6D8eW5DiKjR3owE=
+POND_PASSWORD_KEY=c0-console-reject-fernet-key-not-default==
 AGENT_MODE=docker
 NODE_ID=node-c0-console-reject
 NODE_TOKEN=c0-console-reject-node-token
@@ -152,6 +154,7 @@ NODE_PUBLIC_HOST=127.0.0.1
 POND_PORT_RANGE_START=15000
 POND_PORT_RANGE_END=15999
 MCP_ENABLED=true
+MCP_DEMO_PASSWORD=c0-console-reject-mcp-demo
 EMAIL_PROVIDER=console
 PAYMENT_PROVIDER=simulated
 INVOICE_DIR=/var/lib/koicloud/invoices

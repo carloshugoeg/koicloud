@@ -1,7 +1,9 @@
-# Template for a real host. KOICLOUD_DOMAIN is an env placeholder
-# (architecture: koicloud.example until DNS exists). Do not invent IP/DNS.
-# ACME will not issue a certificate for .example — leave Caddy stopped
-# until the team points a real name at the machine.
+# Template for a real host. Site address comes from KOICLOUD_DOMAIN.
+# Academic deploy (no paid DNS): set KOICLOUD_DOMAIN to <public-ip>.sslip.io
+# or <public-ip>.nip.io so ACME can issue a certificate for that name.
+# Architecture placeholder koicloud.example is only the local default.
+# ACME will not issue for .example — leave Caddy stopped until the name
+# resolves to this machine (sslip.io/nip.io or a real A/AAAA).
 #
 # Local / CI HTTP-only proxy: use infra/Caddyfile.http with compose overlay.
 

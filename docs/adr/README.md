@@ -1,6 +1,8 @@
 # Decisiones de arquitectura
 
-Estos registros aceptan A-01 a A-12. El resumen está en la sección 8 de `docs/architecture/system-architecture.md`. Un cambio que contradiga un registro se escribe como un ADR nuevo.
+Estos registros aceptan A-01 a A-12 más el host académico de W1-13. El resumen
+está en la sección 8 de `docs/architecture/system-architecture.md`. Un cambio
+que contradiga un registro se escribe como un ADR nuevo.
 
 | Registro | Decisión |
 | --- | --- |
@@ -16,3 +18,4 @@ Estos registros aceptan A-01 a A-12. El resumen está en la sección 8 de `docs/
 | [010](010-docker-restart-no-reconciler.md) | Reinicio de contenedores a cargo del reconciler |
 | [011](011-local-disk-backups.md) | Respaldos en disco local |
 | [012](012-monorepo.md) | Un solo repositorio |
+| [013](013-oracle-always-free-sslip.md) | Oracle Always Free + sslip.io ($0) |

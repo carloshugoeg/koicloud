@@ -1,6 +1,10 @@
-# Production compose for a provisioned Linux host. No VPS/IP is named here.
+# Production compose for one Linux host (Oracle Always Free ARM Ampere OK).
+# Bases are multi-arch (amd64 and arm64): postgres:16-alpine,
+# python:3.12-slim (api/worker/node-agent Dockerfiles), caddy:2.8-alpine.
+# Do not pin an amd64-only platform. No VPS/IP is named here.
 # Local check: bash infra/scripts/check-prod-compose.sh
 # Host: docker compose --env-file infra/env/prod.env -f infra/docker-compose.prod.yml …
+# Real ponds: node-agent unit sets AGENT_MODE=docker (see docker-compose.docker-agent.yml).
 # HTTP-only local proxy overlay: -f infra/docker-compose.http.yml
 
 name: koicloud
@@ -27,7 +31,7 @@ services:
       context: ../apps/api
     restart: unless-stopped
     environment:
-      # Pinned: Settings.reject_console_email_in_production only runs in production.
+      # Pinned: Settings production guards (email + default secrets) only run here.
       ENVIRONMENT: production
       DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://koi:change-me@db:5432/koicloud}
       JWT_SECRET: ${JWT_SECRET:-change-me-32-random-bytes}
@@ -40,6 +44,7 @@ services:
       POND_PORT_RANGE_START: ${POND_PORT_RANGE_START:-15000}
       POND_PORT_RANGE_END: ${POND_PORT_RANGE_END:-15999}
       MCP_ENABLED: ${MCP_ENABLED:-true}
+      MCP_DEMO_PASSWORD: ${MCP_DEMO_PASSWORD:-change-me-mcp-demo}
       EMAIL_PROVIDER: ${EMAIL_PROVIDER}
       PAYMENT_PROVIDER: ${PAYMENT_PROVIDER}
       INVOICE_DIR: ${INVOICE_DIR:-/var/lib/koicloud/invoices}
