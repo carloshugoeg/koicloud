@@ -56,9 +56,10 @@ describe("AppShell sidebar — groups, active, collapse (§5.1)", () => {
 
     expect(within(rail).getByRole("link", { name: "Ponds" })).toBeInTheDocument();
     expect(within(rail).getByRole("link", { name: "Crear pond" })).toBeInTheDocument();
-    expect(within(rail).getByRole("link", { name: "Uso del mes" })).toBeInTheDocument();
-    expect(within(rail).getByRole("link", { name: "Facturación" })).toBeInTheDocument();
-    expect(within(rail).getByRole("link", { name: "Planes" })).toBeInTheDocument();
+    expect(within(rail).getByRole("link", { name: "Uso y facturación" })).toBeInTheDocument();
+    expect(within(rail).queryByRole("link", { name: "Uso del mes" })).not.toBeInTheDocument();
+    expect(within(rail).queryByRole("link", { name: "Facturación" })).not.toBeInTheDocument();
+    expect(within(rail).queryByRole("link", { name: "Planes" })).not.toBeInTheDocument();
     expect(within(rail).getByRole("link", { name: "Acceso agente" })).toBeInTheDocument();
     expect(within(rail).getByRole("link", { name: "Perfil" })).toBeInTheDocument();
 
