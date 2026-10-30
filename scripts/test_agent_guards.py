@@ -119,6 +119,87 @@ class PageAndTableTest(unittest.TestCase):
             self.assertIn("sql.py", findings[0].where)
 
 
+class PreviewRequirementsTest(unittest.TestCase):
+    def test_missing_httpx_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            api = root / "apps" / "api"
+            web = root / "apps" / "web"
+            api.mkdir(parents=True)
+            web.mkdir(parents=True)
+            (api / "pyproject.toml").write_text(
+                "\n".join(
+                    [
+                        "[project]",
+                        'name = "koicloud-api"',
+                        "dependencies = [",
+                        '  "fastapi",',
+                        '  "httpx",',
+                        "]",
+                        "",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            (web / "requirements.txt").write_text(
+                "\n".join(
+                    [
+                        "# Generated",
+                        "fastapi==0.141.1",
+                        "httpx2==2.13.1",
+                        "",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            findings = agent_guards.check_preview_requirements(root)
+            self.assertTrue(
+                any(
+                    item.code == "preview-requirements" and "httpx" in item.fix
+                    for item in findings
+                ),
+                findings,
+            )
+
+    def test_export_sync_passes_when_file_matches(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            api = root / "apps" / "api"
+            web = root / "apps" / "web"
+            api.mkdir(parents=True)
+            web.mkdir(parents=True)
+            (api / "pyproject.toml").write_text(
+                "\n".join(
+                    [
+                        "[project]",
+                        'name = "koicloud-api"',
+                        "dependencies = [",
+                        '  "httpx",',
+                        "]",
+                        "",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            expected = "# Generated\nhttpx==0.28.1\n"
+            (web / "requirements.txt").write_text(expected, encoding="utf-8")
+
+            class FakeExport:
+                @staticmethod
+                def render_preview_requirements(_api: Path) -> str:
+                    return expected
+
+            original_which = agent_guards.shutil.which
+            original_load = agent_guards._load_export_preview
+            agent_guards.shutil.which = lambda _name: "/usr/bin/uv"
+            agent_guards._load_export_preview = lambda: FakeExport()
+            try:
+                self.assertEqual(agent_guards.check_preview_requirements(root), [])
+            finally:
+                agent_guards.shutil.which = original_which
+                agent_guards._load_export_preview = original_load
+
+
 class PullRequestTest(unittest.TestCase):
     def test_empty_make_check_fence_from_pr_83(self) -> None:
         body = "\n".join(
