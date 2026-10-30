@@ -16,6 +16,7 @@ from app.core.enums import InvoiceStatus, PaymentStatus, SubscriptionStatus
 from app.core.errors import AppError, ErrorCode
 from app.core.models import Invoice, InvoiceLine, Payment, Plan, Subscription, User
 from app.core.time import utc_now
+from app.modules.billing.checks import CARD_DECLINED, CardInput, nit_error
 from app.modules.billing.invoice_pdf import render_invoice_pdf, split_iva
 from app.modules.billing.payments.port import PaymentProvider
 from app.modules.billing.plan_pricing import plan_display_pricing
@@ -148,13 +149,20 @@ class BillingService:
         )
 
     async def subscribe(
-        self, actor: AuthContext, plan_id: str, *, nit: str | None = None
+        self,
+        actor: AuthContext,
+        plan_id: str,
+        *,
+        nit: str | None = None,
+        card: CardInput | None = None,
     ) -> SubscribeResponse:
         if not plan_id:
             raise AppError(ErrorCode.PLAN_REQUIRED)
         plan = await self.session.get(Plan, plan_id)
         if plan is None or not plan.active:
             raise AppError(ErrorCode.PLAN_REQUIRED)
+        if nit_error(nit):
+            raise AppError(ErrorCode.NIT_INVALID)
 
         user_id = UUID(actor.user_id)
         user = await self.session.get(User, user_id)
@@ -164,15 +172,36 @@ class BillingService:
             user.nit = nit
 
         now = utc_now()
-        subscription = Subscription(
-            user_id=user_id,
-            plan_id=plan.id,
-            status=SubscriptionStatus.PENDING_PAYMENT,
-            current_period_start=now,
-            current_period_end=now + timedelta(minutes=plan.validity_minutes),
-            cancel_at_period_end=False,
-        )
-        self.session.add(subscription)
+        period_end = now + timedelta(minutes=plan.validity_minutes)
+        existing = (
+            await self.session.scalars(
+                select(Subscription)
+                .where(
+                    Subscription.user_id == user_id,
+                    Subscription.status == SubscriptionStatus.ACTIVE,
+                )
+                .order_by(Subscription.current_period_start.desc())
+            )
+        ).all()
+        if existing and card is not None:
+            subscription = existing[0]
+            for extra in existing[1:]:
+                extra.status = SubscriptionStatus.CANCELED
+            subscription.plan_id = plan.id
+            subscription.status = SubscriptionStatus.PENDING_PAYMENT
+            subscription.cancel_at_period_end = False
+            subscription.current_period_start = now
+            subscription.current_period_end = period_end
+        else:
+            subscription = Subscription(
+                user_id=user_id,
+                plan_id=plan.id,
+                status=SubscriptionStatus.PENDING_PAYMENT,
+                current_period_start=now,
+                current_period_end=period_end,
+                cancel_at_period_end=False,
+            )
+            self.session.add(subscription)
         await self.session.flush()
 
         # Plano "open" invoice maps to existing InvoiceStatus.issued (frozen OpenAPI).
@@ -182,7 +211,7 @@ class BillingService:
             plan=plan,
             issued_at=now,
         )
-        payment = await self._start_and_maybe_confirm(invoice)
+        payment = await self._start_and_maybe_confirm(invoice, card=card)
         await self.session.refresh(subscription)
         await self.session.refresh(invoice)
         await self.session.refresh(payment)
@@ -331,8 +360,12 @@ class BillingService:
             await self.session.flush()
         return path.read_bytes()
 
-    async def _start_and_maybe_confirm(self, invoice: Invoice) -> Payment:
-        attempt = self.payment_provider.start_payment(invoice)
+    async def _start_and_maybe_confirm(
+        self, invoice: Invoice, *, card: CardInput | None = None
+    ) -> Payment:
+        attempt = self.payment_provider.start_payment(invoice, card=card)
+        if attempt.status == PaymentStatus.FAILED:
+            raise AppError(ErrorCode.PAYMENT_DECLINED, message=CARD_DECLINED)
         payment = Payment(
             invoice_id=invoice.id,
             amount_usd=invoice.total_usd,
@@ -347,9 +380,6 @@ class BillingService:
 
         if attempt.status == PaymentStatus.SUCCEEDED:
             return await self.confirm_payment(attempt.provider_ref)
-        if attempt.status == PaymentStatus.FAILED:
-            payment.status = PaymentStatus.FAILED
-            await self.session.flush()
         return payment
 
     async def _create_invoice(

@@ -87,7 +87,7 @@ describe("W2-01 Auth flows (register, verify, login)", () => {
 
     await waitFor(() => {
       expect(useAuthStore.getState().session?.accessToken).toBe("access_demo_token");
-      expect(router.state.location.pathname).toBe("/app/plans");
+      expect(router.state.location.pathname).toBe("/app/uso");
     });
   });
 

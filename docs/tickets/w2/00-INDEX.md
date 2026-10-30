@@ -20,6 +20,7 @@ el agente lo ignora.
 | W2-12 | Layout, tema, estados vacíos y responsive a 360 px | `w2-tema-y-estados` | hecho ([PR #113](https://github.com/carloshugoeg/koicloud/pull/113)) |
 | W2-13 | Landing pública y catálogo de planes | `w2-landing-prerender` | hecho ([PR #115](https://github.com/carloshugoeg/koicloud/pull/115)) |
 | W2-14 | Ajustes del screen map: password, plan y detalle | `w2-screen-map-fixes` | hecho ([PR #122](https://github.com/carloshugoeg/koicloud/pull/122)); follow-up [PR #141](https://github.com/carloshugoeg/koicloud/pull/141) |
+| W2-15 | Wave A2 web gaps (billing, precios, banner) | `w2-a2-web-gaps` | en-revision ([PR #137](https://github.com/carloshugoeg/koicloud/pull/137)) |
 | W2-16 | Diálogo web propose → confirm (A9 / E9-04) | `w2-confirm-dialog` | hecho ([PR #138](https://github.com/carloshugoeg/koicloud/pull/138)) |
 | W2-17 | Pond detail: Eliminar + Respaldar confirms (RF-14 / RF-15) | `w2-pond-detail-actions` | hecho ([PR #144](https://github.com/carloshugoeg/koicloud/pull/144)) |
 

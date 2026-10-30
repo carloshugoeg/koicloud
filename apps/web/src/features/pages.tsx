@@ -14,9 +14,17 @@ export { CreatePondPage } from "@/features/ponds/create-page";
 
 export { SqlConsolePage } from "@/features/sql-console/sql-console-page";
 
-export { UsoPage, UsoPage as BillingPage } from "@/features/uso/uso-page";
-
+export { BillingPage } from "@/features/billing/billing-page";
+export { UsoPage } from "@/features/uso/uso-page";
 export function UsagePage() {
+  return <Navigate replace to="/app/uso" />;
+}
+
+export function PlansRoute() {
+  return <Navigate replace to="/app/uso" />;
+}
+
+export function BillingRoute() {
   return <Navigate replace to="/app/uso" />;
 }
 

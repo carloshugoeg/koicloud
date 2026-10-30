@@ -9,6 +9,8 @@ import {
 import type { components } from "@/api/schema";
 import { problemToMessage } from "@/lib/errors";
 import { formatPrice } from "@/lib/format-price";
+import { BillingPage } from "@/features/billing/billing-page";
+import { PlanSection } from "@/features/billing/plan-section";
 import { InvoicePaper } from "@/features/uso/invoice-paper";
 
 type UsagePond = components["schemas"]["UsagePondItem"];
@@ -185,11 +187,10 @@ export function UsoPage() {
 
   return (
     <div className="space-y-6">
+      <PlanSection />
+      <BillingPage />
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-medium uppercase tracking-[0.18em] text-ink-muted">
-            Consumo
-          </p>
           <h2 className="font-display text-4xl text-ink">{monthLabel(month)}</h2>
           <p className="mt-1 text-sm text-ink-muted">
             Horas y almacenamiento del mes, con la factura del mismo período.
