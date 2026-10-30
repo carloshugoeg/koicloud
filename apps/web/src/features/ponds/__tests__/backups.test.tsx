@@ -209,4 +209,15 @@ describe("W2-08 Respaldos y restauración", () => {
     expect(await screen.findByText("Ese pond ya tiene una operación en curso.")).toBeInTheDocument();
     expect(screen.queryByText("Respaldo encolado")).not.toBeInTheDocument();
   });
+
+  // RF-15 — confirmación local antes de POST /backups desde la página de respaldos
+  it("confirms before queuing Respaldar ahora from the backups page", async () => {
+    const user = userEvent.setup();
+    renderBackups();
+    expect(await screen.findByTestId("backup-now")).toBeInTheDocument();
+    await user.click(screen.getByTestId("backup-now"));
+    const dialog = await screen.findByTestId("backup-confirm-dialog");
+    await user.click(within(dialog).getByTestId("backup-confirm-button"));
+    expect(await screen.findByText("Respaldo encolado")).toBeInTheDocument();
+  });
 });

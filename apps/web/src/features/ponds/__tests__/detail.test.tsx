@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { HttpResponse, http } from "msw";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
@@ -422,5 +422,42 @@ describe("W2-06 Detalle del pond y conexión", () => {
       expect(status).toBe(202);
     });
     expect(confirmToken).toBeNull();
+  });
+
+  // RF-14 — Eliminar pond con confirmación del nombre (web)
+  it("shows Eliminar and requires typing the pond name before delete confirm", async () => {
+    const user = userEvent.setup();
+    renderDetail();
+    expect(await screen.findByTestId("open-delete-pond")).toHaveTextContent("Eliminar…");
+    await user.click(screen.getByTestId("open-delete-pond"));
+
+    const dialog = await screen.findByTestId("delete-pond-dialog");
+    const confirm = within(dialog).getByTestId("delete-confirm-button");
+    expect(confirm).toBeDisabled();
+
+    await user.type(within(dialog).getByTestId("delete-confirm-input"), "nombre-incorrecto");
+    expect(confirm).toBeDisabled();
+
+    await user.clear(within(dialog).getByTestId("delete-confirm-input"));
+    await user.type(within(dialog).getByTestId("delete-confirm-input"), fixtures.pond.name);
+    expect(confirm).toBeEnabled();
+
+    await user.click(confirm);
+    await waitFor(() => {
+      expect(screen.queryByTestId("delete-pond-dialog")).not.toBeInTheDocument();
+    });
+  });
+
+  // RF-15 — respaldo bajo demanda con confirmación local antes del POST
+  it("confirms before queuing an on-demand backup from detail", async () => {
+    const user = userEvent.setup();
+    renderDetail();
+    expect(await screen.findByTestId("backup-now")).toBeInTheDocument();
+    await user.click(screen.getByTestId("backup-now"));
+
+    const dialog = await screen.findByTestId("backup-confirm-dialog");
+    await user.click(within(dialog).getByTestId("backup-confirm-button"));
+    expect(await screen.findByText("Respaldo encolado")).toBeInTheDocument();
+    expect(screen.queryByTestId("backup-confirm-dialog")).not.toBeInTheDocument();
   });
 });
