@@ -89,6 +89,37 @@ describe("journey reload", () => {
     });
   });
 
+  it("journey: no refresh cookie shows login", async () => {
+    useAuthStore.setState({ session: null });
+
+    renderAt("/app/ponds", false);
+
+    expect(await screen.findByRole("heading", { name: "Iniciar sesión" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Tus ponds" })).not.toBeInTheDocument();
+    expect(useAuthStore.getState().session).toBeNull();
+  });
+
+  it("journey: bad refresh cookie shows login", async () => {
+    const intercepted = window.fetch.bind(window);
+    vi.stubGlobal("fetch", (input: RequestInfo | URL, init?: RequestInit) => {
+      const headers = new Headers(input instanceof Request ? input.headers : undefined);
+      if (init?.headers) {
+        new Headers(init.headers).forEach((value, key) => {
+          headers.set(key, value);
+        });
+      }
+      headers.set("cookie", "koi_refresh=not-a-real-refresh");
+      return intercepted(input, { ...init, headers });
+    });
+    useAuthStore.setState({ session: null });
+
+    renderAt("/app/ponds", false);
+
+    expect(await screen.findByRole("heading", { name: "Iniciar sesión" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Tus ponds" })).not.toBeInTheDocument();
+    expect(useAuthStore.getState().session).toBeNull();
+  });
+
   it("journey: reload refresh failure logs out", async () => {
     let refreshCalls = 0;
     server.use(
@@ -167,6 +198,27 @@ describe("session refresh and logout", () => {
     await waitFor(() => {
       expect(logoutCalls).toEqual([`Bearer ${fixtures.session.access_token}`]);
     });
+    expect(await screen.findByRole("heading", { name: "Iniciar sesión" })).toBeInTheDocument();
+    expect(useAuthStore.getState().session).toBeNull();
+  });
+
+  it("journey: logout failure still returns to login", async () => {
+    server.use(
+      http.post("*/api/v1/auth/logout", () => {
+        return HttpResponse.json(
+          { code: "internal_error", message: "falló", request_id: "req_logout" },
+          { status: 500 },
+        );
+      }),
+    );
+    seedMemorySession(fixtures.session.refresh_token);
+    const user = userEvent.setup();
+
+    renderAt("/app/ponds", true);
+
+    expect(await screen.findByRole("heading", { name: "Tus ponds" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Cerrar sesión" }));
+
     expect(await screen.findByRole("heading", { name: "Iniciar sesión" })).toBeInTheDocument();
     expect(useAuthStore.getState().session).toBeNull();
   });
