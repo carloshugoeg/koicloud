@@ -617,9 +617,15 @@ async def test_refresh_cookie_secure_on_https_and_production() -> None:
         assert "secure" in _set_cookie_header(forwarded_login)
 
     get_settings.cache_clear()
+    saved_secrets = {
+        "POND_PASSWORD_KEY": os.environ.get("POND_PASSWORD_KEY"),
+        "MCP_DEMO_PASSWORD": os.environ.get("MCP_DEMO_PASSWORD"),
+    }
     os.environ["ENVIRONMENT"] = "production"
     os.environ["EMAIL_PROVIDER"] = "resend"
     os.environ["EMAIL_FROM"] = "koi@koicloud.dev"
+    os.environ["POND_PASSWORD_KEY"] = "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8="
+    os.environ["MCP_DEMO_PASSWORD"] = "ci-mcp-demo-password"
     get_settings.cache_clear()
     try:
         async with _make_client() as production:
@@ -632,6 +638,11 @@ async def test_refresh_cookie_secure_on_https_and_production() -> None:
     finally:
         os.environ["ENVIRONMENT"] = "development"
         os.environ["EMAIL_PROVIDER"] = "console"
+        for name, previous in saved_secrets.items():
+            if previous is None:
+                os.environ.pop(name, None)
+            else:
+                os.environ[name] = previous
         get_settings.cache_clear()
 
 
