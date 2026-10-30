@@ -22,9 +22,7 @@ export function AppHeader({
 }: AppHeaderProps) {
   return (
     <header
-      className={`flex flex-wrap items-center justify-between gap-3 border-b border-line bg-bone px-4 lg:px-8${
-        title === "Detalle del pond" ? " mt-2" : ""
-      }`}
+      className="mt-2 flex flex-wrap items-center justify-between gap-3 border-b border-line bg-bone px-4 lg:px-8"
       style={{ minHeight: "var(--header-h)" }}
       data-testid="app-header"
     >
