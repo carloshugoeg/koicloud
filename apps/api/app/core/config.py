@@ -36,6 +36,8 @@ class Settings(BaseSettings):
     payment_provider: str = "simulated"
     # Read from EMAIL_PROVIDER. Dev/e2e use console; production must not.
     email_provider: str = "console"
+    resend_api_key: str = ""
+    email_from: str = ""
     invoice_dir: str = "/var/lib/koicloud/invoices"
     backup_dir: str = "/var/lib/koicloud/backups"
     mcp_enabled: bool = True
