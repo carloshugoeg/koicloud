@@ -6,7 +6,7 @@ estado: en-revision
 rama: w1-infra-deploy
 epica: "E10-02, E10-03"
 sprint: S4
-pr:
+pr: "https://github.com/carloshugoeg/koicloud/pull/162"
 depends_on:
 ---
 

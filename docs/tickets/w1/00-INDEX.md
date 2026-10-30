@@ -20,7 +20,7 @@ no existe todavía. `00-INDEX.md` no es un ticket y el agente lo ignora.
 | W1-10 | Respaldos diarios y restauración verificada | `w1-backups` | hecho ([PR #30](https://github.com/carloshugoeg/koicloud/pull/30)) |
 | W1-11 | Muestreo y agregación de consumo | `w1-metering` | hecho ([PR #36](https://github.com/carloshugoeg/koicloud/pull/36)) |
 | W1-12 | MCP: montaje, gate, prompt, tools mutantes y confirmaciones | `w1-mcp-gate-confirm` | hecho ([PR #27](https://github.com/carloshugoeg/koicloud/pull/27); follow-ups [#38](https://github.com/carloshugoeg/koicloud/pull/38)) |
-| W1-13 | Infra: Caddy, compose de producción, systemd, `deploy.yml` | `w1-infra-deploy` | en-revision · Oracle Always Free + sslip.io (repo ready; VM cableado pendiente) · groundwork [#39](https://github.com/carloshugoeg/koicloud/pull/39) |
+| W1-13 | Infra: Caddy, compose de producción, systemd, `deploy.yml` | `w1-infra-deploy` | en-revision · [#162](https://github.com/carloshugoeg/koicloud/pull/162) · Oracle Always Free + sslip.io (repo ready; VM cableado pendiente) · groundwork [#39](https://github.com/carloshugoeg/koicloud/pull/39) |
 | W1-14 | Guion de la demo y sus tres ensayos | `w1-guion-demo` | hecho (formaliza `scripts/demo-vivo.sh` + runbook ya en `main`) |
 | W1-18 | Demo vivo S3 (subscribe → usage → PDF+IVA → backup → restore) | `w1-demo-vivo-s3` | hecho ([PR #75](https://github.com/carloshugoeg/koicloud/pull/75)) |
 | W1-19 | Wire `admin_list_ponds` / `admin_list_audit` → AdminService | `w3-admin-ponds-bitacora` | hecho ([PR #82](https://github.com/carloshugoeg/koicloud/pull/82)) |
