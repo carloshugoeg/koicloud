@@ -2,7 +2,7 @@
 
 Manual técnico (sección Despliegue). Cumple ENTREGA-2 §6.3: un dominio, Caddy
 (`/` · `/api/*` · `/mcp`), API/worker/db en Compose, node-agent con socket Docker,
-ponds en `15000-15999`. Decisión de host: [ADR 013](../adr/013-oracle-always-free-sslip.md)
+ponds en `15000-15999`. Decisión de host: [ADR 014](../adr/014-oracle-always-free-sslip.md)
 (Oracle Always Free + sslip.io, costo $0). Topología Docker: [ADR 003](../adr/003-docker-on-vps-not-k8s.md).
 
 **No hay VM cableada todavía.** Este runbook no inventa IP. No ejecutes un deploy
@@ -149,7 +149,7 @@ O push a `main` con las vars/secrets de §5: el workflow SSH ejecuta el mismo sc
 - `infra/koicloud-agent.service` — node-agent fuera del compose, `AGENT_MODE=docker`
 - `infra/scripts/deploy.sh` — se niega a correr con placeholders
 - `.github/workflows/deploy.yml` — gate hasta que existan vars/secrets
-- `docs/adr/013-oracle-always-free-sslip.md` — host $0 vs Render/Neon
+- `docs/adr/014-oracle-always-free-sslip.md` — host $0 vs Render/Neon
 
 Comprobar sin VM:
 

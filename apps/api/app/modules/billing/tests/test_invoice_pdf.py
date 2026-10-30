@@ -34,6 +34,7 @@ def test_render_invoice_pdf_micro_fixture(tmp_path: Path) -> None:
         status=InvoiceStatus.PAID,
         issued_at=utc_now(),
         pdf_path=None,
+        nit="0614-220999-101-3",
     )
     lines = [
         InvoiceLineOut(
@@ -56,3 +57,5 @@ def test_render_invoice_pdf_micro_fixture(tmp_path: Path) -> None:
     assert "IVA" in text
     assert ACADEMIC_FOOTER in text
     assert MICRO_CODE in text
+    assert "NIT" in text
+    assert "0614-220999-101-3" in text

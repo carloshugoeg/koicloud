@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { HttpResponse, http } from "msw";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
@@ -88,9 +88,32 @@ describe("W2-03 Planes y Checkout flow", () => {
     expect(dialog).toHaveTextContent("/ hora");
   });
 
-  it("submits checkout and shows InvoiceOut totals from the API (no client math)", async () => {
+  it("submits checkout with NIT and shows InvoiceOut totals from the API", async () => {
     const user = userEvent.setup();
-    renderPlansRoute("/app/planes");
+    let postedBody: { plan_id?: string; nit?: string | null } | null = null;
+
+    server.use(
+      http.post("*/api/v1/subscriptions", async ({ request }) => {
+        postedBody = (await request.json()) as { plan_id?: string; nit?: string | null };
+        return HttpResponse.json(
+          {
+            ...fixtures.subscriptionResponse,
+            subscription: {
+              ...fixtures.subscriptionResponse.subscription,
+              plan_id: "micro",
+            },
+            invoice: {
+              ...fixtures.subscriptionResponse.invoice,
+              nit: postedBody.nit ?? null,
+              total_usd: 5,
+            },
+          },
+          { status: 202 },
+        );
+      }),
+    );
+
+    const router = renderPlansRoute("/app/planes");
 
     const chooseMicroBtn = await screen.findByRole("button", { name: "Elegir plan Micro" });
     await user.click(chooseMicroBtn);
@@ -105,10 +128,50 @@ describe("W2-03 Planes y Checkout flow", () => {
 
     await user.click(screen.getByRole("button", { name: "Confirmar contratación" }));
 
+    await waitFor(() => {
+      expect(postedBody).toEqual({ plan_id: "micro", nit: "0614-220999-101-3" });
+    });
+
     const invoicePanel = await screen.findByTestId("checkout-invoice-from-api");
-    const expectedTotal = `USD ${Number(fixtures.subscriptionResponse.invoice.total_usd).toFixed(4)}`;
+    const expectedTotal = `USD ${Number(5).toFixed(4)}`;
     expect(invoicePanel).toBeInTheDocument();
     expect(screen.getByTestId("checkout-invoice-total")).toHaveTextContent(expectedTotal);
+
+    await user.click(screen.getByRole("button", { name: "Crear mi primer pond →" }));
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/app/ponds/new");
+    });
+  });
+
+  it("submits checkout without NIT as null", async () => {
+    const user = userEvent.setup();
+    let postedBody: { plan_id?: string; nit?: string | null } | null = null;
+
+    server.use(
+      http.post("*/api/v1/subscriptions", async ({ request }) => {
+        postedBody = (await request.json()) as { plan_id?: string; nit?: string | null };
+        return HttpResponse.json(fixtures.subscriptionResponse, { status: 202 });
+      }),
+    );
+
+    const router = renderPlansRoute("/app/planes");
+    await user.click(await screen.findByRole("button", { name: "Elegir plan Micro" }));
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText("Número de tarjeta simulada"), "4242 4242 4242 4242");
+    await user.type(screen.getByLabelText("Expiración"), "12/28");
+    await user.type(screen.getByLabelText("CVC"), "123");
+    await user.click(screen.getByRole("button", { name: "Confirmar contratación" }));
+
+    await waitFor(() => {
+      expect(postedBody).toEqual({ plan_id: "micro", nit: null });
+    });
+    expect(await screen.findByTestId("checkout-invoice-from-api")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Crear mi primer pond →" }));
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/app/ponds/new");
+    });
   });
 
   it("guards against double submit while checkout is pending", async () => {

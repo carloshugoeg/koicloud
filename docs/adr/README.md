@@ -9,7 +9,7 @@ que contradiga un registro se escribe como un ADR nuevo.
 | [001](001-modular-fastapi-monolith.md) | Monolito modular en FastAPI |
 | [002](002-postgres-skip-locked-queue.md) | Cola de jobs en PostgreSQL |
 | [003](003-docker-on-vps-not-k8s.md) | Docker en un VPS |
-| [004](004-node-agent-systemd.md) | Node-agent como proceso aparte |
+| [004](004-node-agent-systemd.md) | Node-agent como servicio aparte |
 | [005](005-pending-confirmations.md) | Cola de confirmaciones |
 | [006](006-fastmcp-in-process.md) | FastMCP en el proceso de la API |
 | [007](007-agent-url-password-auth.md) | Acceso de agente con slug y contraseña |
@@ -18,4 +18,5 @@ que contradiga un registro se escribe como un ADR nuevo.
 | [010](010-docker-restart-no-reconciler.md) | Reinicio de contenedores a cargo del reconciler |
 | [011](011-local-disk-backups.md) | Respaldos en disco local |
 | [012](012-monorepo.md) | Un solo repositorio |
-| [013](013-oracle-always-free-sslip.md) | Oracle Always Free + sslip.io ($0) |
+| [013](013-invoice-nit-snapshot.md) | Snapshot de NIT en `InvoiceOut` (CCR #127) |
+| [014](014-oracle-always-free-sslip.md) | Oracle Always Free + sslip.io ($0) |

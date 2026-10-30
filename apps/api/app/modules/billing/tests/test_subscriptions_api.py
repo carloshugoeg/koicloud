@@ -72,6 +72,103 @@ async def test_subscribe_micro_happy_path() -> None:
         assert payment["method"] == "simulated"
 
 
+async def test_subscribe_with_nit_persists_and_snapshots() -> None:
+    reset_auth_tables()
+
+    async with _make_client() as client:
+        user_id, token = await _create_active_user(client, email="nit_happy@koicloud.dev")
+        nit = "0614-220999-101-3"
+
+        response = await client.post(
+            "/api/v1/subscriptions",
+            headers={"Authorization": f"Bearer {token}"},
+            json={"plan_id": "micro", "nit": f"  {nit}  "},
+        )
+        assert response.status_code == 202
+        invoice = response.json()["invoice"]
+        assert invoice["nit"] == nit
+        assert invoice["total_usd"] == 5.0
+
+        me = await client.get("/api/v1/me", headers={"Authorization": f"Bearer {token}"})
+        assert me.status_code == 200
+        assert me.json()["user"]["nit"] == nit
+        assert me.json()["user"]["id"] == str(user_id)
+
+        detail = await client.get(
+            f"/api/v1/invoices/{invoice['id']}",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert detail.status_code == 200
+        assert detail.json()["invoice"]["nit"] == nit
+
+
+async def test_subscribe_without_nit_leaves_profile_and_invoice_null() -> None:
+    reset_auth_tables()
+
+    async with _make_client() as client:
+        _, token = await _create_active_user(client, email="nit_absent@koicloud.dev")
+
+        response = await client.post(
+            "/api/v1/subscriptions",
+            headers={"Authorization": f"Bearer {token}"},
+            json={"plan_id": "micro"},
+        )
+        assert response.status_code == 202
+        assert response.json()["invoice"]["nit"] is None
+
+        me = await client.get("/api/v1/me", headers={"Authorization": f"Bearer {token}"})
+        assert me.status_code == 200
+        assert me.json()["user"]["nit"] is None
+
+
+async def test_subscribe_with_cf_nit() -> None:
+    reset_auth_tables()
+
+    async with _make_client() as client:
+        _, token = await _create_active_user(client, email="nit_cf@koicloud.dev")
+
+        response = await client.post(
+            "/api/v1/subscriptions",
+            headers={"Authorization": f"Bearer {token}"},
+            json={"plan_id": "micro", "nit": "CF"},
+        )
+        assert response.status_code == 202
+        assert response.json()["invoice"]["nit"] == "CF"
+
+        me = await client.get("/api/v1/me", headers={"Authorization": f"Bearer {token}"})
+        assert me.status_code == 200
+        assert me.json()["user"]["nit"] == "CF"
+
+
+async def test_subscribe_nit_empty_string_becomes_null() -> None:
+    reset_auth_tables()
+
+    async with _make_client() as client:
+        _, token = await _create_active_user(client, email="nit_empty@koicloud.dev")
+
+        response = await client.post(
+            "/api/v1/subscriptions",
+            headers={"Authorization": f"Bearer {token}"},
+            json={"plan_id": "micro", "nit": "   "},
+        )
+        assert response.status_code == 202
+        assert response.json()["invoice"]["nit"] is None
+
+
+async def test_subscribe_nit_too_long_rejected() -> None:
+    reset_auth_tables()
+
+    async with _make_client() as client:
+        _, token = await _create_active_user(client, email="nit_long@koicloud.dev")
+
+        response = await client.post(
+            "/api/v1/subscriptions",
+            headers={"Authorization": f"Bearer {token}"},
+            json={"plan_id": "micro", "nit": "X" * 33},
+        )
+        assert response.status_code == 422
+
+
 async def test_subscribe_unauthorized() -> None:
     async with _make_client() as client:
         response = await client.post(

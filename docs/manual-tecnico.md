@@ -168,7 +168,7 @@ Si falta un paso de install no listado arriba, abrí issue o CCR. No inventes fl
 
 Runbook canónico (VM Oracle Always Free, sslip.io, vars, primer deploy, update,
 rollback): [`runbooks/deploy.md`](./runbooks/deploy.md). Cumple ENTREGA-2 §6.3.
-Host $0: [`adr/013-oracle-always-free-sslip.md`](./adr/013-oracle-always-free-sslip.md).
+Host $0: [`adr/014-oracle-always-free-sslip.md`](./adr/014-oracle-always-free-sslip.md).
 Operación: [`runbooks/free-disk.md`](./runbooks/free-disk.md),
 [`runbooks/restart-agent.md`](./runbooks/restart-agent.md),
 [`runbooks/rollback-migration.md`](./rollback-migration.md).

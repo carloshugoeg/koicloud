@@ -25,7 +25,7 @@ en `docs/runbooks/deploy.md` (Manual técnico §3; ENTREGA-2 §6.3).
 - Esqueleto en `infra/` (Caddyfile, compose.prod, unit, env).
 - `deploy.yml` gated on env; sin inventar IP/DNS en el workflow.
 - Health post-deploy: `GET /health` o `GET /api/v1/health`.
-- Host objetivo: Oracle Always Free + sslip.io (ADR 013). Render/Neon rechazados
+- Host objetivo: Oracle Always Free + sslip.io (ADR 014). Render/Neon rechazados
   (sin Docker socket → sin ponds reales). Costo $0.
 - Bases multi-arch (`postgres:16-alpine`, `python:3.12-slim`, `caddy:2.8-alpine`).
 
@@ -42,7 +42,7 @@ en `docs/runbooks/deploy.md` (Manual técnico §3; ENTREGA-2 §6.3).
    primer deploy, update, rollback. Sin IP inventada.
 5. `ENVIRONMENT=production` rechaza defaults de `JWT_SECRET`, `POND_PASSWORD_KEY`,
    `NODE_TOKEN`, `MCP_DEMO_PASSWORD` al arrancar (`tests/test_production_secret_defaults.py`).
-6. ADR 013 registra Oracle Always Free vs Render/Neon.
+6. ADR 014 registra Oracle Always Free vs Render/Neon.
 7. `npm run pregate` verde. Cableado SSH real queda pendiente hasta existir la VM
    (no fingir deploy).
 
@@ -60,4 +60,4 @@ está bloqueado.
 ## Referencia
 
 `docs/architecture/system-architecture.md` despliegue · `infra/` · E10-02/E10-03 ·
-ENTREGA-2 §6.3 · ADR 003 · ADR 013.
+ENTREGA-2 §6.3 · ADR 003 · ADR 014.

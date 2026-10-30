@@ -52,14 +52,14 @@ for name in (
     if f"{name}=" not in env_names:
         missing.append(f".env.production.example missing {name}")
 
-adr = Path("docs/adr/013-oracle-always-free-sslip.md")
+adr = Path("docs/adr/014-oracle-always-free-sslip.md")
 if not adr.is_file():
-    missing.append("missing ADR docs/adr/013-oracle-always-free-sslip.md")
+    missing.append("missing ADR docs/adr/014-oracle-always-free-sslip.md")
 else:
     body = adr.read_text(encoding="utf-8")
     for token in ("Oracle", "Always Free", "sslip.io", "Render", "Neon", "$0"):
         if token not in body:
-            missing.append(f"ADR 013 must mention {token}")
+            missing.append(f"ADR 014 must mention {token}")
 
 deploy_doc = Path("docs/runbooks/deploy.md").read_text(encoding="utf-8")
 for token in (
