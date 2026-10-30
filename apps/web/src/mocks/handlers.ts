@@ -36,20 +36,12 @@ let adminAuditState = freshAdminAudit();
 
 export const ROTATED_AGENT_PASSWORD = "rotated-once-secret";
 
-function readRefreshCookie(request: Request): string | null {
-  const raw = request.headers.get("cookie");
-  if (!raw) {
+function readRefreshCookie(cookies: Record<string, string>): string | null {
+  const value = cookies.koi_refresh;
+  if (!value) {
     return null;
   }
-  for (const part of raw.split(";")) {
-    const item = part.trim();
-    const prefix = "koi_refresh=";
-    if (item.startsWith(prefix)) {
-      const value = item.slice(prefix.length);
-      return value.length > 0 ? value : null;
-    }
-  }
-  return null;
+  return value;
 }
 
 export function resetAgentAccessState() {
@@ -113,6 +105,16 @@ export const handlers = [
   }),
 
   http.post(`${API_ROOT}/auth/logout`, () => {
+    if (sessionStorage.getItem("koi-mock-logout-fails") === "1") {
+      return HttpResponse.json(
+        {
+          code: "internal_error",
+          message: "No se pudo cerrar la sesión.",
+          request_id: "req_logout_mock",
+        },
+        { status: 500 },
+      );
+    }
     return new HttpResponse(null, {
       status: 204,
       headers: {
@@ -129,8 +131,8 @@ export const handlers = [
     return HttpResponse.json({ ok: true });
   }),
 
-  http.post(`${API_ROOT}/auth/refresh`, ({ request }) => {
-    const cookie = readRefreshCookie(request);
+  http.post(`${API_ROOT}/auth/refresh`, ({ cookies }) => {
+    const cookie = readRefreshCookie(cookies);
     if (
       cookie !== "refresh_demo_token" &&
       cookie !== "refresh_admin_token" &&
