@@ -61,14 +61,4 @@ export function ConfirmAliasPage() {
 export { AdminUsersPage } from "@/features/admin/users-page";
 export { AdminPondsPage } from "@/features/admin/ponds-page";
 export { AdminAuditPage } from "@/features/admin/audit-page";
-
-export function AdminSubscriptionsPage() {
-  return (
-    <PlaceholderPage
-      description="Placeholder del historial administrativo de suscripciones."
-      route="/app/admin/subscriptions"
-      ticket="W2-10"
-      title="Suscripciones"
-    />
-  );
-}
+export { AdminSubscriptionsPage } from "@/features/admin/subscriptions-page";

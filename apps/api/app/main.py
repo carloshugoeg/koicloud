@@ -25,13 +25,14 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     settings = get_settings()
+    production = settings.environment.strip().lower() in {"production", "prod"}
     app = FastAPI(
         title=settings.app_name,
         version=settings.app_version,
         description="KoiCloud control-plane API",
-        openapi_url="/openapi.json",
-        docs_url="/docs",
-        redoc_url="/redoc",
+        openapi_url=None if production else "/openapi.json",
+        docs_url=None if production else "/docs",
+        redoc_url=None if production else "/redoc",
         lifespan=lifespan,
     )
 

@@ -144,6 +144,110 @@
         "title": "AdminPondOut",
         "type": "object"
       },
+      "AdminSubscriptionListResponse": {
+        "additionalProperties": false,
+        "example": {
+          "subscriptions": [
+            {
+              "cancel_at_period_end": false,
+              "current_period_end": "2026-10-22T20:00:00Z",
+              "current_period_start": "2026-09-22T20:00:00Z",
+              "id": "22222222-2222-2222-2222-222222222222",
+              "plan_id": "micro",
+              "status": "active",
+              "user_email": "carlos@koicloud.dev",
+              "user_id": "11111111-1111-1111-1111-111111111111"
+            }
+          ]
+        },
+        "properties": {
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "subscriptions": {
+            "items": {
+              "$ref": "#/components/schemas/AdminSubscriptionOut"
+            },
+            "title": "Subscriptions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "subscriptions"
+        ],
+        "title": "AdminSubscriptionListResponse",
+        "type": "object"
+      },
+      "AdminSubscriptionOut": {
+        "additionalProperties": false,
+        "example": {
+          "cancel_at_period_end": false,
+          "current_period_end": "2026-10-22T20:00:00Z",
+          "current_period_start": "2026-09-22T20:00:00Z",
+          "id": "22222222-2222-2222-2222-222222222222",
+          "plan_id": "micro",
+          "status": "active",
+          "user_email": "carlos@koicloud.dev",
+          "user_id": "11111111-1111-1111-1111-111111111111"
+        },
+        "properties": {
+          "cancel_at_period_end": {
+            "title": "Cancel At Period End",
+            "type": "boolean"
+          },
+          "current_period_end": {
+            "format": "date-time",
+            "title": "Current Period End",
+            "type": "string"
+          },
+          "current_period_start": {
+            "format": "date-time",
+            "title": "Current Period Start",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "plan_id": {
+            "title": "Plan Id",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SubscriptionStatus"
+          },
+          "user_email": {
+            "title": "User Email",
+            "type": "string"
+          },
+          "user_id": {
+            "format": "uuid",
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "user_id",
+          "user_email",
+          "plan_id",
+          "status",
+          "current_period_start",
+          "current_period_end",
+          "cancel_at_period_end"
+        ],
+        "title": "AdminSubscriptionOut",
+        "type": "object"
+      },
       "AdminTotalsOut": {
         "additionalProperties": false,
         "example": {
@@ -3742,6 +3846,80 @@
           }
         ],
         "summary": "Admin List Ponds",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/subscriptions": {
+      "get": {
+        "operationId": "admin_list_subscriptions",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-KOI-Surface",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Surface"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminSubscriptionListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Admin List Subscriptions",
         "tags": [
           "admin"
         ]
