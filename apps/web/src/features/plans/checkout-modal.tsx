@@ -1,6 +1,7 @@
 import { type FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSubscribeMutation, type PlanOut, type SubscribeResponse } from "@/api/hooks";
+import { cardDigits, cardNumberError, cvvError, expiryError, nitError } from "@/lib/billing-checks";
 import { ApiError, problemToMessage } from "@/lib/errors";
 import { formatPrice, formatPricePeriod } from "@/lib/format-price";
 
@@ -18,18 +19,31 @@ export function CheckoutModal({ plan, onClose, onSuccess }: CheckoutModalProps) 
   const [cardExpiry, setCardExpiry] = useState("");
   const [cardCvc, setCardCvc] = useState("");
   const [issued, setIssued] = useState<SubscribeResponse | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{ nit?: string; card?: string; expiry?: string; cvc?: string }>({});
 
   async function handleCheckout(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const trimmedNit = nit.trim();
+    const number = cardDigits(cardNumber);
+    const nextErrors = {
+      nit: trimmedNit ? nitError(trimmedNit) ?? undefined : undefined,
+      card: cardNumberError(cardNumber) ?? undefined,
+      expiry: expiryError(cardExpiry) ?? undefined,
+      cvc: cvvError(cardNumber, cardCvc) ?? undefined,
+    };
+    setFieldErrors(nextErrors);
+    if (nextErrors.nit || nextErrors.card || nextErrors.expiry || nextErrors.cvc) {
+      return;
+    }
     try {
       const res = await subscribeMutation.mutateAsync({
         plan_id: plan.id,
         nit: trimmedNit ? trimmedNit : null,
+        card: { number, expiry: cardExpiry.trim(), cvc: cardCvc.trim() },
       });
       setIssued(res);
     } catch {
-      // Manejado con subscribeMutation.error
+      // The alert reads subscribeMutation.error.
     }
   }
 
@@ -135,10 +149,12 @@ export function CheckoutModal({ plan, onClose, onSuccess }: CheckoutModalProps) 
               type="text"
               value={nit}
               onChange={(e) => setNit(e.target.value)}
-              placeholder="0614-220999-101-3"
+              placeholder="1000002-K"
               maxLength={32}
+              aria-invalid={fieldErrors.nit ? true : undefined}
               className="mt-1 h-9 w-full rounded-sm border border-line-control bg-paper px-3 text-sm text-ink outline-none focus:border-turquoise-700 focus:shadow-focus"
             />
+            {fieldErrors.nit ? <p className="mt-1 text-xs text-danger">{fieldErrors.nit}</p> : null}
             <p className="mt-1 text-xs text-ink-muted">CF si no tienes NIT</p>
           </div>
 
@@ -153,9 +169,11 @@ export function CheckoutModal({ plan, onClose, onSuccess }: CheckoutModalProps) 
               required
               value={cardNumber}
               onChange={(e) => setCardNumber(e.target.value)}
-              placeholder="4242 •••• •••• 4242"
+              placeholder="4242 4242 4242 4242"
+              aria-invalid={fieldErrors.card ? true : undefined}
               className="mt-1 h-9 w-full rounded-sm border border-line-control bg-paper px-3 font-mono text-sm text-ink outline-none focus:border-turquoise-700 focus:shadow-focus"
             />
+            {fieldErrors.card ? <p className="mt-1 text-xs text-danger">{fieldErrors.card}</p> : null}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -171,8 +189,10 @@ export function CheckoutModal({ plan, onClose, onSuccess }: CheckoutModalProps) 
                 value={cardExpiry}
                 onChange={(e) => setCardExpiry(e.target.value)}
                 placeholder="MM/AA"
+                aria-invalid={fieldErrors.expiry ? true : undefined}
                 className="mt-1 h-9 w-full rounded-sm border border-line-control bg-paper px-3 font-mono text-sm text-ink outline-none focus:border-turquoise-700 focus:shadow-focus"
               />
+              {fieldErrors.expiry ? <p className="mt-1 text-xs text-danger">{fieldErrors.expiry}</p> : null}
             </div>
             <div>
               <label htmlFor="checkout-cvc" className="block text-xs font-medium text-ink-muted">
@@ -186,8 +206,10 @@ export function CheckoutModal({ plan, onClose, onSuccess }: CheckoutModalProps) 
                 value={cardCvc}
                 onChange={(e) => setCardCvc(e.target.value)}
                 placeholder="123"
+                aria-invalid={fieldErrors.cvc ? true : undefined}
                 className="mt-1 h-9 w-full rounded-sm border border-line-control bg-paper px-3 font-mono text-sm text-ink outline-none focus:border-turquoise-700 focus:shadow-focus"
               />
+              {fieldErrors.cvc ? <p className="mt-1 text-xs text-danger">{fieldErrors.cvc}</p> : null}
             </div>
           </div>
 

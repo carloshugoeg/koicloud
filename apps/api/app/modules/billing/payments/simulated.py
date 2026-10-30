@@ -5,13 +5,21 @@ from uuid import uuid4
 
 from app.core.enums import PaymentStatus
 from app.core.models import Invoice
+from app.modules.billing.checks import CardInput, card_declined
 from app.modules.billing.payments.port import PaymentAttempt
 
 
 class SimulatedPaymentProvider:
-    """Demo adapter: payment succeeds in the same request."""
+    """Demo adapter: a valid card succeeds in the same request. An invalid card declines."""
 
-    def start_payment(self, invoice: Invoice) -> PaymentAttempt:
+    def start_payment(self, invoice: Invoice, card: CardInput | None = None) -> PaymentAttempt:
+        if card is not None and card_declined(card):
+            return PaymentAttempt(
+                status=PaymentStatus.FAILED,
+                provider="simulated",
+                provider_ref=f"sim_declined_{uuid4().hex[:8]}",
+                checkout_url=None,
+            )
         return PaymentAttempt(
             status=PaymentStatus.SUCCEEDED,
             provider="simulated",

@@ -20,6 +20,14 @@ export function UsagePage() {
   return <Navigate replace to="/app/uso" />;
 }
 
+export function PlansRoute() {
+  return <Navigate replace to="/app/uso" />;
+}
+
+export function BillingRoute() {
+  return <Navigate replace to="/app/uso" />;
+}
+
 export function AccountPage() {
   return (
     <PlaceholderPage

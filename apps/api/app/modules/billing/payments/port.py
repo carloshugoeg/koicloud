@@ -5,6 +5,7 @@ from typing import Any, Protocol
 
 from app.core.enums import PaymentStatus
 from app.core.models import Invoice
+from app.modules.billing.checks import CardInput
 
 
 @dataclass(frozen=True, slots=True)
@@ -16,7 +17,7 @@ class PaymentAttempt:
 
 
 class PaymentProvider(Protocol):
-    def start_payment(self, invoice: Invoice) -> PaymentAttempt:
+    def start_payment(self, invoice: Invoice, card: CardInput | None = None) -> PaymentAttempt:
         """Start a payment for an issued invoice."""
 
     def parse_confirmation(self, raw: Any) -> str:
