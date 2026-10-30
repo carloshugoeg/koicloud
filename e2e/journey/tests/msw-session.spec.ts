@@ -68,4 +68,34 @@ test("journey: msw logout failure still returns to login", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Iniciar sesión" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Tus ponds" })).toHaveCount(0);
   expect(status).toBe(500);
+
+  await page.reload();
+  await expect(page).toHaveURL(/\/login/);
+  await expect(page.getByRole("heading", { name: "Iniciar sesión" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Tus ponds" })).toHaveCount(0);
+
+  fs.mkdirSync(shotsDir, { recursive: true });
+  for (const width of [375, 768, 1440] as const) {
+    await page.setViewportSize({ width, height: width === 375 ? 812 : 900 });
+    await expect(page).toHaveURL(/\/login/);
+    await expect(page.getByRole("heading", { name: "Iniciar sesión" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Tus ponds" })).toHaveCount(0);
+    await page.screenshot({
+      path: path.join(shotsDir, `logout-fail-reload-${width}.png`),
+      fullPage: true,
+    });
+  }
+
+  for (const width of [375, 768, 1440] as const) {
+    const next = await page.context().newPage();
+    try {
+      await next.setViewportSize({ width, height: width === 375 ? 812 : 900 });
+      await next.goto("/app/uso");
+      await expect(next).toHaveURL(/\/login/);
+      await expect(next.getByRole("heading", { name: "Iniciar sesión" })).toBeVisible();
+      await expect(next.getByRole("heading", { name: "Uso del mes" })).toHaveCount(0);
+    } finally {
+      await next.close();
+    }
+  }
 });
