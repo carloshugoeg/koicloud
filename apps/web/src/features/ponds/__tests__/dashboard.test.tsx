@@ -38,6 +38,14 @@ function renderPonds(queryClient?: QueryClient) {
 }
 
 describe("W2-04 Dashboard de ponds", () => {
+  it("uses the control-plane header top margin on the ponds list", async () => {
+    renderPonds();
+    const header = await screen.findByTestId("app-header");
+    expect(header.className.split(/\s+/)).toContain("mt-2");
+    expect(header).toHaveTextContent("Control plane");
+    expect(header).toHaveTextContent("Ponds");
+  });
+
   it("renders four KPI, pond grid cells, and hides host:port when not running", async () => {
     renderPonds();
 

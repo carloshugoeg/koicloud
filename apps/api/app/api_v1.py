@@ -28,6 +28,7 @@ from app.modules.auth.refresh_cookie import cookie_is_secure
 from app.modules.auth.service import REFRESH_COOKIE
 from app.schemas import (
     AdminPondListResponse,
+    AdminSubscriptionListResponse,
     AdminTotalsResponse,
     AdminUserListResponse,
     AdminUserResponse,
@@ -787,6 +788,19 @@ async def admin_list_ponds(
     _: Annotated[AuthContext, Depends(get_admin_user)],
 ) -> AdminPondListResponse:
     return await admin_commands.admin_list_ponds()
+
+
+@router.get(
+    "/admin/subscriptions",
+    response_model=AdminSubscriptionListResponse,
+    operation_id="admin_list_subscriptions",
+    tags=["admin"],
+    responses=_error_responses(401, 403),
+)
+async def admin_list_subscriptions(
+    _: Annotated[AuthContext, Depends(get_admin_user)],
+) -> AdminSubscriptionListResponse:
+    return await admin_commands.admin_list_subscriptions()
 
 
 @router.get(

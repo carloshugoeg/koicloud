@@ -30,7 +30,14 @@ def test_prod_alias_with_console_email_provider_refuses_to_start() -> None:
 
 
 def test_production_with_non_console_email_provider_starts() -> None:
-    settings = Settings(environment="production", email_provider="resend")
+    settings = Settings(
+        environment="production",
+        email_provider="resend",
+        jwt_secret="prod-jwt-secret-not-the-builtin-default-value",
+        pond_password_key="prod-fernet-key-not-the-builtin-default==",
+        node_token="prod-node-token-not-builtin",
+        mcp_demo_password="prod-mcp-demo-password-not-builtin",
+    )
     assert settings.email_provider == "resend"
     assert settings.environment == "production"
 
