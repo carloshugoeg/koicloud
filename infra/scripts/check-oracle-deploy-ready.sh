@@ -7,6 +7,7 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT"
 
 python3 - <<'PY'
+import re
 from pathlib import Path
 
 missing: list[str] = []
@@ -74,6 +75,16 @@ for token in (
 ):
     if token not in deploy_doc and token.lower() not in deploy_doc.lower():
         missing.append(f"docs/runbooks/deploy.md must cover {token}")
+
+for port in ("80", "443", "15000"):
+    iptables_line = any(
+        re.search(r"(?:^|\s)iptables\b", line) and re.search(rf"\b{port}\b", line)
+        for line in deploy_doc.splitlines()
+    )
+    if not iptables_line:
+        missing.append(
+            f"docs/runbooks/deploy.md must show an iptables command for tcp port {port}"
+        )
 
 # Prove the Caddy site address is env-driven so <ip>.sslip.io works at apply time.
 site_ok = any(

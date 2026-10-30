@@ -24,24 +24,26 @@ fi
 CHECK_EMAIL_PROVIDER="${KOI_CHECK_EMAIL_PROVIDER:-resend}"
 CHECK_ENV="$(mktemp)"
 BAD_CONSOLE_ENV="$(mktemp)"
-trap 'rm -f "$CHECK_ENV" "$BAD_CONSOLE_ENV"' EXIT
+UNSET_ENV="$(mktemp)"
+trap 'rm -f "$CHECK_ENV" "$BAD_CONSOLE_ENV" "$UNSET_ENV"' EXIT
+# Happy-path values are fixtures that do not start with change-me.
 cat >"$CHECK_ENV" <<EOF
 POSTGRES_USER=koi
-POSTGRES_PASSWORD=change-me
+POSTGRES_PASSWORD=gate-fixture-db-password
 POSTGRES_DB=koicloud
-DATABASE_URL=postgresql+asyncpg://koi:change-me@db:5432/koicloud
-JWT_SECRET=change-me-32-random-bytes
+DATABASE_URL=postgresql+asyncpg://koi:gate-fixture-db-password@db:5432/koicloud
+JWT_SECRET=gate-fixture-jwt-secret-32bytes
 REFRESH_TTL_DAYS=30
-POND_PASSWORD_KEY=change-me-fernet-key
+POND_PASSWORD_KEY=gate-fixture-fernet-key-not-default==
 AGENT_MODE=docker
 NODE_ID=node-prod
-NODE_TOKEN=change-me
+NODE_TOKEN=gate-fixture-node-token
 KOICLOUD_DOMAIN=koicloud.example
-NODE_PUBLIC_HOST=change-me-public-host
+NODE_PUBLIC_HOST=db.gate-fixture.example
 POND_PORT_RANGE_START=15000
 POND_PORT_RANGE_END=15999
 MCP_ENABLED=true
-MCP_DEMO_PASSWORD=change-me-mcp-demo
+MCP_DEMO_PASSWORD=gate-fixture-mcp-demo
 EMAIL_PROVIDER=${CHECK_EMAIL_PROVIDER}
 PAYMENT_PROVIDER=simulated
 INVOICE_DIR=/var/lib/koicloud/invoices
@@ -56,8 +58,76 @@ $COMPOSE --env-file "$CHECK_ENV" \
   -f "$ROOT/infra/docker-compose.prod.yml" \
   -f "$ROOT/infra/docker-compose.http.yml" config >/tmp/koicloud-http-compose.yml
 
+set +e
 python3 - <<'PY'
+import re
 from pathlib import Path
+
+def service_block(src: str, service: str) -> str:
+    lines = src.splitlines()
+    start = None
+    for index, line in enumerate(lines):
+        if line.startswith(f"  {service}:"):
+            start = index + 1
+            break
+    if start is None:
+        return ""
+    body: list[str] = []
+    for line in lines[start:]:
+        if line.startswith("  ") and not line.startswith("   ") and line.strip():
+            break
+        body.append(line)
+    return "\n".join(body)
+
+
+def env_assignments(block: str) -> dict[str, list[str]]:
+    assignments: dict[str, list[str]] = {}
+    in_env = False
+    for line in block.splitlines():
+        if line.startswith("    environment:"):
+            in_env = True
+            continue
+        if not in_env:
+            continue
+        if line.startswith("    ") and not line.startswith("     ") and line.strip():
+            break
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or ":" not in stripped:
+            continue
+        key, _, value = stripped.partition(":")
+        assignments.setdefault(key.strip(), []).append(value.strip())
+    return assignments
+
+
+def uses_required_env(value: str, key: str) -> bool:
+    raw = value.strip()
+    if (raw.startswith('"') and raw.endswith('"')) or (
+        raw.startswith("'") and raw.endswith("'")
+    ):
+        raw = raw[1:-1]
+    return raw.startswith("${" + key + ":?") and raw.endswith("}")
+
+
+# Service env keys that must fail interpolation when the variable is unset.
+REQUIRED_COMPOSE_ENV = (
+    ("db", "POSTGRES_PASSWORD"),
+    ("api", "DATABASE_URL"),
+    ("api", "JWT_SECRET"),
+    ("api", "NODE_TOKEN"),
+    ("api", "POND_PASSWORD_KEY"),
+    ("api", "MCP_DEMO_PASSWORD"),
+    ("worker", "DATABASE_URL"),
+    ("worker", "JWT_SECRET"),
+    ("worker", "NODE_TOKEN"),
+    ("worker", "POND_PASSWORD_KEY"),
+)
+
+SECURITY_HEADERS = (
+    ("Strict-Transport-Security", None),
+    ("X-Content-Type-Options", "nosniff"),
+    ("Referrer-Policy", None),
+    ("X-Frame-Options", "DENY"),
+)
 
 text = Path("/tmp/koicloud-prod-compose.yml").read_text(encoding="utf-8")
 http = Path("/tmp/koicloud-http-compose.yml").read_text(encoding="utf-8")
@@ -77,6 +147,21 @@ for token in ("handle /api/", "handle /mcp", "respond @internal 403", "handle /h
         missing.append(f"Caddyfile missing {token}")
 if "koicloud.example" not in caddy:
     missing.append("Caddyfile must keep architecture domain placeholder")
+header_match = re.search(r"(?ms)^[ \t]*header[ \t]*\{.*?^[ \t]*\}", caddy)
+if header_match is None:
+    missing.append(
+        "Caddyfile must include a header block setting Strict-Transport-Security, "
+        "X-Content-Type-Options nosniff, Referrer-Policy, and X-Frame-Options DENY"
+    )
+else:
+    header_block = header_match.group(0)
+    for header_name, header_value in SECURITY_HEADERS:
+        if header_name not in header_block:
+            missing.append(f"Caddyfile header block must set {header_name}")
+        elif header_value is not None and header_value not in header_block:
+            missing.append(
+                f"Caddyfile header block must set {header_name} {header_value}"
+            )
 if ":80" not in caddy_http:
     missing.append("Caddyfile.http must bind :80")
 if 'published: "8080"' not in http and "published: 8080" not in http and "8080:80" not in http:
@@ -124,6 +209,13 @@ if any(
         "EMAIL_PROVIDER=console is not allowed when ENVIRONMENT=production "
         "(startup would refuse; use a real provider in prod.env)"
     )
+for service, key in REQUIRED_COMPOSE_ENV:
+    block = service_block(prod_src, service)
+    values = env_assignments(block).get(key, []) if block else []
+    if len(values) != 1 or not uses_required_env(values[0], key):
+        missing.append(
+            f"{service} {key} must use required form ${{{key}:?...}} with no default"
+        )
 deploy_src = Path("infra/scripts/deploy.sh").read_text(encoding="utf-8")
 if "need EMAIL_PROVIDER" not in deploy_src:
     missing.append("deploy.sh must need EMAIL_PROVIDER")
@@ -135,6 +227,52 @@ if missing:
     raise SystemExit("\n".join(missing))
 print("prod compose + Caddyfile + http overlay + names-only env OK")
 PY
+static_rc=$?
+set -e
+
+# Same keys as REQUIRED_COMPOSE_ENV. Omitted here so compose must fail closed.
+cat >"$UNSET_ENV" <<'EOF'
+POSTGRES_USER=koi
+POSTGRES_DB=koicloud
+REFRESH_TTL_DAYS=30
+AGENT_MODE=docker
+NODE_ID=node-prod
+KOICLOUD_DOMAIN=koicloud.example
+NODE_PUBLIC_HOST=db.gate-fixture.example
+POND_PORT_RANGE_START=15000
+POND_PORT_RANGE_END=15999
+MCP_ENABLED=true
+EMAIL_PROVIDER=resend
+PAYMENT_PROVIDER=simulated
+INVOICE_DIR=/var/lib/koicloud/invoices
+BACKUP_DIR=/var/lib/koicloud/backups
+INTERNAL_API_URL=http://127.0.0.1:8000/internal/v1
+EOF
+set +e
+(
+  unset POSTGRES_PASSWORD DATABASE_URL JWT_SECRET NODE_TOKEN POND_PASSWORD_KEY MCP_DEMO_PASSWORD
+  $COMPOSE --env-file "$UNSET_ENV" \
+    -f "$ROOT/infra/docker-compose.prod.yml" config \
+    >/tmp/koicloud-prod-compose-unset.yml \
+    2>/tmp/koicloud-prod-compose-unset.err
+)
+unset_rc=$?
+set -e
+unset_fail=0
+if [[ "$unset_rc" -eq 0 ]]; then
+  echo "expected docker compose config to fail when POSTGRES_PASSWORD, DATABASE_URL, JWT_SECRET, NODE_TOKEN, POND_PASSWORD_KEY, and MCP_DEMO_PASSWORD are unset" >&2
+  if [[ -f /tmp/koicloud-prod-compose-unset.yml ]] && grep -q 'change-me' /tmp/koicloud-prod-compose-unset.yml; then
+    keys="$(grep -E 'change-me' /tmp/koicloud-prod-compose-unset.yml | awk -F: '{gsub(/[[:space:]]/, "", $1); if ($1 != "") print $1}' | sort -u | tr '\n' ' ')"
+    echo "rendered keys still using change-me defaults: ${keys}" >&2
+  fi
+  unset_fail=1
+elif grep -Eq 'POSTGRES_PASSWORD|DATABASE_URL|JWT_SECRET|NODE_TOKEN|POND_PASSWORD_KEY|MCP_DEMO_PASSWORD' /tmp/koicloud-prod-compose-unset.err; then
+  echo "prod compose config fails when required secrets are unset (exit ${unset_rc})"
+else
+  echo "docker compose config failed, but not because a required secret was unset" >&2
+  cat /tmp/koicloud-prod-compose-unset.err >&2
+  unset_fail=1
+fi
 
 # Negative: prod env with console must fail before serving traffic.
 # Use non-placeholder host values so need() reaches the console guard.
@@ -181,3 +319,6 @@ if ! grep -q 'EMAIL_PROVIDER=console' /tmp/koicloud-console-deploy.err; then
   exit 1
 fi
 echo "deploy.sh correctly refuses EMAIL_PROVIDER=console before traffic (exit $console_rc)"
+if [[ "$static_rc" -ne 0 || "$unset_fail" -ne 0 ]]; then
+  exit 1
+fi

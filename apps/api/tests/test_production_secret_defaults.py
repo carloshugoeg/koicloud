@@ -83,3 +83,58 @@ def test_create_app_path_refuses_prod_default_jwt(
     with pytest.raises(ValidationError, match="JWT_SECRET"):
         create_app()
     get_settings.cache_clear()
+
+
+# Compose prod fallbacks. Each value starts with change-me and is not a built-in default.
+_CHANGE_ME_PREFIX_SECRETS = (
+    ("jwt_secret", "JWT_SECRET", "change-me-32-random-bytes"),
+    ("node_token", "NODE_TOKEN", "change-me"),
+    ("pond_password_key", "POND_PASSWORD_KEY", "change-me-fernet-key"),
+    ("mcp_demo_password", "MCP_DEMO_PASSWORD", "change-me-mcp-demo"),
+)
+
+
+@pytest.mark.parametrize(
+    ("field", "env_name", "placeholder"),
+    _CHANGE_ME_PREFIX_SECRETS,
+    ids=[item[1] for item in _CHANGE_ME_PREFIX_SECRETS],
+)
+def test_production_rejects_secret_that_starts_with_change_me(
+    field: str,
+    env_name: str,
+    placeholder: str,
+) -> None:
+    with pytest.raises(ValidationError, match=env_name):
+        Settings(**{**_PROD_SAFE, field: placeholder})
+
+
+def test_production_allows_secret_that_mentions_change_me_only_later() -> None:
+    token = "prod-node-token-change-me-suffix"
+    settings = Settings(**{**_PROD_SAFE, "node_token": token})
+    assert settings.node_token == token
+
+
+def test_production_hides_openapi_docs(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.main import create_app
+
+    get_settings.cache_clear()
+    for name in (
+        "JWT_SECRET",
+        "POND_PASSWORD_KEY",
+        "NODE_TOKEN",
+        "MCP_DEMO_PASSWORD",
+        "ENVIRONMENT",
+        "EMAIL_PROVIDER",
+    ):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("ENVIRONMENT", "production")
+    monkeypatch.setenv("EMAIL_PROVIDER", "resend")
+    monkeypatch.setenv("JWT_SECRET", _PROD_SAFE["jwt_secret"])
+    monkeypatch.setenv("POND_PASSWORD_KEY", _PROD_SAFE["pond_password_key"])
+    monkeypatch.setenv("NODE_TOKEN", _PROD_SAFE["node_token"])
+    monkeypatch.setenv("MCP_DEMO_PASSWORD", _PROD_SAFE["mcp_demo_password"])
+    try:
+        app = create_app()
+    finally:
+        get_settings.cache_clear()
+    assert (app.docs_url, app.openapi_url) == (None, None)
