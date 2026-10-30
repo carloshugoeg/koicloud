@@ -8,7 +8,6 @@ import {
   type Backup,
 } from "@/api/hooks/ponds";
 import { BackupConfirmDialog } from "@/features/ponds/backup-confirm-dialog";
-import { BackupConfirmDialog } from "@/features/ponds/backup-confirm-dialog";
 import { BackupsTable } from "@/features/ponds/backups-table";
 import { pondStateMeta } from "@/features/ponds/pond-state";
 import { RestoreDialog } from "@/features/ponds/restore-dialog";
@@ -153,15 +152,6 @@ export function BackupsPage() {
           }}
         />
       )}
-
-      {backupOpen && pond ? (
-        <BackupConfirmDialog
-          pondName={pond.name}
-          pending={backupMutation.isPending}
-          onCancel={() => setBackupOpen(false)}
-          onConfirm={() => void confirmBackup()}
-        />
-      ) : null}
 
       {selected && pond ? (
         <RestoreDialog
