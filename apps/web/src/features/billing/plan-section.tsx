@@ -12,6 +12,7 @@ export function PlanSection() {
         </h2>
         <button
           type="button"
+          aria-expanded={open}
           onClick={() => setOpen(true)}
           className="h-9 rounded-sm bg-turquoise-700 px-4 text-sm font-medium text-bone-raised hover:bg-turquoise-900 focus:shadow-focus"
         >
