@@ -130,7 +130,8 @@ async function login(page: Page) {
     {
       name: "koi_refresh",
       value: "refresh_e2e",
-      url: "http://127.0.0.1:5173/api/v1/auth/refresh",
+      domain: "127.0.0.1",
+      path: "/api/v1",
       httpOnly: true,
       sameSite: "Lax",
     },
@@ -139,13 +140,14 @@ async function login(page: Page) {
 
 async function shoot(page: Page, stem: string) {
   fs.mkdirSync(shotsDir, { recursive: true });
-  fs.mkdirSync(prShotsDir, { recursive: true });
   for (const width of [375, 768, 1440] as const) {
     await page.setViewportSize({ width, height: width === 375 ? 812 : 900 });
     const file = `${stem}-${width}.png`;
     const buf = await page.screenshot({ fullPage: true });
     fs.writeFileSync(path.join(shotsDir, file), buf);
-    fs.writeFileSync(path.join(prShotsDir, file), buf);
+    if (fs.existsSync(prShotsDir)) {
+      fs.writeFileSync(path.join(prShotsDir, file), buf);
+    }
   }
   await page.setViewportSize({ width: 1440, height: 900 });
 }
