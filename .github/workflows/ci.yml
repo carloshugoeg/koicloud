@@ -227,6 +227,7 @@ jobs:
       actions: read
     steps:
       - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
       - name: Guard unit tests
         run: python3 -m unittest scripts/test_agent_guards.py
       - name: Ticket, page, and CLI guards

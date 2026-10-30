@@ -110,7 +110,7 @@ export const handlers = [
   }),
 
   http.post(`${API_ROOT}/subscriptions`, async ({ request }) => {
-    const body = (await request.json()) as { plan_id?: string };
+    const body = (await request.json()) as { plan_id?: string; nit?: string | null };
     if (!body?.plan_id) {
       return HttpResponse.json(
         {
@@ -127,6 +127,10 @@ export const handlers = [
         subscription: {
           ...fixtures.subscriptionResponse.subscription,
           plan_id: body.plan_id,
+        },
+        invoice: {
+          ...fixtures.subscriptionResponse.invoice,
+          nit: body.nit ?? fixtures.subscriptionResponse.invoice.nit ?? null,
         },
       },
       { status: 202 },

@@ -1,0 +1,20 @@
+{
+  "pr": 133,
+  "ticket": "W1-31",
+  "captured_at": "2026-10-29T14:27:00Z",
+  "base_url": "http://127.0.0.1:5173 (VITE_ENABLE_MOCKS=true)",
+  "before": {
+    "uso_invoice": "uso-invoice-before-1440.png",
+    "uso_amounts": [".4643", "--.5357", ".00"],
+    "note": "InvoicePaper used local Intl MONEY_FORMATTER (2–4 dp currency style)"
+  },
+  "after": {
+    "uso_invoice": "uso-invoice-after-1440.png",
+    "uso_amounts": ["USD 4.4643", "USD 0.5357", "USD 5.0000"],
+    "checkout_result": "checkout-invoice-after-1440.png",
+    "checkout_amounts": ["USD 4.4643", "USD 0.5357", "USD 5.0000"],
+    "checkout_nit": "0614-220999-101-3",
+    "note": "InvoicePaper + checkout result use formatPrice (CCR #151); NIT on paper and checkout result"
+  },
+  "also": ["checkout-form-nit-1440.png", "checkout-invoice-before-1440.png"]
+}
