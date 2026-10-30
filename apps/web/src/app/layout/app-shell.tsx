@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef, useState } from "react";
 import { Outlet, useLocation, useMatches } from "react-router-dom";
 import { logoutSession } from "@/api/hooks/auth";
@@ -20,6 +21,7 @@ function readTitle(handle: unknown) {
 }
 
 export function AppShell() {
+  const queryClient = useQueryClient();
   const session = useAuthStore((state) => state.session);
   const location = useLocation();
   const matches = useMatches();
@@ -51,7 +53,9 @@ export function AppShell() {
           userName={session?.user.full_name ?? "Operador"}
           userEmail={session?.user.email ?? ""}
           onLogout={() => {
-            void logoutSession();
+            void logoutSession().then(() => {
+              queryClient.clear();
+            });
           }}
           onOpenNav={openSheet}
           showMenuButton={mode === "sheet"}

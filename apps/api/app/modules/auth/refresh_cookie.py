@@ -5,12 +5,37 @@ import json
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from app.core.config import get_settings
+from app.core.errors import ErrorCode, payload_for_code
 from app.modules.auth.service import REFRESH_COOKIE
+
+
+def cookie_is_secure(*, scheme: str, forwarded_proto: str | None, environment: str) -> bool:
+    if environment.strip().lower() in {"production", "prod"}:
+        return True
+    if forwarded_proto and forwarded_proto.split(",")[0].strip().lower() == "https":
+        return True
+    return scheme == "https"
+
+
+def body_refresh_token(body: bytes) -> str | None:
+    stripped = body.strip()
+    if stripped in (b"", b"null"):
+        return None
+    try:
+        payload = json.loads(stripped)
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(payload, dict):
+        return None
+    token = payload.get("refresh_token")
+    if isinstance(token, str) and token:
+        return token
+    return None
 
 
 def refresh_body_from_cookie(body: bytes, cookie: str | None) -> bytes | None:
     """Fill an empty refresh body from the httpOnly cookie. A body token wins."""
-    if not cookie:
+    if not cookie or body_refresh_token(body):
         return None
     stripped = body.strip()
     if stripped in (b"", b"null"):
@@ -20,9 +45,6 @@ def refresh_body_from_cookie(body: bytes, cookie: str | None) -> bytes | None:
     except json.JSONDecodeError:
         return None
     if not isinstance(payload, dict):
-        return None
-    token = payload.get("refresh_token")
-    if isinstance(token, str) and token:
         return None
     return _token_body(cookie)
 
@@ -40,7 +62,11 @@ class RefreshCookieMiddleware:
             return
 
         body = await _read_body(receive)
-        replacement = refresh_body_from_cookie(body, _cookie(scope, REFRESH_COOKIE))
+        cookie = _cookie(scope, REFRESH_COOKIE)
+        if not cookie and body_refresh_token(body) is None:
+            await _send_unauthorized(send, scope)
+            return
+        replacement = refresh_body_from_cookie(body, cookie)
         if replacement is not None:
             body = replacement
             _set_header(scope, b"content-type", b"application/json")
@@ -58,7 +84,7 @@ class RefreshCookieMiddleware:
         async def send_and_clear(message: Message) -> None:
             if message["type"] == "http.response.start" and message["status"] in (401, 403):
                 headers = list(message.get("headers") or [])
-                headers.append((b"set-cookie", _clear_cookie()))
+                headers.append((b"set-cookie", _clear_cookie(scope)))
                 message = {**message, "headers": headers}
             await send(message)
 
@@ -69,9 +95,41 @@ def _token_body(cookie: str) -> bytes:
     return json.dumps({"refresh_token": cookie}).encode()
 
 
-def _clear_cookie() -> bytes:
-    path = get_settings().api_prefix
-    return f"{REFRESH_COOKIE}=; Max-Age=0; Path={path}; HttpOnly; SameSite=lax".encode()
+def _clear_cookie(scope: Scope) -> bytes:
+    settings = get_settings()
+    secure = cookie_is_secure(
+        scheme=str(scope.get("scheme") or "http"),
+        forwarded_proto=_header_text(scope, b"x-forwarded-proto"),
+        environment=settings.environment,
+    )
+    suffix = "; Secure" if secure else ""
+    return (
+        f"{REFRESH_COOKIE}=; Max-Age=0; Path={settings.api_prefix}; "
+        f"HttpOnly; SameSite=lax{suffix}"
+    ).encode()
+
+
+async def _send_unauthorized(send: Send, scope: Scope) -> None:
+    raw = json.dumps(payload_for_code(ErrorCode.TOKEN_INVALID)).encode()
+    await send(
+        {
+            "type": "http.response.start",
+            "status": 401,
+            "headers": [
+                (b"content-type", b"application/json"),
+                (b"content-length", str(len(raw)).encode()),
+                (b"set-cookie", _clear_cookie(scope)),
+            ],
+        }
+    )
+    await send({"type": "http.response.body", "body": raw, "more_body": False})
+
+
+def _header_text(scope: Scope, name: bytes) -> str | None:
+    raw = _header(scope, name)
+    if raw is None:
+        return None
+    return raw.decode()
 
 
 def _header(scope: Scope, name: bytes) -> bytes | None:

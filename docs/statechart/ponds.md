@@ -264,7 +264,7 @@ One named e2e test per transition (Playwright, `e2e/pond-lifecycle/` and a new `
 |---|---|---|---|---|
 | TabsFixedOrder | Every pond page shows Resumen, Respaldos, Consola, in that order, in every pond state. | Users lose their place; Respaldos page has no way to Consola. | UserJourney | **breaks** |
 | HistoryScoped | The console shows only queries run on the pond you are looking at. | Leaks other ponds' SQL; a new pond looks used. | UserJourney | **breaks** (MSW preview); API holds |
-| ReloadKeepsSession | Reloading the page keeps you logged in on the same screen. | Every F5 logs you out. | UserJourney | holds |
+| ReloadKeepsSession | A failed refresh leaves you on the login screen. A successful reload keeps the session. | A rejected refresh still shows the app. | UserJourney | holds |
 | PlansViaBilling | Planes is reached only from Uso y facturación (Cambiar de plan). | r6 nav not done. | UserJourney | **breaks** (not implemented) |
 | NoChargeBadCard | An invoice is issued only when the card was validated. | A plan change goes through with garbage card data. | UserJourney | **breaks** (no card check) |
 | OneInFlightOp | A pond has at most one lifecycle job in flight, and is in a transitional state exactly when it has one. | Racing stop/start/delete corrupts data. | PondLifecycle | holds |
