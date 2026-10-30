@@ -609,7 +609,7 @@ def repo_slug() -> str:
     configured = os.environ.get("GITHUB_REPOSITORY", "").strip()
     if configured:
         return configured
-    url = subprocess.check_output(["git", "remote", "get-url", "origin"], text=True)
+    url = subprocess.check_output(["git", "remote", "get-url", "origin"], text=True).strip()
     match = re.search(r"github\.com[:/]([^/]+/[^/.]+)", url)
     if match is None:
         raise SystemExit("::error::Cannot tell which GitHub repo this checkout is")
