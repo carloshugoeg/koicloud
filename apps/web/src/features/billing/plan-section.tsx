@@ -1,8 +1,18 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PlansPage } from "@/features/plans/plans-page";
 
 export function PlanSection() {
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      setOpen(false);
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [open]);
 
   return (
     <section className="space-y-4" aria-labelledby="current-plan-title">
@@ -13,7 +23,7 @@ export function PlanSection() {
         <button
           type="button"
           aria-expanded={open}
-          onClick={() => setOpen(true)}
+          onClick={() => setOpen((current) => !current)}
           className="h-9 rounded-sm bg-turquoise-700 px-4 text-sm font-medium text-bone-raised hover:bg-turquoise-900 focus:shadow-focus"
         >
           Cambiar de plan
