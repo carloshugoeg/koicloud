@@ -51,6 +51,14 @@ function renderConsole(entry = `/app/ponds/${POND_ID}/consola`) {
 }
 
 describe("W2-07 Consola SQL", () => {
+  it("uses the control-plane header top margin on Consola", async () => {
+    renderConsole();
+    const header = await screen.findByTestId("app-header");
+    expect(header.className.split(/\s+/)).toContain("mt-2");
+    expect(header).toHaveTextContent("Control plane");
+    expect(header).toHaveTextContent("Consola SQL");
+  });
+
   it("runs SELECT and shows columns, rows, and meta", async () => {
     const user = userEvent.setup();
     renderConsole();

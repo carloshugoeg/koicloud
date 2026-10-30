@@ -44,6 +44,14 @@ describe("W2-08 Respaldos y restauración", () => {
     vi.useRealTimers();
   });
 
+  it("uses the control-plane header top margin on Respaldos", async () => {
+    renderBackups();
+    const header = await screen.findByTestId("app-header");
+    expect(header.className.split(/\s+/)).toContain("mt-2");
+    expect(header).toHaveTextContent("Control plane");
+    expect(header).toHaveTextContent("Respaldos");
+  });
+
   it("lists backups and shows the pre_delete chip", async () => {
     renderBackups();
 

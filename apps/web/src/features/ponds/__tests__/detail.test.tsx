@@ -576,4 +576,29 @@ describe("W2-06 Detalle del pond y conexión", () => {
     expect(startPosts).toHaveBeenCalledOnce();
     vi.useRealTimers();
   });
+
+  it("moves focus into the stop dialog, traps Tab, and returns it to Detener", async () => {
+    const user = userEvent.setup();
+    renderDetail();
+
+    const stopButton = await screen.findByTestId("pond-stop");
+    await user.click(stopButton);
+
+    const dialog = await screen.findByRole("dialog", { name: "Detener pond" });
+    expect(dialog).toHaveAttribute("aria-modal", "true");
+    expect(dialog.contains(document.activeElement)).toBe(true);
+
+    for (let step = 0; step < 8; step += 1) {
+      await user.tab();
+      expect(dialog.contains(document.activeElement)).toBe(true);
+    }
+    await user.tab({ shift: true });
+    expect(dialog.contains(document.activeElement)).toBe(true);
+
+    await user.keyboard("{Escape}");
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: "Detener pond" })).not.toBeInTheDocument();
+    });
+    expect(stopButton).toHaveFocus();
+  });
 });
