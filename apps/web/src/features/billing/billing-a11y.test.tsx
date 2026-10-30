@@ -100,4 +100,26 @@ describe("billing form errors", () => {
     expect(changePlan).toHaveAttribute("aria-expanded", "true");
     expect(await screen.findByRole("button", { name: "Elegir plan Micro" })).toBeInTheDocument();
   });
+
+  it("closes the plan picker so aria-expanded returns to false", async () => {
+    const user = userEvent.setup();
+    renderUso();
+
+    const changePlan = await screen.findByRole("button", { name: "Cambiar de plan" });
+    expect(changePlan).toHaveAttribute("aria-expanded", "false");
+
+    await user.click(changePlan);
+    expect(changePlan).toHaveAttribute("aria-expanded", "true");
+    expect(await screen.findByRole("button", { name: "Elegir plan Micro" })).toBeInTheDocument();
+
+    await user.click(changePlan);
+    expect(changePlan).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("button", { name: "Elegir plan Micro" })).not.toBeInTheDocument();
+
+    await user.click(changePlan);
+    expect(changePlan).toHaveAttribute("aria-expanded", "true");
+    await user.keyboard("{Escape}");
+    expect(changePlan).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("button", { name: "Elegir plan Micro" })).not.toBeInTheDocument();
+  });
 });
