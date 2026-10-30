@@ -18,7 +18,7 @@ Este documento resume **cómo se comporta el sistema hoy**, derivado del código
 4. **Superficies.** La Web usa JWT en cookie/header. CLI y MCP usan JWT; las mutaciones remotas pasan por **`propose → confirmation_token → confirm`** (409 con `summary` en español, token de 5 minutos).
 5. **Consola SQL.** Conexión efímera al puerto público del pond del usuario (`asyncpg`), read-only por defecto; SQL write exige confirmación en CLI/MCP.
 6. **Un solo nodo.** No hay HA ni multi-VPS en alcance. El reconciler del worker es best-effort, no SLA.
-7. **Despliegue académico ($0).** Objetivo: una VM Oracle Always Free (ARM) + hostname sslip.io/nip.io + Caddy TLS + `AGENT_MODE=docker` (ADR 014; ENTREGA-2 §6.3). Con `ENVIRONMENT=production`, la API **no arranca** si `JWT_SECRET`, `POND_PASSWORD_KEY`, `NODE_TOKEN` o `MCP_DEMO_PASSWORD` siguen en el default de desarrollo.
+7. **Despliegue académico ($0).** Objetivo: una VM Oracle Always Free (ARM) + hostname sslip.io/nip.io + Caddy TLS + `AGENT_MODE=docker` (ADR 014; ENTREGA-2 §6.3). Con `ENVIRONMENT=production`, la API **no arranca** si `JWT_SECRET`, `POND_PASSWORD_KEY`, `NODE_TOKEN` o `MCP_DEMO_PASSWORD` usan el default de desarrollo o un valor que empieza por `change-me`. `infra/docker-compose.prod.yml` exige esas variables, más `POSTGRES_PASSWORD` y `DATABASE_URL`, sin fallback. En ese entorno no se publican `/docs`, `/redoc` ni `/openapi.json`. Caddy envía HSTS, `X-Content-Type-Options: nosniff`, Referrer-Policy y `X-Frame-Options: DENY`.
 
 ---
 

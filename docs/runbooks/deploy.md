@@ -42,6 +42,14 @@ sudo ufw allow 15000:15999/tcp
 sudo ufw enable
 ```
 
+En Ubuntu de Oracle Cloud (22.04 o 24.04) `ufw` puede no estar activo. Abrí 80, 443 y el rango de ponds con `iptables`:
+
+```bash
+sudo iptables -I INPUT -p tcp --dport 80 -j ACCEPT
+sudo iptables -I INPUT -p tcp --dport 443 -j ACCEPT
+sudo iptables -I INPUT -p tcp --dport 15000:15999 -j ACCEPT
+```
+
 ## 3. Instalar Docker y herramientas
 
 ```bash

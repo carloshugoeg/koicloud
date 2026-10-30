@@ -59,23 +59,30 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def reject_default_secrets_in_production(self) -> Self:
-        """Refuse built-in defaults when ENVIRONMENT is production (W1-13)."""
+        """Refuse built-in defaults and change-me placeholders in production."""
         env = self.environment.strip().lower()
         if env not in {"production", "prod"}:
             return self
+        guards = (
+            ("jwt_secret", "JWT_SECRET", "koicloud-dev-jwt-secret-change-me"),
+            (
+                "pond_password_key",
+                "POND_PASSWORD_KEY",
+                "7chvGNh8l4rbVgpH0wWJjCT2J8eQ6D8eW5DiKjR3owE=",
+            ),
+            ("node_token", "NODE_TOKEN", "koicloud-node-token"),
+            ("mcp_demo_password", "MCP_DEMO_PASSWORD", "koicloud-demo"),
+        )
         offenders: list[str] = []
-        if self.jwt_secret == "koicloud-dev-jwt-secret-change-me":
-            offenders.append("JWT_SECRET")
-        if self.pond_password_key == "7chvGNh8l4rbVgpH0wWJjCT2J8eQ6D8eW5DiKjR3owE=":
-            offenders.append("POND_PASSWORD_KEY")
-        if self.node_token == "koicloud-node-token":
-            offenders.append("NODE_TOKEN")
-        if self.mcp_demo_password == "koicloud-demo":
-            offenders.append("MCP_DEMO_PASSWORD")
+        for attr, env_name, builtin in guards:
+            value: str = getattr(self, attr)
+            if value == builtin or value.startswith("change-me"):
+                offenders.append(env_name)
         if offenders:
             joined = ", ".join(offenders)
             raise ValueError(
-                f"{joined} must not use the built-in default when ENVIRONMENT is production"
+                f"{joined} must not use the built-in default or a change-me placeholder "
+                "when ENVIRONMENT is production"
             )
         return self
 
