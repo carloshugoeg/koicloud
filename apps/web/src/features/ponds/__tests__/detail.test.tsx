@@ -462,4 +462,116 @@ describe("W2-06 Detalle del pond y conexión", () => {
     expect(await screen.findByText("Respaldo encolado")).toBeInTheDocument();
     expect(screen.queryByTestId("backup-confirm-dialog")).not.toBeInTheDocument();
   });
+
+  it("lifecycle: stop then start", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    let phase: "running" | "stopping" | "stopped" | "starting" = "running";
+    const stopPosts = vi.fn();
+    const startPosts = vi.fn();
+
+    function pondBody() {
+      if (phase === "running") return fixtures.pond;
+      if (phase === "stopping") {
+        return { ...fixtures.pond, desired_state: "stopped" as const, observed_state: "running" as const };
+      }
+      if (phase === "stopped") {
+        return {
+          ...fixtures.pond,
+          desired_state: "stopped" as const,
+          observed_state: "stopped" as const,
+          healthy: false,
+        };
+      }
+      return {
+        ...fixtures.pond,
+        desired_state: "running" as const,
+        observed_state: "stopped" as const,
+        healthy: false,
+      };
+    }
+
+    server.use(
+      http.get(`*/api/v1/ponds/${POND_ID}`, () => HttpResponse.json({ pond: pondBody() })),
+      http.post(`*/api/v1/ponds/${POND_ID}/stop`, () => {
+        stopPosts();
+        phase = "stopping";
+        return HttpResponse.json(
+          {
+            pond: pondBody(),
+            job: {
+              id: "job_stop_01",
+              type: "stop_pond",
+              status: "queued",
+              attempts: 0,
+              created_at: "2026-10-27T00:00:00Z",
+              node_id: "node-sv-01",
+              pond_id: POND_ID,
+              claimed_at: null,
+              completed_at: null,
+              last_error: null,
+            },
+          },
+          { status: 202 },
+        );
+      }),
+      http.post(`*/api/v1/ponds/${POND_ID}/start`, () => {
+        startPosts();
+        phase = "starting";
+        return HttpResponse.json(
+          {
+            pond: pondBody(),
+            job: {
+              id: "job_start_01",
+              type: "start_pond",
+              status: "queued",
+              attempts: 0,
+              created_at: "2026-10-27T00:00:00Z",
+              node_id: "node-sv-01",
+              pond_id: POND_ID,
+              claimed_at: null,
+              completed_at: null,
+              last_error: null,
+            },
+          },
+          { status: 202 },
+        );
+      }),
+    );
+
+    renderDetail();
+    const header = await screen.findByTestId("app-header");
+    expect(header.className.split(/\s+/)).toContain("mt-2");
+    expect(header).toHaveTextContent("Control plane");
+    expect(header).toHaveTextContent("Detalle del pond");
+
+    const stopButton = await screen.findByTestId("pond-stop");
+    expect(stopButton.className).toContain("bg-danger");
+    expect(stopButton.className).toContain("text-bone-raised");
+    expect(stopButton).toBeEnabled();
+
+    await user.click(stopButton);
+    expect(stopPosts).not.toHaveBeenCalled();
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog).toHaveTextContent("Detener");
+    await user.click(within(dialog).getByRole("button", { name: "Detener" }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("pond-status-badge")).toHaveTextContent("Deteniendo…");
+    });
+    expect(stopPosts).toHaveBeenCalledOnce();
+
+    phase = "stopped";
+    await vi.advanceTimersByTimeAsync(4_500);
+    await waitFor(() => {
+      expect(screen.getByTestId("pond-status-badge")).toHaveTextContent("Detenido");
+    });
+
+    await user.click(screen.getByTestId("pond-start"));
+    await waitFor(() => {
+      expect(screen.getByTestId("pond-status-badge")).toHaveTextContent("Iniciando…");
+    });
+    expect(startPosts).toHaveBeenCalledOnce();
+    vi.useRealTimers();
+  });
 });
