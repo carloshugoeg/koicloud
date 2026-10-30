@@ -67,14 +67,14 @@ flowchart TB
 
 | Rule | Plain sentence | main @ 72015b5 |
 |---|---|---|
-| NoPondApiWhenLoggedOut | After you log out, no pond call with your old access token works. | **breaks**: logout revokes the refresh row only. The access JWT stays valid up to 15 min |
+| NoPondApiWhenLoggedOut | After you log out, no pond call with your old access token works. | holds: logout stores the access `jti` and `get_current_user` rejects it with 401 `token_invalid` |
 | NoPondApiWhenSuspended | A suspended user cannot reach any pond API. | **breaks**: `get_current_user` hard-codes `status=ACTIVE`; suspend revokes nothing |
 | AgentScopeWithinOwner | The agent can never do what its owner can't. | **breaks**: `agent_access.authenticate` does not check `user.status` |
 | DeletedPondHasNoJobs | A deleted pond has no job in flight. | holds |
 | DeletedPondAccruesNoUsage | A deleted pond adds no billed hours. | **breaks**: `compute_day_metrics` counts the tail after the last sample as running when that sample was running |
 
 Shortest paths (from `/statechart` on `SystemAsIs.cfg`):
-- NoPondApiWhenLoggedOut: log in (access and refresh live) → log out (refresh dies, access stays) → the pond API still answers.
+- NoPondApiWhenLoggedOut holds. The path that used to break was log in → log out (access still live) → the pond API answers. Logout now clears the access token, so that call is refused.
 - NoPondApiWhenSuspended: log in → admin suspends you → the pond API still answers.
 - AgentScopeWithinOwner: log in → suspended → agent on → agent creates a pond.
 - DeletedPondAccruesNoUsage: create → online → node sample (running) → delete → deleted → daily metering bills the rest of the day.

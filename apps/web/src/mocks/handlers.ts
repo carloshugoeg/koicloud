@@ -97,6 +97,8 @@ export const handlers = [
     return HttpResponse.json(fixtures.refreshed);
   }),
 
+  http.post(`${API_ROOT}/auth/logout`, () => new HttpResponse(null, { status: 204 })),
+
   http.get(`${API_ROOT}/plans`, () => {
     return HttpResponse.json({ plans: fixtures.plans, next_cursor: null });
   }),

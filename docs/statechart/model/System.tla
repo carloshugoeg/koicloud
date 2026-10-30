@@ -3,10 +3,10 @@
    ponds (coarse) + provisioning jobs, metering/billing.
    Fixed = FALSE models origin/main @ 72015b5; Fixed = TRUE the intended contract.
    jwt is the access token. refresh is the refresh token.
-   As-is logout clears refresh and leaves jwt. Fixed logout clears both.
+   Logout clears both. A pond call with the old access token does not succeed.
    Code: apps/api/app/core/auth.py:get_current_user (stateless JWT, status hard-coded ACTIVE),
    core/config.py access_token_ttl_minutes=15, commands/auth.py (login/refresh reject SUSPENDED;
-   logout revokes the refresh row only),
+   logout revokes the refresh row and the presented access jti),
    commands/admin.py:suspend_user (sets status only), modules/agent_access/service.py:authenticate
    (no user status check), modules/ponds/service.py, modules/metering/service.py:compute_day_metrics
    (tail after last sample counts as running), workers/reconciler.py. *)
@@ -27,8 +27,7 @@ Init == session = "out" /\ jwt = FALSE /\ refresh = FALSE /\ status = "active" /
 \* ---- Auth / session ----
 UserLogsIn   == session = "out" /\ status = "active" /\ session' = "in" /\ jwt' = TRUE /\ refresh' = TRUE
                 /\ UNCHANGED <<status, agentOn, infra, ghosts>>
-UserLogsOut  == session = "in" /\ session' = "out" /\ refresh' = FALSE
-                /\ jwt' = (IF Fixed THEN FALSE ELSE jwt)
+UserLogsOut  == session = "in" /\ session' = "out" /\ refresh' = FALSE /\ jwt' = FALSE
                 /\ UNCHANGED <<status, agentOn, infra, ghosts>>
 TokenExpires == jwt /\ jwt' = FALSE /\ UNCHANGED <<session, refresh, status, agentOn, infra, ghosts>>
 \* ---- Admin ----

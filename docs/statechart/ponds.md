@@ -248,7 +248,7 @@ One named e2e test per transition (Playwright, `e2e/pond-lifecycle/` and a new `
 | J1 | Login | you log in | valid credentials | Pond list | tokens issued | `journey: login lands on pond list` |
 | J2 | Login | you log in | bad credentials / unverified | Login | 401, error shown | `journey: bad login stays on login` |
 | J3 | any (logged in) | you reload | — | same screen | session restored (refresh token) | `journey: reload keeps session` |
-| J4 | any (logged in) | you log out | — | Login | refresh revoked. r6-7(a): access token revoked too (`LogoutRevokesAccess`). On main the access token stays live | `journey: logout returns to login` |
+| J4 | any (logged in) | you log out | — | Login | refresh and access token revoked (`LogoutRevokesAccess`) | `journey: logout returns to login` |
 | J5 | Pond list | you open a pond | — | Pond · Resumen | tabs Resumen·Respaldos·Consola | `journey: pond tabs fixed order (resumen)` |
 | J6 | Pond tab | you press Respaldos | — | Pond · Respaldos | same 3 tabs, same order | `journey: pond tabs fixed order (respaldos)` |
 | J7 | Pond tab | you press Consola | — | Pond · Consola | same 3 tabs; history only for this pond | `journey: pond tabs fixed order (consola)` + `console: new pond has empty history` |

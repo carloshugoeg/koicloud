@@ -4,7 +4,7 @@
    Fixed = FALSE models main @ 72015b5 (preview as Carlos tested it, MSW mocks);
    Fixed = TRUE models the behaviour asked for in #96 r6.
    access is the access token: "none", "live", or "revoked".
-   As-is logout leaves it live. Fixed logout revokes it. Reload drops it from the browser.
+   Logout revokes it. Reload drops it from the browser without a server revoke.
    Code: apps/web/src/app/session-boot-gate.tsx, lib/auth-store.ts (in-memory tokens),
    features/ponds/detail-page.tsx:96-101, backups-page.tsx:102-104,
    sql-console/sql-console-page.tsx:47-51, mocks/handlers.ts:207 (history ignores pondId),
@@ -38,8 +38,7 @@ YouReload    == auth = "in" /\ co = "closed"
                 /\ IF Fixed THEN UNCHANGED vars
                    ELSE auth' = "out" /\ access' = "none" /\ Go("login") /\ reloadLost' = TRUE
                         /\ UNCHANGED <<cur, history, co, chargedBadCard>>
-YouLogOut    == auth = "in" /\ co = "closed" /\ auth' = "out"
-                /\ access' = (IF Fixed THEN "revoked" ELSE "live")
+YouLogOut    == auth = "in" /\ co = "closed" /\ auth' = "out" /\ access' = "revoked"
                 /\ Go("login") /\ UNCHANGED <<cur, history, reloadLost, co, chargedBadCard>>
 YouOpenPond(p) == auth = "in" /\ co = "closed" /\ screen = "list" /\ cur' = p /\ Go("resumen")
                   /\ UNCHANGED <<auth, access, history, reloadLost, co, chargedBadCard>>
