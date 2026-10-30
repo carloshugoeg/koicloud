@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Connection } from "@/api/hooks/ponds";
 import { problemToMessage } from "@/lib/errors";
+import { toast } from "@/lib/toast";
 
 const MASK = "••••••••";
 
@@ -8,9 +9,15 @@ type ConnectionCardProps = {
   connection: Connection | undefined;
   pending: boolean;
   error: unknown;
+  isError: boolean;
 };
 
-export function ConnectionCard({ connection, pending, error }: ConnectionCardProps) {
+export function ConnectionCard({
+  connection,
+  pending,
+  error,
+  isError,
+}: ConnectionCardProps) {
   const [revealed, setRevealed] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -19,6 +26,7 @@ export function ConnectionCard({ connection, pending, error }: ConnectionCardPro
     await navigator.clipboard.writeText(connection.uri);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1_200);
+    toast({ tone: "ok", message: "URI copiada" });
   }
 
   return (
@@ -43,7 +51,7 @@ export function ConnectionCard({ connection, pending, error }: ConnectionCardPro
 
       {pending ? <div className="mt-4 h-32 animate-pulse rounded-sm bg-bone-sunk" /> : null}
 
-      {error ? (
+      {isError ? (
         <div className="mt-4 border-l-[3px] border-danger pl-3 text-sm text-ink">
           {problemToMessage(error)}
         </div>

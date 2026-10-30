@@ -1,25 +1,16 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { usePlansQuery, type PlanOut, type SubscribeResponse } from "@/api/hooks";
+import { formatPrice, formatPricePeriod, formatPriceWithPeriod } from "@/lib/format-price";
 import { problemToMessage } from "@/lib/errors";
 import { CheckoutModal } from "@/features/plans/checkout-modal";
-
-function formatPrice(plan: PlanOut): string {
-  if (plan.id === "pro") return "$0.02·h";
-  if (plan.price_monthly_usd === 0) return "$0";
-  return `$${plan.price_monthly_usd}`;
-}
-
-function formatPeriod(plan: PlanOut): string {
-  if (plan.id === "sandbox") return "10 min";
-  if (plan.id === "pro") return "pospago por hora";
-  return "al mes";
-}
 
 export function PlansPage() {
   const { data: plans, isPending, isError, error, refetch } = usePlansQuery();
   const [selectedPlan, setSelectedPlan] = useState<PlanOut | null>(null);
   const [subscriptionSuccess, setSubscriptionSuccess] = useState<SubscribeResponse | null>(null);
+
+  const planById = (id: string) => plans?.find((plan) => plan.id === id);
 
   return (
     <div className="space-y-8 p-4 lg:p-8">
@@ -43,7 +34,10 @@ export function PlansPage() {
               <h2 className="mt-2 font-display text-2xl text-ink">¡Suscripción contratada con éxito!</h2>
               <p className="mt-1 text-sm text-ink-muted">
                 Tu plan <strong className="font-medium text-ink">{subscriptionSuccess.subscription.plan_id.toUpperCase()}</strong> está activo.
-                Factura emitida: <code className="font-mono text-xs">{subscriptionSuccess.invoice.number}</code> (${subscriptionSuccess.invoice.total_usd.toFixed(4)} USD).
+                Factura emitida: <code className="font-mono text-xs">{subscriptionSuccess.invoice.number}</code> ({formatPrice({
+                  unit_price: subscriptionSuccess.invoice.total_usd,
+                  currency: "USD",
+                })}).
               </p>
             </div>
             <Link
@@ -98,7 +92,7 @@ export function PlansPage() {
                     <p className="mt-2 text-sm text-ink-muted">{plan.description}</p>
                     <div className="mt-4 flex items-baseline gap-1">
                       <span className="font-display text-4xl text-ink tabular-nums">{formatPrice(plan)}</span>
-                      <span className="text-xs text-ink-muted">/ {formatPeriod(plan)}</span>
+                      <span className="text-xs text-ink-muted">{formatPricePeriod(plan)}</span>
                     </div>
                     <ul className="mt-6 space-y-2 text-sm text-ink">
                       <li className="flex items-center gap-2">
@@ -120,7 +114,7 @@ export function PlansPage() {
                   <button
                     type="button"
                     onClick={() => setSelectedPlan(plan)}
-                    className="mt-6 h-9 w-full rounded-sm bg-turquoise-700 px-4 text-sm font-medium text-bone-raised transition-colors duration-instant hover:bg-turquoise-900"
+                    className="mt-6 flex h-9 w-full items-center justify-center whitespace-nowrap rounded-sm bg-turquoise-700 px-3 text-sm font-medium text-bone-raised transition-colors duration-instant hover:bg-turquoise-900 sm:px-4"
                   >
                     Elegir plan {plan.name}
                   </button>
@@ -129,7 +123,12 @@ export function PlansPage() {
             })}
           </div>
 
-          <div className="overflow-x-auto rounded-sm border border-line bg-paper">
+          <div
+            className="overflow-x-auto rounded-sm border border-line bg-paper"
+            tabIndex={0}
+            role="region"
+            aria-label="Comparativa de planes"
+          >
             <div className="border-b border-line-control bg-bone-sunk px-4 py-3">
               <h2 className="text-xs font-medium uppercase tracking-[0.18em] text-ink-muted">
                 Comparativa de características
@@ -165,9 +164,15 @@ export function PlansPage() {
                 </tr>
                 <tr className="hover:bg-bone-raised">
                   <td className="px-4 py-2.5 font-medium text-ink">Precio base</td>
-                  <td className="px-4 py-2.5 text-right font-mono tabular-nums text-ink">$0 / 10 min</td>
-                  <td className="px-4 py-2.5 text-right font-mono tabular-nums text-ink">$5 / mes</td>
-                  <td className="px-4 py-2.5 text-right font-mono tabular-nums text-ink">$0.02·h</td>
+                  <td className="px-4 py-2.5 text-right font-mono tabular-nums text-ink">
+                    {planById("sandbox") ? formatPriceWithPeriod(planById("sandbox")!) : "—"}
+                  </td>
+                  <td className="px-4 py-2.5 text-right font-mono tabular-nums text-ink">
+                    {planById("micro") ? formatPriceWithPeriod(planById("micro")!) : "—"}
+                  </td>
+                  <td className="px-4 py-2.5 text-right font-mono tabular-nums text-ink">
+                    {planById("pro") ? formatPriceWithPeriod(planById("pro")!) : "—"}
+                  </td>
                 </tr>
               </tbody>
             </table>

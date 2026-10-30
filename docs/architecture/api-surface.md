@@ -57,8 +57,8 @@ Notación: `M ROUTE → CommandOrService` con response resumido. `[C]` = requier
 
 | M | Ruta | Command | Descripción | Response |
 |---|------|---------|-------------|----------|
-| GET | `/plans` | `list_plans` | Catálogo público | `[{plan}]` |
-| GET | `/subscriptions` | `list_my_subscriptions` | Historial del usuario | `[{subscription}]` |
+| GET | `/plans` | `list_plans` | Catálogo público | `[{plan}]` con `billing_model`, `unit_price` (4 dp), `currency` enum `"USD"` (CCR #151) |
+| GET | `/subscriptions` | `list_my_subscriptions` | Historial del usuario | `[{subscription}]` con `invoice_id` (última factura por `issued_at`, o null) |
 | POST | `/subscriptions` | `subscribe` [C-CLI/MCP] | Contrata plan; genera invoice + payment simulado | `{subscription, invoice, payment}` |
 | POST | `/subscriptions/{id}/cancel` | `cancel_subscription` [C-CLI/MCP] | Cancela al fin del período | `{subscription}` |
 | GET | `/invoices` | `list_invoices` | Historial | `[{invoice}]` |
@@ -69,20 +69,22 @@ Notación: `M ROUTE → CommandOrService` con response resumido. `[C]` = requier
 
 | M | Ruta | Command | Descripción | Response |
 |---|------|---------|-------------|----------|
-| GET | `/ponds` | `list_ponds` | Lista del usuario | `[{pond}]` |
+| GET | `/ponds` | `list_ponds` | Lista del usuario | `[{pond}]` con `size_bytes` de la última `pond_samples`, o null |
 | POST | `/ponds` | `create_pond` [C-CLI/MCP] | Crea (nombre, plan heredado, versión=16) | `202 {pond, job}` |
-| GET | `/ponds/{id}` | `get_pond` | Detalle con estado observado | `{pond}` |
+| GET | `/ponds/{id}` | `get_pond` | Detalle con estado observado | `{pond}` con `size_bytes` (última muestra o null) |
 | GET | `/ponds/by-name/{name}` | `get_pond_by_name` | Lookup por nombre | `{pond}` |
 | GET | `/ponds/{id}/connection` | `get_connection` | Host/port/user/pass/uri | `{connection}` |
 | POST | `/ponds/{id}/retry` | `retry_failed_job` [C-CLI/MCP] | Reencola último job failed | `202 {job}` |
+| POST | `/ponds/{id}/stop` | `stop_pond` [C-CLI/MCP] | `desired=stopped` + job `stop_pond` | `202 {pond, job}` |
+| POST | `/ponds/{id}/start` | `start_pond` [C-CLI/MCP] | `desired=running` + job `start_pond` | `202 {pond, job}` |
 | DELETE | `/ponds/{id}` | `delete_pond` [C-CLI/MCP] | Encola backup pre_delete + delete | `202 {pond, jobs[]}` |
 
 ### 2.4 Respaldos
 
 | M | Ruta | Command | Descripción | Response |
 |---|------|---------|-------------|----------|
-| GET | `/ponds/{id}/backups` | `list_backups` | Lista respaldos del pond | `[{backup}]` |
-| POST | `/ponds/{id}/backups` | `trigger_backup` [C-CLI/MCP] | Encola backup on-demand | `202 {backup, job}` |
+| GET | `/ponds/{id}/backups` | `list_backups` | Lista respaldos del pond | `[{backup}]` con `expires_at` derivado (null si status≠succeeded o kind=pre_delete; si no `created_at` + 7 d UTC). Sin columna en DB. |
+| POST | `/ponds/{id}/backups` | `trigger_backup` [C-CLI/MCP] | Encola backup on-demand | `202 {backup, job}` (`expires_at` null mientras queued/running) |
 | POST | `/ponds/{id}/restore` | `restore_backup` [C-CLI/MCP] | Encola restore con `{backup_id}` | `202 {job}` |
 
 ### 2.5 Consola SQL
@@ -120,9 +122,10 @@ Todas requieren `role=admin`.
 | M | Ruta | Command | Descripción | Response |
 |---|------|---------|-------------|----------|
 | GET | `/admin/users` | `admin_list_users` | Paginado | `[{admin_user}]` |
-| POST | `/admin/users/{id}/suspend` | `suspend_user` (siempre requiere confirm textual del admin en Web) | Suspende | `{user}` |
+| POST | `/admin/users/{id}/suspend` | `suspend_user` (confirm textual `SUSPENDER`; body opcional `reason` trim≤500 → `audit_events.metadata.reason`) | Suspende | `{user}` |
 | POST | `/admin/users/{id}/reactivate` | `reactivate_user` | Reactiva | `{user}` |
-| GET | `/admin/ponds` | `admin_list_ponds` | Todos los ponds; filtros | `[{admin_pond}]` |
+| GET | `/admin/ponds` | `admin_list_ponds` | Todos los ponds; filtros | `[{admin_pond}]` con `size_bytes` y `last_error` |
+| GET | `/admin/totals` | `admin_get_totals` | Conteos globales, no por página | `{totals:{users, ponds, ponds_running}}`. `ponds` y `ponds_running` excluyen `desired_state=deleted`. `ponds_running` cuenta `observed_state=running` |
 | GET | `/admin/audit` | `admin_list_audit` | Últimos eventos sensibles | `[{event}]` |
 
 ### 2.10 Health
@@ -177,6 +180,8 @@ Servidor **FastMCP** montado en el mismo proceso API. Cada tool es de ≤ 25 lí
 | `get_connection(name)` | URI y credenciales del pond | ✓ | — |
 | `create_pond(name)` | Encola creación | — | ✓ |
 | `delete_pond(name)` | Encola eliminación con backup previo | — | ✓ |
+| `stop_pond(name)` | Encola detención (`desired=stopped`) | — | ✓ |
+| `start_pond(name)` | Encola arranque (`desired=running`) | — | ✓ |
 | `list_subscriptions()` | Suscripciones del usuario | ✓ | — |
 | `list_backups(pond_name)` | Respaldos disponibles | ✓ | — |
 | `restore_backup(pond_name, backup_id)` | Encola restore | — | ✓ |
@@ -216,6 +221,8 @@ Servidor **FastMCP** montado en el mismo proceso API. Cada tool es de ≤ 25 lí
 | `koicloud pond get <name>` | `GET /ponds/by-name/{name}` | — |
 | `koicloud pond create <name>` | `POST /ponds` (con confirm) | Doble confirm |
 | `koicloud pond connection <name>` | `GET /ponds/{id}/connection` | Imprime URI copiable |
+| `koicloud pond stop <name>` | `POST /ponds/{id}/stop` (con confirm) | Doble confirm |
+| `koicloud pond start <name>` | `POST /ponds/{id}/start` (con confirm) | Doble confirm |
 | `koicloud pond delete <name>` | `DELETE /ponds/{id}` (con confirm) | Doble confirm |
 | `koicloud sql run --pond <name> -q "…"` | `POST /ponds/{id}/sql {mode:read}` | Modo read por defecto |
 | `koicloud sql run --pond <name> -q "…" --write` | `POST /ponds/{id}/sql {mode:write}` (con confirm) | Doble confirm |
@@ -225,6 +232,7 @@ Servidor **FastMCP** montado en el mismo proceso API. Cada tool es de ≤ 25 lí
 | `koicloud agent show` | `GET /agent-access` | Imprime slug + URL (no password) |
 | `koicloud agent rotate` | `POST /agent-access/rotate` (con confirm) | Muestra la nueva password una sola vez |
 | `koicloud usage` | `GET /usage` | Vista tabular |
+| `koicloud invoice list` | `GET /invoices` | Tabla |
 | `koicloud confirm <token>` | `POST /confirm/{token}` | Genérico para cualquier pendiente |
 | `koicloud confirm cancel <token>` | `DELETE /confirm/{token}` | Descarta pendiente |
 
@@ -323,6 +331,7 @@ Códigos estables (fuente única para clientes). El backend lanza `AppError(code
 | `agent_bad_credentials` | 401 | /mcp | — |
 | `not_owner` | 403 | cualquier recurso ajeno | — |
 | `admin_only` | 403 | rutas admin | — |
+| `user_not_found` | 404 | admin users/{id}/… | “No existe el usuario solicitado” |
 | `rate_limited` | 429 | login/register/forgot/mcp | “Muchos intentos, esperá un momento” |
 | `disk_full` | 507 | create_pond / backup | — |
 | `internal_error` | 500 | genérico | “Algo salió mal, revisá los logs” |

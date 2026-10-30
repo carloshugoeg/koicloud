@@ -64,10 +64,11 @@ flowchart TB
 | Paso | Qué pasa |
 |------|----------|
 | Crear pond (Web) | `POST /api/v1/ponds` → `create_pond` → fila en `ponds` + job `provision` → node-agent `claim` → `docker run` → heartbeat actualiza `observed` |
+| Stop/start pond | `POST /ponds/{id}/stop\|start` → `desired=stopped\|running` + job `stop_pond\|start_pond` → `202 {pond, job}`; wrong state / job in flight → `409 pond_busy`; CLI/MCP confirm first |
 | Mutar (CLI/MCP) | Primera llamada → `409 confirmation_required` + token; `POST /confirm/{token}` ejecuta el comando |
-| Respaldos | Worker agenda backup diario; restore encola job y pasa por confirmación en superficies no-Web |
-| Facturación | Planes y suscripciones en `billing`; pago simulado; PDF de factura con IVA |
-| Admin | Rutas bajo dependencia `get_admin_user`; listados de usuarios/ponds/auditoría |
+| Respaldos | Worker agenda backup diario; restore encola job y pasa por confirmación en superficies no-Web. `BackupOut.expires_at` se deriva al responder: 7 días después de `created_at` si el respaldo está `succeeded` y no es `pre_delete` |
+| Facturación | Planes y suscripciones en `billing`; pago simulado; PDF de factura con IVA. `GET /plans` expone `billing_model`, `unit_price` y `currency`; la Web formatea con `formatPrice` (sin precios hard-coded). |
+| Admin | Rutas bajo dependencia `get_admin_user`; listados de usuarios/ponds/auditoría y `GET /admin/totals`; `POST …/suspend` acepta `reason` opcional y lo guarda en `audit_events.metadata.reason` |
 
 ---
 

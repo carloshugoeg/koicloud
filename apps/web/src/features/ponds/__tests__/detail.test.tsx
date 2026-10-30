@@ -1,11 +1,12 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { HttpResponse, http } from "msw";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { vi } from "vitest";
 import { appRoutes } from "@/app/router";
 import { useAuthStore } from "@/lib/auth-store";
+import { ToastHost } from "@/lib/toast-host";
 import { fixtures } from "@/mocks/fixtures";
 import { server } from "@/mocks/server";
 
@@ -33,6 +34,7 @@ function renderDetail(entry = `/app/ponds/${POND_ID}`) {
   render(
     <QueryClientProvider client={client}>
       <RouterProvider router={router} />
+      <ToastHost />
     </QueryClientProvider>,
   );
 }
@@ -83,6 +85,132 @@ describe("W2-06 Detalle del pond y conexión", () => {
     expect(screen.getByTestId("pond-failed")).toHaveTextContent("Último error: disk_full");
   });
 
+  it("enables Reintentar from Con fallas and shows Iniciando… after start retry", async () => {
+    const user = userEvent.setup();
+    let getCount = 0;
+    const retry = vi.fn();
+    server.use(
+      http.get(`*/api/v1/ponds/${POND_ID}`, () => {
+        getCount += 1;
+        if (getCount === 1) {
+          return HttpResponse.json({
+            pond: {
+              ...fixtures.pond,
+              id: POND_ID,
+              desired_state: "running",
+              observed_state: "failed",
+              healthy: false,
+              last_error: "boom",
+            },
+          });
+        }
+        return HttpResponse.json({
+          pond: {
+            ...fixtures.pond,
+            id: POND_ID,
+            desired_state: "running",
+            observed_state: "stopped",
+            healthy: false,
+            last_error: null,
+          },
+        });
+      }),
+      http.post(`*/api/v1/ponds/${POND_ID}/retry`, () => {
+        retry();
+        return HttpResponse.json(
+          {
+            job: {
+              id: "job_retry_01",
+              type: "start_pond",
+              status: "queued",
+              attempts: 0,
+              created_at: "2026-09-22T21:00:00Z",
+              node_id: "node-sv-01",
+              pond_id: POND_ID,
+              claimed_at: null,
+              completed_at: null,
+              last_error: null,
+            },
+          },
+          { status: 202 },
+        );
+      }),
+    );
+
+    renderDetail();
+    expect(await screen.findByTestId("pond-status-badge")).toHaveTextContent("Con fallas");
+    expect(screen.getByTestId("pond-stop")).toBeDisabled();
+    expect(screen.getByTestId("pond-start")).toBeDisabled();
+    expect(screen.getByTestId("pond-retry")).toBeEnabled();
+
+    await user.click(screen.getByTestId("pond-retry"));
+    await waitFor(() => {
+      expect(retry).toHaveBeenCalled();
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("pond-status-badge")).toHaveTextContent("Iniciando…");
+    });
+    expect(screen.queryByText("En cola")).not.toBeInTheDocument();
+  });
+
+  it("shows Deteniendo… after stop retry from Con fallas", async () => {
+    const user = userEvent.setup();
+    let getCount = 0;
+    server.use(
+      http.get(`*/api/v1/ponds/${POND_ID}`, () => {
+        getCount += 1;
+        if (getCount === 1) {
+          return HttpResponse.json({
+            pond: {
+              ...fixtures.pond,
+              id: POND_ID,
+              desired_state: "stopped",
+              observed_state: "failed",
+              healthy: false,
+              last_error: "stop boom",
+            },
+          });
+        }
+        return HttpResponse.json({
+          pond: {
+            ...fixtures.pond,
+            id: POND_ID,
+            desired_state: "stopped",
+            observed_state: "running",
+            healthy: false,
+            last_error: null,
+          },
+        });
+      }),
+      http.post(`*/api/v1/ponds/${POND_ID}/retry`, () =>
+        HttpResponse.json(
+          {
+            job: {
+              id: "job_retry_stop",
+              type: "stop_pond",
+              status: "queued",
+              attempts: 0,
+              created_at: "2026-09-22T21:00:00Z",
+              node_id: "node-sv-01",
+              pond_id: POND_ID,
+              claimed_at: null,
+              completed_at: null,
+              last_error: null,
+            },
+          },
+          { status: 202 },
+        ),
+      ),
+    );
+
+    renderDetail();
+    expect(await screen.findByTestId("pond-status-badge")).toHaveTextContent("Con fallas");
+    await user.click(screen.getByTestId("pond-retry"));
+    await waitFor(() => {
+      expect(screen.getByTestId("pond-status-badge")).toHaveTextContent("Deteniendo…");
+    });
+  });
+
   it("shows connection fields and En línea badge for a running pond", async () => {
     renderDetail();
 
@@ -114,6 +242,82 @@ describe("W2-06 Detalle del pond y conexión", () => {
     await waitFor(() => {
       expect(writeText).toHaveBeenCalledWith(fixtures.connection.uri);
     });
+    expect(screen.getByTestId("copy-uri")).toHaveTextContent("URI copiada");
+    expect(screen.getByTestId("toast")).toHaveTextContent("URI copiada");
+  });
+
+  it("shows Detener enabled and Iniciar disabled for a running pond", async () => {
+    renderDetail();
+    expect(await screen.findByTestId("pond-detail")).toBeInTheDocument();
+    expect(screen.getByTestId("pond-stop")).toBeEnabled();
+    expect(screen.getByTestId("pond-start")).toBeDisabled();
+  });
+
+  it("stops a running pond and disables both buttons while stopping", async () => {
+    const user = userEvent.setup();
+    let getCount = 0;
+    server.use(
+      http.get(`*/api/v1/ponds/${POND_ID}`, () => {
+        getCount += 1;
+        if (getCount === 1) {
+          return HttpResponse.json({ pond: fixtures.pond });
+        }
+        return HttpResponse.json({
+          pond: {
+            ...fixtures.pond,
+            desired_state: "stopped",
+            observed_state: "running",
+          },
+        });
+      }),
+    );
+
+    renderDetail();
+    expect(await screen.findByTestId("pond-stop")).toBeEnabled();
+    await user.click(screen.getByTestId("pond-stop"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("pond-status-badge")).toHaveTextContent("Deteniendo…");
+    });
+    expect(screen.getByTestId("pond-stop")).toBeDisabled();
+    expect(screen.getByTestId("pond-start")).toBeDisabled();
+  });
+
+  it("starts a stopped pond", async () => {
+    const user = userEvent.setup();
+    let getCount = 0;
+    server.use(
+      http.get(`*/api/v1/ponds/${POND_ID}`, () => {
+        getCount += 1;
+        if (getCount === 1) {
+          return HttpResponse.json({
+            pond: {
+              ...fixtures.pond,
+              desired_state: "stopped",
+              observed_state: "stopped",
+            },
+          });
+        }
+        return HttpResponse.json({
+          pond: {
+            ...fixtures.pond,
+            desired_state: "running",
+            observed_state: "stopped",
+          },
+        });
+      }),
+    );
+
+    renderDetail();
+    expect(await screen.findByTestId("pond-start")).toBeEnabled();
+    expect(screen.getByTestId("pond-stop")).toBeDisabled();
+    await user.click(screen.getByTestId("pond-start"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("pond-status-badge")).toHaveTextContent("Iniciando…");
+    });
+    expect(screen.getByTestId("pond-stop")).toBeDisabled();
+    expect(screen.getByTestId("pond-start")).toBeDisabled();
   });
 
   it("shows catalog message for pond_not_found without a stack", async () => {
@@ -133,46 +337,90 @@ describe("W2-06 Detalle del pond y conexión", () => {
     expect(screen.queryByText(/at Object|TypeError|stack/i)).not.toBeInTheDocument();
   });
 
-  it("shows Respaldar ahora and Eliminar without Detener or Iniciar", async () => {
+  it("posts backup now as 202 while the pond is running", async () => {
+    const user = userEvent.setup();
+    let status = 0;
+    let confirmToken: string | null = "unset";
+    server.use(
+      http.post(`*/api/v1/ponds/${POND_ID}/backups`, ({ request }) => {
+        status = 202;
+        confirmToken = request.headers.get("X-KOI-Confirm-Token");
+        return HttpResponse.json(
+          {
+            backup: {
+              ...fixtures.backups[1],
+              completed_at: null,
+              expires_at: null,
+              status: "queued",
+            },
+            job: {
+              attempts: 0,
+              created_at: "2026-10-26T15:00:00Z",
+              id: "job_backup_01",
+              node_id: "node-sv-01",
+              pond_id: POND_ID,
+              status: "queued",
+              type: "backup_pond",
+            },
+          },
+          { status: 202 },
+        );
+      }),
+    );
+
     renderDetail();
-    expect(await screen.findByTestId("pond-detail-actions")).toBeInTheDocument();
-    expect(screen.getByTestId("trigger-backup")).toHaveTextContent("Respaldar ahora");
-    expect(screen.getByTestId("open-delete-pond")).toHaveTextContent("Eliminar…");
-    expect(screen.queryByRole("button", { name: /Detener|Iniciar/i })).not.toBeInTheDocument();
+    expect(await screen.findByTestId("pond-detail")).toBeInTheDocument();
+    expect(screen.queryByTestId("pond-retry")).not.toBeInTheDocument();
+    await user.click(screen.getByTestId("backup-now"));
+
+    expect(await screen.findByText("Respaldo encolado")).toBeInTheDocument();
+    expect(status).toBe(202);
+    expect(confirmToken).toBeNull();
   });
 
-  it("confirms before queuing an on-demand backup", async () => {
+  it("posts retry as 202 when the pond failed (no confirm token)", async () => {
     const user = userEvent.setup();
+    let status = 0;
+    let confirmToken: string | null = "unset";
+    server.use(
+      http.get(`*/api/v1/ponds/${POND_ID}`, () =>
+        HttpResponse.json({
+          pond: {
+            ...fixtures.pond,
+            healthy: false,
+            last_error: "driver timeout",
+            observed_state: "failed",
+          },
+        }),
+      ),
+      http.post(`*/api/v1/ponds/${POND_ID}/retry`, ({ request }) => {
+        status = 202;
+        confirmToken = request.headers.get("X-KOI-Confirm-Token");
+        return HttpResponse.json(
+          {
+            job: {
+              attempts: 1,
+              created_at: "2026-10-26T15:00:00Z",
+              id: "job_retry_01",
+              node_id: "node-sv-01",
+              pond_id: POND_ID,
+              status: "queued",
+              type: "backup_pond",
+            },
+          },
+          { status: 202 },
+        );
+      }),
+    );
+
     renderDetail();
-    expect(await screen.findByTestId("trigger-backup")).toBeInTheDocument();
-    await user.click(screen.getByTestId("trigger-backup"));
+    expect(await screen.findByTestId("pond-detail")).toBeInTheDocument();
+    expect(screen.queryByTestId("backup-now")).not.toBeInTheDocument();
+    await user.click(screen.getByTestId("pond-retry"));
 
-    const dialog = await screen.findByTestId("backup-confirm-dialog");
-    await user.click(within(dialog).getByTestId("backup-confirm-button"));
-    expect(await screen.findByTestId("backup-queued")).toHaveTextContent("job_backup_01");
-    expect(screen.queryByTestId("backup-confirm-dialog")).not.toBeInTheDocument();
-  });
-
-  it("requires typing the pond name before delete confirm", async () => {
-    const user = userEvent.setup();
-    renderDetail();
-    expect(await screen.findByTestId("open-delete-pond")).toBeInTheDocument();
-    await user.click(screen.getByTestId("open-delete-pond"));
-
-    const dialog = await screen.findByTestId("delete-pond-dialog");
-    const confirm = within(dialog).getByTestId("delete-confirm-button");
-    expect(confirm).toBeDisabled();
-
-    await user.type(within(dialog).getByTestId("delete-confirm-input"), "nombre-incorrecto");
-    expect(confirm).toBeDisabled();
-
-    await user.clear(within(dialog).getByTestId("delete-confirm-input"));
-    await user.type(within(dialog).getByTestId("delete-confirm-input"), fixtures.pond.name);
-    expect(confirm).toBeEnabled();
-
-    await user.click(confirm);
     await waitFor(() => {
-      expect(screen.queryByTestId("delete-pond-dialog")).not.toBeInTheDocument();
+      expect(status).toBe(202);
     });
+    expect(confirmToken).toBeNull();
   });
 });

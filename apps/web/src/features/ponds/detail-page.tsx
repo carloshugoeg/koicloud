@@ -1,30 +1,21 @@
-import { useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import {
-  pondIsTransient,
-  useDeletePondMutation,
+  pondNeedsPolling,
   useGetConnection,
   useGetPond,
   useTriggerBackupMutation,
 } from "@/api/hooks/ponds";
-import { ApiError, problemToMessage } from "@/lib/errors";
-import { BackupConfirmDialog } from "@/features/ponds/backup-confirm-dialog";
 import { ConnectionCard } from "@/features/ponds/connection-card";
-import { DeletePondDialog } from "@/features/ponds/delete-pond-dialog";
-import { PondRiskZone } from "@/features/ponds/pond-risk-zone";
-import { pondStateMeta } from "@/features/ponds/pond-state";
+import { PondLifecycleActions } from "@/features/ponds/pond-lifecycle-actions";
+import { pondDisplayMeta, pondLifecycleInFlight } from "@/features/ponds/pond-state";
+import { ApiError, problemToMessage } from "@/lib/errors";
+import { toast } from "@/lib/toast";
 
 export function PondDetailPage() {
   const { pondId = "" } = useParams();
-  const navigate = useNavigate();
   const pondQuery = useGetPond(pondId || undefined);
   const connectionQuery = useGetConnection(pondId || undefined);
   const backupMutation = useTriggerBackupMutation(pondId);
-  const deleteMutation = useDeletePondMutation(pondId);
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const [backupOpen, setBackupOpen] = useState(false);
-  const [confirmName, setConfirmName] = useState("");
-  const [backupJobId, setBackupJobId] = useState<string | null>(null);
 
   if (pondQuery.isPending) {
     return (
@@ -71,36 +62,17 @@ export function PondDetailPage() {
     );
   }
 
-  const meta = pondStateMeta(pond.observed_state);
-  const inProgress = pondIsTransient(pond.observed_state);
+  const meta = pondDisplayMeta(pond);
+  const inProgress = pondNeedsPolling(pond) || pondLifecycleInFlight(pond);
   const failed = pond.observed_state === "failed";
-  const actionsDisabled = inProgress || pond.observed_state === "deleted";
 
-  async function handleBackup() {
+  async function handleBackupNow() {
     try {
-      const result = await backupMutation.mutateAsync();
-      setBackupJobId(result.job.id);
-      setBackupOpen(false);
-    } catch {
-      // surfaced via backupMutation.error
+      await backupMutation.mutateAsync();
+      toast({ tone: "ok", message: "Respaldo encolado" });
+    } catch (error) {
+      toast({ tone: "danger", message: problemToMessage(error) });
     }
-  }
-
-  async function handleDelete() {
-    if (confirmName !== pond.name) return;
-    try {
-      await deleteMutation.mutateAsync();
-      setDeleteOpen(false);
-      setConfirmName("");
-      void navigate("/app/ponds");
-    } catch {
-      // surfaced via deleteMutation.error
-    }
-  }
-
-  function openDelete() {
-    setConfirmName("");
-    setDeleteOpen(true);
   }
 
   return (
@@ -130,37 +102,21 @@ export function PondDetailPage() {
             </Link>
           </nav>
         </div>
-        <div className="flex flex-wrap gap-2" data-testid="pond-detail-actions">
-          <button
-            type="button"
-            className="h-8 rounded-sm border border-line-control bg-bone-raised px-3 text-sm font-medium text-ink disabled:text-ink-faint"
-            disabled={actionsDisabled || backupMutation.isPending}
-            onClick={() => setBackupOpen(true)}
-            data-testid="trigger-backup"
-          >
-            Respaldar ahora
-          </button>
-          <button
-            type="button"
-            className="h-8 rounded-sm border border-danger bg-bone-raised px-3 text-sm font-medium text-danger disabled:border-line-control disabled:text-ink-faint"
-            disabled={actionsDisabled || deleteMutation.isPending}
-            onClick={openDelete}
-            data-testid="open-delete-pond"
-          >
-            Eliminar…
-          </button>
+        <div className="flex flex-wrap items-center gap-2">
+          {pond.observed_state === "running" ? (
+            <button
+              type="button"
+              className="h-9 rounded-sm bg-turquoise-700 px-4 text-sm font-medium text-bone-raised hover:bg-turquoise-900 disabled:bg-bone-sunk disabled:text-ink-faint"
+              data-testid="backup-now"
+              disabled={backupMutation.isPending}
+              onClick={() => void handleBackupNow()}
+            >
+              {backupMutation.isPending ? "Respaldando…" : "Respaldar ahora"}
+            </button>
+          ) : null}
+          <PondLifecycleActions pond={pond} />
         </div>
       </div>
-
-      {backupJobId ? (
-        <div
-          className="rounded-md border border-line bg-turquoise-100 px-4 py-3 text-sm text-turquoise-900"
-          data-testid="backup-queued"
-        >
-          Respaldo encolado. Job <span className="font-mono">{backupJobId}</span> · estado{" "}
-          <span className="font-mono">queued</span>.
-        </div>
-      ) : null}
 
       {inProgress ? (
         <section
@@ -204,40 +160,9 @@ export function PondDetailPage() {
       <ConnectionCard
         connection={connectionQuery.data}
         pending={connectionQuery.isPending}
-        error={connectionQuery.isError ? connectionQuery.error : null}
+        error={connectionQuery.error}
+        isError={connectionQuery.isError}
       />
-
-      <PondRiskZone
-        disabled={actionsDisabled || deleteMutation.isPending}
-        onDelete={openDelete}
-      />
-
-      {backupOpen ? (
-        <BackupConfirmDialog
-          pondName={pond.name}
-          pending={backupMutation.isPending}
-          errorMessage={
-            backupMutation.isError ? problemToMessage(backupMutation.error) : null
-          }
-          onCancel={() => setBackupOpen(false)}
-          onConfirm={() => void handleBackup()}
-        />
-      ) : null}
-
-      {deleteOpen ? (
-        <DeletePondDialog
-          pondName={pond.name}
-          confirmName={confirmName}
-          pending={deleteMutation.isPending}
-          error={deleteMutation.error}
-          onConfirmNameChange={setConfirmName}
-          onCancel={() => {
-            setDeleteOpen(false);
-            setConfirmName("");
-          }}
-          onSubmit={() => void handleDelete()}
-        />
-      ) : null}
     </div>
   );
 }

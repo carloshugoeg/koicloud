@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta
+
 from fastapi.testclient import TestClient
 
 from app.core.config import get_settings
@@ -58,11 +60,13 @@ def test_list_backups_empty_then_persists_on_demand() -> None:
     assert body["backup"]["pond_id"] == pond_id
     assert body["job"]["type"] == "backup_pond"
     assert body["job"]["status"] == "queued"
+    assert body["backup"]["expires_at"] is None
 
     listed = client.get(f"/api/v1/ponds/{pond_id}/backups", headers=headers)
     assert listed.status_code == 200
     assert len(listed.json()["backups"]) == 1
     assert listed.json()["backups"][0]["id"] == backup_id
+    assert listed.json()["backups"][0]["expires_at"] is None
 
     claimed = client.post("/internal/v1/jobs/claim", headers=node_headers(), json={})
     assert claimed.status_code == 200
@@ -98,6 +102,9 @@ def test_list_backups_empty_then_persists_on_demand() -> None:
     assert row["size_bytes"] == 42
     assert row["sha256"] == "a" * 64
     assert row["completed_at"] is not None
+    created = datetime.fromisoformat(row["created_at"])
+    expires = datetime.fromisoformat(row["expires_at"])
+    assert expires - created == timedelta(days=7)
 
 
 def test_restore_backup_happy_path_and_rejects_foreign_id() -> None:

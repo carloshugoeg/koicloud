@@ -27,6 +27,7 @@ from app.modules.auth import AuthService
 from app.modules.auth.service import REFRESH_COOKIE
 from app.schemas import (
     AdminPondListResponse,
+    AdminTotalsResponse,
     AdminUserListResponse,
     AdminUserResponse,
     AgentAccessOut,
@@ -62,6 +63,8 @@ from app.schemas import (
     RunSQLRequest,
     SQLHistoryResponse,
     SQLResultResponse,
+    StartPondResponse,
+    StopPondResponse,
     SubscribeRequest,
     SubscribeResponse,
     SubscriptionListResponse,
@@ -470,6 +473,52 @@ async def delete_pond(
     return _render(result, success_status=status.HTTP_202_ACCEPTED)
 
 
+@router.post(
+    "/ponds/{pond_id}/stop",
+    response_model=StopPondResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    operation_id="stop_pond",
+    tags=["ponds"],
+    responses=_error_responses(401, 403, 404, 409, 503, confirmation=True),
+)
+async def stop_pond(
+    pond_id: UUID,
+    actor: Annotated[AuthContext, Depends(get_current_user)],
+    surface: Annotated[AppSurface, Depends(get_surface)],
+    confirm_token: Annotated[str | None, Depends(get_confirmation_token)],
+) -> Response:
+    result = await pond_commands.stop_pond(
+        actor,
+        pond_id,
+        surface=surface,
+        confirm_token=confirm_token,
+    )
+    return _render(result, success_status=status.HTTP_202_ACCEPTED)
+
+
+@router.post(
+    "/ponds/{pond_id}/start",
+    response_model=StartPondResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    operation_id="start_pond",
+    tags=["ponds"],
+    responses=_error_responses(401, 403, 404, 409, 503, confirmation=True),
+)
+async def start_pond(
+    pond_id: UUID,
+    actor: Annotated[AuthContext, Depends(get_current_user)],
+    surface: Annotated[AppSurface, Depends(get_surface)],
+    confirm_token: Annotated[str | None, Depends(get_confirmation_token)],
+) -> Response:
+    result = await pond_commands.start_pond(
+        actor,
+        pond_id,
+        surface=surface,
+        confirm_token=confirm_token,
+    )
+    return _render(result, success_status=status.HTTP_202_ACCEPTED)
+
+
 @router.get(
     "/ponds/{pond_id}/backups",
     response_model=BackupListResponse,
@@ -690,9 +739,9 @@ async def admin_list_users(
 async def suspend_user(
     user_id: UUID,
     payload: SuspendUserRequest,
-    _: Annotated[AuthContext, Depends(get_admin_user)],
+    actor: Annotated[AuthContext, Depends(get_admin_user)],
 ) -> AdminUserResponse:
-    return await admin_commands.suspend_user(user_id, payload)
+    return await admin_commands.suspend_user(user_id, payload, actor=actor)
 
 
 @router.post(
@@ -720,6 +769,19 @@ async def admin_list_ponds(
     _: Annotated[AuthContext, Depends(get_admin_user)],
 ) -> AdminPondListResponse:
     return await admin_commands.admin_list_ponds()
+
+
+@router.get(
+    "/admin/totals",
+    response_model=AdminTotalsResponse,
+    operation_id="admin_get_totals",
+    tags=["admin"],
+    responses=_error_responses(401, 403),
+)
+async def admin_get_totals(
+    _: Annotated[AuthContext, Depends(get_admin_user)],
+) -> AdminTotalsResponse:
+    return await admin_commands.admin_get_totals()
 
 
 @router.get(

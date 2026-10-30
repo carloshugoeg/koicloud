@@ -1,6 +1,7 @@
 # Production compose for a provisioned Linux host. No VPS/IP is named here.
 # Local check: bash infra/scripts/check-prod-compose.sh
 # Host: docker compose --env-file infra/env/prod.env -f infra/docker-compose.prod.yml …
+# HTTP-only local proxy overlay: -f infra/docker-compose.http.yml
 
 name: koicloud
 
@@ -19,12 +20,15 @@ services:
       interval: 5s
       timeout: 5s
       retries: 20
+      start_period: 10s
 
   api:
     build:
       context: ../apps/api
     restart: unless-stopped
     environment:
+      # Pinned: Settings.reject_console_email_in_production only runs in production.
+      ENVIRONMENT: production
       DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://koi:change-me@db:5432/koicloud}
       JWT_SECRET: ${JWT_SECRET:-change-me-32-random-bytes}
       REFRESH_TTL_DAYS: ${REFRESH_TTL_DAYS:-30}
@@ -36,7 +40,8 @@ services:
       POND_PORT_RANGE_START: ${POND_PORT_RANGE_START:-15000}
       POND_PORT_RANGE_END: ${POND_PORT_RANGE_END:-15999}
       MCP_ENABLED: ${MCP_ENABLED:-true}
-      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-console}
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER}
+      PAYMENT_PROVIDER: ${PAYMENT_PROVIDER}
       INVOICE_DIR: ${INVOICE_DIR:-/var/lib/koicloud/invoices}
       BACKUP_DIR: ${BACKUP_DIR:-/var/lib/koicloud/backups}
     volumes:
@@ -69,11 +74,13 @@ services:
       context: ../apps/api
     restart: unless-stopped
     environment:
+      ENVIRONMENT: production
       DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://koi:change-me@db:5432/koicloud}
       JWT_SECRET: ${JWT_SECRET:-change-me-32-random-bytes}
       POND_PASSWORD_KEY: ${POND_PASSWORD_KEY:-change-me-fernet-key}
       NODE_ID: ${NODE_ID:-node-prod}
       NODE_TOKEN: ${NODE_TOKEN:-change-me}
+      PAYMENT_PROVIDER: ${PAYMENT_PROVIDER}
       INVOICE_DIR: ${INVOICE_DIR:-/var/lib/koicloud/invoices}
       BACKUP_DIR: ${BACKUP_DIR:-/var/lib/koicloud/backups}
     volumes:
@@ -84,6 +91,12 @@ services:
         condition: service_healthy
       api:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f 'app.workers' >/dev/null"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
     command:
       [
         "sh",
@@ -107,6 +120,11 @@ services:
     depends_on:
       api:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "caddy", "version"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
 volumes:
   koicloud_db:

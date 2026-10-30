@@ -1,0 +1,62 @@
+---
+title: "Pond lifecycle — stop, start, delete with backup first"
+---
+stateDiagram-v2
+  state "At the same time" as regions {
+    state "What you asked for" as Desire {
+      [*] --> WantRunning
+      state "Keep it on" as WantRunning
+      state "Keep it off" as WantStopped
+      state "Remove it" as WantGone
+
+      WantRunning --> WantStopped : you stop [when Online]
+      WantStopped --> WantRunning : you start [when Offline]
+      WantRunning --> WantGone : you delete [when Online]
+      WantStopped --> WantGone : you delete [when Offline]
+      WantRunning --> WantGone : you delete [when Broken]
+      WantStopped --> WantGone : you delete [when Broken]
+    }
+    --
+    state "What the pond shows" as Pond {
+      [*] --> Pending
+      state "Not ready yet" as Pending
+      state "Online" as Online
+      state "Offline" as Offline
+      state "Saving a last backup" as BackingUp
+      state "Being removed" as Removing
+      state "Gone" as Gone
+      state "Broken" as Broken
+
+      Pending --> Online : create finishes [when Keep it on]
+      Pending --> Broken : create fails
+
+      Online --> Offline : stop finishes [when Keep it off]
+      Online --> Broken : stop fails [when Keep it off]
+      Online --> BackingUp : you delete
+      Online --> Online : restore finishes [when Keep it on]
+      Online --> Broken : restore fails [when Keep it on]
+
+      Offline --> Online : start finishes [when Keep it on]
+      Offline --> Broken : start fails [when Keep it on]
+      Offline --> BackingUp : you delete
+
+      Broken --> BackingUp : you delete
+      Broken --> Pending : you retry create [when Keep it on]
+      Broken --> Offline : stop finishes [when Keep it off]
+      Broken --> Online : start finishes [when Keep it on]
+      Broken --> BackingUp : you retry last backup [when Remove it]
+      Broken --> Removing : you retry delete [when Remove it]
+
+      BackingUp --> Removing : last backup finishes [when Remove it]
+      BackingUp --> Broken : last backup fails [when Remove it]
+
+      Removing --> Gone : delete finishes [when Remove it]
+      Removing --> Broken : delete fails [when Remove it]
+    }
+  }
+
+  %% never GoneWhileWantedOn: Keep it on & Gone -- The pond is never gone while you still asked to keep it on
+  %% never GoneWhileWantedOff: Keep it off & Gone -- The pond is never gone while you still asked to keep it off
+  %% never OnlineAfterYouRemovedIt: Remove it & Online -- After you ask to remove it, the pond is never still Online
+  %% never OfflineAfterYouRemovedIt: Remove it & Offline -- After you ask to remove it, the pond is never still Offline
+  %% never GoneOnlyWhenRemoved: Keep it on & Gone -- Gone only while remove is desired

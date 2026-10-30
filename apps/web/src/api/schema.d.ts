@@ -38,6 +38,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/totals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin Get Totals */
+        get: operations["admin_get_totals"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/users": {
         parameters: {
             query?: never;
@@ -536,6 +553,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ponds/{pond_id}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start Pond */
+        post: operations["start_pond"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ponds/{pond_id}/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stop Pond */
+        post: operations["stop_pond"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ready": {
         parameters: {
             query?: never;
@@ -713,7 +764,8 @@ export interface components {
          *           "node_id": "node-sv-01",
          *           "observed_state": "running",
          *           "owner_email": "carlos@koicloud.dev",
-         *           "plan_id": "micro"
+         *           "plan_id": "micro",
+         *           "size_bytes": 124901
          *         }
          *       ]
          *     }
@@ -735,7 +787,8 @@ export interface components {
          *       "node_id": "node-sv-01",
          *       "observed_state": "running",
          *       "owner_email": "carlos@koicloud.dev",
-         *       "plan_id": "micro"
+         *       "plan_id": "micro",
+         *       "size_bytes": 124901
          *     }
          */
         AdminPondOut: {
@@ -752,6 +805,8 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Last Error */
+            last_error?: string | null;
             /** Name */
             name: string;
             /** Node Id */
@@ -761,6 +816,37 @@ export interface components {
             owner_email: string;
             /** Plan Id */
             plan_id: string;
+            /** Size Bytes */
+            size_bytes?: number | null;
+        };
+        /**
+         * AdminTotalsOut
+         * @example {
+         *       "ponds": 51,
+         *       "ponds_running": 44,
+         *       "users": 38
+         *     }
+         */
+        AdminTotalsOut: {
+            /** Ponds */
+            ponds: number;
+            /** Ponds Running */
+            ponds_running: number;
+            /** Users */
+            users: number;
+        };
+        /**
+         * AdminTotalsResponse
+         * @example {
+         *       "totals": {
+         *         "ponds": 51,
+         *         "ponds_running": 44,
+         *         "users": 38
+         *       }
+         *     }
+         */
+        AdminTotalsResponse: {
+            totals: components["schemas"]["AdminTotalsOut"];
         };
         /**
          * AdminUserListResponse
@@ -953,6 +1039,7 @@ export interface components {
          *         {
          *           "completed_at": "2026-09-22T20:00:00Z",
          *           "created_at": "2026-09-22T20:00:00Z",
+         *           "expires_at": "2026-09-29T20:00:00Z",
          *           "id": "88888888-8888-8888-8888-888888888888",
          *           "kind": "daily",
          *           "pond_id": "66666666-6666-6666-6666-666666666666",
@@ -975,6 +1062,7 @@ export interface components {
          * @example {
          *       "completed_at": "2026-09-22T20:00:00Z",
          *       "created_at": "2026-09-22T20:00:00Z",
+         *       "expires_at": "2026-09-29T20:00:00Z",
          *       "id": "88888888-8888-8888-8888-888888888888",
          *       "kind": "daily",
          *       "pond_id": "66666666-6666-6666-6666-666666666666",
@@ -992,6 +1080,8 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** Expires At */
+            expires_at?: string | null;
             /**
              * Id
              * Format: uuid
@@ -1024,6 +1114,7 @@ export interface components {
          *         "current_period_end": "2026-10-22T20:00:00Z",
          *         "current_period_start": "2026-09-22T20:00:00Z",
          *         "id": "22222222-2222-2222-2222-222222222222",
+         *         "invoice_id": "33333333-3333-3333-3333-333333333333",
          *         "plan_id": "micro",
          *         "status": "active",
          *         "user_id": "11111111-1111-1111-1111-111111111111"
@@ -1266,6 +1357,7 @@ export interface components {
          *         "node_id": "node-sv-01",
          *         "observed_state": "pending",
          *         "plan_id": "micro",
+         *         "size_bytes": 124901,
          *         "user_id": "11111111-1111-1111-1111-111111111111"
          *       }
          *     }
@@ -1308,6 +1400,7 @@ export interface components {
          *         "node_id": "node-sv-01",
          *         "observed_state": "deleting",
          *         "plan_id": "micro",
+         *         "size_bytes": 124901,
          *         "user_id": "11111111-1111-1111-1111-111111111111"
          *       }
          *     }
@@ -1757,6 +1850,7 @@ export interface components {
          *         "current_period_end": "2026-10-22T20:00:00Z",
          *         "current_period_start": "2026-09-22T20:00:00Z",
          *         "id": "22222222-2222-2222-2222-222222222222",
+         *         "invoice_id": "33333333-3333-3333-3333-333333333333",
          *         "plan_id": "micro",
          *         "status": "active",
          *         "user_id": "11111111-1111-1111-1111-111111111111"
@@ -1852,6 +1946,8 @@ export interface components {
          *       "plans": [
          *         {
          *           "active": true,
+         *           "billing_model": "monthly",
+         *           "currency": "USD",
          *           "description": "Pruebas internas (10 min)",
          *           "id": "sandbox",
          *           "max_ponds": 1,
@@ -1859,10 +1955,13 @@ export interface components {
          *           "name": "Sandbox",
          *           "postpaid": false,
          *           "price_monthly_usd": 0,
+         *           "unit_price": 0,
          *           "validity_minutes": 10
          *         },
          *         {
          *           "active": true,
+         *           "billing_model": "monthly",
+         *           "currency": "USD",
          *           "description": "1 pond, 1 GB, backups 7 días",
          *           "id": "micro",
          *           "max_ponds": 1,
@@ -1870,10 +1969,13 @@ export interface components {
          *           "name": "Micro",
          *           "postpaid": false,
          *           "price_monthly_usd": 5,
+         *           "unit_price": 5,
          *           "validity_minutes": 43200
          *         },
          *         {
          *           "active": true,
+         *           "billing_model": "hourly",
+         *           "currency": "USD",
          *           "description": "Hasta 10 ponds, post-pago por uso",
          *           "id": "pro",
          *           "max_ponds": 10,
@@ -1881,6 +1983,7 @@ export interface components {
          *           "name": "Pro",
          *           "postpaid": true,
          *           "price_monthly_usd": 0,
+         *           "unit_price": 0.02,
          *           "validity_minutes": 43200
          *         }
          *       ]
@@ -1896,6 +1999,8 @@ export interface components {
          * PlanOut
          * @example {
          *       "active": true,
+         *       "billing_model": "monthly",
+         *       "currency": "USD",
          *       "description": "1 pond, 1 GB, backups 7 días",
          *       "id": "micro",
          *       "max_ponds": 1,
@@ -1903,12 +2008,24 @@ export interface components {
          *       "name": "Micro",
          *       "postpaid": false,
          *       "price_monthly_usd": 5,
+         *       "unit_price": 5,
          *       "validity_minutes": 43200
          *     }
          */
         PlanOut: {
             /** Active */
             active: boolean;
+            /**
+             * Billing Model
+             * @enum {string}
+             */
+            billing_model: "monthly" | "hourly";
+            /**
+             * Currency
+             * @constant
+             * @enum {string}
+             */
+            currency: "USD";
             /** Description */
             description: string;
             /** Id */
@@ -1923,6 +2040,8 @@ export interface components {
             postpaid: boolean;
             /** Price Monthly Usd */
             price_monthly_usd: number;
+            /** Unit Price */
+            unit_price: number;
             /** Validity Minutes */
             validity_minutes: number;
         };
@@ -1946,6 +2065,7 @@ export interface components {
          *           "node_id": "node-sv-01",
          *           "observed_state": "running",
          *           "plan_id": "micro",
+         *           "size_bytes": 124901,
          *           "user_id": "11111111-1111-1111-1111-111111111111"
          *         }
          *       ]
@@ -1975,6 +2095,7 @@ export interface components {
          *       "node_id": "node-sv-01",
          *       "observed_state": "running",
          *       "plan_id": "micro",
+         *       "size_bytes": 124901,
          *       "user_id": "11111111-1111-1111-1111-111111111111"
          *     }
          */
@@ -2007,6 +2128,8 @@ export interface components {
             observed_state: components["schemas"]["PondObservedState"];
             /** Plan Id */
             plan_id: string;
+            /** Size Bytes */
+            size_bytes?: number | null;
             /**
              * User Id
              * Format: uuid
@@ -2027,6 +2150,7 @@ export interface components {
          *         "node_id": "node-sv-01",
          *         "observed_state": "running",
          *         "plan_id": "micro",
+         *         "size_bytes": 124901,
          *         "user_id": "11111111-1111-1111-1111-111111111111"
          *       }
          *     }
@@ -2245,6 +2369,70 @@ export interface components {
             truncated: boolean;
         };
         /**
+         * StartPondResponse
+         * @example {
+         *       "job": {
+         *         "attempts": 0,
+         *         "created_at": "2026-09-22T20:00:00Z",
+         *         "id": "77777777-7777-7777-7777-777777777777",
+         *         "node_id": "node-sv-01",
+         *         "pond_id": "66666666-6666-6666-6666-666666666666",
+         *         "status": "queued",
+         *         "type": "start_pond"
+         *       },
+         *       "pond": {
+         *         "created_at": "2026-09-22T20:00:00Z",
+         *         "desired_state": "running",
+         *         "engine_version": "16",
+         *         "healthy": true,
+         *         "host_port": 15007,
+         *         "id": "66666666-6666-6666-6666-666666666666",
+         *         "name": "inventario-demo",
+         *         "node_id": "node-sv-01",
+         *         "observed_state": "stopped",
+         *         "plan_id": "micro",
+         *         "size_bytes": 124901,
+         *         "user_id": "11111111-1111-1111-1111-111111111111"
+         *       }
+         *     }
+         */
+        StartPondResponse: {
+            job: components["schemas"]["JobOut"];
+            pond: components["schemas"]["PondOut"];
+        };
+        /**
+         * StopPondResponse
+         * @example {
+         *       "job": {
+         *         "attempts": 0,
+         *         "created_at": "2026-09-22T20:00:00Z",
+         *         "id": "77777777-7777-7777-7777-777777777777",
+         *         "node_id": "node-sv-01",
+         *         "pond_id": "66666666-6666-6666-6666-666666666666",
+         *         "status": "queued",
+         *         "type": "stop_pond"
+         *       },
+         *       "pond": {
+         *         "created_at": "2026-09-22T20:00:00Z",
+         *         "desired_state": "stopped",
+         *         "engine_version": "16",
+         *         "healthy": true,
+         *         "host_port": 15007,
+         *         "id": "66666666-6666-6666-6666-666666666666",
+         *         "name": "inventario-demo",
+         *         "node_id": "node-sv-01",
+         *         "observed_state": "running",
+         *         "plan_id": "micro",
+         *         "size_bytes": 124901,
+         *         "user_id": "11111111-1111-1111-1111-111111111111"
+         *       }
+         *     }
+         */
+        StopPondResponse: {
+            job: components["schemas"]["JobOut"];
+            pond: components["schemas"]["PondOut"];
+        };
+        /**
          * SubscribeRequest
          * @example {
          *       "plan_id": "micro"
@@ -2282,6 +2470,7 @@ export interface components {
          *         "current_period_end": "2026-10-22T20:00:00Z",
          *         "current_period_start": "2026-09-22T20:00:00Z",
          *         "id": "22222222-2222-2222-2222-222222222222",
+         *         "invoice_id": "33333333-3333-3333-3333-333333333333",
          *         "plan_id": "micro",
          *         "status": "active",
          *         "user_id": "11111111-1111-1111-1111-111111111111"
@@ -2302,6 +2491,7 @@ export interface components {
          *           "current_period_end": "2026-10-22T20:00:00Z",
          *           "current_period_start": "2026-09-22T20:00:00Z",
          *           "id": "22222222-2222-2222-2222-222222222222",
+         *           "invoice_id": "33333333-3333-3333-3333-333333333333",
          *           "plan_id": "micro",
          *           "status": "active",
          *           "user_id": "11111111-1111-1111-1111-111111111111"
@@ -2322,6 +2512,7 @@ export interface components {
          *       "current_period_end": "2026-10-22T20:00:00Z",
          *       "current_period_start": "2026-09-22T20:00:00Z",
          *       "id": "22222222-2222-2222-2222-222222222222",
+         *       "invoice_id": "33333333-3333-3333-3333-333333333333",
          *       "plan_id": "micro",
          *       "status": "active",
          *       "user_id": "11111111-1111-1111-1111-111111111111"
@@ -2345,6 +2536,8 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Invoice Id */
+            invoice_id?: string | null;
             /** Plan Id */
             plan_id: string;
             status: components["schemas"]["SubscriptionStatus"];
@@ -2362,12 +2555,15 @@ export interface components {
         /**
          * SuspendUserRequest
          * @example {
-         *       "confirm_text": "SUSPENDER"
+         *       "confirm_text": "SUSPENDER",
+         *       "reason": "abuso de recursos"
          *     }
          */
         SuspendUserRequest: {
             /** Confirm Text */
             confirm_text: string;
+            /** Reason */
+            reason?: string | null;
         };
         /**
          * ToggleAgentAccessRequest
@@ -2653,6 +2849,55 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminPondListResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_get_totals: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-KOI-Surface"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminTotalsResponse"];
                 };
             };
             /** @description Unauthorized */
@@ -4498,6 +4743,164 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_pond: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-KOI-Surface"?: string | null;
+                "X-KOI-Confirm-Token"?: string | null;
+            };
+            path: {
+                pond_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StartPondResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfirmationRequiredResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    stop_pond: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-KOI-Surface"?: string | null;
+                "X-KOI-Confirm-Token"?: string | null;
+            };
+            path: {
+                pond_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StopPondResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfirmationRequiredResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
         };

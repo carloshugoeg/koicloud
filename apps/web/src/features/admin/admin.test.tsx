@@ -69,6 +69,25 @@ describe("W2-10 Panel admin", () => {
     expect(screen.getByText(adminSuspendedUser.full_name)).toBeInTheDocument();
   });
 
+  it("closes the suspend dialog on Escape and returns focus to that row Suspender", async () => {
+    const user = userEvent.setup();
+    renderAdmin("/app/admin/users");
+    await screen.findByTestId("admin-users-page");
+
+    const suspendBtn = screen.getByTestId(`suspend-${adminClientUser.id}`);
+    await user.click(suspendBtn);
+
+    const dialog = await screen.findByRole("dialog", { name: /Suspender a/i });
+    expect(dialog).toHaveAttribute("aria-labelledby", "suspend-dialog-title");
+    expect(dialog).toHaveAttribute("aria-modal", "true");
+
+    await user.keyboard("{Escape}");
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: /Suspender a/i })).not.toBeInTheDocument();
+    });
+    expect(suspendBtn).toHaveFocus();
+  });
+
   it("suspends a user after email confirmation and motivo", async () => {
     const user = userEvent.setup();
     renderAdmin("/app/admin/users");
@@ -77,10 +96,11 @@ describe("W2-10 Panel admin", () => {
     await user.click(screen.getByTestId(`suspend-${adminClientUser.id}`));
     const dialog = await screen.findByTestId("suspend-dialog");
     expect(within(dialog).getByText(/siguen corriendo/i)).toBeInTheDocument();
-    expect(within(dialog).queryByText(/queda en la bitácora/i)).not.toBeInTheDocument();
+    expect(within(dialog).getByText(/queda en la bitácora/i)).toBeInTheDocument();
 
     expect(screen.getByTestId("suspend-submit")).toBeDisabled();
     await user.type(screen.getByTestId("suspend-confirm-email"), adminClientUser.email);
+    expect(screen.getByTestId("suspend-submit")).toBeEnabled();
     await user.type(screen.getByTestId("suspend-motivo"), "abuso de recursos");
     expect(screen.getByTestId("suspend-submit")).toBeEnabled();
 
@@ -89,6 +109,11 @@ describe("W2-10 Panel admin", () => {
       expect(screen.queryByTestId("suspend-dialog")).not.toBeInTheDocument();
     });
     expect(await screen.findByTestId(`reactivate-${adminClientUser.id}`)).toBeInTheDocument();
+
+    renderAdmin("/app/admin/audit");
+    const reasonRow = await screen.findByTestId("audit-row-aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa01");
+    expect(reasonRow).toHaveTextContent("suspend_user");
+    expect(reasonRow).toHaveTextContent("reason=abuso de recursos");
   });
 
   it("keeps the suspend dialog open and shows suspend-error on API failure", async () => {

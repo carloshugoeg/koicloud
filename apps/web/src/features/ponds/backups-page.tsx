@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   useGetPond,
@@ -7,34 +7,11 @@ import {
   useTriggerBackupMutation,
   type Backup,
 } from "@/api/hooks/ponds";
-import { problemToMessage } from "@/lib/errors";
-import { BackupConfirmDialog } from "@/features/ponds/backup-confirm-dialog";
-import { RestoreDialog } from "@/features/ponds/restore-dialog";
+import { BackupsTable } from "@/features/ponds/backups-table";
 import { pondStateMeta } from "@/features/ponds/pond-state";
-
-function formatBytes(size: number): string {
-  if (size <= 0) return "—";
-  if (size < 1024) return `${size} B`;
-  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
-  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function shortSha(sha: string): string {
-  if (sha.length < 12) return sha;
-  return `${sha.slice(0, 4)}…${sha.slice(-4)}`;
-}
-
-function formatWhen(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
-}
-
-function kindChipClass(kind: Backup["kind"]): string {
-  if (kind === "pre_delete") return "bg-koi-soft text-ink";
-  return "bg-bone-sunk text-ink";
-}
+import { RestoreDialog } from "@/features/ponds/restore-dialog";
+import { problemToMessage } from "@/lib/errors";
+import { toast } from "@/lib/toast";
 
 export function BackupsPage() {
   const { pondId = "" } = useParams();
@@ -44,9 +21,8 @@ export function BackupsPage() {
   const backupMutation = useTriggerBackupMutation(pondId);
   const [selected, setSelected] = useState<Backup | null>(null);
   const [confirmName, setConfirmName] = useState("");
-  const [backupOpen, setBackupOpen] = useState(false);
   const [queuedJobId, setQueuedJobId] = useState<string | null>(null);
-  const [backupJobId, setBackupJobId] = useState<string | null>(null);
+  const restoreTriggerRef = useRef<HTMLElement | null>(null);
 
   if (pondQuery.isPending || backupsQuery.isPending) {
     return (
@@ -82,6 +58,15 @@ export function BackupsPage() {
   const backups = backupsQuery.data ?? [];
   const meta = pond ? pondStateMeta(pond.observed_state) : null;
 
+  async function handleBackupNow() {
+    try {
+      await backupMutation.mutateAsync();
+      toast({ tone: "ok", message: "Respaldo encolado" });
+    } catch (error) {
+      toast({ tone: "danger", message: problemToMessage(error) });
+    }
+  }
+
   async function handleRestore() {
     if (!selected || !pond || confirmName !== pond.name) return;
     try {
@@ -90,17 +75,7 @@ export function BackupsPage() {
       setSelected(null);
       setConfirmName("");
     } catch {
-      // surfaced via restoreMutation.error
-    }
-  }
-
-  async function handleBackup() {
-    try {
-      const result = await backupMutation.mutateAsync();
-      setBackupJobId(result.job.id);
-      setBackupOpen(false);
-    } catch {
-      // surfaced via backupMutation.error
+      return;
     }
   }
 
@@ -131,24 +106,14 @@ export function BackupsPage() {
         </div>
         <button
           type="button"
-          className="h-8 rounded-sm border border-line-control bg-bone-raised px-3 text-sm font-medium text-ink disabled:text-ink-faint"
-          disabled={!pond || backupMutation.isPending}
-          onClick={() => setBackupOpen(true)}
-          data-testid="trigger-backup"
+          className="h-9 rounded-sm bg-turquoise-700 px-4 text-sm font-medium text-bone-raised hover:bg-turquoise-900 disabled:bg-bone-sunk disabled:text-ink-faint"
+          data-testid="backup-now"
+          disabled={backupMutation.isPending}
+          onClick={() => void handleBackupNow()}
         >
-          Respaldar ahora
+          {backupMutation.isPending ? "Respaldando…" : "Respaldar ahora"}
         </button>
       </div>
-
-      {backupJobId ? (
-        <div
-          className="rounded-md border border-line bg-turquoise-100 px-4 py-3 text-sm text-turquoise-900"
-          data-testid="backup-queued"
-        >
-          Respaldo encolado. Job <span className="font-mono">{backupJobId}</span> · estado{" "}
-          <span className="font-mono">queued</span>.
-        </div>
-      ) : null}
 
       {queuedJobId ? (
         <div
@@ -174,90 +139,29 @@ export function BackupsPage() {
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-md border border-line">
-          <table className="w-full min-w-[800px] border-collapse text-sm">
-            <thead className="bg-bone-sunk text-left text-xs font-medium uppercase tracking-[0.14em] text-ink-muted">
-              <tr>
-                <th className="border-b border-line-control px-3 py-2">Creado</th>
-                <th className="border-b border-line-control px-3 py-2">Tipo</th>
-                <th className="border-b border-line-control px-3 py-2">Estado</th>
-                <th className="border-b border-line-control px-3 py-2 text-right">Tamaño</th>
-                <th className="border-b border-line-control px-3 py-2">sha256</th>
-                <th className="border-b border-line-control px-3 py-2">Expira</th>
-                <th className="border-b border-line-control px-3 py-2 text-right">Acción</th>
-              </tr>
-            </thead>
-            <tbody>
-              {backups.map((backup) => (
-                <tr key={backup.id} className="border-b border-line hover:bg-bone-raised">
-                  <td className="px-3 py-2 font-mono text-xs">{formatWhen(backup.created_at)}</td>
-                  <td className="px-3 py-2">
-                    <span
-                      className={`inline-flex rounded-sm px-2 py-0.5 text-xs font-medium ${kindChipClass(backup.kind)}`}
-                      data-kind={backup.kind}
-                    >
-                      {backup.kind}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2 font-mono text-xs">{backup.status}</td>
-                  <td className="px-3 py-2 text-right tabular-nums">
-                    {backup.status === "succeeded" ? formatBytes(backup.size_bytes) : "—"}
-                  </td>
-                  <td className="px-3 py-2 font-mono text-xs text-ink-muted">
-                    {backup.status === "succeeded" ? shortSha(backup.sha256) : "—"}
-                  </td>
-                  <td className="px-3 py-2 text-ink-muted">—</td>
-                  <td className="px-3 py-2 text-right">
-                    {backup.status === "succeeded" ? (
-                      <button
-                        type="button"
-                        className="text-sm font-medium text-turquoise-700 hover:text-turquoise-900"
-                        onClick={() => {
-                          setSelected(backup);
-                          setConfirmName("");
-                        }}
-                      >
-                        Restaurar…
-                      </button>
-                    ) : null}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className="flex justify-between border-t border-line bg-bone px-3 py-2 text-xs text-ink-muted">
-            <span>{backups.length} respaldos</span>
-            <span>
-              El <span className="font-mono">pre_delete</span> se crea siempre antes de eliminar un pond
-            </span>
-          </div>
-        </div>
+        <BackupsTable
+          backups={backups}
+          onRestore={(backup, trigger) => {
+            restoreTriggerRef.current = trigger;
+            setSelected(backup);
+            setConfirmName("");
+          }}
+        />
       )}
 
       {selected && pond ? (
         <RestoreDialog
-          pondName={pond.name}
           backup={selected}
+          pondName={pond.name}
           confirmName={confirmName}
           pending={restoreMutation.isPending}
-          onConfirmNameChange={setConfirmName}
+          returnFocusRef={restoreTriggerRef}
+          onConfirmName={setConfirmName}
           onCancel={() => {
             setSelected(null);
             setConfirmName("");
           }}
           onConfirm={() => void handleRestore()}
-        />
-      ) : null}
-
-      {backupOpen && pond ? (
-        <BackupConfirmDialog
-          pondName={pond.name}
-          pending={backupMutation.isPending}
-          errorMessage={
-            backupMutation.isError ? problemToMessage(backupMutation.error) : null
-          }
-          onCancel={() => setBackupOpen(false)}
-          onConfirm={() => void handleBackup()}
         />
       ) : null}
     </div>

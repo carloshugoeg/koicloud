@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict, Field, field_validator
 
 from app.core.base import SchemaModel
 from app.core.enums import (
@@ -198,6 +198,9 @@ class PlanOut(SchemaModel):
     name: str
     description: str
     price_monthly_usd: float
+    billing_model: Literal["monthly", "hourly"]
+    unit_price: float
+    currency: Literal["USD"] = Field(json_schema_extra={"enum": ["USD"]})
     max_ponds: int
     max_storage_gb: int
     validity_minutes: int
@@ -210,6 +213,9 @@ class PlanOut(SchemaModel):
             "name": "Micro",
             "description": "1 pond, 1 GB, backups 7 días",
             "price_monthly_usd": 5.0,
+            "billing_model": "monthly",
+            "unit_price": 5.0,
+            "currency": "USD",
             "max_ponds": 1,
             "max_storage_gb": 1,
             "validity_minutes": 43200,
@@ -231,6 +237,9 @@ class PlanListResponse(SchemaModel):
                     "name": "Sandbox",
                     "description": "Pruebas internas (10 min)",
                     "price_monthly_usd": 0.0,
+                    "billing_model": "monthly",
+                    "unit_price": 0.0,
+                    "currency": "USD",
                     "max_ponds": 1,
                     "max_storage_gb": 1,
                     "validity_minutes": 10,
@@ -243,6 +252,9 @@ class PlanListResponse(SchemaModel):
                     "name": "Pro",
                     "description": "Hasta 10 ponds, post-pago por uso",
                     "price_monthly_usd": 0.0,
+                    "billing_model": "hourly",
+                    "unit_price": 0.02,
+                    "currency": "USD",
                     "max_ponds": 10,
                     "max_storage_gb": 20,
                     "validity_minutes": 43200,
@@ -263,6 +275,7 @@ class SubscriptionOut(SchemaModel):
     current_period_start: datetime
     current_period_end: datetime
     cancel_at_period_end: bool
+    invoice_id: UUID | None = None
 
     model_config = config_with_example(
         {
@@ -273,6 +286,7 @@ class SubscriptionOut(SchemaModel):
             "current_period_start": EXAMPLE_NOW,
             "current_period_end": "2026-10-22T20:00:00Z",
             "cancel_at_period_end": False,
+            "invoice_id": EXAMPLE_INVOICE_ID,
         }
     )
 
@@ -426,6 +440,7 @@ class PondOut(SchemaModel):
     created_at: datetime
     last_restore_at: datetime | None = None
     last_error: str | None = None
+    size_bytes: int | None = None
 
     model_config = config_with_example(
         {
@@ -442,6 +457,7 @@ class PondOut(SchemaModel):
             "created_at": EXAMPLE_NOW,
             "last_restore_at": None,
             "last_error": None,
+            "size_bytes": 124901,
         }
     )
 
@@ -515,6 +531,44 @@ class CreatePondResponse(SchemaModel):
     )
 
 
+class StopPondResponse(SchemaModel):
+    pond: PondOut
+    job: JobOut
+
+    model_config = config_with_example(
+        {
+            "pond": {
+                **PondOut.example_data(),
+                "desired_state": "stopped",
+                "observed_state": "running",
+            },
+            "job": {
+                **JobOut.example_data(),
+                "type": "stop_pond",
+            },
+        }
+    )
+
+
+class StartPondResponse(SchemaModel):
+    pond: PondOut
+    job: JobOut
+
+    model_config = config_with_example(
+        {
+            "pond": {
+                **PondOut.example_data(),
+                "desired_state": "running",
+                "observed_state": "stopped",
+            },
+            "job": {
+                **JobOut.example_data(),
+                "type": "start_pond",
+            },
+        }
+    )
+
+
 class RetryFailedJobResponse(SchemaModel):
     job: JobOut
 
@@ -584,6 +638,7 @@ class BackupOut(SchemaModel):
     sha256: str
     created_at: datetime
     completed_at: datetime | None = None
+    expires_at: datetime | None = None
 
     model_config = config_with_example(
         {
@@ -596,6 +651,7 @@ class BackupOut(SchemaModel):
             "sha256": "1f3e7d3ab148b8be24af9b97a10d1655db8c613de0dc02f88f752230ec7776d0",
             "created_at": EXAMPLE_NOW,
             "completed_at": EXAMPLE_NOW,
+            "expires_at": "2026-09-29T20:00:00Z",
         }
     )
 
@@ -619,6 +675,7 @@ class TriggerBackupResponse(SchemaModel):
                 **BackupOut.example_data(),
                 "status": "queued",
                 "completed_at": None,
+                "expires_at": None,
             },
             "job": {**JobOut.example_data(), "type": "backup_pond"},
         }
@@ -828,8 +885,19 @@ class AdminUserResponse(SchemaModel):
 
 class SuspendUserRequest(SchemaModel):
     confirm_text: str
+    reason: str | None = Field(default=None, max_length=500)
 
-    model_config = config_with_example({"confirm_text": "SUSPENDER"})
+    @field_validator("reason", mode="before")
+    @classmethod
+    def _trim_reason(cls, value: object) -> object:
+        if isinstance(value, str):
+            trimmed = value.strip()
+            return trimmed or None
+        return value
+
+    model_config = config_with_example(
+        {"confirm_text": "SUSPENDER", "reason": "abuso de recursos"}
+    )
 
 
 class AdminPondOut(SchemaModel):
@@ -842,6 +910,8 @@ class AdminPondOut(SchemaModel):
     observed_state: PondObservedState
     host_port: int
     created_at: datetime
+    size_bytes: int | None = None
+    last_error: str | None = None
 
     model_config = config_with_example(
         {
@@ -854,6 +924,8 @@ class AdminPondOut(SchemaModel):
             "observed_state": "running",
             "host_port": 15007,
             "created_at": EXAMPLE_NOW,
+            "size_bytes": 124901,
+            "last_error": None,
         }
     )
 
@@ -865,6 +937,20 @@ class AdminPondListResponse(SchemaModel):
     model_config = config_with_example(
         {"ponds": [AdminPondOut.example_data()], "next_cursor": None}
     )
+
+
+class AdminTotalsOut(SchemaModel):
+    users: int
+    ponds: int
+    ponds_running: int
+
+    model_config = config_with_example({"users": 38, "ponds": 51, "ponds_running": 44})
+
+
+class AdminTotalsResponse(SchemaModel):
+    totals: AdminTotalsOut
+
+    model_config = config_with_example({"totals": AdminTotalsOut.example_data()})
 
 
 class AuditEventOut(SchemaModel):
