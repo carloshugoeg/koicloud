@@ -7,6 +7,8 @@ import {
   useTriggerBackupMutation,
   type Backup,
 } from "@/api/hooks/ponds";
+import { BackupConfirmDialog } from "@/features/ponds/backup-confirm-dialog";
+import { BackupConfirmDialog } from "@/features/ponds/backup-confirm-dialog";
 import { BackupsTable } from "@/features/ponds/backups-table";
 import { pondStateMeta } from "@/features/ponds/pond-state";
 import { RestoreDialog } from "@/features/ponds/restore-dialog";
@@ -21,6 +23,7 @@ export function BackupsPage() {
   const backupMutation = useTriggerBackupMutation(pondId);
   const [selected, setSelected] = useState<Backup | null>(null);
   const [confirmName, setConfirmName] = useState("");
+  const [backupOpen, setBackupOpen] = useState(false);
   const [queuedJobId, setQueuedJobId] = useState<string | null>(null);
   const restoreTriggerRef = useRef<HTMLElement | null>(null);
 
@@ -58,11 +61,13 @@ export function BackupsPage() {
   const backups = backupsQuery.data ?? [];
   const meta = pond ? pondStateMeta(pond.observed_state) : null;
 
-  async function handleBackupNow() {
+  async function handleBackupConfirm() {
     try {
       await backupMutation.mutateAsync();
+      setBackupOpen(false);
       toast({ tone: "ok", message: "Respaldo encolado" });
     } catch (error) {
+      setBackupOpen(false);
       toast({ tone: "danger", message: problemToMessage(error) });
     }
   }
@@ -109,7 +114,7 @@ export function BackupsPage() {
           className="h-9 rounded-sm bg-turquoise-700 px-4 text-sm font-medium text-bone-raised hover:bg-turquoise-900 disabled:bg-bone-sunk disabled:text-ink-faint"
           data-testid="backup-now"
           disabled={backupMutation.isPending}
-          onClick={() => void handleBackupNow()}
+          onClick={() => setBackupOpen(true)}
         >
           {backupMutation.isPending ? "Respaldando…" : "Respaldar ahora"}
         </button>
@@ -149,6 +154,15 @@ export function BackupsPage() {
         />
       )}
 
+      {backupOpen && pond ? (
+        <BackupConfirmDialog
+          pondName={pond.name}
+          pending={backupMutation.isPending}
+          onCancel={() => setBackupOpen(false)}
+          onConfirm={() => void confirmBackup()}
+        />
+      ) : null}
+
       {selected && pond ? (
         <RestoreDialog
           backup={selected}
@@ -162,6 +176,18 @@ export function BackupsPage() {
             setConfirmName("");
           }}
           onConfirm={() => void handleRestore()}
+        />
+      ) : null}
+
+      {backupOpen && pond ? (
+        <BackupConfirmDialog
+          pondName={pond.name}
+          pending={backupMutation.isPending}
+          errorMessage={
+            backupMutation.isError ? problemToMessage(backupMutation.error) : null
+          }
+          onCancel={() => setBackupOpen(false)}
+          onConfirm={() => void handleBackupConfirm()}
         />
       ) : null}
     </div>

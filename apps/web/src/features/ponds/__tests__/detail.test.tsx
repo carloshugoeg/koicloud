@@ -372,6 +372,8 @@ describe("W2-06 Detalle del pond y conexión", () => {
     expect(await screen.findByTestId("pond-detail")).toBeInTheDocument();
     expect(screen.queryByTestId("pond-retry")).not.toBeInTheDocument();
     await user.click(screen.getByTestId("backup-now"));
+    const dialog = await screen.findByTestId("backup-confirm-dialog");
+    await user.click(within(dialog).getByTestId("backup-confirm-button"));
 
     expect(await screen.findByText("Respaldo encolado")).toBeInTheDocument();
     expect(status).toBe(202);
