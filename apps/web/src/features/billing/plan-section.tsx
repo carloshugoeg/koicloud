@@ -7,7 +7,8 @@ export function PlanSection() {
   useEffect(() => {
     if (!open) return;
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key !== "Escape") return;
+      if (event.key !== "Escape" || event.defaultPrevented) return;
+      if (document.querySelector("[role='dialog']")) return;
       setOpen(false);
     }
     document.addEventListener("keydown", onKeyDown);

@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSubscribeMutation, type PlanOut, type SubscribeResponse } from "@/api/hooks";
 import { cardDigits, cardNumberError, cvvError, expiryError, nitError } from "@/lib/billing-checks";
@@ -14,12 +14,40 @@ export interface CheckoutModalProps {
 export function CheckoutModal({ plan, onClose, onSuccess }: CheckoutModalProps) {
   const navigate = useNavigate();
   const subscribeMutation = useSubscribeMutation();
+  const onCloseRef = useRef(onClose);
   const [nit, setNit] = useState("");
   const [cardNumber, setCardNumber] = useState("");
   const [cardExpiry, setCardExpiry] = useState("");
   const [cardCvc, setCardCvc] = useState("");
   const [issued, setIssued] = useState<SubscribeResponse | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{ nit?: string; card?: string; expiry?: string; cvc?: string }>({});
+  const returnFocusRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+
+  useEffect(() => {
+    returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopPropagation();
+      onCloseRef.current();
+    }
+
+    document.addEventListener("keydown", onKeyDown, true);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown, true);
+      returnFocusRef.current?.focus();
+    };
+  }, []);
+
+  useEffect(() => {
+    const dialog = document.querySelector("[role='dialog']");
+    dialog?.querySelector<HTMLElement>("button, input, a[href]")?.focus();
+  }, [issued]);
 
   async function handleCheckout(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
