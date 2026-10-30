@@ -19,22 +19,50 @@ export default defineConfig({
     video: "off",
     screenshot: "off",
   },
-  webServer: {
-    command: "pnpm exec vite --host 127.0.0.1 --port 5173 --strictPort",
-    cwd: webRoot,
-    url: "http://127.0.0.1:5173",
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-    env: {
-      ...process.env,
-      VITE_ENABLE_MOCKS: "false",
-      VITE_API_BASE_URL: "",
+  webServer: [
+    {
+      command: "pnpm exec vite --host 127.0.0.1 --port 5173 --strictPort",
+      cwd: webRoot,
+      url: "http://127.0.0.1:5173",
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+      env: {
+        ...process.env,
+        VITE_ENABLE_MOCKS: "false",
+        VITE_API_BASE_URL: "",
+      },
     },
-  },
+    {
+      command: "pnpm exec vite --host 127.0.0.1 --port 5174 --strictPort",
+      cwd: webRoot,
+      url: "http://127.0.0.1:5174",
+      reuseExistingServer: false,
+      timeout: 120_000,
+      env: {
+        ...process.env,
+        VITE_ENABLE_MOCKS: "true",
+        VITE_API_BASE_URL: "",
+      },
+    },
+  ],
   projects: [
     {
       name: "chromium",
-      use: { browserName: "chromium", viewport: { width: 1440, height: 900 } },
+      testIgnore: "**/msw-session.spec.ts",
+      use: {
+        browserName: "chromium",
+        baseURL: "http://127.0.0.1:5173",
+        viewport: { width: 1440, height: 900 },
+      },
+    },
+    {
+      name: "msw",
+      testMatch: "**/msw-session.spec.ts",
+      use: {
+        browserName: "chromium",
+        baseURL: "http://127.0.0.1:5174",
+        viewport: { width: 1440, height: 900 },
+      },
     },
   ],
 });
