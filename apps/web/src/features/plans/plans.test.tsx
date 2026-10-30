@@ -30,9 +30,21 @@ function renderPlansRoute(initialEntry = "/app/planes") {
   return router;
 }
 
+async function openPlanCatalog(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(await screen.findByRole("button", { name: "Cambiar de plan" }));
+}
+
+const validCard = {
+  number: "4242424242424242",
+  expiry: "12/30",
+  cvc: "123",
+};
+
 describe("W2-03 Planes y Checkout flow", () => {
   it("renders the three plans from API in cards and in the comparison table", async () => {
+    const user = userEvent.setup();
     renderPlansRoute("/app/planes");
+    await openPlanCatalog(user);
 
     // Tarjetas de los 3 planes
     expect(await screen.findByRole("heading", { name: "Sandbox" })).toBeInTheDocument();
@@ -53,9 +65,20 @@ describe("W2-03 Planes y Checkout flow", () => {
     expect(screen.getByText("Respaldos automáticos")).toBeInTheDocument();
   });
 
+  it("exposes a keyboard-reachable comparison table region", async () => {
+    const user = userEvent.setup();
+    renderPlansRoute("/app/planes");
+    await openPlanCatalog(user);
+
+    const region = await screen.findByRole("region", { name: "Comparativa de planes" });
+    expect(region).toHaveAttribute("tabindex", "0");
+    expect(region).toHaveAttribute("data-testid", "plans-comparison-table");
+  });
+
   it("opens checkout modal with fixed simulated payment notice and helper copy", async () => {
     const user = userEvent.setup();
     renderPlansRoute("/app/planes");
+    await openPlanCatalog(user);
 
     const chooseMicroBtn = await screen.findByRole("button", { name: "Elegir plan Micro" });
     await user.click(chooseMicroBtn);
@@ -76,6 +99,7 @@ describe("W2-03 Planes y Checkout flow", () => {
   it("shows the same Pro unit_price from GET /plans on cards and checkout", async () => {
     const user = userEvent.setup();
     renderPlansRoute("/app/planes");
+    await openPlanCatalog(user);
 
     const pro = fixtures.plans.find((p) => p.id === "pro")!;
     const expected = `USD ${Number(pro.unit_price).toFixed(4)}`;
@@ -114,6 +138,7 @@ describe("W2-03 Planes y Checkout flow", () => {
     );
 
     const router = renderPlansRoute("/app/planes");
+    await openPlanCatalog(user);
 
     const chooseMicroBtn = await screen.findByRole("button", { name: "Elegir plan Micro" });
     await user.click(chooseMicroBtn);
@@ -121,15 +146,15 @@ describe("W2-03 Planes y Checkout flow", () => {
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
     expect(screen.queryByText(/IVA \(12%\)/i)).not.toBeInTheDocument();
 
-    await user.type(screen.getByLabelText("NIT (opcional)"), "0614-220999-101-3");
+    await user.type(screen.getByLabelText("NIT (opcional)"), "1000002-K");
     await user.type(screen.getByLabelText("Número de tarjeta simulada"), "4242 4242 4242 4242");
-    await user.type(screen.getByLabelText("Expiración"), "12/28");
+    await user.type(screen.getByLabelText("Expiración"), "12/30");
     await user.type(screen.getByLabelText("CVC"), "123");
 
     await user.click(screen.getByRole("button", { name: "Confirmar contratación" }));
 
     await waitFor(() => {
-      expect(postedBody).toEqual({ plan_id: "micro", nit: "0614-220999-101-3" });
+      expect(postedBody).toEqual({ plan_id: "micro", nit: "1000002-K", card: validCard });
     });
 
     const invoicePanel = await screen.findByTestId("checkout-invoice-from-api");
@@ -155,16 +180,17 @@ describe("W2-03 Planes y Checkout flow", () => {
     );
 
     const router = renderPlansRoute("/app/planes");
+    await openPlanCatalog(user);
     await user.click(await screen.findByRole("button", { name: "Elegir plan Micro" }));
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
 
     await user.type(screen.getByLabelText("Número de tarjeta simulada"), "4242 4242 4242 4242");
-    await user.type(screen.getByLabelText("Expiración"), "12/28");
+    await user.type(screen.getByLabelText("Expiración"), "12/30");
     await user.type(screen.getByLabelText("CVC"), "123");
     await user.click(screen.getByRole("button", { name: "Confirmar contratación" }));
 
     await waitFor(() => {
-      expect(postedBody).toEqual({ plan_id: "micro", nit: null });
+      expect(postedBody).toEqual({ plan_id: "micro", nit: null, card: validCard });
     });
     expect(await screen.findByTestId("checkout-invoice-from-api")).toBeInTheDocument();
 
@@ -200,6 +226,7 @@ describe("W2-03 Planes y Checkout flow", () => {
 
     const user = userEvent.setup();
     renderPlansRoute("/app/planes");
+    await openPlanCatalog(user);
 
     const chooseMicroBtn = await screen.findByRole("button", { name: "Elegir plan Micro" });
     await user.click(chooseMicroBtn);
@@ -241,6 +268,7 @@ describe("W2-03 Planes y Checkout flow", () => {
 
     const user = userEvent.setup();
     renderPlansRoute("/app/planes");
+    await openPlanCatalog(user);
 
     const chooseMicroBtn = await screen.findByRole("button", { name: "Elegir plan Micro" });
     await user.click(chooseMicroBtn);

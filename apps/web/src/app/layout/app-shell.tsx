@@ -62,6 +62,18 @@ export function AppShell() {
           menuButtonRef={menuButtonRef}
         />
 
+        {session?.user.status === "suspended" ? (
+          <p
+            role="status"
+            data-testid="suspended-banner"
+            className="border-b-[3px] border-marigold bg-danger-soft px-4 py-3 text-sm text-ink sm:px-6"
+          >
+            <span className="font-medium text-danger">Tu cuenta está suspendida.</span> No puedes
+            crear ponds ni ejecutar SQL. Tus datos y tus respaldos siguen intactos. Escribe al
+            administrador para reactivarla.
+          </p>
+        ) : null}
+
         <main className="mx-auto w-full max-w-content flex-1 overflow-x-hidden px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
           {notice ? (
             <p

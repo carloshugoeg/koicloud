@@ -311,9 +311,22 @@ class UserResponse(SchemaModel):
     model_config = config_with_example({"user": UserOut.example_data()})
 
 
+class CardCheckout(SchemaModel):
+    """Simulated card. Validated and discarded. Never stored."""
+
+    number: str
+    expiry: str
+    cvc: str
+
+    model_config = config_with_example(
+        {"number": "4242424242424242", "expiry": "12/30", "cvc": "123"}
+    )
+
+
 class SubscribeRequest(SchemaModel):
     plan_id: str
     nit: str | None = Field(default=None, max_length=32)
+    card: CardCheckout | None = None
 
     @field_validator("nit", mode="before")
     @classmethod
@@ -322,10 +335,20 @@ class SubscribeRequest(SchemaModel):
             return None
         if isinstance(value, str):
             trimmed = value.strip()
-            return trimmed or None
+            if not trimmed:
+                return None
+            if trimmed.upper() == "CF":
+                return "CF"
+            return trimmed
         return value
 
-    model_config = config_with_example({"plan_id": "micro", "nit": "0614-220999-101-3"})
+    model_config = config_with_example(
+        {
+            "plan_id": "micro",
+            "nit": "1000002-K",
+            "card": {"number": "4242424242424242", "expiry": "12/30", "cvc": "123"},
+        }
+    )
 
 
 class SubscriptionListResponse(SchemaModel):

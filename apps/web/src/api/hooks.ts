@@ -30,6 +30,11 @@ export {
 } from "@/api/hooks/plans";
 
 export {
+  useCancelSubscriptionMutation,
+  useSubscriptionsQuery,
+  type Subscription,
+} from "@/api/hooks/subscriptions";
+export {
   useCreatePondMutation,
   useGetConnection,
   useGetPond,

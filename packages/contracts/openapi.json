@@ -782,6 +782,36 @@
         "title": "CancelSubscriptionResponse",
         "type": "object"
       },
+      "CardCheckout": {
+        "additionalProperties": false,
+        "description": "Simulated card. Validated and discarded. Never stored.",
+        "example": {
+          "cvc": "123",
+          "expiry": "12/30",
+          "number": "4242424242424242"
+        },
+        "properties": {
+          "cvc": {
+            "title": "Cvc",
+            "type": "string"
+          },
+          "expiry": {
+            "title": "Expiry",
+            "type": "string"
+          },
+          "number": {
+            "title": "Number",
+            "type": "string"
+          }
+        },
+        "required": [
+          "number",
+          "expiry",
+          "cvc"
+        ],
+        "title": "CardCheckout",
+        "type": "object"
+      },
       "ClaimJobRequest": {
         "additionalProperties": false,
         "example": {
@@ -3038,10 +3068,25 @@
       "SubscribeRequest": {
         "additionalProperties": false,
         "example": {
-          "nit": "0614-220999-101-3",
+          "card": {
+            "cvc": "123",
+            "expiry": "12/30",
+            "number": "4242424242424242"
+          },
+          "nit": "1000002-K",
           "plan_id": "micro"
         },
         "properties": {
+          "card": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CardCheckout"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "nit": {
             "anyOf": [
               {

@@ -1207,6 +1207,23 @@ export interface components {
             subscription: components["schemas"]["SubscriptionOut"];
         };
         /**
+         * CardCheckout
+         * @description Simulated card. Validated and discarded. Never stored.
+         * @example {
+         *       "cvc": "123",
+         *       "expiry": "12/30",
+         *       "number": "4242424242424242"
+         *     }
+         */
+        CardCheckout: {
+            /** Cvc */
+            cvc: string;
+            /** Expiry */
+            expiry: string;
+            /** Number */
+            number: string;
+        };
+        /**
          * ClaimJobRequest
          * @example {
          *       "max_types": [
@@ -2522,11 +2539,17 @@ export interface components {
         /**
          * SubscribeRequest
          * @example {
-         *       "nit": "0614-220999-101-3",
+         *       "card": {
+         *         "cvc": "123",
+         *         "expiry": "12/30",
+         *         "number": "4242424242424242"
+         *       },
+         *       "nit": "1000002-K",
          *       "plan_id": "micro"
          *     }
          */
         SubscribeRequest: {
+            card?: components["schemas"]["CardCheckout"] | null;
             /** Nit */
             nit?: string | null;
             /** Plan Id */

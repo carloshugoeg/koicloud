@@ -10,8 +10,6 @@ export function PlansPage() {
   const [selectedPlan, setSelectedPlan] = useState<PlanOut | null>(null);
   const [subscriptionSuccess, setSubscriptionSuccess] = useState<SubscribeResponse | null>(null);
 
-  const planById = (id: string) => plans?.find((plan) => plan.id === id);
-
   return (
     <div className="space-y-8 p-4 lg:p-8">
       <div>
@@ -70,7 +68,7 @@ export function PlansPage() {
       ) : (
         <>
           <div className="grid gap-6 md:grid-cols-3">
-            {plans?.map((plan) => {
+            {(plans ?? []).map((plan) => {
               const isRecommended = plan.id === "micro";
               return (
                 <div
@@ -106,7 +104,11 @@ export function PlansPage() {
                       <li className="flex items-center gap-2">
                         <span className="text-xs text-turquoise-700">●</span>
                         <span>
-                          {plan.id === "sandbox" ? "Validez 10 minutos" : plan.id === "micro" ? "Respaldos diarios (7 d)" : "Hasta 10 ponds y 20 GB"}
+                          {plan.id === "sandbox"
+                            ? "Validez 10 minutos"
+                            : plan.id === "micro"
+                              ? "Respaldos diarios (7 d)"
+                              : "Hasta 10 ponds y 20 GB"}
                         </span>
                       </li>
                     </ul>
@@ -128,6 +130,7 @@ export function PlansPage() {
             tabIndex={0}
             role="region"
             aria-label="Comparativa de planes"
+            data-testid="plans-comparison-table"
           >
             <div className="border-b border-line-control bg-bone-sunk px-4 py-3">
               <h2 className="text-xs font-medium uppercase tracking-[0.18em] text-ink-muted">
@@ -138,41 +141,49 @@ export function PlansPage() {
               <thead>
                 <tr className="border-b border-line-control bg-bone-sunk text-xs text-ink-muted">
                   <th className="px-4 py-2.5 font-medium">Característica</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Sandbox</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Micro</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Pro</th>
+                  {(plans ?? []).map((plan) => (
+                    <th key={plan.id} className="px-4 py-2.5 text-right font-medium">
+                      {plan.name}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
                 <tr className="hover:bg-bone-raised">
                   <td className="px-4 py-2.5 font-medium text-ink">Ponds simultáneos</td>
-                  <td className="px-4 py-2.5 text-right font-mono tabular-nums text-ink">1</td>
-                  <td className="px-4 py-2.5 text-right font-mono tabular-nums text-ink">1</td>
-                  <td className="px-4 py-2.5 text-right font-mono tabular-nums text-ink">10</td>
+                  {(plans ?? []).map((plan) => (
+                    <td key={plan.id} className="px-4 py-2.5 text-right font-mono tabular-nums text-ink">
+                      {plan.max_ponds}
+                    </td>
+                  ))}
                 </tr>
                 <tr className="hover:bg-bone-raised">
                   <td className="px-4 py-2.5 font-medium text-ink">Almacenamiento por pond</td>
-                  <td className="px-4 py-2.5 text-right font-mono tabular-nums text-ink">1 GB</td>
-                  <td className="px-4 py-2.5 text-right font-mono tabular-nums text-ink">1 GB</td>
-                  <td className="px-4 py-2.5 text-right font-mono tabular-nums text-ink">20 GB</td>
+                  {(plans ?? []).map((plan) => (
+                    <td key={plan.id} className="px-4 py-2.5 text-right font-mono tabular-nums text-ink">
+                      {plan.max_storage_gb} GB
+                    </td>
+                  ))}
                 </tr>
                 <tr className="hover:bg-bone-raised">
                   <td className="px-4 py-2.5 font-medium text-ink">Respaldos automáticos</td>
-                  <td className="px-4 py-2.5 text-right text-ink">No</td>
-                  <td className="px-4 py-2.5 text-right text-ink">Diarios (7 días)</td>
-                  <td className="px-4 py-2.5 text-right text-ink">Diarios (30 días)</td>
+                  {(plans ?? []).map((plan) => (
+                    <td key={plan.id} className="px-4 py-2.5 text-right text-ink">
+                      {plan.id === "sandbox"
+                        ? "No"
+                        : plan.id === "micro"
+                          ? "Diarios (7 días)"
+                          : "Diarios (30 días)"}
+                    </td>
+                  ))}
                 </tr>
                 <tr className="hover:bg-bone-raised">
                   <td className="px-4 py-2.5 font-medium text-ink">Precio base</td>
-                  <td className="px-4 py-2.5 text-right font-mono tabular-nums text-ink">
-                    {planById("sandbox") ? formatPriceWithPeriod(planById("sandbox")!) : "—"}
-                  </td>
-                  <td className="px-4 py-2.5 text-right font-mono tabular-nums text-ink">
-                    {planById("micro") ? formatPriceWithPeriod(planById("micro")!) : "—"}
-                  </td>
-                  <td className="px-4 py-2.5 text-right font-mono tabular-nums text-ink">
-                    {planById("pro") ? formatPriceWithPeriod(planById("pro")!) : "—"}
-                  </td>
+                  {(plans ?? []).map((plan) => (
+                    <td key={plan.id} className="px-4 py-2.5 text-right font-mono tabular-nums text-ink">
+                      {formatPriceWithPeriod(plan)}
+                    </td>
+                  ))}
                 </tr>
               </tbody>
             </table>

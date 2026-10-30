@@ -2,6 +2,8 @@ import { HttpResponse, http } from "msw";
 import type { components } from "@/api/schema";
 import { adminUser, fixtures } from "@/mocks/fixtures";
 
+type Subscription = components["schemas"]["SubscriptionOut"];
+
 const API_ROOT = "*/api/v1";
 const SUSPEND_CONFIRM_TEXT = "SUSPENDER";
 
@@ -23,6 +25,10 @@ function freshAdminUsers(): AdminUser[] {
   return fixtures.adminUsers.map((user) => ({ ...user }));
 }
 
+function freshSubscriptions(): Subscription[] {
+  return [{ ...fixtures.subscriptionResponse.subscription }];
+}
+
 function freshAdminAudit(): AuditEvent[] {
   return fixtures.adminAuditEvents.map((event) => ({
     ...event,
@@ -32,6 +38,7 @@ function freshAdminAudit(): AuditEvent[] {
 
 let agentAccessState = freshAgentAccess();
 let adminUsersState = freshAdminUsers();
+let subscriptionsState = freshSubscriptions();
 let adminAuditState = freshAdminAudit();
 
 export const ROTATED_AGENT_PASSWORD = "rotated-once-secret";
@@ -51,6 +58,10 @@ export function resetAgentAccessState() {
 export function resetAdminUsersState() {
   adminUsersState = freshAdminUsers();
   adminAuditState = freshAdminAudit();
+}
+
+export function resetSubscriptionsState() {
+  subscriptionsState = freshSubscriptions();
 }
 
 export const handlers = [
@@ -164,6 +175,28 @@ export const handlers = [
       ponds_count: fixtures.ponds.length,
       subscription: fixtures.subscriptionResponse.subscription,
     });
+  }),
+
+  http.get(`${API_ROOT}/subscriptions`, () => {
+    return HttpResponse.json({ subscriptions: subscriptionsState, next_cursor: null });
+  }),
+
+  http.post(`${API_ROOT}/subscriptions/:subscriptionId/cancel`, ({ params }) => {
+    const subscriptionId = String(params.subscriptionId);
+    const index = subscriptionsState.findIndex((item) => item.id === subscriptionId);
+    if (index < 0) {
+      return HttpResponse.json(
+        { code: "internal_error", message: "missing", request_id: "req_sub_missing" },
+        { status: 404 },
+      );
+    }
+    const updated: Subscription = { ...subscriptionsState[index], cancel_at_period_end: true };
+    subscriptionsState = [
+      ...subscriptionsState.slice(0, index),
+      updated,
+      ...subscriptionsState.slice(index + 1),
+    ];
+    return HttpResponse.json({ subscription: updated }, { status: 202 });
   }),
 
   http.post(`${API_ROOT}/subscriptions`, async ({ request }) => {
