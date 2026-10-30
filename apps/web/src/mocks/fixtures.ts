@@ -385,6 +385,7 @@ export const fixtures = {
       subtotal_usd: 4.4643,
       total_usd: 5.0,
       user_id: demoUser.id,
+      nit: "0614-220999-101-3",
     },
   ] satisfies Invoice[],
   invoiceDetail: {
@@ -399,6 +400,7 @@ export const fixtures = {
       subtotal_usd: 4.4643,
       total_usd: 5.0,
       user_id: demoUser.id,
+      nit: "0614-220999-101-3",
     },
     lines: [
       {
@@ -476,6 +478,7 @@ export const fixtures = {
       total_usd: 5.0000,
       issued_at: "2026-09-22T20:00:00Z",
       pdf_path: "/var/lib/koicloud/invoices/KOI-202609-0001.pdf",
+      nit: "0614-220999-101-3",
     },
     payment: {
       id: "55555555-5555-5555-5555-555555555555",
