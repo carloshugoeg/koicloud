@@ -1,7 +1,9 @@
 import { type PropsWithChildren, useEffect, useState } from "react";
 import { restoreSession } from "@/api/client";
+import { retryLogoutQuietly } from "@/api/hooks/auth";
 import { DataStateSessionBoot } from "@/components/data-state";
 import { useAuthStore } from "@/lib/auth-store";
+import { isLoggedOut } from "@/lib/logged-out";
 
 const isVitest = import.meta.env.MODE === "test";
 
@@ -33,14 +35,18 @@ export function SessionBootGate({
     const frame = window.requestAnimationFrame(() => {
       void (async () => {
         if (!useAuthStore.getState().session) {
-          const restored = await restoreSession();
-          if (cancelled) {
-            return;
-          }
-          if (restored) {
-            useAuthStore.getState().setSession(restored);
+          if (isLoggedOut()) {
+            void retryLogoutQuietly();
           } else {
-            useAuthStore.getState().clearSession();
+            const restored = await restoreSession();
+            if (cancelled) {
+              return;
+            }
+            if (restored) {
+              useAuthStore.getState().setSession(restored);
+            } else {
+              useAuthStore.getState().clearSession();
+            }
           }
         }
         if (!cancelled) {

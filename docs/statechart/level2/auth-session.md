@@ -1,5 +1,5 @@
 # L2 · 1 Auth & session
-Code: `apps/api/app/commands/auth.py`, `core/auth.py`, `core/security.py` (access 15 min), web `lib/auth-store.ts`, `app/session-boot-gate.tsx`, `api/client.ts`.
+Code: `apps/api/app/commands/auth.py`, `core/auth.py`, `core/security.py` (access 15 min), web `lib/auth-store.ts`, `lib/logged-out.ts`, `app/session-boot-gate.tsx`, `api/client.ts`.
 ```mermaid
 stateDiagram-v2
   [*] --> Registered: POST /auth/register (email sent)
