@@ -1,5 +1,6 @@
 import createClient from "openapi-fetch";
 import type { components, paths } from "@/api/schema";
+import type { AuthSession } from "@/lib/auth-store";
 import { useAuthStore } from "@/lib/auth-store";
 
 const RETRY_HEADER = "x-koi-refresh-retry";
@@ -8,6 +9,9 @@ export const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "";
 
 type ApiProblem = components["schemas"]["ErrorResponse"];
 type RefreshResponse = components["schemas"]["TokenPairResponse"];
+type MeResponse = components["schemas"]["MeResponse"];
+
+let refreshInflight: Promise<RefreshResponse | null> | null = null;
 
 function resolveApiUrl(path: string) {
   const base = apiBaseUrl.trim();
@@ -36,13 +40,14 @@ async function readProblem(response: Response): Promise<ApiProblem | null> {
   return null;
 }
 
-async function refreshTokens(refreshToken: string) {
+async function requestRefresh(refreshToken: string | null) {
   const response = await fetch(resolveApiUrl("/api/v1/auth/refresh"), {
     method: "POST",
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ refresh_token: refreshToken }),
+    body: JSON.stringify(refreshToken ? { refresh_token: refreshToken } : {}),
   });
 
   if (!response.ok) {
@@ -50,6 +55,41 @@ async function refreshTokens(refreshToken: string) {
   }
 
   return (await response.json()) as RefreshResponse;
+}
+
+function refreshTokens(refreshToken: string | null) {
+  if (refreshInflight) {
+    return refreshInflight;
+  }
+
+  refreshInflight = requestRefresh(refreshToken).finally(() => {
+    refreshInflight = null;
+  });
+  return refreshInflight;
+}
+
+export async function restoreSession(): Promise<AuthSession | null> {
+  const refreshed = await refreshTokens(null);
+  if (!refreshed) {
+    return null;
+  }
+
+  const me = await fetch(resolveApiUrl("/api/v1/me"), {
+    credentials: "include",
+    headers: {
+      Authorization: `Bearer ${refreshed.access_token}`,
+    },
+  });
+  if (!me.ok) {
+    return null;
+  }
+
+  const profile = (await me.json()) as MeResponse;
+  return {
+    accessToken: refreshed.access_token,
+    refreshToken: refreshed.refresh_token,
+    user: profile.user,
+  };
 }
 
 function mergeRequestHeaders(input: RequestInfo | URL, init: RequestInit = {}): Headers {
@@ -88,6 +128,7 @@ const fetchWithRefresh: typeof fetch = async (input, init = {}) => {
   const response = await fetch(input, {
     ...init,
     headers,
+    credentials: init.credentials ?? "include",
   });
 
   if (headers.get(RETRY_HEADER) === "1" || response.status !== 401) {
@@ -99,13 +140,11 @@ const fetchWithRefresh: typeof fetch = async (input, init = {}) => {
     return response;
   }
 
-  const currentRefreshToken = useAuthStore.getState().session?.refreshToken;
-  if (!currentRefreshToken) {
-    useAuthStore.getState().clearSession();
+  const sessionNow = useAuthStore.getState().session;
+  if (!sessionNow) {
     return response;
   }
-
-  const refreshed = await refreshTokens(currentRefreshToken);
+  const refreshed = await refreshTokens(sessionNow.refreshToken ? sessionNow.refreshToken : null);
   if (!refreshed) {
     useAuthStore.getState().clearSession();
     return response;
@@ -127,6 +166,7 @@ const fetchWithRefresh: typeof fetch = async (input, init = {}) => {
   return fetch(input, {
     ...init,
     headers: retryHeaders,
+    credentials: init.credentials ?? "include",
   });
 };
 

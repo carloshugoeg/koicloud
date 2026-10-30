@@ -7,7 +7,7 @@ describe("SessionBootGate — boot frame (CA3)", () => {
     vi.unstubAllGlobals();
   });
 
-  it("renders DataStateSessionBoot before handing off to children", () => {
+  it("renders DataStateSessionBoot before handing off to children", async () => {
     let flushFrame: FrameRequestCallback | null = null;
     vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
       flushFrame = cb;
@@ -29,7 +29,7 @@ describe("SessionBootGate — boot frame (CA3)", () => {
       flushFrame?.(0);
     });
 
+    expect(await screen.findByTestId("app-after-boot")).toBeInTheDocument();
     expect(screen.queryByTestId("data-state-session-boot")).not.toBeInTheDocument();
-    expect(screen.getByTestId("app-after-boot")).toBeInTheDocument();
   });
 });

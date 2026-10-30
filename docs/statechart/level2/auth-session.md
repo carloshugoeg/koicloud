@@ -8,8 +8,9 @@ stateDiagram-v2
   Verified --> LoggedIn: POST /auth/login
   Verified --> Verified: bad password → 401 invalid_credentials
   LoggedIn --> LoggedIn: access expires → POST /auth/refresh (rotates)
-  LoggedIn --> Verified: POST /auth/logout (refresh revoked; access JWT lives ≤15 min)
-  LoggedIn --> Verified: page reload (main: tokens in memory only) 
+  LoggedIn --> LoggedIn: page reload → POST /auth/refresh (httpOnly koi_refresh) restores session
+  LoggedIn --> Verified: refresh fails → session cleared, login
+  LoggedIn --> Verified: POST /auth/logout (refresh revoked; access JWT lives ≤15 min) 
   Verified --> ResetPending: POST /auth/forgot
   ResetPending --> Verified: POST /auth/reset
   LoggedIn --> Suspended: admin suspends (main: tokens keep working)

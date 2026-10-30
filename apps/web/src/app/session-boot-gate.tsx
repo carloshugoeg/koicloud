@@ -1,5 +1,7 @@
 import { type PropsWithChildren, useEffect, useState } from "react";
+import { restoreSession } from "@/api/client";
 import { DataStateSessionBoot } from "@/components/data-state";
+import { useAuthStore } from "@/lib/auth-store";
 
 const isVitest = import.meta.env.MODE === "test";
 
@@ -12,8 +14,9 @@ export interface SessionBootGateProps extends PropsWithChildren {
 }
 
 /**
- * Arranque de sesión (§6.5 / CA3): one quiet-pond DataState frame, then children.
- * No token persistence — auth stays in-memory (auth-store.ts is No tocar).
+ * Arranque de sesión (§6.5 / CA3): quiet pond, then children.
+ * Children stay unmounted until refresh settles so the router cannot
+ * send the user to login before the cookie session is restored.
  */
 export function SessionBootGate({
   children,
@@ -26,10 +29,27 @@ export function SessionBootGate({
       return;
     }
 
+    let cancelled = false;
     const frame = window.requestAnimationFrame(() => {
-      setReady(true);
+      void (async () => {
+        if (!useAuthStore.getState().session) {
+          const restored = await restoreSession();
+          if (cancelled) {
+            return;
+          }
+          if (restored) {
+            useAuthStore.getState().setSession(restored);
+          } else {
+            useAuthStore.getState().clearSession();
+          }
+        }
+        if (!cancelled) {
+          setReady(true);
+        }
+      })();
     });
     return () => {
+      cancelled = true;
       window.cancelAnimationFrame(frame);
     };
   }, [skipBoot]);

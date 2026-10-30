@@ -1,9 +1,11 @@
 ----------------------------- MODULE UserJourney -----------------------------
 (* Web user journey: session, pond list, pond detail tabs, SQL console history,
    billing (Uso del mes + Facturacion merged) and plan change / checkout.
-   Fixed = FALSE models main @ 72015b5 (preview as Carlos tested it, MSW mocks);
+   Fixed = FALSE models main @ 72015b5 (preview as Carlos tested it, MSW mocks),
+   except reload: r6-3 keeps the session whether Fixed is TRUE or FALSE.
    Fixed = TRUE models the behaviour asked for in #96 r6.
-   Code: apps/web/src/app/session-boot-gate.tsx, lib/auth-store.ts (in-memory tokens),
+   Code: apps/web/src/app/session-boot-gate.tsx (boot calls /auth/refresh),
+   lib/auth-store.ts (access token in memory; refresh in httpOnly koi_refresh),
    features/ponds/detail-page.tsx:96-101, backups-page.tsx:102-104,
    sql-console/sql-console-page.tsx:47-51, mocks/handlers.ts:207 (history ignores pondId),
    app/layout/nav-config.ts:42-44, features/plans/checkout-modal.tsx:22-33. *)
@@ -31,10 +33,7 @@ Go(s) == screen' = s /\ from' = screen
 
 YouLogIn     == auth = "out" /\ auth' = "in" /\ Go("list") /\ UNCHANGED <<cur, history, reloadLost, co, chargedBadCard>>
 YouLogInBad  == auth = "out" /\ screen = "login" /\ UNCHANGED vars    \* 401: stays on login with error
-YouReload    == auth = "in" /\ co = "closed"
-                /\ IF Fixed THEN UNCHANGED vars
-                   ELSE auth' = "out" /\ Go("login") /\ reloadLost' = TRUE
-                        /\ UNCHANGED <<cur, history, co, chargedBadCard>>
+YouReload    == auth = "in" /\ co = "closed" /\ UNCHANGED vars
 YouLogOut    == auth = "in" /\ co = "closed" /\ auth' = "out" /\ Go("login") /\ UNCHANGED <<cur, history, reloadLost, co, chargedBadCard>>
 YouOpenPond(p) == auth = "in" /\ co = "closed" /\ screen = "list" /\ cur' = p /\ Go("resumen")
                   /\ UNCHANGED <<auth, history, reloadLost, co, chargedBadCard>>

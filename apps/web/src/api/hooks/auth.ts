@@ -58,6 +58,14 @@ export function useForgotPasswordMutation() {
   });
 }
 
+export async function logoutSession() {
+  const { response, error } = await apiClient.POST("/api/v1/auth/logout");
+  if (!response?.ok) {
+    throw new ApiError(error);
+  }
+  useAuthStore.getState().clearSession();
+}
+
 export function useResetPasswordMutation() {
   return useMutation({
     mutationFn: async (body: ResetPasswordPayload) => {
