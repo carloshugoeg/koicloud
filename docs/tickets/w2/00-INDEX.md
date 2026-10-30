@@ -22,6 +22,7 @@ el agente lo ignora.
 | W2-14 | Ajustes del screen map: password, plan y detalle | `w2-screen-map-fixes` | hecho ([PR #122](https://github.com/carloshugoeg/koicloud/pull/122)); follow-up [PR #141](https://github.com/carloshugoeg/koicloud/pull/141) |
 | W2-15 | Wave A2 web gaps (billing, precios, banner) | `w2-a2-web-gaps` | en-revision ([PR #137](https://github.com/carloshugoeg/koicloud/pull/137)) |
 | W2-16 | Diálogo web propose → confirm (A9 / E9-04) | `w2-confirm-dialog` | hecho ([PR #138](https://github.com/carloshugoeg/koicloud/pull/138)) |
+| W2-17 | Pond detail: Eliminar + Respaldar confirms (RF-14 / RF-15) | `w2-pond-detail-actions` | hecho ([PR #144](https://github.com/carloshugoeg/koicloud/pull/144)) |
 
 **Dos fuentes por pantalla, y no se confunden:** la arquitectura de información (qué campos,
 qué tablas, qué pasos) sale de los mockups de `docs/entrega-2/mockups/`; la piel (color,

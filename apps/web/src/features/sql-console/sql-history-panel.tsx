@@ -17,10 +17,7 @@ export function SqlHistoryPanel({ pondId }: { pondId: string }) {
   const historyQuery = useSqlHistoryQuery(pondId || undefined);
 
   return (
-    <aside
-      className="min-w-0 overflow-hidden rounded-md border border-line bg-bone-raised p-4"
-      data-testid="sql-history"
-    >
+    <aside className="min-w-0 overflow-hidden rounded-md border border-line bg-bone-raised p-4">
       <h3 className="font-display text-lg text-ink">Historial</h3>
       <p className="mt-1 text-xs text-ink-muted">Tus últimas consultas en este pond.</p>
 
@@ -33,7 +30,7 @@ export function SqlHistoryPanel({ pondId }: { pondId: string }) {
       ) : null}
 
       {historyQuery.data ? (
-        <ul className="mt-4 space-y-3">
+        <ul className="mt-4 space-y-3" data-testid="sql-history">
           {historyQuery.data.events.length === 0 ? (
             <li className="text-sm text-ink-muted">Aún no hay consultas.</li>
           ) : (

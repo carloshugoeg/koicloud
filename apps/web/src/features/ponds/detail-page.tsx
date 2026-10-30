@@ -1,21 +1,32 @@
-import { Link, useParams } from "react-router-dom";
+import { useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { PondTabs } from "@/components/pond-tabs";
 import {
   pondNeedsPolling,
+  useDeletePondMutation,
   useGetConnection,
   useGetPond,
   useTriggerBackupMutation,
 } from "@/api/hooks/ponds";
+import { BackupConfirmDialog } from "@/features/ponds/backup-confirm-dialog";
 import { ConnectionCard } from "@/features/ponds/connection-card";
+import { DeletePondDialog } from "@/features/ponds/delete-pond-dialog";
 import { PondLifecycleActions } from "@/features/ponds/pond-lifecycle-actions";
+import { PondRiskZone } from "@/features/ponds/pond-risk-zone";
 import { pondDisplayMeta, pondLifecycleInFlight } from "@/features/ponds/pond-state";
 import { ApiError, problemToMessage } from "@/lib/errors";
 import { toast } from "@/lib/toast";
 
 export function PondDetailPage() {
   const { pondId = "" } = useParams();
+  const navigate = useNavigate();
   const pondQuery = useGetPond(pondId || undefined);
   const connectionQuery = useGetConnection(pondId || undefined);
   const backupMutation = useTriggerBackupMutation(pondId);
+  const deleteMutation = useDeletePondMutation(pondId);
+  const [backupOpen, setBackupOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [confirmName, setConfirmName] = useState("");
 
   if (pondQuery.isPending) {
     return (
@@ -65,14 +76,34 @@ export function PondDetailPage() {
   const meta = pondDisplayMeta(pond);
   const inProgress = pondNeedsPolling(pond) || pondLifecycleInFlight(pond);
   const failed = pond.observed_state === "failed";
+  const actionsDisabled = inProgress || pond.observed_state === "deleted";
 
-  async function handleBackupNow() {
+  async function handleBackupConfirm() {
     try {
       await backupMutation.mutateAsync();
+      setBackupOpen(false);
       toast({ tone: "ok", message: "Respaldo encolado" });
     } catch (error) {
+      setBackupOpen(false);
       toast({ tone: "danger", message: problemToMessage(error) });
     }
+  }
+
+  async function handleDelete() {
+    if (confirmName !== pond.name) return;
+    try {
+      await deleteMutation.mutateAsync();
+      setDeleteOpen(false);
+      setConfirmName("");
+      void navigate("/app/ponds");
+    } catch {
+      // surfaced via deleteMutation.error
+    }
+  }
+
+  function openDelete() {
+    setConfirmName("");
+    setDeleteOpen(true);
   }
 
   return (
@@ -92,15 +123,7 @@ export function PondDetailPage() {
           <p className="mt-1 text-sm text-ink-muted">
             PostgreSQL {pond.engine_version} · plan {pond.plan_id} · nodo {pond.node_id}
           </p>
-          <nav className="mt-3 flex flex-wrap gap-3 text-sm">
-            <span className="font-medium text-ink">Resumen</span>
-            <Link className="text-turquoise-700" to={`/app/ponds/${pond.id}/backups`}>
-              Respaldos
-            </Link>
-            <Link className="text-turquoise-700" to={`/app/ponds/${pond.id}/console`}>
-              Consola
-            </Link>
-          </nav>
+          <PondTabs pondId={pond.id} active="resumen" />
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {pond.observed_state === "running" ? (
@@ -108,12 +131,21 @@ export function PondDetailPage() {
               type="button"
               className="h-9 rounded-sm bg-turquoise-700 px-4 text-sm font-medium text-bone-raised hover:bg-turquoise-900 disabled:bg-bone-sunk disabled:text-ink-faint"
               data-testid="backup-now"
-              disabled={backupMutation.isPending}
-              onClick={() => void handleBackupNow()}
+              disabled={actionsDisabled || backupMutation.isPending}
+              onClick={() => setBackupOpen(true)}
             >
               {backupMutation.isPending ? "Respaldando…" : "Respaldar ahora"}
             </button>
           ) : null}
+          <button
+            type="button"
+            className="h-9 rounded-sm border border-danger bg-bone-raised px-4 text-sm font-medium text-danger disabled:border-line-control disabled:text-ink-faint"
+            data-testid="open-delete-pond"
+            disabled={actionsDisabled || deleteMutation.isPending}
+            onClick={openDelete}
+          >
+            Eliminar…
+          </button>
           <PondLifecycleActions pond={pond} />
         </div>
       </div>
@@ -163,6 +195,38 @@ export function PondDetailPage() {
         error={connectionQuery.error}
         isError={connectionQuery.isError}
       />
+
+      <PondRiskZone
+        disabled={actionsDisabled || deleteMutation.isPending}
+        onDelete={openDelete}
+      />
+
+      {backupOpen ? (
+        <BackupConfirmDialog
+          pondName={pond.name}
+          pending={backupMutation.isPending}
+          errorMessage={
+            backupMutation.isError ? problemToMessage(backupMutation.error) : null
+          }
+          onCancel={() => setBackupOpen(false)}
+          onConfirm={() => void handleBackupConfirm()}
+        />
+      ) : null}
+
+      {deleteOpen ? (
+        <DeletePondDialog
+          pondName={pond.name}
+          confirmName={confirmName}
+          pending={deleteMutation.isPending}
+          error={deleteMutation.error}
+          onConfirmNameChange={setConfirmName}
+          onCancel={() => {
+            setDeleteOpen(false);
+            setConfirmName("");
+          }}
+          onSubmit={() => void handleDelete()}
+        />
+      ) : null}
     </div>
   );
 }
