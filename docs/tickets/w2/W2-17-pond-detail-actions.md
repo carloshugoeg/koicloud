@@ -2,7 +2,7 @@
 id: W2-17
 workstream: W2
 persona: Jason
-estado: en-revision
+estado: hecho
 rama: w2-pond-detail-actions
 epica: "RF-14, RF-15"
 sprint: S5
