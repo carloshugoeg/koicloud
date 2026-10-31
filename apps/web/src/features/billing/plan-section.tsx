@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PlansPage } from "@/features/plans/plans-page";
 
 export function PlanSection() {
   const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -10,6 +11,7 @@ export function PlanSection() {
       if (event.key !== "Escape" || event.defaultPrevented) return;
       if (document.querySelector("[role='dialog']")) return;
       setOpen(false);
+      triggerRef.current?.focus();
     }
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
@@ -22,6 +24,7 @@ export function PlanSection() {
           Tu plan actual
         </h2>
         <button
+          ref={triggerRef}
           type="button"
           aria-expanded={open}
           onClick={() => setOpen((current) => !current)}
