@@ -157,15 +157,13 @@ stateDiagram-v2
     lg2: money
     lg3: nav
     lg4: Breaks HistoryScoped or NoChargeBadCard or PlansViaBilling or TabsFixedOrder
-    lg5: Breaks ReloadKeepsSession in some cases
-    lg6: Path to the HistoryScoped or NoChargeBadCard or PlansViaBilling or ReloadKeepsSession or TabsFixedOrder bug
+    lg6: Path to the HistoryScoped or NoChargeBadCard or PlansViaBilling or TabsFixedOrder bug
   }
   class lg0 pink
   class lg1 teal
   class lg2 yellow
   class lg3 blue
   class lg4 breaks
-  class lg5 mayBreak
   class lg6 bugPath
   s0: Login
   s1: Pond list
@@ -179,7 +177,6 @@ stateDiagram-v2
   s0 --> s1: you log in
   s1 --> s2: you press Planes in the sidebar
   s1 --> s3: you open a pond
-  s1 --> s0: you reload the page
   s2 --> s4: you pick a plan
   s3 --> s5: you press the Respaldos tab
   s3 --> s6: you press the Consola tab
@@ -187,7 +184,6 @@ stateDiagram-v2
   classDef breaks fill:#ffecee,stroke:#e72e3b,stroke-width:2.5px,color:#cd2834
   classDef mayBreak fill:#fff3e6,stroke:#e8730c,stroke-width:2.5px,color:#b85a06
   class s0 pink
-  class s0 mayBreak
   class s0 bugPath
   class s1 blue
   class s1 bugPath
@@ -211,7 +207,6 @@ stateDiagram-v2
 
 | Rule broken on main | Shortest path | Code |
 |---|---|---|
-| ReloadKeepsSession | log in → reload → Login | `lib/auth-store.ts` in-memory tokens; `app/session-boot-gate.tsx:16` "No token persistence" |
 | PlansViaBilling | log in → *Planes* in sidebar | `app/layout/nav-config.ts:42-44` (Uso del mes, Facturación, Planes are 3 items) |
 | TabsFixedOrder | log in → open pond → Respaldos tab | `backups-page.tsx:102-104` renders only Resumen·Respaldos; `sql-console-page.tsx:47-51` renders Resumen·Consola·Respaldos |
 | HistoryScoped | log in → open brand-new pond → Consola | API is scoped (`sql_console/service.py:78-81` filters user_id + pond_id); **MSW mock** `mocks/handlers.ts:207` returns `fixtures.sqlHistory` for any `:pondId` |
@@ -269,7 +264,7 @@ One named e2e test per transition (Playwright, `e2e/pond-lifecycle/` and a new `
 |---|---|---|---|---|
 | TabsFixedOrder | Every pond page shows Resumen, Respaldos, Consola, in that order, in every pond state. | Users lose their place; Respaldos page has no way to Consola. | UserJourney | **breaks** |
 | HistoryScoped | The console shows only queries run on the pond you are looking at. | Leaks other ponds' SQL; a new pond looks used. | UserJourney | **breaks** (MSW preview); API holds |
-| ReloadKeepsSession | Reloading the page keeps you logged in on the same screen. | Every F5 logs you out. | UserJourney | **breaks** |
+| ReloadKeepsSession | A failed refresh leaves you on the login screen. A successful reload keeps the session. | A rejected refresh still shows the app. | UserJourney | holds |
 | PlansViaBilling | Planes is reached only from Uso y facturación (Cambiar de plan). | r6 nav not done. | UserJourney | **breaks** (not implemented) |
 | NoChargeBadCard | An invoice is issued only when the card was validated. | A plan change goes through with garbage card data. | UserJourney | **breaks** (no card check) |
 | OneInFlightOp | A pond has at most one lifecycle job in flight, and is in a transitional state exactly when it has one. | Racing stop/start/delete corrupts data. | PondLifecycle | holds |

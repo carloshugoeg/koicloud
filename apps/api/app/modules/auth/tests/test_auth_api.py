@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import os
 from datetime import timedelta
 from uuid import UUID
 
-from httpx import ASGITransport, AsyncClient
+from httpx import ASGITransport, AsyncClient, Response
 from sqlalchemy import select
 
+from app.core.config import get_settings
 from app.core.db import SessionLocal
 from app.core.enums import EmailTokenKind, UserStatus
 from app.core.errors import AppError, ErrorCode
@@ -508,6 +510,140 @@ async def test_reset_password_api_error_cases() -> None:
             json={"token": weak_token, "new_password": "short"},
         )
         assert weak_res.status_code == 422
+
+
+async def test_refresh_cookie_restores_session_and_clears_on_failure() -> None:
+    """Reload sends only the httpOnly koi_refresh cookie. A spent cookie logs out."""
+    reset_auth_tables()
+
+    async with _make_client() as client:
+        await _register_and_verify(client, "cookie-reload@koicloud.dev")
+        login_res = await client.post(
+            "/api/v1/auth/login",
+            json={"email": "cookie-reload@koicloud.dev", "password": PASSWORD},
+        )
+        assert login_res.status_code == 200
+        spent = login_res.json()["refresh_token"]
+        assert login_res.cookies["koi_refresh"] == spent
+
+        refresh_res = await client.post("/api/v1/auth/refresh")
+        assert refresh_res.status_code == 200, refresh_res.text
+        rotated = refresh_res.json()
+        assert set(rotated.keys()) == {"access_token", "refresh_token"}
+        assert rotated["refresh_token"] != spent
+        assert refresh_res.cookies["koi_refresh"] == rotated["refresh_token"]
+
+    async with _make_client() as stale:
+        reused = await stale.post("/api/v1/auth/refresh", cookies={"koi_refresh": spent})
+        assert reused.status_code == 401
+        assert reused.json()["code"] == "token_invalid"
+        cleared = ",".join(reused.headers.get_list("set-cookie")).lower()
+        assert "koi_refresh=" in cleared
+        assert "max-age=0" in cleared
+
+
+def _set_cookie_header(response: Response) -> str:
+    return ",".join(response.headers.get_list("set-cookie")).lower()
+
+
+async def test_refresh_without_token_or_cookie_returns_401() -> None:
+    async with _make_client() as client:
+        empty = await client.post("/api/v1/auth/refresh", json={})
+        assert empty.status_code == 401
+        assert empty.json()["code"] == "token_invalid"
+        bare = await client.post("/api/v1/auth/refresh")
+        assert bare.status_code == 401
+        assert bare.json()["code"] == "token_invalid"
+        cleared = _set_cookie_header(bare)
+        assert "koi_refresh=" in cleared
+        assert "max-age=0" in cleared
+
+
+async def test_logout_clears_refresh_cookie() -> None:
+    reset_auth_tables()
+
+    async with _make_client() as client:
+        await _register_and_verify(client, "logout-cookie@koicloud.dev")
+        login_res = await client.post(
+            "/api/v1/auth/login",
+            json={"email": "logout-cookie@koicloud.dev", "password": PASSWORD},
+        )
+        assert login_res.status_code == 200
+        login = login_res.json()
+        logout_res = await client.post(
+            "/api/v1/auth/logout",
+            headers={"Authorization": f"Bearer {login['access_token']}"},
+            cookies={"koi_refresh": login["refresh_token"]},
+        )
+        assert logout_res.status_code == 204
+        cleared = _set_cookie_header(logout_res)
+        assert "koi_refresh=" in cleared
+        assert "max-age=0" in cleared
+        assert "httponly" in cleared
+        assert "samesite=lax" in cleared
+        assert "path=/api/v1" in cleared
+
+
+async def test_refresh_cookie_secure_on_https_and_production() -> None:
+    reset_auth_tables()
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="https://test") as client:
+        await _register_and_verify(client, "secure-cookie@koicloud.dev")
+        login_res = await client.post(
+            "/api/v1/auth/login",
+            json={"email": "secure-cookie@koicloud.dev", "password": PASSWORD},
+        )
+        assert login_res.status_code == 200
+        login = login_res.json()
+        assert "secure" in _set_cookie_header(login_res)
+        logout_res = await client.post(
+            "/api/v1/auth/logout",
+            headers={"Authorization": f"Bearer {login['access_token']}"},
+            cookies={"koi_refresh": login["refresh_token"]},
+        )
+        assert logout_res.status_code == 204
+        cleared = _set_cookie_header(logout_res)
+        assert "secure" in cleared
+        assert "httponly" in cleared
+        assert "max-age=0" in cleared
+
+    async with _make_client() as forwarded:
+        forwarded_login = await forwarded.post(
+            "/api/v1/auth/login",
+            json={"email": "secure-cookie@koicloud.dev", "password": PASSWORD},
+            headers={"x-forwarded-proto": "https"},
+        )
+        assert forwarded_login.status_code == 200
+        assert "secure" in _set_cookie_header(forwarded_login)
+
+    get_settings.cache_clear()
+    saved_secrets = {
+        "POND_PASSWORD_KEY": os.environ.get("POND_PASSWORD_KEY"),
+        "MCP_DEMO_PASSWORD": os.environ.get("MCP_DEMO_PASSWORD"),
+    }
+    os.environ["ENVIRONMENT"] = "production"
+    os.environ["EMAIL_PROVIDER"] = "resend"
+    os.environ["EMAIL_FROM"] = "koi@koicloud.dev"
+    os.environ["POND_PASSWORD_KEY"] = "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8="
+    os.environ["MCP_DEMO_PASSWORD"] = "ci-mcp-demo-password"
+    get_settings.cache_clear()
+    try:
+        async with _make_client() as production:
+            production_login = await production.post(
+                "/api/v1/auth/login",
+                json={"email": "secure-cookie@koicloud.dev", "password": PASSWORD},
+            )
+            assert production_login.status_code == 200
+            assert "secure" in _set_cookie_header(production_login)
+    finally:
+        os.environ["ENVIRONMENT"] = "development"
+        os.environ["EMAIL_PROVIDER"] = "console"
+        for name, previous in saved_secrets.items():
+            if previous is None:
+                os.environ.pop(name, None)
+            else:
+                os.environ[name] = previous
+        get_settings.cache_clear()
 
 
 async def test_auth_service_reset_methods() -> None:

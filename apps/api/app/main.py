@@ -12,6 +12,7 @@ from app.core.errors import AppError, app_error_handler, unexpected_error_handle
 from app.internal_v1 import router as internal_v1_router
 from app.mcp.asgi import mcp_stream_app, wrap_with_mcp_stream
 from app.mcp.router import router as mcp_router
+from app.modules.auth.refresh_cookie import RefreshCookieMiddleware
 from app.modules.notifications.service import bootstrap_email_gate
 from app.schemas import HealthResponse
 
@@ -63,6 +64,7 @@ def create_app() -> FastAPI:
         # Ops alias. Contract path remains GET /api/v1/health.
         return HealthResponse(ok=True, git_sha=settings.app_version)
 
+    app.add_middleware(RefreshCookieMiddleware)
     app.include_router(api_v1_router, prefix=settings.api_prefix)
     app.include_router(internal_v1_router, prefix=settings.internal_api_prefix)
     app.include_router(mcp_router, prefix=settings.mcp_prefix)

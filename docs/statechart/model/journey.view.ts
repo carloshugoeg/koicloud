@@ -8,7 +8,7 @@ export const state = (v: any) => (v.co !== "closed" ? C[v.co] : N[v.screen]);
 export const group = (v: any) => (v.screen === "login" ? "auth" : ["resumen","respaldos","consola"].includes(v.screen) ? "pond" : v.co !== "closed" || v.screen === "plans" || v.screen === "billing" ? "money" : "nav");
 export const colors = { auth: "pink", pond: "teal", money: "yellow", nav: "blue" };
 export const step = (a: string, f: any, t: any) => {
-  if (t.reloadLost && !f.reloadLost) return "you reload the page";
+  if (t.reloadLost && !f.reloadLost) return "refresh fails and you are logged out";
   if (f.auth === "in" && t.auth === "out") return null; // log out: available everywhere, hidden
   if (f.auth === "out" && t.auth === "in") return "you log in";
   if (f.co !== t.co) {

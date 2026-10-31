@@ -43,6 +43,14 @@ let adminAuditState = freshAdminAudit();
 
 export const ROTATED_AGENT_PASSWORD = "rotated-once-secret";
 
+function readRefreshCookie(cookies: Record<string, string>): string | null {
+  const value = cookies.koi_refresh;
+  if (!value) {
+    return null;
+  }
+  return value;
+}
+
 export function resetAgentAccessState() {
   agentAccessState = freshAgentAccess();
 }
@@ -78,22 +86,52 @@ export const handlers = [
     const body = (await request.json()) as { email?: string };
     // Preview/test-only admin seed (MSW). Never a real credential store.
     if (body.email?.trim().toLowerCase() === adminUser.email) {
-      return HttpResponse.json({
-        access_token: "access_admin_token",
-        refresh_token: "refresh_admin_token",
-        user: {
-          id: adminUser.id,
-          email: adminUser.email,
-          full_name: adminUser.full_name,
-          role: "admin" as const,
-          status: adminUser.status,
-          email_verified: true,
-          nit: "0614-220999-101-3",
-          created_at: adminUser.created_at,
+      return HttpResponse.json(
+        {
+          access_token: "access_admin_token",
+          refresh_token: "refresh_admin_token",
+          user: {
+            id: adminUser.id,
+            email: adminUser.email,
+            full_name: adminUser.full_name,
+            role: "admin" as const,
+            status: adminUser.status,
+            email_verified: true,
+            nit: "0614-220999-101-3",
+            created_at: adminUser.created_at,
+          },
         },
-      });
+        {
+          headers: {
+            "set-cookie": "koi_refresh=refresh_admin_token; Path=/api/v1; HttpOnly; SameSite=Lax",
+          },
+        },
+      );
     }
-    return HttpResponse.json(fixtures.session);
+    return HttpResponse.json(fixtures.session, {
+      headers: {
+        "set-cookie": "koi_refresh=refresh_demo_token; Path=/api/v1; HttpOnly; SameSite=Lax",
+      },
+    });
+  }),
+
+  http.post(`${API_ROOT}/auth/logout`, () => {
+    if (sessionStorage.getItem("koi-mock-logout-fails") === "1") {
+      return HttpResponse.json(
+        {
+          code: "internal_error",
+          message: "No se pudo cerrar la sesión.",
+          request_id: "req_logout_mock",
+        },
+        { status: 500 },
+      );
+    }
+    return new HttpResponse(null, {
+      status: 204,
+      headers: {
+        "set-cookie": "koi_refresh=; Path=/api/v1; Max-Age=0; HttpOnly; SameSite=Lax",
+      },
+    });
   }),
 
   http.post(`${API_ROOT}/auth/forgot`, () => {
@@ -104,8 +142,27 @@ export const handlers = [
     return HttpResponse.json({ ok: true });
   }),
 
-  http.post(`${API_ROOT}/auth/refresh`, () => {
-    return HttpResponse.json(fixtures.refreshed);
+  http.post(`${API_ROOT}/auth/refresh`, ({ cookies }) => {
+    const cookie = readRefreshCookie(cookies);
+    if (
+      cookie !== "refresh_demo_token" &&
+      cookie !== "refresh_admin_token" &&
+      cookie !== "refresh_refreshed_token"
+    ) {
+      return HttpResponse.json(
+        {
+          code: "token_invalid",
+          message: "Token inválido o mal formado",
+          request_id: "req_refresh",
+        },
+        { status: 401 },
+      );
+    }
+    return HttpResponse.json(fixtures.refreshed, {
+      headers: {
+        "set-cookie": "koi_refresh=refresh_refreshed_token; Path=/api/v1; HttpOnly; SameSite=Lax",
+      },
+    });
   }),
 
   http.get(`${API_ROOT}/plans`, () => {

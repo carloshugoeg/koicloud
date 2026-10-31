@@ -10,7 +10,7 @@ if [ $# -eq 2 ]; then
   runs=("$1 $2")
 elif [ $# -eq 0 ]; then
   pair=0
-  runs=("PondLifecycle.tla PondLifecycle.cfg" "UserJourney.tla UserJourneyFixed.cfg" "System.tla SystemFixed.cfg")
+  runs=("PondLifecycle.tla PondLifecycle.cfg" "UserJourney.tla UserJourneyFixed.cfg" "System.tla SystemFixed.cfg" "LogoutSession.tla LogoutSessionFixed.cfg")
 else
   echo "usage: check.sh [spec.tla config.cfg]" >&2
   exit 2
