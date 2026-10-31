@@ -267,7 +267,7 @@ describe("session refresh and logout", () => {
     renderAt("/app/uso", false);
 
     expect(await screen.findByRole("heading", { name: "Iniciar sesión" })).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Uso del mes" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Cerrar sesión" })).not.toBeInTheDocument();
     expect(refreshCalls).toEqual([]);
     await waitFor(() => {
       expect(logoutCalls).toHaveLength(2);
@@ -279,7 +279,7 @@ describe("session refresh and logout", () => {
     await user.type(screen.getByLabelText("Contraseña"), "Sup3rSegura!2026");
     await user.click(screen.getByRole("button", { name: "Iniciar sesión" }));
 
-    expect(await screen.findByRole("heading", { name: "Uso del mes" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Uso y facturación" })).toBeInTheDocument();
 
     cleanup();
     useAuthStore.getState().clearSession();
@@ -359,7 +359,7 @@ describe("session refresh and logout", () => {
 
     try {
       expect(await screen.findByRole("heading", { name: "Iniciar sesión" })).toBeInTheDocument();
-      expect(screen.queryByRole("heading", { name: "Uso del mes" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Cerrar sesión" })).not.toBeInTheDocument();
       expect(refreshCalls).toEqual([]);
       expect(useAuthStore.getState().session).toBeNull();
     } finally {

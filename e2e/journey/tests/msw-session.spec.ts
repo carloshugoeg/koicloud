@@ -50,7 +50,7 @@ test("journey: msw deep link keeps session", async ({ page }) => {
   await next.goto("/app/uso");
   const status = (await refresh).status();
   await expect(next).toHaveURL(/\/app\/uso/);
-  await expect(next.getByRole("heading", { name: "Uso del mes" })).toBeVisible();
+  await expect(next.getByRole("heading", { name: "Uso y facturación" })).toBeVisible();
   await expect(next.getByRole("heading", { name: "Iniciar sesión" })).toHaveCount(0);
   expect(status).toBe(200);
 });
@@ -64,10 +64,12 @@ test("journey: msw logout failure still returns to login", async ({ page }) => {
     (response) => response.request().method() === "POST" && response.url().includes("/api/v1/auth/logout"),
   );
   await page.getByRole("button", { name: "Cerrar sesión" }).click();
+  await expect(page.getByText("La sesión puede seguir activa en el servidor.")).toBeVisible();
   const status = (await logout).status();
   await expect(page.getByRole("heading", { name: "Iniciar sesión" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Tus ponds" })).toHaveCount(0);
   expect(status).toBe(500);
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("koi_logged_out"))).toBe("pending");
 
   await page.reload();
   await expect(page).toHaveURL(/\/login/);
@@ -90,12 +92,22 @@ test("journey: msw logout failure still returns to login", async ({ page }) => {
     const next = await page.context().newPage();
     try {
       await next.setViewportSize({ width, height: width === 375 ? 812 : 900 });
+      await next.addInitScript((key) => {
+        sessionStorage.setItem(key, "1");
+      }, logoutFailKey);
       await next.goto("/app/uso");
       await expect(next).toHaveURL(/\/login/);
       await expect(next.getByRole("heading", { name: "Iniciar sesión" })).toBeVisible();
-      await expect(next.getByRole("heading", { name: "Uso del mes" })).toHaveCount(0);
+      await expect(next.getByRole("button", { name: "Cerrar sesión" })).toHaveCount(0);
     } finally {
       await next.close();
     }
   }
+
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("koi_logged_out"))).toBe("pending");
+  await page.getByLabel("Correo").fill("demo@koicloud.dev");
+  await page.getByLabel("Contraseña").fill("Sup3rSegura!2026");
+  await page.getByRole("button", { name: "Iniciar sesión" }).click();
+  await expect(page.getByRole("heading", { name: "Tus ponds" })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("koi_logged_out"))).toBeNull();
 });
