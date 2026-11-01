@@ -1,5 +1,5 @@
 ---
-id: W2-19
+id: W2-21
 workstream: W2
 persona: Jason
 estado: en-revision
@@ -10,7 +10,7 @@ pr: "https://github.com/carloshugoeg/koicloud/pull/180"
 depends_on: W2-07
 ---
 
-# [W2-19] Consola SQL contra el pond real
+# [W2-21] Consola SQL contra el pond real
 
 ## Qué se ve
 
