@@ -35,14 +35,17 @@ def _cell(value: object) -> object:
 
 async def _execute(connection: ConnectionOut, payload: RunSQLRequest) -> SQLResultResponse:
     started = time.perf_counter()
-    conn = await asyncpg.connect(
-        host=connection.host,
-        port=connection.port,
-        user=connection.username,
-        password=connection.password,
-        database=connection.database,
-        timeout=10,
-    )
+    try:
+        conn = await asyncpg.connect(
+            host=connection.host,
+            port=connection.port,
+            user=connection.username,
+            password=connection.password,
+            database=connection.database,
+            timeout=10,
+        )
+    except (OSError, asyncpg.PostgresError) as exc:
+        raise AppError(ErrorCode.NODE_UNAVAILABLE) from exc
     try:
         await conn.execute(
             "SELECT set_config('statement_timeout', $1, false)",
