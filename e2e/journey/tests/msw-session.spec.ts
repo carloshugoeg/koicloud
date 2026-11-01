@@ -4,6 +4,8 @@ import { expect, test, type Page } from "@playwright/test";
 
 const shotsDir = "/opt/cursor/artifacts";
 const logoutFailKey = "koi-mock-logout-fails";
+const logoutNetworkKey = "koi-mock-logout-network";
+const stillActive = "La sesión puede seguir activa en el servidor.";
 
 function isRefresh(response: { url: () => string; request: () => { method: () => string } }) {
   return response.request().method() === "POST" && response.url().includes("/api/v1/auth/refresh");
@@ -63,15 +65,28 @@ test("journey: msw logout network failure warns and stays logged out", async ({ 
       bag.push(String(event.reason));
     });
   });
-  await login(page);
-  await page.evaluate((key) => {
-    sessionStorage.setItem(key, "1");
-  }, logoutFailKey);
-  await page.getByRole("button", { name: "Cerrar sesión" }).click();
-  await expect(page.getByText("La sesión puede seguir activa en el servidor.")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Iniciar sesión" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Tus ponds" })).toHaveCount(0);
-  await expect.poll(() => page.evaluate(() => localStorage.getItem("koi_logged_out"))).toBe("pending");
+
+  fs.mkdirSync(shotsDir, { recursive: true });
+  for (const width of [375, 768, 1440] as const) {
+    await page.setViewportSize({ width, height: width === 375 ? 812 : 900 });
+    await login(page);
+    await page.evaluate((key) => {
+      sessionStorage.setItem(key, "1");
+    }, logoutNetworkKey);
+    const failed = page.waitForEvent("requestfailed", (request) => {
+      return request.method() === "POST" && request.url().includes("/api/v1/auth/logout");
+    });
+    await page.getByRole("button", { name: "Cerrar sesión" }).click();
+    await expect(page.getByText(stillActive)).toBeVisible();
+    await failed;
+    await expect(page.getByRole("heading", { name: "Iniciar sesión" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Tus ponds" })).toHaveCount(0);
+    await expect.poll(() => page.evaluate(() => localStorage.getItem("koi_logged_out"))).toBe("pending");
+    await page.screenshot({
+      path: path.join(shotsDir, `logout-network-fail-${width}.png`),
+      fullPage: true,
+    });
+  }
   await expect.poll(() => page.evaluate(() => {
     const bag = Reflect.get(window, "__koiRejections");
     return Array.isArray(bag) ? bag : [];
@@ -83,24 +98,13 @@ test("journey: msw logout network failure warns and stays logged out", async ({ 
   await expect(page.getByRole("heading", { name: "Tus ponds" })).toHaveCount(0);
   await expect.poll(() => page.evaluate(() => localStorage.getItem("koi_logged_out"))).toBe("pending");
 
-  fs.mkdirSync(shotsDir, { recursive: true });
-  for (const width of [375, 768, 1440] as const) {
-    await page.setViewportSize({ width, height: width === 375 ? 812 : 900 });
-    await expect(page).toHaveURL(/\/login/);
-    await expect(page.getByRole("heading", { name: "Iniciar sesión" })).toBeVisible();
-    await page.screenshot({
-      path: path.join(shotsDir, `logout-network-fail-${width}.png`),
-      fullPage: true,
-    });
-  }
-
   for (const width of [375, 768, 1440] as const) {
     const next = await page.context().newPage();
     try {
       await next.setViewportSize({ width, height: width === 375 ? 812 : 900 });
       await next.addInitScript((key) => {
         sessionStorage.setItem(key, "1");
-      }, logoutFailKey);
+      }, logoutNetworkKey);
       await next.goto("/app/uso");
       await expect(next).toHaveURL(/\/login/);
       await expect(next.getByRole("heading", { name: "Iniciar sesión" })).toBeVisible();
@@ -119,20 +123,28 @@ test("journey: msw logout network failure warns and stays logged out", async ({ 
 });
 
 test("journey: msw logout failure still returns to login", async ({ page }) => {
-  await login(page);
-  await page.evaluate((key) => {
-    sessionStorage.setItem(key, "1");
-  }, logoutFailKey);
-  const logout = page.waitForResponse(
-    (response) => response.request().method() === "POST" && response.url().includes("/api/v1/auth/logout"),
-  );
-  await page.getByRole("button", { name: "Cerrar sesión" }).click();
-  await expect(page.getByText("La sesión puede seguir activa en el servidor.")).toBeVisible();
-  const status = (await logout).status();
-  await expect(page.getByRole("heading", { name: "Iniciar sesión" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Tus ponds" })).toHaveCount(0);
-  expect(status).toBe(500);
-  await expect.poll(() => page.evaluate(() => localStorage.getItem("koi_logged_out"))).toBe("pending");
+  fs.mkdirSync(shotsDir, { recursive: true });
+  for (const width of [375, 768, 1440] as const) {
+    await page.setViewportSize({ width, height: width === 375 ? 812 : 900 });
+    await login(page);
+    await page.evaluate((key) => {
+      sessionStorage.setItem(key, "1");
+    }, logoutFailKey);
+    const logout = page.waitForResponse(
+      (response) => response.request().method() === "POST" && response.url().includes("/api/v1/auth/logout"),
+    );
+    await page.getByRole("button", { name: "Cerrar sesión" }).click();
+    await expect(page.getByText(stillActive)).toBeVisible();
+    const status = (await logout).status();
+    await expect(page.getByRole("heading", { name: "Iniciar sesión" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Tus ponds" })).toHaveCount(0);
+    expect(status).toBe(500);
+    await expect.poll(() => page.evaluate(() => localStorage.getItem("koi_logged_out"))).toBe("pending");
+    await page.screenshot({
+      path: path.join(shotsDir, `logout-fail-${width}.png`),
+      fullPage: true,
+    });
+  }
 
   await page.reload();
   await expect(page).toHaveURL(/\/login/);
