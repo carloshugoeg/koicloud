@@ -24,6 +24,7 @@ from app.core.db import SessionLocal
 from app.core.deps import get_confirmation_token, get_surface
 from app.core.enums import AppSurface
 from app.modules.auth import AuthService
+from app.modules.auth.refresh_cookie import cookie_is_secure
 from app.modules.auth.service import REFRESH_COOKIE
 from app.schemas import (
     AdminPondListResponse,
@@ -125,21 +126,36 @@ async def verify_email(payload: VerifyEmailRequest) -> RegisterUserResponse:
     return await AuthService.verify_email(payload)
 
 
-def _set_refresh_cookie(response: Response, refresh_token: str) -> None:
+def _request_cookie_secure(request: Request) -> bool:
+    return cookie_is_secure(
+        scheme=request.url.scheme,
+        forwarded_proto=request.headers.get("x-forwarded-proto"),
+        environment=get_settings().environment,
+    )
+
+
+def _set_refresh_cookie(response: Response, refresh_token: str, *, secure: bool) -> None:
     settings = get_settings()
     response.set_cookie(
         key=REFRESH_COOKIE,
         value=refresh_token,
         httponly=True,
         samesite="lax",
+        secure=secure,
         max_age=settings.refresh_ttl_days * 24 * 60 * 60,
         path=settings.api_prefix,
     )
 
 
-def _clear_refresh_cookie(response: Response) -> None:
+def _clear_refresh_cookie(response: Response, *, secure: bool) -> None:
     settings = get_settings()
-    response.delete_cookie(key=REFRESH_COOKIE, path=settings.api_prefix)
+    response.delete_cookie(
+        key=REFRESH_COOKIE,
+        path=settings.api_prefix,
+        httponly=True,
+        samesite="lax",
+        secure=secure,
+    )
 
 
 @router.post(
@@ -149,9 +165,9 @@ def _clear_refresh_cookie(response: Response) -> None:
     tags=["auth"],
     responses=_error_responses(401, 403, 429),
 )
-async def issue_tokens(payload: LoginRequest, response: Response) -> LoginResponse:
+async def issue_tokens(payload: LoginRequest, request: Request, response: Response) -> LoginResponse:
     result = await AuthService.issue_tokens(payload)
-    _set_refresh_cookie(response, result.refresh_token)
+    _set_refresh_cookie(response, result.refresh_token, secure=_request_cookie_secure(request))
     return result
 
 
@@ -162,9 +178,11 @@ async def issue_tokens(payload: LoginRequest, response: Response) -> LoginRespon
     tags=["auth"],
     responses=_error_responses(401),
 )
-async def rotate_refresh(payload: RefreshTokenRequest, response: Response) -> TokenPairResponse:
+async def rotate_refresh(
+    payload: RefreshTokenRequest, request: Request, response: Response
+) -> TokenPairResponse:
     result = await AuthService.rotate_refresh(payload)
-    _set_refresh_cookie(response, result.refresh_token)
+    _set_refresh_cookie(response, result.refresh_token, secure=_request_cookie_secure(request))
     return result
 
 
@@ -199,15 +217,15 @@ async def reset_password(payload: ResetPasswordRequest) -> OkResponse:
 )
 async def revoke_refresh(
     request: Request,
-    response: Response,
     actor: Annotated[AuthContext, Depends(get_current_user)],
 ) -> Response:
     await AuthService.logout(
         refresh_token=request.cookies.get(REFRESH_COOKIE),
         user_id=UUID(actor.user_id),
     )
-    _clear_refresh_cookie(response)
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+    outgoing = Response(status_code=status.HTTP_204_NO_CONTENT)
+    _clear_refresh_cookie(outgoing, secure=_request_cookie_secure(request))
+    return outgoing
 
 
 @router.get(
