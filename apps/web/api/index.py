@@ -128,6 +128,13 @@ async def _lifespan_startup(app: Any) -> None:
     # Keep the lifespan task running for the warm instance; do not cancel.
 
 
+def _ensure_preview_migrations() -> None:
+    """Idempotent Alembic upgrade. Only the preview entry calls this."""
+    from preview_migrate import ensure_preview_migrations
+
+    ensure_preview_migrations()
+
+
 def _ensure_preview_admin_seed() -> None:
     """Idempotent preview admin upsert. Soft-skips if env credentials unset."""
     if not _preview():
@@ -148,6 +155,7 @@ def _ensure_lifespan(app: Any) -> None:
     with _loop_lock:
         if _lifespan_started:
             return
+        _ensure_preview_migrations()
         loop = _get_loop()
         loop.run_until_complete(_lifespan_startup(app))
         _ensure_preview_admin_seed()
