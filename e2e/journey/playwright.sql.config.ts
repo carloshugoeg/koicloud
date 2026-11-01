@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "@playwright/test";
@@ -6,7 +7,8 @@ const journey = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(journey, "../..");
 const api = path.join(repo, "apps/api");
 const web = path.join(repo, "apps/web");
-const uv = path.join(process.env.HOME ?? "", ".local/bin/uv");
+const homeUv = path.join(process.env.HOME ?? "", ".local/bin/uv");
+const uv = fs.existsSync(homeUv) ? homeUv : "uv";
 
 export default defineConfig({
   testDir: "./tests",

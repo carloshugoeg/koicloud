@@ -49,7 +49,7 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      testIgnore: "**/msw-session.spec.ts",
+      testIgnore: ["**/msw-session.spec.ts", "**/sql-console.spec.ts"],
       use: {
         browserName: "chromium",
         baseURL: "http://127.0.0.1:5173",

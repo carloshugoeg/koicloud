@@ -5,7 +5,8 @@ import { fileURLToPath } from "node:url";
 
 const journey = path.dirname(fileURLToPath(import.meta.url));
 const api = path.resolve(journey, "../../apps/api");
-const uv = path.join(process.env.HOME ?? "", ".local/bin/uv");
+const homeUv = path.join(process.env.HOME ?? "", ".local/bin/uv");
+const uv = fs.existsSync(homeUv) ? homeUv : "uv";
 
 export const pondIdPath = "/tmp/koi-sql-probe-pond-id";
 
