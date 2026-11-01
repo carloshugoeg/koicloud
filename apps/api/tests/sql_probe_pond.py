@@ -43,6 +43,13 @@ def _admin_url(database: str) -> str:
 
 def _prepare_probe_database() -> None:
     with psycopg.connect(_admin_url("postgres"), autocommit=True) as conn:
+        exists = conn.execute("SELECT 1 FROM pg_roles WHERE rolname = 'postgres'").fetchone()
+        if exists is None:
+            conn.execute(
+                sql.SQL("CREATE ROLE postgres LOGIN SUPERUSER PASSWORD {}").format(
+                    sql.Literal(PROBE_PASSWORD)
+                )
+            )
         conn.execute(
             """
             SELECT pg_terminate_backend(pid)
