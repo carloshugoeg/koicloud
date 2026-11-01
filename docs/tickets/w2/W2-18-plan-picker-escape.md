@@ -2,7 +2,7 @@
 id: W2-18
 workstream: W2
 persona: Jason
-estado: en-revision
+estado: hecho
 rama: w2-plan-picker-escape
 epica: E2-03
 sprint: S5
