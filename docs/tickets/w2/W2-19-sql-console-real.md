@@ -2,11 +2,11 @@
 id: W2-19
 workstream: W2
 persona: Jason
-estado: en-curso
+estado: en-revision
 rama: w2-sql-console-real
 epica: E5-01
 sprint: S5
-pr:
+pr: "https://github.com/carloshugoeg/koicloud/pull/180"
 depends_on: W2-07
 ---
 
