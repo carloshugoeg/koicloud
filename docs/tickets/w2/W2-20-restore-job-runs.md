@@ -6,7 +6,7 @@ estado: en-revision
 rama: w2-restore-job-runs
 epica: "E6-02, E6-03"
 sprint: S5
-pr:
+pr: "https://github.com/carloshugoeg/koicloud/pull/179"
 depends_on: W2-08
 ---
 
