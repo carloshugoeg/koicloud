@@ -1,0 +1,32 @@
+---
+title: "Consulta SQL"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: ok
+    lg1: bad
+    lg2: busy
+    lg3: wait
+  }
+  class lg0 teal
+  class lg1 orange
+  class lg2 yellow
+  class lg3 tan
+  s0: Idle
+  s1: Running
+  s2: Error
+  s3: Read-only rejected
+  s4: Success
+  [*] --> s0
+  s0 --> s1: you click Ejecutar
+  s1 --> s2: the pond reports an error
+  s1 --> s3: read mode rejects the write
+  s1 --> s4: the pond returns the rows
+  s2 --> s1: you click Ejecutar
+  s3 --> s1: you click Ejecutar
+  s4 --> s1: you click Ejecutar
+  class s0 tan
+  class s1 yellow
+  class s2 orange
+  class s3 orange
+  class s4 teal
