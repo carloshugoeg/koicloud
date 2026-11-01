@@ -64,7 +64,9 @@ test("journey: msw logout network failure warns and stays logged out", async ({ 
     });
   });
   await login(page);
-  await page.route("**/api/v1/auth/logout", (route) => route.abort("failed"));
+  await page.evaluate((key) => {
+    sessionStorage.setItem(key, "1");
+  }, logoutFailKey);
   await page.getByRole("button", { name: "Cerrar sesión" }).click();
   await expect(page.getByText("La sesión puede seguir activa en el servidor.")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Iniciar sesión" })).toBeVisible();
@@ -75,15 +77,45 @@ test("journey: msw logout network failure warns and stays logged out", async ({ 
     return Array.isArray(bag) ? bag : [];
   })).toEqual([]);
 
+  await page.reload();
+  await expect(page).toHaveURL(/\/login/);
+  await expect(page.getByRole("heading", { name: "Iniciar sesión" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Tus ponds" })).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("koi_logged_out"))).toBe("pending");
+
   fs.mkdirSync(shotsDir, { recursive: true });
   for (const width of [375, 768, 1440] as const) {
     await page.setViewportSize({ width, height: width === 375 ? 812 : 900 });
-    await expect(page.getByText("La sesión puede seguir activa en el servidor.")).toBeVisible();
+    await expect(page).toHaveURL(/\/login/);
+    await expect(page.getByRole("heading", { name: "Iniciar sesión" })).toBeVisible();
     await page.screenshot({
       path: path.join(shotsDir, `logout-network-fail-${width}.png`),
       fullPage: true,
     });
   }
+
+  for (const width of [375, 768, 1440] as const) {
+    const next = await page.context().newPage();
+    try {
+      await next.setViewportSize({ width, height: width === 375 ? 812 : 900 });
+      await next.addInitScript((key) => {
+        sessionStorage.setItem(key, "1");
+      }, logoutFailKey);
+      await next.goto("/app/uso");
+      await expect(next).toHaveURL(/\/login/);
+      await expect(next.getByRole("heading", { name: "Iniciar sesión" })).toBeVisible();
+      await expect(next.getByRole("button", { name: "Cerrar sesión" })).toHaveCount(0);
+    } finally {
+      await next.close();
+    }
+  }
+
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("koi_logged_out"))).toBe("pending");
+  await page.getByLabel("Correo").fill("demo@koicloud.dev");
+  await page.getByLabel("Contraseña").fill("Sup3rSegura!2026");
+  await page.getByRole("button", { name: "Iniciar sesión" }).click();
+  await expect(page.getByRole("heading", { name: "Tus ponds" })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("koi_logged_out"))).toBeNull();
 });
 
 test("journey: msw logout failure still returns to login", async ({ page }) => {
