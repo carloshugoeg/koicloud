@@ -600,6 +600,21 @@ async def restore_backup(
     return _render(result, success_status=status.HTTP_202_ACCEPTED)
 
 
+@router.get(
+    "/ponds/{pond_id}/jobs/{job_id}",
+    response_model=JobResponse,
+    operation_id="get_pond_job",
+    tags=["backups"],
+    responses=_error_responses(401, 403, 404),
+)
+async def get_pond_job(
+    pond_id: UUID,
+    job_id: UUID,
+    actor: Annotated[AuthContext, Depends(get_current_user)],
+) -> JobResponse:
+    return await backup_commands.get_pond_job(actor, pond_id, job_id)
+
+
 @router.post(
     "/ponds/{pond_id}/sql",
     response_model=SQLResultResponse,

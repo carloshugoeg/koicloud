@@ -270,6 +270,23 @@ export const handlers = [
     return HttpResponse.json({ backups: fixtures.backups, next_cursor: null });
   }),
 
+  http.get(`${API_ROOT}/ponds/:pondId/jobs/:jobId`, ({ params }) => {
+    return HttpResponse.json({
+      job: {
+        id: String(params.jobId),
+        type: "restore_pond",
+        pond_id: String(params.pondId),
+        node_id: "node-sv-01",
+        status: "queued",
+        attempts: 0,
+        created_at: "2026-09-22T21:00:00Z",
+        claimed_at: null,
+        completed_at: null,
+        last_error: null,
+      },
+    });
+  }),
+
 
   http.delete(`${API_ROOT}/ponds/:pondId`, ({ params }) => {
     const pondId = String(params.pondId);

@@ -4,6 +4,7 @@ import type { components } from "@/api/schema";
 import { ApiError } from "@/lib/errors";
 
 export type Pond = components["schemas"]["PondOut"];
+export type PondJob = components["schemas"]["JobOut"];
 export type PondObservedState = components["schemas"]["PondObservedState"];
 export type Backup = components["schemas"]["BackupOut"];
 export type Connection = components["schemas"]["ConnectionOut"];
@@ -16,6 +17,8 @@ const TRANSIENT_STATES = new Set<PondObservedState>([
 ]);
 
 const POLL_MS = 4_000;
+const JOB_POLL_MS = 1_000;
+const ACTIVE_JOB_STATUS = new Set(["queued", "running"]);
 
 async function listPonds(): Promise<Pond[]> {
   const { data, error } = await apiClient.GET("/api/v1/ponds", {});
@@ -108,6 +111,22 @@ export function useCreatePondMutation() {
       void queryClient.invalidateQueries({ queryKey: ["ponds"] });
       void queryClient.setQueryData(["ponds", data.pond.id], data.pond);
     },
+  });
+}
+
+export function usePondJob(pondId: string, jobId: string | null) {
+  return useQuery({
+    queryKey: ["ponds", pondId, "jobs", jobId],
+    enabled: Boolean(pondId && jobId),
+    queryFn: async () => {
+      const { data, error } = await apiClient.GET("/api/v1/ponds/{pond_id}/jobs/{job_id}", {
+        params: { path: { pond_id: pondId, job_id: jobId as string } },
+      });
+      if (error || !data) throw new ApiError(error);
+      return data.job;
+    },
+    refetchInterval: (query) =>
+      query.state.data && ACTIVE_JOB_STATUS.has(query.state.data.status) ? JOB_POLL_MS : false,
   });
 }
 

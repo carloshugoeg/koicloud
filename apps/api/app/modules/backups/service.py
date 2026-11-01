@@ -45,6 +45,13 @@ class BackupService:
         self.settings = settings
         self.ponds = PondService(session, settings)
 
+    async def get_owned_job(self, actor: AuthContext, pond_id: UUID, job_id: UUID) -> JobOut:
+        await self.ponds.get_owned(actor, pond_id)
+        job = await self.session.get(Job, job_id)
+        if job is None or job.pond_id != pond_id:
+            raise AppError(ErrorCode.POND_NOT_FOUND)
+        return job_to_out(job)
+
     async def list_for_owned(self, actor: AuthContext, pond_id: UUID) -> list[BackupOut]:
         await self.ponds.get_owned(actor, pond_id)
         rows = (
