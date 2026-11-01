@@ -18,7 +18,10 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
-_LIB = Path(__file__).resolve().parent / "_koi_api"
+_API_DIR = Path(__file__).resolve().parent
+_LIB = _API_DIR / "_koi_api"
+if str(_API_DIR) not in sys.path:
+    sys.path.insert(0, str(_API_DIR))
 if str(_LIB) not in sys.path:
     sys.path.insert(0, str(_LIB))
 
@@ -125,6 +128,19 @@ async def _lifespan_startup(app: Any) -> None:
     # Keep the lifespan task running for the warm instance; do not cancel.
 
 
+def _ensure_preview_admin_seed() -> None:
+    """Idempotent preview admin upsert. Soft-skips if env credentials unset."""
+    if not _preview():
+        return
+    try:
+        from preview_seed import ensure_preview_admin
+
+        ensure_preview_admin()
+    except Exception:
+        # Seed must not take down the preview API; log and continue.
+        traceback.print_exc()
+
+
 def _ensure_lifespan(app: Any) -> None:
     global _lifespan_started
     if _lifespan_started or not _preview():
@@ -134,6 +150,7 @@ def _ensure_lifespan(app: Any) -> None:
             return
         loop = _get_loop()
         loop.run_until_complete(_lifespan_startup(app))
+        _ensure_preview_admin_seed()
         _lifespan_started = True
 
 

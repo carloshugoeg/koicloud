@@ -68,7 +68,7 @@ POSTGRES_DB=koicloud
 DATABASE_URL=postgresql+asyncpg://koi:c0-local-proof-password-not-for-prod@db:5432/koicloud
 JWT_SECRET=c0-local-proof-jwt-secret-32bytes-min
 REFRESH_TTL_DAYS=30
-POND_PASSWORD_KEY=7chvGNh8l4rbVgpH0wWJjCT2J8eQ6D8eW5DiKjR3owE=
+POND_PASSWORD_KEY=c0-local-proof-fernet-key-not-default==
 AGENT_MODE=docker
 NODE_ID=node-c0-proof
 NODE_TOKEN=c0-local-proof-node-token
@@ -77,6 +77,7 @@ NODE_PUBLIC_HOST=127.0.0.1
 POND_PORT_RANGE_START=15000
 POND_PORT_RANGE_END=15999
 MCP_ENABLED=true
+MCP_DEMO_PASSWORD=c0-local-proof-mcp-demo
 EMAIL_PROVIDER=resend
 PAYMENT_PROVIDER=simulated
 INVOICE_DIR=/var/lib/koicloud/invoices

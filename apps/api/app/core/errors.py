@@ -19,6 +19,8 @@ class ErrorCode(StrEnum):
     EMAIL_TAKEN = "email_taken"
     PASSWORD_TOO_WEAK = "password_too_weak"
     PLAN_REQUIRED = "plan_required"
+    NIT_INVALID = "nit_invalid"
+    PAYMENT_DECLINED = "payment_declined"
     QUOTA_EXCEEDED = "quota_exceeded"
     POND_NAME_TAKEN = "pond_name_taken"
     POND_NOT_FOUND = "pond_not_found"
@@ -55,6 +57,12 @@ ERROR_CATALOG: dict[ErrorCode, ErrorSpec] = {
     ErrorCode.EMAIL_TAKEN: ErrorSpec(409, "Ese correo ya está registrado"),
     ErrorCode.PASSWORD_TOO_WEAK: ErrorSpec(422, "La contraseña no cumple el mínimo de seguridad"),
     ErrorCode.PLAN_REQUIRED: ErrorSpec(409, "Necesitás una suscripción activa"),
+    ErrorCode.NIT_INVALID: ErrorSpec(
+        422, "El NIT no es válido. Usá los dígitos y el dígito verificador, o CF."
+    ),
+    ErrorCode.PAYMENT_DECLINED: ErrorSpec(
+        422, "El pago simulado fue rechazado. Revisá la tarjeta."
+    ),
     ErrorCode.QUOTA_EXCEEDED: ErrorSpec(409, "Ya alcanzaste el máximo de ponds de tu plan"),
     ErrorCode.POND_NAME_TAKEN: ErrorSpec(409, "Ya existe un pond con ese nombre"),
     ErrorCode.POND_NOT_FOUND: ErrorSpec(404, "No existe el pond solicitado"),

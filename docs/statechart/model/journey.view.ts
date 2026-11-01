@@ -12,12 +12,11 @@ export const state = (v: any) => {
 export const group = (v: any) => (v.screen === "login" ? "auth" : ["resumen","respaldos","consola"].includes(v.screen) ? "pond" : v.co !== "closed" || v.screen === "plans" || v.screen === "billing" ? "money" : "nav");
 export const colors = { auth: "pink", pond: "teal", money: "yellow", nav: "blue" };
 export const step = (a: string, f: any, t: any) => {
-  if (t.reloadLost && !f.reloadLost) return "you reload the page";
+  if (t.reloadLost && !f.reloadLost) return "refresh fails and you are logged out";
   if (f.auth === "in" && t.auth === "out") {
-    if (f.screen !== "list") return null;
-    return t.access === "live"
-      ? "you log out and the access token stays live"
-      : "you log out and the access token is revoked";
+    if (t.access === "live") return "you log out and the access token stays live";
+    if (t.access === "revoked") return "you log out and the access token is revoked";
+    return null;
   }
   if (f.auth === "out" && t.auth === "in") return "you log in";
   if (f.co !== t.co) {

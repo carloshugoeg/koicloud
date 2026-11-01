@@ -2,6 +2,8 @@ import { HttpResponse, http } from "msw";
 import type { components } from "@/api/schema";
 import { adminUser, fixtures } from "@/mocks/fixtures";
 
+type Subscription = components["schemas"]["SubscriptionOut"];
+
 const API_ROOT = "*/api/v1";
 const SUSPEND_CONFIRM_TEXT = "SUSPENDER";
 
@@ -23,6 +25,10 @@ function freshAdminUsers(): AdminUser[] {
   return fixtures.adminUsers.map((user) => ({ ...user }));
 }
 
+function freshSubscriptions(): Subscription[] {
+  return [{ ...fixtures.subscriptionResponse.subscription }];
+}
+
 function freshAdminAudit(): AuditEvent[] {
   return fixtures.adminAuditEvents.map((event) => ({
     ...event,
@@ -32,9 +38,18 @@ function freshAdminAudit(): AuditEvent[] {
 
 let agentAccessState = freshAgentAccess();
 let adminUsersState = freshAdminUsers();
+let subscriptionsState = freshSubscriptions();
 let adminAuditState = freshAdminAudit();
 
 export const ROTATED_AGENT_PASSWORD = "rotated-once-secret";
+
+function readRefreshCookie(cookies: Record<string, string>): string | null {
+  const value = cookies.koi_refresh;
+  if (!value) {
+    return null;
+  }
+  return value;
+}
 
 export function resetAgentAccessState() {
   agentAccessState = freshAgentAccess();
@@ -43,6 +58,10 @@ export function resetAgentAccessState() {
 export function resetAdminUsersState() {
   adminUsersState = freshAdminUsers();
   adminAuditState = freshAdminAudit();
+}
+
+export function resetSubscriptionsState() {
+  subscriptionsState = freshSubscriptions();
 }
 
 export const handlers = [
@@ -67,22 +86,52 @@ export const handlers = [
     const body = (await request.json()) as { email?: string };
     // Preview/test-only admin seed (MSW). Never a real credential store.
     if (body.email?.trim().toLowerCase() === adminUser.email) {
-      return HttpResponse.json({
-        access_token: "access_admin_token",
-        refresh_token: "refresh_admin_token",
-        user: {
-          id: adminUser.id,
-          email: adminUser.email,
-          full_name: adminUser.full_name,
-          role: "admin" as const,
-          status: adminUser.status,
-          email_verified: true,
-          nit: "0614-220999-101-3",
-          created_at: adminUser.created_at,
+      return HttpResponse.json(
+        {
+          access_token: "access_admin_token",
+          refresh_token: "refresh_admin_token",
+          user: {
+            id: adminUser.id,
+            email: adminUser.email,
+            full_name: adminUser.full_name,
+            role: "admin" as const,
+            status: adminUser.status,
+            email_verified: true,
+            nit: "0614-220999-101-3",
+            created_at: adminUser.created_at,
+          },
         },
-      });
+        {
+          headers: {
+            "set-cookie": "koi_refresh=refresh_admin_token; Path=/api/v1; HttpOnly; SameSite=Lax",
+          },
+        },
+      );
     }
-    return HttpResponse.json(fixtures.session);
+    return HttpResponse.json(fixtures.session, {
+      headers: {
+        "set-cookie": "koi_refresh=refresh_demo_token; Path=/api/v1; HttpOnly; SameSite=Lax",
+      },
+    });
+  }),
+
+  http.post(`${API_ROOT}/auth/logout`, () => {
+    if (sessionStorage.getItem("koi-mock-logout-fails") === "1") {
+      return HttpResponse.json(
+        {
+          code: "internal_error",
+          message: "No se pudo cerrar la sesión.",
+          request_id: "req_logout_mock",
+        },
+        { status: 500 },
+      );
+    }
+    return new HttpResponse(null, {
+      status: 204,
+      headers: {
+        "set-cookie": "koi_refresh=; Path=/api/v1; Max-Age=0; HttpOnly; SameSite=Lax",
+      },
+    });
   }),
 
   http.post(`${API_ROOT}/auth/forgot`, () => {
@@ -93,11 +142,28 @@ export const handlers = [
     return HttpResponse.json({ ok: true });
   }),
 
-  http.post(`${API_ROOT}/auth/refresh`, () => {
-    return HttpResponse.json(fixtures.refreshed);
+  http.post(`${API_ROOT}/auth/refresh`, ({ cookies }) => {
+    const cookie = readRefreshCookie(cookies);
+    if (
+      cookie !== "refresh_demo_token" &&
+      cookie !== "refresh_admin_token" &&
+      cookie !== "refresh_refreshed_token"
+    ) {
+      return HttpResponse.json(
+        {
+          code: "token_invalid",
+          message: "Token inválido o mal formado",
+          request_id: "req_refresh",
+        },
+        { status: 401 },
+      );
+    }
+    return HttpResponse.json(fixtures.refreshed, {
+      headers: {
+        "set-cookie": "koi_refresh=refresh_refreshed_token; Path=/api/v1; HttpOnly; SameSite=Lax",
+      },
+    });
   }),
-
-  http.post(`${API_ROOT}/auth/logout`, () => new HttpResponse(null, { status: 204 })),
 
   http.get(`${API_ROOT}/plans`, () => {
     return HttpResponse.json({ plans: fixtures.plans, next_cursor: null });
@@ -109,6 +175,28 @@ export const handlers = [
       ponds_count: fixtures.ponds.length,
       subscription: fixtures.subscriptionResponse.subscription,
     });
+  }),
+
+  http.get(`${API_ROOT}/subscriptions`, () => {
+    return HttpResponse.json({ subscriptions: subscriptionsState, next_cursor: null });
+  }),
+
+  http.post(`${API_ROOT}/subscriptions/:subscriptionId/cancel`, ({ params }) => {
+    const subscriptionId = String(params.subscriptionId);
+    const index = subscriptionsState.findIndex((item) => item.id === subscriptionId);
+    if (index < 0) {
+      return HttpResponse.json(
+        { code: "internal_error", message: "missing", request_id: "req_sub_missing" },
+        { status: 404 },
+      );
+    }
+    const updated: Subscription = { ...subscriptionsState[index], cancel_at_period_end: true };
+    subscriptionsState = [
+      ...subscriptionsState.slice(0, index),
+      updated,
+      ...subscriptionsState.slice(index + 1),
+    ];
+    return HttpResponse.json({ subscription: updated }, { status: 202 });
   }),
 
   http.post(`${API_ROOT}/subscriptions`, async ({ request }) => {
@@ -182,6 +270,43 @@ export const handlers = [
     return HttpResponse.json({ backups: fixtures.backups, next_cursor: null });
   }),
 
+
+  http.delete(`${API_ROOT}/ponds/:pondId`, ({ params }) => {
+    const pondId = String(params.pondId);
+    return HttpResponse.json(
+      {
+        pond: {
+          ...fixtures.pond,
+          id: pondId,
+          desired_state: "deleted",
+          observed_state: "deleting",
+        },
+        jobs: [
+          {
+            id: "job_pre_delete_01",
+            type: "backup_pond",
+            status: "queued",
+            attempts: 0,
+            created_at: "2026-09-22T21:10:00Z",
+            node_id: "node-sv-01",
+            pond_id: pondId,
+          },
+          {
+            id: "job_delete_01",
+            type: "delete_pond",
+            status: "queued",
+            attempts: 0,
+            created_at: "2026-09-22T21:10:00Z",
+            node_id: "node-sv-01",
+            pond_id: pondId,
+          },
+        ],
+      },
+      { status: 202 },
+    );
+  }),
+
+
   http.post(`${API_ROOT}/ponds/:pondId/sql`, async ({ request }) => {
     const body = (await request.json()) as { query?: string; mode?: string };
     if (!body?.query?.trim()) {
@@ -206,9 +331,10 @@ export const handlers = [
     return HttpResponse.json(fixtures.sqlResult);
   }),
 
-  http.get(`${API_ROOT}/ponds/:pondId/sql/history`, () => {
+  http.get(`${API_ROOT}/ponds/:pondId/sql/history`, ({ params }) => {
+    const pondId = String(params.pondId);
     return HttpResponse.json({
-      events: fixtures.sqlHistory,
+      events: fixtures.sqlHistory.filter((event) => event.pond_id === pondId),
       next_cursor: null,
     });
   }),
@@ -509,6 +635,13 @@ export const handlers = [
 
   http.get(`${API_ROOT}/admin/ponds`, () => {
     return HttpResponse.json({ ponds: fixtures.adminPonds, next_cursor: null });
+  }),
+
+  http.get(`${API_ROOT}/admin/subscriptions`, () => {
+    return HttpResponse.json({
+      subscriptions: fixtures.adminSubscriptions,
+      next_cursor: null,
+    });
   }),
 
   http.get(`${API_ROOT}/admin/audit`, () => {

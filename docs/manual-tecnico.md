@@ -184,63 +184,49 @@ Si falta un paso de install no listado arriba, abrí issue o CCR. No inventes fl
 
 ---
 
-## 3. Deploy
+## 3. Despliegue
 
-No hay VPS del equipo cableado todavía.
-El dominio de arquitectura `koicloud.example` **no** es un dominio nuestro.
-Runbook canónico: [`runbooks/deploy.md`](./runbooks/deploy.md).
-Operación en el host: [`runbooks/free-disk.md`](./runbooks/free-disk.md),
+Runbook canónico (VM Oracle Always Free, sslip.io, vars, primer deploy, update,
+rollback): [`runbooks/deploy.md`](./runbooks/deploy.md). Cumple ENTREGA-2 §6.3.
+Host $0: [`adr/014-oracle-always-free-sslip.md`](./adr/014-oracle-always-free-sslip.md).
+Operación: [`runbooks/free-disk.md`](./runbooks/free-disk.md),
 [`runbooks/restart-agent.md`](./runbooks/restart-agent.md),
-[`runbooks/rollback-migration.md`](./runbooks/rollback-migration.md).
+[`runbooks/rollback-migration.md`](./rollback-migration.md).
 Evidencia de carga: [`reporte-carga.md`](./reporte-carga.md).
 Diagrama: [`architecture/diagrams/14-deploy.mmd`](./architecture/diagrams/14-deploy.mmd).
-Flujo narrado: [`architecture/interconnections.md`](./architecture/interconnections.md) §11.
+
+**No hay VM cableada todavía.** No fingir deploy. Sin dominio de pago usá
+`<ip>.sslip.io` / `<ip>.nip.io` como `KOICLOUD_DOMAIN`.
 
 ### 3.1 Artefactos en el repo
 
 | Artefacto | Rol |
 |-----------|-----|
-| `infra/docker-compose.prod.yml` | `db`, `api`, `worker`, `caddy` |
-| `infra/Caddyfile` | TLS, `/api`, `/mcp`, estáticos; 403 a `/internal/*` |
-| `infra/koicloud-agent.service` | node-agent fuera del Compose |
+| `infra/docker-compose.prod.yml` | `db`, `api`, `worker`, `caddy` (bases multi-arch ARM) |
+| `infra/Caddyfile` | TLS; hostname desde `KOICLOUD_DOMAIN` (sslip.io OK) |
+| `infra/koicloud-agent.service` | node-agent, `AGENT_MODE=docker` |
 | `infra/scripts/deploy.sh` | Se niega a correr con placeholders |
 | `.github/workflows/deploy.yml` | No hace SSH hasta tener variables y secretos |
 
 ### 3.2 Lo que hace falta fuera del repo
 
-1. Host con SSH (usuario + hostname o IP).
-2. DNS `A`/`AAAA` al host.
+1. VM Oracle Always Free (Ampere ARM, Ubuntu) con SSH.
+2. Hostname `sslip.io`/`nip.io` (o DNS propio) → IP pública.
 3. Clave de deploy y `known_hosts`.
 4. Variables y secreto en GitHub (`KOICLOUD_DEPLOY_HOST`, `KOICLOUD_DEPLOY_USER`,
    `KOICLOUD_DOMAIN`, `KOICLOUD_DEPLOY_SSH_KNOWN_HOSTS`, `KOICLOUD_DEPLOY_SSH_KEY`).
-5. `infra/env/prod.env` en el host, sin placeholders.
+5. `infra/env/prod.env` en el host, sin defaults de desarrollo.
 6. Layout: clone en `/srv/koicloud`, `uv`, Docker Engine, unit systemd del agent.
-7. Firewall: `22`, `80`, `443`, `15000-15999`.
+7. Firewall / VCN: `22`, `80`, `443`, `15000-15999`.
 
-Hasta que eso exista, el ticket de cableado (W1-13) sigue abierto. No fingir deploy.
+### 3.3 Primer deploy y comprobación local
 
-### 3.3 Cuando el host ya esté
-
-```bash
-sudo mkdir -p /srv/koicloud /var/lib/koicloud/{invoices,backups,ponds} /srv/koicloud/web
-# clone del repo en /srv/koicloud
-cp infra/env/prod.env.example infra/env/prod.env
-# editar prod.env. Sin placeholders.
-sudo cp infra/koicloud-agent.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now koicloud-agent
-bash infra/scripts/deploy.sh
-curl -fsS "https://${KOICLOUD_DOMAIN}/health"
-```
-
-Comprobar artefactos **sin** host:
+Pasos completos en el runbook §6–§8. Comprobar artefactos **sin** host:
 
 ```bash
-bash infra/scripts/check-prod-compose.sh
-# o: make check-infra
+npm run pregate
+# o: bash infra/scripts/check-oracle-deploy-ready.sh && make check-infra
 ```
-
----
 
 ## 4. MCP
 

@@ -39,9 +39,7 @@ export const navGroups: NavGroup[] = [
     id: "consumo",
     label: "Consumo",
     items: [
-      { to: "/app/uso", label: "Uso del mes", icon: "usage" },
-      { to: "/app/billing", label: "Facturación", icon: "billing" },
-      { to: "/app/plans", label: "Planes", icon: "plans" },
+      { to: "/app/uso", label: "Uso y facturación", icon: "usage" },
     ],
   },
   {

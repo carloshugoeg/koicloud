@@ -11,6 +11,8 @@ const CATALOG: Record<ApiProblem["code"], string> = {
   email_taken: "Ese correo ya está registrado.",
   password_too_weak: "La contraseña no cumple los requisitos mínimos.",
   plan_required: "Necesitás una suscripción activa para continuar.",
+  nit_invalid: "El NIT no es válido. Usá los dígitos y el dígito verificador, o CF.",
+  payment_declined: "El pago simulado fue rechazado. Revisá la tarjeta.",
   quota_exceeded: "Alcanzaste el máximo de ponds de tu plan.",
   pond_name_taken: "Ese nombre de pond ya está en uso.",
   pond_not_found: "No encontramos ese pond.",

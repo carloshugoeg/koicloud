@@ -3,6 +3,8 @@ import { apiClient } from "@/api/client";
 import type { components } from "@/api/schema";
 import { ApiError } from "@/lib/errors";
 import { useAuthStore } from "@/lib/auth-store";
+import { clearLoggedOut, logoutNeedsRetry, markLoggedOut, settleLoggedOut } from "@/lib/logged-out";
+import { toast } from "@/lib/toast";
 
 export type RegisterPayload = components["schemas"]["RegisterUserRequest"];
 export type VerifyEmailPayload = components["schemas"]["VerifyEmailRequest"];
@@ -47,6 +49,7 @@ export function useLoginMutation() {
       return data;
     },
     onSuccess: (data) => {
+      clearLoggedOut();
       setSession({
         accessToken: data.access_token,
         refreshToken: data.refresh_token,
@@ -64,6 +67,37 @@ export function useForgotPasswordMutation() {
       return data;
     },
   });
+}
+
+const LOGOUT_STILL_ACTIVE = "La sesión puede seguir activa en el servidor.";
+
+export async function logoutSession() {
+  markLoggedOut();
+  const warn = await postLogout();
+  useAuthStore.getState().clearSession();
+  if (warn) {
+    toast({ tone: "warn", message: LOGOUT_STILL_ACTIVE });
+  }
+}
+
+export async function retryLogoutQuietly() {
+  if (!logoutNeedsRetry()) {
+    return;
+  }
+  await postLogout();
+}
+
+async function postLogout() {
+  try {
+    const result = await apiClient.POST("/api/v1/auth/logout");
+    if (result.response?.ok) {
+      settleLoggedOut();
+      return false;
+    }
+    return (result.response?.status ?? 500) >= 500;
+  } catch {
+    return true;
+  }
 }
 
 export function useResetPasswordMutation() {

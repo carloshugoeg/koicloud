@@ -77,7 +77,7 @@ async def test_subscribe_with_nit_persists_and_snapshots() -> None:
 
     async with _make_client() as client:
         user_id, token = await _create_active_user(client, email="nit_happy@koicloud.dev")
-        nit = "0614-220999-101-3"
+        nit = "1000002-K"
 
         response = await client.post(
             "/api/v1/subscriptions",

@@ -1,11 +1,14 @@
 ----------------------------- MODULE UserJourney -----------------------------
 (* Web user journey: session, pond list, pond detail tabs, SQL console history,
    billing (Uso del mes + Facturacion merged) and plan change / checkout.
-   Fixed = FALSE models main @ 72015b5 (preview as Carlos tested it, MSW mocks);
+   Fixed = FALSE models main @ 72015b5 (preview as Carlos tested it, MSW mocks).
+   A successful reload keeps the session. RefreshFails logs out, so
+   ReloadKeepsSession is checked on a state TLC can reach.
    Fixed = TRUE models the behaviour asked for in #96 r6.
    access is the access token: "none", "live", or "revoked".
-   Logout revokes it. Reload drops it from the browser without a server revoke.
-   Code: apps/web/src/app/session-boot-gate.tsx, lib/auth-store.ts (in-memory tokens),
+   Logout revokes it. A failed refresh clears it and is not a revoke.
+   Code: apps/web/src/app/session-boot-gate.tsx (boot calls /auth/refresh),
+   lib/auth-store.ts (access token in memory; refresh in httpOnly koi_refresh),
    features/ponds/detail-page.tsx:96-101, backups-page.tsx:102-104,
    sql-console/sql-console-page.tsx:47-51, mocks/handlers.ts:207 (history ignores pondId),
    app/layout/nav-config.ts:42-44, features/plans/checkout-modal.tsx:22-33. *)
@@ -32,14 +35,14 @@ Init == auth = "out" /\ screen = "login" /\ from = "login" /\ cur = "p1"
 
 Go(s) == screen' = s /\ from' = screen
 
-YouLogIn     == auth = "out" /\ auth' = "in" /\ access' = "live" /\ Go("list") /\ UNCHANGED <<cur, history, reloadLost, co, chargedBadCard>>
+YouLogIn     == auth = "out" /\ auth' = "in" /\ access' = "live" /\ Go("list") /\ reloadLost' = FALSE
+             /\ UNCHANGED <<cur, history, co, chargedBadCard>>
 YouLogInBad  == auth = "out" /\ screen = "login" /\ UNCHANGED vars    \* 401: stays on login with error
-YouReload    == auth = "in" /\ co = "closed"
-                /\ IF Fixed THEN UNCHANGED vars
-                   ELSE auth' = "out" /\ access' = "none" /\ Go("login") /\ reloadLost' = TRUE
-                        /\ UNCHANGED <<cur, history, co, chargedBadCard>>
+YouReload    == auth = "in" /\ co = "closed" /\ UNCHANGED vars
+RefreshFails == auth = "in" /\ co = "closed" /\ auth' = "out" /\ access' = "none" /\ Go("login")
+             /\ reloadLost' = TRUE /\ UNCHANGED <<cur, history, co, chargedBadCard>>
 YouLogOut    == auth = "in" /\ co = "closed" /\ auth' = "out" /\ access' = "revoked"
-                /\ Go("login") /\ UNCHANGED <<cur, history, reloadLost, co, chargedBadCard>>
+             /\ Go("login") /\ UNCHANGED <<cur, history, reloadLost, co, chargedBadCard>>
 YouOpenPond(p) == auth = "in" /\ co = "closed" /\ screen = "list" /\ cur' = p /\ Go("resumen")
                   /\ UNCHANGED <<auth, access, history, reloadLost, co, chargedBadCard>>
 TabName(t) == IF t = "resumen" THEN "Resumen" ELSE IF t = "respaldos" THEN "Respaldos" ELSE "Consola"
@@ -70,7 +73,7 @@ YouSeeInvoice == co = "issued" /\ co' = "closed" /\ Go("billing")
 YouCancel == screen = "checkout" /\ co \in {"editing", "invalid_nit", "declined"} /\ co' = "closed" /\ Go("plans")
              /\ UNCHANGED <<auth, access, cur, history, reloadLost, chargedBadCard>>
 
-Next == YouLogIn \/ YouLogInBad \/ YouReload \/ YouLogOut
+Next == YouLogIn \/ YouLogInBad \/ YouReload \/ RefreshFails \/ YouLogOut
      \/ (\E p \in Ponds : YouOpenPond(p)) \/ (\E t \in PondTabs : YouPickTab(t))
      \/ YouRunQuery \/ YouBackToList \/ YouOpenBilling \/ YouOpenPlans \/ YouPickPlan
      \/ (\E n, c \in BOOLEAN : YouPay(n, c)) \/ YouSeeInvoice \/ YouCancel
@@ -80,7 +83,7 @@ Spec == Init /\ [][Next]_vars
 \* ---- Invariants (#96 r6) ----
 TabsFixedOrder    == screen \in PondTabs => Tabs(screen) = TabOrder
 HistoryScoped     == screen = "consola" => ShownHistory \subseteq {cur}
-ReloadKeepsSession == ~reloadLost
+ReloadKeepsSession == reloadLost => (auth = "out" /\ screen = "login")
 PlansViaBilling   == screen = "plans" /\ from # "checkout" => from = "billing"
 NoChargeBadCard   == ~chargedBadCard
 \* After logout the access token is not live. Reload may drop it without revoking it on the server.

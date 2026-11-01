@@ -42,7 +42,8 @@ async def _create_active_user(client: AsyncClient, email: str) -> tuple[UUID, st
 class PendingPaymentProvider:
     """Fake adapter that leaves payment pending for confirm_payment tests."""
 
-    def start_payment(self, invoice: Invoice) -> PaymentAttempt:
+    def start_payment(self, invoice: Invoice, card: object | None = None) -> PaymentAttempt:
+        del card
         return PaymentAttempt(
             status=PaymentStatus.PENDING,
             provider="fake",

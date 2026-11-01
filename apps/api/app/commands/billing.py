@@ -11,6 +11,7 @@ from app.core.db import SessionLocal
 from app.core.enums import AppSurface
 from app.core.errors import AppError, ErrorCode
 from app.core.models import Plan
+from app.modules.billing.checks import CardInput, nit_error
 from app.modules.billing.payments import get_payment_provider
 from app.modules.billing.plan_pricing import plan_display_pricing
 from app.modules.billing.service import BillingService
@@ -77,6 +78,8 @@ async def subscribe(
 ) -> SubscribeResponse | ConfirmationRequiredResponse:
     if not payload.plan_id:
         raise AppError(ErrorCode.PLAN_REQUIRED)
+    if nit_error(payload.nit):
+        raise AppError(ErrorCode.NIT_INVALID)
     if _requires_confirmation(surface, confirm_token):
         return await build_confirmation(
             actor=actor,
@@ -86,8 +89,15 @@ async def subscribe(
         )
 
     async with SessionLocal() as session:
+        card = None
+        if payload.card is not None:
+            card = CardInput(
+                number=payload.card.number,
+                expiry=payload.card.expiry,
+                cvc=payload.card.cvc,
+            )
         result = await _billing_service(session).subscribe(
-            actor, payload.plan_id, nit=payload.nit
+            actor, payload.plan_id, nit=payload.nit, card=card
         )
         await session.commit()
         return result

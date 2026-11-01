@@ -46,7 +46,7 @@ está anulado.
   /* papel */
   --bone:#F2ECDC; --bone-raised:#FBF7EC; --bone-sunk:#E8E0CC; --paper:#FFFCF4;
   /* tinta */
-  --ink:#14211F; --ink-muted:#4C5B58; --ink-faint:#6B7A74;
+  --ink:#14211F; --ink-muted:#4C5B58; --ink-faint:#586762;
   /* líneas */
   --line:#D8CFB8; --line-control:#8C8778;
   /* turquesa */
@@ -93,7 +93,7 @@ TEXTO PERMITIDO SOBRE HUESO:
   ink (14.05) · ink-muted (6.05) · turquoise-700 (5.26) · green-700 (5.39)
   warn (5.02) · danger (6.15)
 NO SON COLOR DE TEXTO DE PÁRRAFO — solo relleno, trazo, icono o ≥24 px:
-  turquoise-500 (2.89) · koi (3.20) · ink-faint (3.82) · lagoon (4.08)
+  turquoise-500 (2.89) · koi (3.20) · ink-faint (5.04 AA, still non-paragraph) · lagoon (4.08)
 Botón primario = texto `bone-raised` sobre `turquoise-700` (5.80). Correcto, úsalo.
 Badges: texto `ink` sobre turquoise-100 / green-100 / koi-soft / marigold (≥7.7). Correcto.
 `line` (1.32) es decorativa: jamás como borde de control ni anillo de foco.

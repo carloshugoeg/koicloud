@@ -14,9 +14,17 @@ export { CreatePondPage } from "@/features/ponds/create-page";
 
 export { SqlConsolePage } from "@/features/sql-console/sql-console-page";
 
-export { UsoPage, UsoPage as BillingPage } from "@/features/uso/uso-page";
-
+export { BillingPage } from "@/features/billing/billing-page";
+export { UsoPage } from "@/features/uso/uso-page";
 export function UsagePage() {
+  return <Navigate replace to="/app/uso" />;
+}
+
+export function PlansRoute() {
+  return <Navigate replace to="/app/uso" />;
+}
+
+export function BillingRoute() {
   return <Navigate replace to="/app/uso" />;
 }
 
@@ -53,14 +61,4 @@ export function ConfirmAliasPage() {
 export { AdminUsersPage } from "@/features/admin/users-page";
 export { AdminPondsPage } from "@/features/admin/ponds-page";
 export { AdminAuditPage } from "@/features/admin/audit-page";
-
-export function AdminSubscriptionsPage() {
-  return (
-    <PlaceholderPage
-      description="Placeholder del historial administrativo de suscripciones."
-      route="/app/admin/subscriptions"
-      ticket="W2-10"
-      title="Suscripciones"
-    />
-  );
-}
+export { AdminSubscriptionsPage } from "@/features/admin/subscriptions-page";

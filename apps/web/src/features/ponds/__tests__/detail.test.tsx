@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { HttpResponse, http } from "msw";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
@@ -275,6 +275,8 @@ describe("W2-06 Detalle del pond y conexión", () => {
     renderDetail();
     expect(await screen.findByTestId("pond-stop")).toBeEnabled();
     await user.click(screen.getByTestId("pond-stop"));
+    const dialog = await screen.findByTestId("stop-confirm-dialog");
+    await user.click(within(dialog).getByTestId("stop-confirm-button"));
 
     await waitFor(() => {
       expect(screen.getByTestId("pond-status-badge")).toHaveTextContent("Deteniendo…");
@@ -372,6 +374,8 @@ describe("W2-06 Detalle del pond y conexión", () => {
     expect(await screen.findByTestId("pond-detail")).toBeInTheDocument();
     expect(screen.queryByTestId("pond-retry")).not.toBeInTheDocument();
     await user.click(screen.getByTestId("backup-now"));
+    const dialog = await screen.findByTestId("backup-confirm-dialog");
+    await user.click(within(dialog).getByTestId("backup-confirm-button"));
 
     expect(await screen.findByText("Respaldo encolado")).toBeInTheDocument();
     expect(status).toBe(202);
@@ -422,5 +426,179 @@ describe("W2-06 Detalle del pond y conexión", () => {
       expect(status).toBe(202);
     });
     expect(confirmToken).toBeNull();
+  });
+
+  // RF-14 — Eliminar pond con confirmación del nombre (web)
+  it("shows Eliminar and requires typing the pond name before delete confirm", async () => {
+    const user = userEvent.setup();
+    renderDetail();
+    expect(await screen.findByTestId("open-delete-pond")).toHaveTextContent("Eliminar…");
+    await user.click(screen.getByTestId("open-delete-pond"));
+
+    const dialog = await screen.findByTestId("delete-pond-dialog");
+    const confirm = within(dialog).getByTestId("delete-confirm-button");
+    expect(confirm).toBeDisabled();
+
+    await user.type(within(dialog).getByTestId("delete-confirm-input"), "nombre-incorrecto");
+    expect(confirm).toBeDisabled();
+
+    await user.clear(within(dialog).getByTestId("delete-confirm-input"));
+    await user.type(within(dialog).getByTestId("delete-confirm-input"), fixtures.pond.name);
+    expect(confirm).toBeEnabled();
+
+    await user.click(confirm);
+    await waitFor(() => {
+      expect(screen.queryByTestId("delete-pond-dialog")).not.toBeInTheDocument();
+    });
+  });
+
+  // RF-15 — respaldo bajo demanda con confirmación local antes del POST
+  it("confirms before queuing an on-demand backup from detail", async () => {
+    const user = userEvent.setup();
+    renderDetail();
+    expect(await screen.findByTestId("backup-now")).toBeInTheDocument();
+    await user.click(screen.getByTestId("backup-now"));
+
+    const dialog = await screen.findByTestId("backup-confirm-dialog");
+    await user.click(within(dialog).getByTestId("backup-confirm-button"));
+    expect(await screen.findByText("Respaldo encolado")).toBeInTheDocument();
+    expect(screen.queryByTestId("backup-confirm-dialog")).not.toBeInTheDocument();
+  });
+
+  it("lifecycle: stop then start", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    let phase: "running" | "stopping" | "stopped" | "starting" = "running";
+    const stopPosts = vi.fn();
+    const startPosts = vi.fn();
+
+    function pondBody() {
+      if (phase === "running") return fixtures.pond;
+      if (phase === "stopping") {
+        return { ...fixtures.pond, desired_state: "stopped" as const, observed_state: "running" as const };
+      }
+      if (phase === "stopped") {
+        return {
+          ...fixtures.pond,
+          desired_state: "stopped" as const,
+          observed_state: "stopped" as const,
+          healthy: false,
+        };
+      }
+      return {
+        ...fixtures.pond,
+        desired_state: "running" as const,
+        observed_state: "stopped" as const,
+        healthy: false,
+      };
+    }
+
+    server.use(
+      http.get(`*/api/v1/ponds/${POND_ID}`, () => HttpResponse.json({ pond: pondBody() })),
+      http.post(`*/api/v1/ponds/${POND_ID}/stop`, () => {
+        stopPosts();
+        phase = "stopping";
+        return HttpResponse.json(
+          {
+            pond: pondBody(),
+            job: {
+              id: "job_stop_01",
+              type: "stop_pond",
+              status: "queued",
+              attempts: 0,
+              created_at: "2026-10-27T00:00:00Z",
+              node_id: "node-sv-01",
+              pond_id: POND_ID,
+              claimed_at: null,
+              completed_at: null,
+              last_error: null,
+            },
+          },
+          { status: 202 },
+        );
+      }),
+      http.post(`*/api/v1/ponds/${POND_ID}/start`, () => {
+        startPosts();
+        phase = "starting";
+        return HttpResponse.json(
+          {
+            pond: pondBody(),
+            job: {
+              id: "job_start_01",
+              type: "start_pond",
+              status: "queued",
+              attempts: 0,
+              created_at: "2026-10-27T00:00:00Z",
+              node_id: "node-sv-01",
+              pond_id: POND_ID,
+              claimed_at: null,
+              completed_at: null,
+              last_error: null,
+            },
+          },
+          { status: 202 },
+        );
+      }),
+    );
+
+    renderDetail();
+    const header = await screen.findByTestId("app-header");
+    expect(header.className.split(/\s+/)).toContain("mt-2");
+    expect(header).toHaveTextContent("Control plane");
+    expect(header).toHaveTextContent("Detalle del pond");
+
+    const stopButton = await screen.findByTestId("pond-stop");
+    expect(stopButton.className).toContain("bg-danger");
+    expect(stopButton.className).toContain("text-bone-raised");
+    expect(stopButton).toBeEnabled();
+
+    await user.click(stopButton);
+    expect(stopPosts).not.toHaveBeenCalled();
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog).toHaveTextContent("Detener");
+    await user.click(within(dialog).getByRole("button", { name: "Detener" }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("pond-status-badge")).toHaveTextContent("Deteniendo…");
+    });
+    expect(stopPosts).toHaveBeenCalledOnce();
+
+    phase = "stopped";
+    await vi.advanceTimersByTimeAsync(4_500);
+    await waitFor(() => {
+      expect(screen.getByTestId("pond-status-badge")).toHaveTextContent("Detenido");
+    });
+
+    await user.click(screen.getByTestId("pond-start"));
+    await waitFor(() => {
+      expect(screen.getByTestId("pond-status-badge")).toHaveTextContent("Iniciando…");
+    });
+    expect(startPosts).toHaveBeenCalledOnce();
+    vi.useRealTimers();
+  });
+
+  it("moves focus into the stop dialog, traps Tab, and returns it to Detener", async () => {
+    const user = userEvent.setup();
+    renderDetail();
+
+    const stopButton = await screen.findByTestId("pond-stop");
+    await user.click(stopButton);
+
+    const dialog = await screen.findByRole("dialog", { name: "Detener pond" });
+    expect(dialog).toHaveAttribute("aria-modal", "true");
+    expect(dialog.contains(document.activeElement)).toBe(true);
+
+    for (let step = 0; step < 8; step += 1) {
+      await user.tab();
+      expect(dialog.contains(document.activeElement)).toBe(true);
+    }
+    await user.tab({ shift: true });
+    expect(dialog.contains(document.activeElement)).toBe(true);
+
+    await user.keyboard("{Escape}");
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: "Detener pond" })).not.toBeInTheDocument();
+    });
+    expect(stopButton).toHaveFocus();
   });
 });

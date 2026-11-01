@@ -40,7 +40,7 @@ Lo que el techo fija de forma no negociable:
 - **Tema claro único.** No hay modo oscuro, ni toggle, ni clase `.dark`, ni los colores `#0F6E6E` / `#F26B1D` del harness anterior.
 - **Fuentes:** Fraunces (display, nunca por debajo de 20 px), Instrument Sans (UI — **no** Inter), IBM Plex Mono (técnico).
 - **Cero hex literales** fuera del bloque `:root`. Todo color sale de un token.
-- **Tres tokens no son colores de texto:** `turquoise-500` (2.89), `koi` (3.20) y `ink-faint` (3.82) sobre hueso. Rellenos, trazos, marcas de eje y titulares ≥24 px — nunca párrafo.
+- **Tres tokens no son colores de párrafo:** `turquoise-500` (2.89), `koi` (3.20) y `lagoon` (4.08) sobre hueso. `ink-faint` cumple AA (5.04) pero sigue reservado a no-párrafo (códigos, ejes).
 - **El koi solo donde la guía lo permite** (§7.3): landing, auth, vacío, `provisioning`/`restoring`, arranque de sesión y 404. Nunca sobre datos, nunca en administración, consola SQL ni facturación.
 
 Para pegarle el techo a un agente de Cursor que vaya a escribir `apps/web/**`, usa el bloque listo: [`../../visual-guidelines-agent-prompt.md`](../../visual-guidelines-agent-prompt.md).

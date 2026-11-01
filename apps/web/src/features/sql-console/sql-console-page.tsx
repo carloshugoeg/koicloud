@@ -1,7 +1,8 @@
 import { sql } from "@codemirror/lang-sql";
 import CodeMirror from "@uiw/react-codemirror";
 import { useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import { PondTabs } from "@/components/pond-tabs";
 import { useRunSqlMutation, type SQLMode, type SQLResultResponse } from "@/api/hooks/sql-console";
 import { ApiError, problemToMessage } from "@/lib/errors";
 import { SqlHistoryPanel } from "@/features/sql-console/sql-history-panel";
@@ -42,15 +43,7 @@ export function SqlConsolePage() {
           <p className="mt-1 text-sm text-ink-muted">
             Lectura por defecto. El historial es de tus consultas en este pond.
           </p>
-          <nav className="mt-3 flex flex-wrap gap-3 text-sm">
-            <Link className="text-turquoise-700" to={`/app/ponds/${pondId}`}>
-              Resumen
-            </Link>
-            <span className="font-medium text-ink">Consola</span>
-            <Link className="text-turquoise-700" to={`/app/ponds/${pondId}/backups`}>
-              Respaldos
-            </Link>
-          </nav>
+          <PondTabs pondId={pondId} active="consola" />
         </div>
         <button
           type="button"

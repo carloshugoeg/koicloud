@@ -8,11 +8,13 @@ from app.commands import admin as admin_commands
 from app.core.auth import AuthContext
 from app.core.db import SessionLocal
 from app.core.enums import ActorKind, PondDesiredState, PondObservedState
-from app.core.models import AuditEvent, Pond, PondStatus, User
+from app.core.models import AuditEvent, Pond, PondStatus, Subscription, User
 from app.modules.metering.samples import latest_sample_size_by_pond
 from app.schemas import (
     AdminPondListResponse,
     AdminPondOut,
+    AdminSubscriptionListResponse,
+    AdminSubscriptionOut,
     AdminTotalsOut,
     AdminTotalsResponse,
     AdminUserListResponse,
@@ -77,6 +79,33 @@ class AdminService:
                 for pond, status, owner_email in rows
             ]
             return AdminPondListResponse(ponds=ponds, next_cursor=None)
+
+    @staticmethod
+    async def list_subscriptions() -> AdminSubscriptionListResponse:
+        async with SessionLocal() as session:
+            rows = (
+                await session.execute(
+                    select(Subscription, User.email)
+                    .join(User, User.id == Subscription.user_id)
+                    .order_by(Subscription.current_period_start.desc())
+                )
+            ).all()
+            subscriptions = [
+                AdminSubscriptionOut(
+                    id=sub.id,
+                    user_id=sub.user_id,
+                    user_email=user_email,
+                    plan_id=sub.plan_id,
+                    status=sub.status,
+                    current_period_start=sub.current_period_start,
+                    current_period_end=sub.current_period_end,
+                    cancel_at_period_end=sub.cancel_at_period_end,
+                )
+                for sub, user_email in rows
+            ]
+            return AdminSubscriptionListResponse(
+                subscriptions=subscriptions, next_cursor=None
+            )
 
     @staticmethod
     async def totals() -> AdminTotalsResponse:

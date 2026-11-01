@@ -65,6 +65,7 @@ describe("E2E: plans page + checkout mirror GET /plans Pro price", () => {
 
     const user = userEvent.setup();
     renderPlanes();
+    await user.click(await screen.findByRole("button", { name: "Cambiar de plan" }));
 
     expect(await screen.findByTestId("plan-card-pro")).toBeInTheDocument();
     expect(capturedProUnitPrice).toBe(API_PRO_UNIT_PRICE);

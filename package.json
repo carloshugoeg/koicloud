@@ -1,0 +1,8 @@
+{
+  "name": "koicloud",
+  "private": true,
+  "description": "Root scripts for agent gates. No runtime dependencies.",
+  "scripts": {
+    "pregate": "cd apps/api && uv run pytest -q tests/test_production_secret_defaults.py && bash ../../infra/scripts/check-oracle-deploy-ready.sh && bash ../../infra/scripts/check-prod-compose.sh"
+  }
+}

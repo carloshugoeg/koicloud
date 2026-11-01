@@ -221,6 +221,7 @@ test.describe("CCR #131 pond lifecycle — 9 transitions", () => {
     await loginToPond(page);
     await awaitBadge(page, /En línea/);
     await page.getByTestId("pond-stop").click();
+    await page.getByTestId("stop-confirm-button").click();
     await awaitBadge(page, /Deteniendo/);
     await expect(page.getByText("En cola")).toHaveCount(0);
   });

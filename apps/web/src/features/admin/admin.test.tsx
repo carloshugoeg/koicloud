@@ -214,6 +214,57 @@ describe("W2-10 Panel admin", () => {
     );
   });
 
+  it("renders admin subscriptions table with owner email and status labels", async () => {
+    const user = userEvent.setup();
+    renderAdmin("/app/admin/subscriptions");
+
+    expect(await screen.findByTestId("admin-subscriptions-page")).toBeInTheDocument();
+    expect(screen.getByText("demo@koicloud.dev")).toBeInTheDocument();
+    expect(screen.getByText("mora@ejemplo.gt")).toBeInTheDocument();
+    expect(
+      within(
+        screen.getByTestId("admin-subscription-row-22222222-2222-2222-2222-222222222222"),
+      ).getByText("Activa"),
+    ).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText("Estado"), "canceled");
+    expect(screen.queryByText("demo@koicloud.dev")).not.toBeInTheDocument();
+    expect(screen.getByText("mora@ejemplo.gt")).toBeInTheDocument();
+    expect(
+      within(
+        screen.getByTestId("admin-subscription-row-33333333-3333-3333-3333-333333333333"),
+      ).getByText("Cancelada"),
+    ).toBeInTheDocument();
+  });
+
+  it("exposes the subscriptions table as a keyboard-reachable scroll region", async () => {
+    renderAdmin("/app/admin/subscriptions");
+    expect(await screen.findByTestId("admin-subscriptions-page")).toBeInTheDocument();
+
+    const region = screen.getByRole("region", { name: "Suscripciones" });
+    expect(region).toHaveAttribute("tabindex", "0");
+    expect(region).toHaveAttribute("data-testid", "admin-subscriptions-table");
+    region.focus();
+    expect(region).toHaveFocus();
+  });
+
+  it("shows error state for admin subscriptions when the API fails", async () => {
+    server.use(
+      http.get("*/api/v1/admin/subscriptions", () =>
+        HttpResponse.json(
+          { code: "internal_error", message: "internal_error" },
+          { status: 500 },
+        ),
+      ),
+    );
+
+    renderAdmin("/app/admin/subscriptions");
+    expect(
+      await screen.findByTestId("admin-subscriptions-error", {}, { timeout: 5000 }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reintentar" })).toBeInTheDocument();
+  });
+
   it("renders every audit event the backend returns, including reactivate_user", async () => {
     renderAdmin("/app/admin/audit");
     expect(await screen.findByTestId("admin-audit-page")).toBeInTheDocument();
