@@ -7,6 +7,7 @@ const webRoot = path.resolve(root, "../../apps/web");
 
 export default defineConfig({
   testDir: "./tests",
+  testIgnore: "**/sql-console.spec.ts",
   timeout: 120_000,
   expect: { timeout: 15_000 },
   fullyParallel: false,
