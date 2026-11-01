@@ -62,6 +62,7 @@ flowchart TB
 | F7 | Admin → Auth | `users.status = suspended` | `commands/admin.py:suspend_user` |
 | F8 | * → Notifications | verify/reset/pond/billing emails via Resend | `notifications/` |
 | F9 | Payment → Billing | `confirm_payment` → subscription active, invoice paid | `billing/service.py`, `payments/simulated.py` |
+| F10 | Browser → Auth | `POST /auth/refresh` fails (no cookie, bad cookie, or rejected token) | session cleared, login screen | `session-boot-gate.tsx`, `UserJourney.tla` `RefreshFails` |
 
 ## Cross-subsystem invariants (model `System.tla`)
 

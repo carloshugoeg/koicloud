@@ -16,7 +16,7 @@ Three TLA+ models (`System`, `PondLifecycle`, `UserJourney`), checked with TLC. 
 | `PondLifecycle`: OneInFlightOp, NoStartOnDeleted, ConsoleOnlyWhenRunning | `apps/api/app/modules/ponds/service.py` (`_assert_no_active_job`, `stop`, `start`, `delete`, `retry_failed`, `get_owned`), `apps/api/app/modules/backups/service.py` (`restore`, backups), `apps/api/app/modules/sql_console/*`, `apps/node-agent/agent/handlers/*_pond.py`, `apps/web/src/features/ponds/pond-lifecycle-actions.tsx`, `pond-state.ts` |
 | `UserJourney`: TabsFixedOrder | `apps/web/src/features/ponds/detail-page.tsx`, `backups-page.tsx`, `apps/web/src/features/sql-console/sql-console-page.tsx` |
 | HistoryScoped | `apps/api/app/modules/sql_console/service.py` (`list_for_actor`), `apps/web/src/api/hooks/sql-console.ts`, `apps/web/src/mocks/handlers.ts` (sql/history) |
-| ReloadKeepsSession | `apps/web/src/lib/auth-store.ts`, `apps/web/src/app/session-boot-gate.tsx`, `apps/web/src/api/client.ts` |
+| ReloadKeepsSession | `apps/web/src/lib/auth-store.ts` (access token in memory), `apps/web/src/app/session-boot-gate.tsx` (boot calls `/auth/refresh`), `apps/web/src/api/client.ts`, cookie `koi_refresh` |
 | PlansViaBilling | `apps/web/src/app/layout/nav-config.ts`, `apps/web/src/app/router.tsx`, `apps/web/src/features/uso/*`, `features/plans/plans-page.tsx` |
 | NoChargeBadCard | `apps/web/src/features/plans/checkout-modal.tsx`, `apps/api/app/modules/billing/service.py` |
 
@@ -50,7 +50,7 @@ Start at L0 to decide which external entity is involved, L1 to pick the subsyste
 docs/statechart/model/check.sh      # needs Java 11+; downloads tla2tools.jar v1.8.0 if TLA2TOOLS is unset and ./tla2tools.jar is missing
 ```
 
-Expected today: `PASS` for `PondLifecycle.cfg`, `UserJourneyFixed.cfg`, `SystemFixed.cfg`; journey AS-IS shows 5 `BREAKS` (r6 findings); system AS-IS shows 4 `BREAKS` and `holds DeletedPondHasNoJobs`. Runs in a few seconds. Exit code is non-zero only if a target model fails.
+Expected today: `PASS` for `PondLifecycle.cfg`, `UserJourneyFixed.cfg`, `SystemFixed.cfg`; journey AS-IS shows 4 `BREAKS` (r6 findings still open) and `holds ReloadKeepsSession`; system AS-IS shows 4 `BREAKS` and `holds DeletedPondHasNoJobs`. Runs in a few seconds. Exit code is non-zero only if a target model fails.
 
 - `UserJourneyFixed.cfg` (`Fixed = TRUE`) is the target behaviour. `UserJourneyAsIs.cfg` (`Fixed = FALSE`) is what main does today. When an r6 item ships, change the matching `IF Fixed` branch in `UserJourney.tla` so the as-is branch matches the code, and the AS-IS line should flip to `holds`. When all hold, delete the `Fixed` constant.
 
