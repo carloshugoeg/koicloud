@@ -24,6 +24,7 @@ el agente lo ignora.
 | W2-16 | Diálogo web propose → confirm (A9 / E9-04) | `w2-confirm-dialog` | hecho ([PR #138](https://github.com/carloshugoeg/koicloud/pull/138)) |
 | W2-17 | Pond detail: Eliminar + Respaldar confirms (RF-14 / RF-15) | `w2-pond-detail-actions` | hecho ([PR #144](https://github.com/carloshugoeg/koicloud/pull/144)) |
 | W2-18 | Escape del selector de plan devuelve el foco | `w2-plan-picker-escape` | hecho ([PR #174](https://github.com/carloshugoeg/koicloud/pull/174)) |
+| W2-20 | La restauración sale de la cola y la pantalla lo muestra | `w2-restore-job-runs` | en-revision |
 
 **Dos fuentes por pantalla, y no se confunden:** la arquitectura de información (qué campos,
 qué tablas, qué pasos) sale de los mockups de `docs/entrega-2/mockups/`; la piel (color,
