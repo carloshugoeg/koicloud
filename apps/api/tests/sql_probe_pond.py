@@ -1,10 +1,3 @@
-"""A real Postgres database reached through a pond row.
-
-The console must use the pond's host, port, and password. This module
-creates that database and the pond row the command looks up. It is not a
-stand-in result.
-"""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
