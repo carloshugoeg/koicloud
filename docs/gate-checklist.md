@@ -36,3 +36,26 @@ def test_user_sql_error_is_4xx(client, headers, pond_id):
     )
     assert 400 <= response.status_code < 500
 ```
+
+## list endpoints have a default limit and a working cursor
+
+`GET /api/v1/admin/users` returns 50 rows unless `limit` is set. `limit` above 200 is 422. `next_cursor` is an opaque keyset on `(created_at desc, id desc)` and is null on the last page. Plans for the page come from that same query.
+
+The live test is `test_admin_list_users_returns_three_pages_for_120_users` in `apps/api/app/modules/admin/tests/test_admin_users_api.py`. The screen appends the next page in `appends the next page when Cargar más is used` in `apps/web/src/features/admin/admin-users-live-client.test.tsx`.
+
+Template test:
+
+```python
+def test_admin_users_page_has_a_limit_and_a_cursor(client, headers):
+    first = client.get("/api/v1/admin/users", headers=headers)
+    assert first.status_code == 200
+    assert len(first.json()["users"]) <= 50
+    cursor = first.json()["next_cursor"]
+    if cursor is not None:
+        second = client.get("/api/v1/admin/users", headers=headers, params={"cursor": cursor})
+        assert second.status_code == 200
+        first_ids = {user["id"] for user in first.json()["users"]}
+        assert first_ids.isdisjoint({user["id"] for user in second.json()["users"]})
+    over = client.get("/api/v1/admin/users", headers=headers, params={"limit": 201})
+    assert over.status_code == 422
+```

@@ -18,10 +18,11 @@ Administración → Usuarios muestra las cuentas reales de `users` (correo, nomb
 
 ## Entradas ya decididas (no se cambian)
 
-- Firma de `admin_list_users()` sin parámetros. Retorno `AdminUserListResponse`.
+- Firma de `admin_list_users(*, limit=50, cursor=None)`. Retorno `AdminUserListResponse`.
+- CCR de Carlos (1 nov 2026): `GET /api/v1/admin/users` acepta `limit` (default 50, máximo 200) y `cursor` opaco. La forma de la respuesta no cambia.
 - `GET /api/v1/admin/users` ya existe. Guard `admin_only`.
 - Campos de `AdminUserOut`: `active_subscription_plan` es el plan de la suscripción activa, o null.
-- `next_cursor` sigue en null, igual que ponds y suscripciones en v0.
+- `next_cursor` es null en la última página. El orden es `created_at desc, id desc`.
 - Suspender y reactivar ya persisten. Este ticket no cambia su firma.
 - El conteo de ponds de la tabla web se sigue calculando con `GET /admin/ponds`.
 
@@ -34,8 +35,8 @@ Administración → Usuarios muestra las cuentas reales de `users` (correo, nomb
 
 ## No tocar
 
-- `packages/contracts/**` y `apps/web/src/api/schema.d.ts`.
-- Firmas de `app/commands/*`.
+- `packages/contracts/**` y `apps/web/src/api/schema.d.ts`, salvo los query params `limit` y `cursor` del CCR.
+- Firmas de `app/commands/*`, salvo `limit` y `cursor` opcionales en `admin_list_users`.
 - Tablas, columnas y enums.
 - `.github/workflows/deploy.yml`.
 

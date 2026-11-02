@@ -105,7 +105,7 @@ export function AdminUsersPage() {
     );
   }
 
-  if (usersQuery.isError) {
+  if (usersQuery.isError && !usersQuery.data) {
     return (
       <div className="rounded-md border border-line bg-bone-raised p-5" data-testid="admin-users-error">
         <div className="border-l-[3px] border-danger pl-3">
@@ -164,7 +164,19 @@ export function AdminUsersPage() {
         onReactivate={(user) => setDialog({ kind: "reactivate", user })}
       />
 
-      {usersQuery.data?.next_cursor ? <MoreResultsNote /> : null}
+      {usersQuery.data?.next_cursor ? (
+        <div className="flex flex-wrap items-center gap-3">
+          <MoreResultsNote />
+          <button
+            type="button"
+            className="h-9 rounded-sm border border-line-control bg-bone-raised px-4 text-sm font-medium text-ink focus:shadow-focus disabled:opacity-40"
+            disabled={usersQuery.isFetchingNextPage}
+            onClick={() => void usersQuery.fetchNextPage()}
+          >
+            {usersQuery.isFetchingNextPage ? "Cargando…" : "Cargar más"}
+          </button>
+        </div>
+      ) : null}
 
       {dialog.kind === "suspend" ? (
         <SuspendDialog

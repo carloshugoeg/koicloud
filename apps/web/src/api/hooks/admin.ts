@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/api/client";
 import type { components } from "@/api/schema";
 import { ApiError } from "@/lib/errors";
@@ -11,16 +11,31 @@ export type AuditEvent = components["schemas"]["AuditEventOut"];
 export const SUSPEND_CONFIRM_TEXT = "SUSPENDER";
 
 export function useAdminUsersQuery() {
-  return useQuery({
+  const query = useInfiniteQuery({
     queryKey: ["admin", "users"],
-    queryFn: async () => {
-      const { data, error } = await apiClient.GET("/api/v1/admin/users");
+    initialPageParam: null as string | null,
+    queryFn: async ({ pageParam }) => {
+      const { data, error } = await apiClient.GET("/api/v1/admin/users", {
+        params: {
+          query: {
+            limit: 50,
+            ...(pageParam ? { cursor: pageParam } : {}),
+          },
+        },
+      });
       if (error || !data) {
         throw new ApiError(error);
       }
       return data;
     },
+    getNextPageParam: (lastPage) => lastPage.next_cursor ?? undefined,
   });
+  const users = query.data?.pages.flatMap((page) => page.users) ?? [];
+  const nextCursor = query.data?.pages.at(-1)?.next_cursor ?? null;
+  return {
+    ...query,
+    data: query.data ? { users, next_cursor: nextCursor } : undefined,
+  };
 }
 
 export type SuspendUserInput = {

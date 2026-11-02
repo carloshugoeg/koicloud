@@ -3111,7 +3111,10 @@ export interface operations {
     };
     admin_list_users: {
         parameters: {
-            query?: never;
+            query?: {
+                cursor?: string | null;
+                limit?: number | null;
+            };
             header?: {
                 "X-KOI-Surface"?: string | null;
             };

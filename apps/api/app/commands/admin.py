@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import base64
+from dataclasses import dataclass
+from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import and_, or_, select
 
 from app.core.auth import AuthContext
 from app.core.db import SessionLocal
+from app.core.deps import ADMIN_USERS_PAGE_LIMIT
 from app.core.enums import ActorKind, SubscriptionStatus, UserStatus
 from app.core.errors import AppError, ErrorCode
 from app.core.models import AuditEvent, Subscription, User
@@ -21,16 +25,70 @@ from app.schemas import (
 )
 
 
-async def admin_list_users() -> AdminUserListResponse:
+class InvalidUserCursor(Exception):
+    pass
+
+
+@dataclass(frozen=True, slots=True)
+class _UserCursor:
+    created_at: datetime
+    user_id: UUID
+
+
+def _encode_user_cursor(created_at: datetime, user_id: UUID) -> str:
+    raw = f"{created_at.isoformat()}|{user_id}".encode()
+    return base64.urlsafe_b64encode(raw).decode().rstrip("=")
+
+
+def _decode_user_cursor(token: str) -> _UserCursor:
+    padded = token + "=" * (-len(token) % 4)
+    try:
+        decoded = base64.urlsafe_b64decode(padded.encode()).decode()
+        stamp, separator, user_id = decoded.partition("|")
+        if not separator:
+            raise ValueError
+        created_at = datetime.fromisoformat(stamp)
+        if created_at.tzinfo is None:
+            raise ValueError
+        return _UserCursor(created_at=created_at, user_id=UUID(user_id))
+    except (ValueError, UnicodeError) as exc:
+        raise InvalidUserCursor from exc
+
+
+async def admin_list_users(
+    *,
+    limit: int = ADMIN_USERS_PAGE_LIMIT,
+    cursor: str | None = None,
+) -> AdminUserListResponse:
+    mark = _decode_user_cursor(cursor) if cursor is not None else None
     async with SessionLocal() as session:
-        rows = (
-            await session.execute(select(User).order_by(User.created_at.desc()))
-        ).scalars().all()
-        users: list[AdminUserOut] = []
-        for user in rows:
-            plan_id = await _active_plan_id(session, user.id)
-            users.append(_admin_user_out(user, plan_id))
-        return AdminUserListResponse(users=users, next_cursor=None)
+        stmt = (
+            select(User, Subscription.plan_id)
+            .outerjoin(
+                Subscription,
+                and_(
+                    Subscription.user_id == User.id,
+                    Subscription.status == SubscriptionStatus.ACTIVE,
+                ),
+            )
+            .distinct(User.created_at, User.id)
+            .order_by(User.created_at.desc(), User.id.desc(), Subscription.plan_id.asc())
+        )
+        if mark is not None:
+            stmt = stmt.where(
+                or_(
+                    User.created_at < mark.created_at,
+                    and_(User.created_at == mark.created_at, User.id < mark.user_id),
+                )
+            )
+        rows = list((await session.execute(stmt.limit(limit + 1))).all())
+        page = rows[:limit]
+        next_cursor = None
+        if len(rows) > limit and page:
+            last_user, _plan_id = page[-1]
+            next_cursor = _encode_user_cursor(last_user.created_at, last_user.id)
+        users = [_admin_user_out(user, plan_id) for user, plan_id in page]
+        return AdminUserListResponse(users=users, next_cursor=next_cursor)
 
 
 async def _active_plan_id(session, user_id: UUID) -> str | None:
