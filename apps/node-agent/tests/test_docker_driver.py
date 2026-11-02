@@ -41,6 +41,7 @@ class FakeContainer:
         self.attrs = {"NetworkSettings": {"Ports": {"5432/tcp": [{"HostPort": str(host_port)}]}}}
         self.removed = False
         self.execs: list[list[str]] = []
+        self.environments: list[dict[str, str]] = []
         self.archives: list[str] = []
         self._registry = registry
 
@@ -58,14 +59,22 @@ class FakeContainer:
         self.removed = True
         self._registry.pop(self.name, None)
 
-    def exec_run(self, cmd: list[str]) -> tuple[int, bytes]:
+    def exec_run(
+        self,
+        cmd: list[str],
+        environment: dict[str, str] | None = None,
+        **_kwargs: object,
+    ) -> tuple[int, bytes]:
         self.execs.append(cmd)
+        self.environments.append(environment or {})
         if cmd[0] == "pg_isready":
             return 0, b"accepting connections"
         if cmd[0] == "pg_dump":
             return 0, b"-- mock dump\n"
         if cmd[0] == "psql":
             return 0, b"RESTORE"
+        if cmd[0] == "sh":
+            return 0, b""
         return 1, b"unknown"
 
     def put_archive(self, path: str, data: bytes) -> bool:
@@ -84,11 +93,16 @@ class FakeContainers:
         if name in self.items:
             raise RuntimeError(f"Conflict. The container name {name} is already in use")
         labels = dict(kwargs.get("labels") or {})  # type: ignore[arg-type]
+        environment = kwargs.get("environment") or {}
         ports = kwargs.get("ports") or {}
         host_port = 15432
         if isinstance(ports, dict) and ports.get("5432/tcp"):
             host_port = int(ports["5432/tcp"])  # type: ignore[arg-type]
         container = FakeContainer(name, labels, host_port, self.items)
+        if isinstance(environment, dict):
+            container.attrs["Config"] = {
+                "Env": [f"{key}={value}" for key, value in environment.items()]
+            }
         self.items[name] = container
         return container
 
@@ -162,6 +176,21 @@ def test_docker_driver_dump_and_restore(driver: DockerDriver, tmp_path: Path) ->
 
     with pytest.raises(PondDriverError, match="backup_not_found"):
         driver.restore("inventario-demo", "missing")
+
+
+def test_create_pond_provisions_a_non_superuser_console_role(driver: DockerDriver) -> None:
+    driver.create_pond(build_spec())
+    container = driver._docker_client().containers.get(container_name_for("inventario-demo"))
+    scripts = [env.get("KOI_SQL", "") for env in container.environments]
+    script = "\n".join(scripts)
+    assert "koi_console" in script
+    assert "NOSUPERUSER" in script
+    assert "pg_read_server_files" in script
+    assert "pg_write_server_files" in script
+    assert "pg_execute_server_program" in script
+    assert "OWNER TO koi_console" in script
+    assert "super-secret" not in script
+    assert all("super-secret" not in " ".join(cmd) for cmd in container.execs)
 
 
 def test_docker_driver_name_conflict(driver: DockerDriver) -> None:

@@ -12,7 +12,12 @@ from app.core.config import get_settings
 from app.core.db import SessionLocal
 from app.core.enums import AppSurface, SQLMode
 from app.core.errors import AppError, ErrorCode
-from app.modules.ponds import PondService
+from app.modules.ponds import (
+    CONSOLE_ROLE,
+    PondService,
+    console_role_password,
+    ensure_console_role,
+)
 from app.modules.sql_console import HistoryWrite, SqlConsoleService
 from app.schemas import (
     ConfirmationRequiredResponse,
@@ -42,19 +47,36 @@ def _cell(value: object) -> object:
     return str(value)
 
 
-async def _execute(connection: ConnectionOut, payload: RunSQLRequest) -> SQLResultResponse:
-    started = time.perf_counter()
+async def _connect(connection: ConnectionOut, *, user: str, password: str) -> asyncpg.Connection:
     try:
-        conn = await asyncpg.connect(
+        return await asyncpg.connect(
             host=connection.host,
             port=connection.port,
-            user=connection.username,
-            password=connection.password,
+            user=user,
+            password=password,
             database=connection.database,
             timeout=10,
         )
     except (OSError, asyncpg.PostgresError) as exc:
         raise AppError(ErrorCode.NODE_UNAVAILABLE) from exc
+
+
+async def _execute(connection: ConnectionOut, payload: RunSQLRequest) -> SQLResultResponse:
+    started = time.perf_counter()
+    console_password = console_role_password(connection.password)
+    admin = await _connect(
+        connection,
+        user=connection.username,
+        password=connection.password,
+    )
+    try:
+        await ensure_console_role(admin, console_password)
+    except asyncpg.PostgresError as exc:
+        logger.warning("console role repair failed sqlstate=%s", exc.sqlstate)
+        raise AppError(ErrorCode.INTERNAL_ERROR) from exc
+    finally:
+        await admin.close()
+    conn = await _connect(connection, user=CONSOLE_ROLE, password=console_password)
     try:
         await conn.execute(
             "SELECT set_config('statement_timeout', $1, false)",

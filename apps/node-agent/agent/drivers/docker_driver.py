@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
+from agent.console_role import console_role_argv, console_role_environment
 from agent.drivers.base import (
     BackupArtifact,
     PondDriver,
@@ -86,6 +87,7 @@ class DockerDriver(PondDriver):
         except Exception as error:
             raise self._translate_error(error, spec.name) from error
         self._wait_ready(container)
+        self._ensure_console_role(container, spec.name, spec.db_password_plain)
         runtime = self._runtime_from_spec(spec, state="running")
         return runtime
 
@@ -152,6 +154,7 @@ class DockerDriver(PondDriver):
         if code != 0:
             detail = output.decode() if isinstance(output, bytes) else str(output)
             raise PondDriverError(f"restore_failed:{pond_name}:{detail}")
+        self._ensure_console_role(container, pond_name, self._pond_password(container))
         container.reload()
         updated = self._runtime_from_container(container, state="running")
         return {"restored": True, "pond": updated.to_dict(), "backup_id": backup_id}
@@ -182,6 +185,24 @@ class DockerDriver(PondDriver):
             if self._is_not_found(error):
                 raise PondDriverError(f"pond_not_found:{pond_name}") from error
             raise self._translate_error(error, pond_name) from error
+
+    def _ensure_console_role(self, container: Any, pond_name: str, pond_password: str) -> None:
+        if not pond_password:
+            raise PondDriverError(f"console_role_failed:{pond_name}")
+        code, _output = container.exec_run(
+            console_role_argv(),
+            environment=console_role_environment(database_name_for(pond_name), pond_password),
+        )
+        if code != 0:
+            raise PondDriverError(f"console_role_failed:{pond_name}")
+
+    def _pond_password(self, container: Any) -> str:
+        attrs = getattr(container, "attrs", None) or {}
+        env = attrs.get("Config", {}).get("Env") or []
+        for item in env:
+            if item.startswith("POSTGRES_PASSWORD="):
+                return item.split("=", 1)[1]
+        return ""
 
     def _wait_ready(self, container: Any) -> None:
         deadline = time.monotonic() + self.ready_timeout_seconds
