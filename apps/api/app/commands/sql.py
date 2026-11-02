@@ -73,7 +73,7 @@ async def _execute(connection: ConnectionOut, payload: RunSQLRequest) -> SQLResu
         await ensure_console_role(admin, console_password)
     except asyncpg.PostgresError as exc:
         logger.warning("console role repair failed sqlstate=%s", exc.sqlstate)
-        raise AppError(ErrorCode.INTERNAL_ERROR) from exc
+        raise AppError(ErrorCode.INTERNAL_ERROR) from None
     finally:
         await admin.close()
     conn = await _connect(connection, user=CONSOLE_ROLE, password=console_password)
