@@ -55,3 +55,62 @@ def test_restore_three_times_leaves_seven_rows(tmp_path):
         assert report.status == "succeeded"
         assert item_rows(cluster) == rows
 ```
+
+## restore replaces every non-system schema
+
+A pond with schema `inv` and tables in both `public` and `inv`, restored 3 times, keeps those row counts. The job does not fail because the schema already exists.
+
+The live test is `test_restore_replaces_every_non_system_schema` in `apps/node-agent/tests/test_restore_replaces.py`.
+
+Template test:
+
+```python
+def test_restore_replaces_every_non_system_schema(tmp_path):
+    rows = ["1", "2", "3", "4", "5", "6", "7"]
+    cluster, driver = pond_with_items(tmp_path, rows)
+    add_schema(cluster, "inv", "stock", rows)
+    driver.dump("inventario-demo", "bak-inv")
+    for index in range(3):
+        report = run_restore(driver, f"job_inv_{index}", "bak-inv")
+        assert report.status == "succeeded"
+        assert item_rows(cluster) == rows
+        assert schema_rows(cluster, "inv", "stock") == rows
+```
+
+## restore grants no CREATE on public
+
+After a restore, a role that is not the owner cannot CREATE in `public`.
+
+The live test is `test_restore_denies_create_in_public_to_non_owner` in `apps/node-agent/tests/test_restore_replaces.py`.
+
+Template test:
+
+```python
+def test_restore_denies_create_in_public_to_non_owner(tmp_path):
+    cluster, driver = pond_with_items(tmp_path, ["1"])
+    driver.dump("inventario-demo", "bak-acl")
+    report = run_restore(driver, "job_acl", "bak-acl")
+    assert report.status == "succeeded"
+    assert create_as(cluster, "stranger", "public", "probe") is not None
+```
+
+## restored objects belong to the pond owner role
+
+After a restore, the restored tables and schemas are owned by `koi_console`, the non-superuser role W1-191 uses, not by `postgres`.
+
+The live test is `test_restored_tables_and_schemas_owned_by_koi_console` in `apps/node-agent/tests/test_restore_replaces.py`.
+
+Template test:
+
+```python
+def test_restored_tables_and_schemas_owned_by_koi_console(tmp_path):
+    cluster, driver = pond_with_items(tmp_path, ["1"])
+    add_schema(cluster, "inv", "stock", ["1", "2"])
+    driver.dump("inventario-demo", "bak-own")
+    report = run_restore(driver, "job_own", "bak-own")
+    assert report.status == "succeeded"
+    assert schema_owner(cluster, "public") == "koi_console"
+    assert schema_owner(cluster, "inv") == "koi_console"
+    assert table_owner(cluster, "public", "items") == "koi_console"
+    assert table_owner(cluster, "inv", "stock") == "koi_console"
+```
