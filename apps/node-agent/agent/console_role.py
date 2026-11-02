@@ -3,9 +3,13 @@ from __future__ import annotations
 import base64
 import hashlib
 import hmac
+import os
 
 _SCRAM_ITERATIONS = 4096
-_SCRAM_SALT = hashlib.sha256(b"koicloud.console-role.scram-salt.v1").digest()[:16]
+_SALT_BYTES = 16
+# Same-process memory of a salt we already generated. The driver also passes
+# the verifier stored in pg_authid, which wins after a restart.
+_pond_salts: dict[tuple[str, str], bytes] = {}
 
 # Same body as apps/api/app/modules/ponds/console_role.py.
 _SQL = """
@@ -146,27 +150,73 @@ def console_role_password(pond_password: str) -> str:
     return base64.urlsafe_b64encode(digest).decode("ascii").rstrip("=")
 
 
-def scram_sha256_verifier(password: str) -> str:
+def scram_sha256_verifier(password: str, salt: bytes) -> str:
     salted = hashlib.pbkdf2_hmac(
         "sha256",
         password.encode("utf-8"),
-        _SCRAM_SALT,
+        salt,
         _SCRAM_ITERATIONS,
     )
     client_key = hmac.new(salted, b"Client Key", hashlib.sha256).digest()
     stored_key = hashlib.sha256(client_key).digest()
     server_key = hmac.new(salted, b"Server Key", hashlib.sha256).digest()
-    salt_b64 = base64.b64encode(_SCRAM_SALT).decode("ascii")
+    salt_b64 = base64.b64encode(salt).decode("ascii")
     stored_b64 = base64.b64encode(stored_key).decode("ascii")
     server_b64 = base64.b64encode(server_key).decode("ascii")
     return f"SCRAM-SHA-256${_SCRAM_ITERATIONS}:{salt_b64}${stored_b64}:{server_b64}"
 
 
-def console_role_environment(database: str, pond_password: str) -> dict[str, str]:
+def _salt_from_verifier(stored: str | None) -> bytes | None:
+    if not stored:
+        return None
+    parts = stored.split("$")
+    if len(parts) != 3 or parts[0] != "SCRAM-SHA-256":
+        return None
+    iteration_and_salt = parts[1].split(":", 1)
+    if len(iteration_and_salt) != 2 or iteration_and_salt[0] != str(_SCRAM_ITERATIONS):
+        return None
+    try:
+        salt = base64.b64decode(iteration_and_salt[1], validate=True)
+    except ValueError:
+        return None
+    if len(salt) != _SALT_BYTES:
+        return None
+    return salt
+
+
+def _salt_key(database: str, password: str) -> tuple[str, str]:
+    digest = hashlib.sha256(password.encode("utf-8")).hexdigest()
+    return database, digest
+
+
+def verifier_for(password: str, stored: str | None, *, database: str) -> str:
+    salt = _salt_from_verifier(stored)
+    key = _salt_key(database, password)
+    if salt is not None and stored is not None:
+        candidate = scram_sha256_verifier(password, salt)
+        if hmac.compare_digest(candidate, stored):
+            _pond_salts[key] = salt
+            return stored
+    if stored is None and key in _pond_salts:
+        return scram_sha256_verifier(password, _pond_salts[key])
+    salt = os.urandom(_SALT_BYTES)
+    _pond_salts[key] = salt
+    return scram_sha256_verifier(password, salt)
+
+
+def console_role_environment(
+    database: str,
+    pond_password: str,
+    stored: str | None = None,
+) -> dict[str, str]:
     return {
         "PGPASSWORD": pond_password,
         "KOI_DB": database,
-        "KOI_CONSOLE_VERIFIER": scram_sha256_verifier(console_role_password(pond_password)),
+        "KOI_CONSOLE_VERIFIER": verifier_for(
+            console_role_password(pond_password),
+            stored,
+            database=database,
+        ),
         "KOI_SQL": _SQL,
     }
 

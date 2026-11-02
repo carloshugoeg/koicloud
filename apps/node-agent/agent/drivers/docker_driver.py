@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import io
+import logging
 import os
 import tarfile
 import time
@@ -19,6 +20,8 @@ from agent.drivers.base import (
     PondSpec,
 )
 
+logger = logging.getLogger(__name__)
+
 MANAGED_LABEL = "koicloud.managed"
 POND_LABEL = "koicloud.pond"
 POND_ID_LABEL = "koicloud.pond_id"
@@ -30,6 +33,19 @@ def container_name_for(pond_name: str) -> str:
 
 def database_name_for(pond_name: str) -> str:
     return pond_name.replace("-", "_")
+
+
+def _public_exec_detail(output: object, secret: str) -> str:
+    if isinstance(output, bytes):
+        text = output.decode("utf-8", errors="replace")
+    else:
+        text = str(output)
+    line = text.strip().splitlines()[0] if text.strip() else "no output"
+    if secret and secret in line:
+        return "redacted"
+    if "SCRAM-SHA-256$" in line:
+        return "redacted"
+    return line[:160]
 
 
 class DockerDriver(PondDriver):
@@ -189,12 +205,47 @@ class DockerDriver(PondDriver):
     def _ensure_console_role(self, container: Any, pond_name: str, pond_password: str) -> None:
         if not pond_password:
             raise PondDriverError(f"console_role_failed:{pond_name}")
-        code, _output = container.exec_run(
-            console_role_argv(),
-            environment=console_role_environment(database_name_for(pond_name), pond_password),
+        database = database_name_for(pond_name)
+        deadline = time.monotonic() + self.ready_timeout_seconds
+        detail = "no output"
+        while True:
+            stored = self._stored_console_verifier(container, database)
+            code, output = container.exec_run(
+                console_role_argv(),
+                environment=console_role_environment(database, pond_password, stored),
+            )
+            if code == 0:
+                return
+            detail = _public_exec_detail(output, pond_password)
+            if time.monotonic() >= deadline:
+                logger.warning(
+                    "console role setup failed pond=%s exit=%s detail=%s",
+                    pond_name,
+                    code,
+                    detail,
+                )
+                raise PondDriverError(f"console_role_failed:{pond_name}")
+            time.sleep(0.2)
+
+    def _stored_console_verifier(self, container: Any, database: str) -> str | None:
+        code, output = container.exec_run(
+            [
+                "psql",
+                "-U",
+                "postgres",
+                "-d",
+                database,
+                "-Atc",
+                "SELECT coalesce(rolpassword, '') FROM pg_authid WHERE rolname = 'koi_console'",
+            ]
         )
         if code != 0:
-            raise PondDriverError(f"console_role_failed:{pond_name}")
+            return None
+        text = output.decode("utf-8", errors="replace") if isinstance(output, bytes) else str(output)
+        verifier = text.strip()
+        if verifier.startswith("SCRAM-SHA-256$"):
+            return verifier
+        return None
 
     def _pond_password(self, container: Any) -> str:
         attrs = getattr(container, "attrs", None) or {}

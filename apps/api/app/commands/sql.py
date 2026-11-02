@@ -15,6 +15,7 @@ from app.core.errors import AppError, ErrorCode
 from app.modules.ponds import (
     CONSOLE_ROLE,
     PondService,
+    console_needs_repair,
     console_role_password,
     ensure_console_role,
 )
@@ -47,23 +48,31 @@ def _cell(value: object) -> object:
     return str(value)
 
 
+_AUTH_FAILURES = (
+    asyncpg.InvalidPasswordError,
+    asyncpg.InvalidAuthorizationSpecificationError,
+)
+
+
+async def _open(connection: ConnectionOut, *, user: str, password: str) -> asyncpg.Connection:
+    return await asyncpg.connect(
+        host=connection.host,
+        port=connection.port,
+        user=user,
+        password=password,
+        database=connection.database,
+        timeout=10,
+    )
+
+
 async def _connect(connection: ConnectionOut, *, user: str, password: str) -> asyncpg.Connection:
     try:
-        return await asyncpg.connect(
-            host=connection.host,
-            port=connection.port,
-            user=user,
-            password=password,
-            database=connection.database,
-            timeout=10,
-        )
+        return await _open(connection, user=user, password=password)
     except (OSError, asyncpg.PostgresError) as exc:
         raise AppError(ErrorCode.NODE_UNAVAILABLE) from exc
 
 
-async def _execute(connection: ConnectionOut, payload: RunSQLRequest) -> SQLResultResponse:
-    started = time.perf_counter()
-    console_password = console_role_password(connection.password)
+async def _repair_console_role(connection: ConnectionOut, console_password: str) -> asyncpg.Connection:
     admin = await _connect(
         connection,
         user=connection.username,
@@ -76,7 +85,26 @@ async def _execute(connection: ConnectionOut, payload: RunSQLRequest) -> SQLResu
         raise AppError(ErrorCode.INTERNAL_ERROR) from None
     finally:
         await admin.close()
-    conn = await _connect(connection, user=CONSOLE_ROLE, password=console_password)
+    return await _connect(connection, user=CONSOLE_ROLE, password=console_password)
+
+
+async def _open_console(connection: ConnectionOut, console_password: str) -> asyncpg.Connection:
+    try:
+        conn = await _open(connection, user=CONSOLE_ROLE, password=console_password)
+    except _AUTH_FAILURES:
+        return await _repair_console_role(connection, console_password)
+    except (OSError, asyncpg.PostgresError) as exc:
+        raise AppError(ErrorCode.NODE_UNAVAILABLE) from exc
+    if await console_needs_repair(conn):
+        await conn.close()
+        return await _repair_console_role(connection, console_password)
+    return conn
+
+
+async def _execute(connection: ConnectionOut, payload: RunSQLRequest) -> SQLResultResponse:
+    started = time.perf_counter()
+    console_password = console_role_password(connection.password)
+    conn = await _open_console(connection, console_password)
     try:
         await conn.execute(
             "SELECT set_config('statement_timeout', $1, false)",
