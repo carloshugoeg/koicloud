@@ -31,6 +31,27 @@ def database_name_for(pond_name: str) -> str:
     return pond_name.replace("-", "_")
 
 
+def restore_script(dump: bytes) -> bytes:
+    """Wrap a plain pg_dump so restore replaces public and rolls back on error.
+
+    pg_dump emits CREATE TABLE and COPY, not DROP. COPY appends when the table
+    is already there, and psql commits each statement unless the script is one
+    transaction. ON_ERROR_STOP makes a later error fail the job. The open
+    transaction rolls back, so the pond keeps the rows it had before.
+    """
+    prefix = (
+        "BEGIN;\n"
+        "DROP SCHEMA IF EXISTS public CASCADE;\n"
+        "CREATE SCHEMA public;\n"
+        "GRANT ALL ON SCHEMA public TO postgres;\n"
+        "GRANT ALL ON SCHEMA public TO public;\n"
+    )
+    body = dump.decode("utf-8")
+    if not body.endswith("\n"):
+        body += "\n"
+    return f"{prefix}{body}COMMIT;\n".encode()
+
+
 class DockerDriver(PondDriver):
     """Real postgres:16-alpine ponds via the local Docker daemon.
 
@@ -144,10 +165,20 @@ class DockerDriver(PondDriver):
         path = self.backup_dir / f"{pond_name}-{backup_id}.sql"
         if not path.is_file():
             raise PondDriverError(f"backup_not_found:{backup_id}")
-        self._put_file(container, "/tmp/restore.sql", path.read_bytes())
+        self._put_file(container, "/tmp/restore.sql", restore_script(path.read_bytes()))
         database = database_name_for(pond_name)
         code, output = container.exec_run(
-            ["psql", "-U", "postgres", "-d", database, "-f", "/tmp/restore.sql"]
+            [
+                "psql",
+                "-U",
+                "postgres",
+                "-d",
+                database,
+                "-v",
+                "ON_ERROR_STOP=1",
+                "-f",
+                "/tmp/restore.sql",
+            ]
         )
         if code != 0:
             detail = output.decode() if isinstance(output, bytes) else str(output)
