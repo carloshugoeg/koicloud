@@ -6,7 +6,7 @@ estado: en-revision
 rama: w1-qi-infra-caddy-worker
 epica: E10-02
 sprint: S4
-pr: https://github.com/carloshugoeg/koicloud/pull/186
+pr: https://github.com/carloshugoeg/koicloud/pull/187
 depends_on:
 ---
 
