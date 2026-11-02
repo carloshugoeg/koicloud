@@ -170,4 +170,40 @@ describe("billing form errors", () => {
     expect(changePlan).toHaveAttribute("aria-expanded", "true");
     expect(choose).toHaveFocus();
   });
+
+  it("returns focus to Cambiar de plan when Escape is pressed on Elegir plan", async () => {
+    const user = userEvent.setup();
+    renderUso();
+
+    const changePlan = await screen.findByRole("button", { name: "Cambiar de plan" });
+    await user.click(changePlan);
+    const choose = await screen.findByRole("button", { name: "Elegir plan Micro" });
+    choose.focus();
+    expect(choose).toHaveFocus();
+
+    await user.keyboard("{Escape}");
+
+    expect(screen.queryByRole("button", { name: "Elegir plan Micro" })).not.toBeInTheDocument();
+    expect(changePlan).toHaveAttribute("aria-expanded", "false");
+    expect(changePlan).toHaveFocus();
+  });
+
+  it("returns focus to Elegir plan when Escape closes the checkout dialog from its first control", async () => {
+    const user = userEvent.setup();
+    renderUso();
+
+    const changePlan = await screen.findByRole("button", { name: "Cambiar de plan" });
+    await user.click(changePlan);
+    const choose = await screen.findByRole("button", { name: "Elegir plan Micro" });
+    await user.click(choose);
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    expect(changePlan).toHaveAttribute("aria-expanded", "true");
+
+    await user.keyboard("{Escape}");
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(changePlan).toHaveAttribute("aria-expanded", "true");
+    expect(choose).toHaveFocus();
+    expect(changePlan).not.toHaveFocus();
+  });
 });
