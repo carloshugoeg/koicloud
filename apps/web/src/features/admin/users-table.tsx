@@ -2,6 +2,7 @@ import type { AdminUser } from "@/api/hooks/admin";
 
 type UsersTableProps = {
   users: AdminUser[];
+  emptyMessage: string;
   pondsComplete: boolean;
   pondCountByEmail: Map<string, number>;
   onSuspend: (user: AdminUser, trigger: HTMLButtonElement) => void;
@@ -10,6 +11,7 @@ type UsersTableProps = {
 
 export function UsersTable({
   users,
+  emptyMessage,
   pondsComplete,
   pondCountByEmail,
   onSuspend,
@@ -18,7 +20,7 @@ export function UsersTable({
   if (users.length === 0) {
     return (
       <div className="rounded-md border border-line bg-bone-raised p-8 text-center" data-testid="admin-users-empty">
-        <p className="text-sm text-ink-muted">No hay usuarios con ese filtro.</p>
+        <p className="text-sm text-ink-muted">{emptyMessage}</p>
       </div>
     );
   }

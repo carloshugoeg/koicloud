@@ -59,3 +59,35 @@ def test_admin_users_page_has_a_limit_and_a_cursor(client, headers):
     over = client.get("/api/v1/admin/users", headers=headers, params={"limit": 201})
     assert over.status_code == 422
 ```
+
+## focus stays on Cargar más while the next page loads
+
+Pressing **Cargar más** must not move focus to the document body. The button stays enabled and sets `aria-busy` while the next page is in flight. After that page arrives, and another page remains, focus is still on **Cargar más**.
+
+The live test is `keeps focus on Cargar más while the next page loads` in `apps/web/src/features/admin/admin-users-live-client.test.tsx`. The same name in `e2e/journey/tests/admin-users.spec.ts` checks it in Chromium.
+
+Template test:
+
+```ts
+const busy = await screen.findByRole("button", { name: "Cargando…" });
+expect(busy).toHaveFocus();
+expect(busy).toBeEnabled();
+expect(busy).toHaveAttribute("aria-busy", "true");
+```
+
+## a failed next page shows an inline error and retries
+
+A failed `GET /api/v1/admin/users` for a cursor must keep the rows already loaded. The screen shows an inline alert, **No pudimos cargar más usuarios.**, and **Reintentar**. **Reintentar** loads that same page. The full-page error is only for a failure that returns no rows.
+
+The live test is `shows an inline error and retries the next page without dropping loaded rows` in `apps/web/src/features/admin/admin-users-live-client.test.tsx`. The same name in `e2e/journey/tests/admin-users.spec.ts` checks it in Chromium.
+
+Template test:
+
+```ts
+const alert = await within(page).findByRole("alert");
+expect(alert).toHaveTextContent(/No pudimos cargar más usuarios\./);
+expect(screen.getByText("QA Uno")).toBeInTheDocument();
+await user.click(within(alert).getByRole("button", { name: "Reintentar" }));
+expect(await screen.findByText("Cuenta Demo")).toBeInTheDocument();
+expect(screen.getByText("QA Uno")).toBeInTheDocument();
+```
