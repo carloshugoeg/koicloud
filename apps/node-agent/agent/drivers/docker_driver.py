@@ -126,7 +126,8 @@ class DockerDriver(PondDriver):
             ["pg_dump", "-U", "postgres", "--no-owner", "--no-acl", database]
         )
         if code != 0:
-            raise PondDriverError(f"dump_failed:{pond_name}")
+            detail = output.decode(errors="replace") if isinstance(output, bytes) else str(output)
+            raise PondDriverError(f"dump_failed:{pond_name}:{detail}")
         raw = output if isinstance(output, bytes) else str(output).encode()
         path = self.backup_dir / f"{pond_name}-{backup_id}.sql"
         path.parent.mkdir(parents=True, exist_ok=True)

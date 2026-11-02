@@ -19,6 +19,7 @@ from app.core.errors import AppError, ErrorCode
 from app.core.models import Backup, Job, Node, Pond, PondStatus
 from app.core.security import hash_token
 from app.core.time import utc_now
+from app.modules.jobs.failure import public_failure, report_failure
 from app.schemas import (
     ClaimedJob,
     ClaimedJobPayload,
@@ -85,12 +86,16 @@ class JobService:
 
         now = utc_now()
         job.completed_at = now
+        failure: str | None
         if payload.status == "succeeded":
             job.status = JobStatus.SUCCEEDED
             job.last_error = None
+            failure = None
         else:
             job.status = JobStatus.FAILED
-            job.last_error = payload.error
+            failure = public_failure(job.type, payload.error)
+            report_failure(job.id, payload.error)
+            job.last_error = failure
 
         status = await self.session.get(PondStatus, job.pond_id)
         if status is None:
@@ -130,11 +135,11 @@ class JobService:
             if status.observed_state != PondObservedState.DELETING:
                 status.observed_state = PondObservedState.FAILED
                 status.healthy = False
-                status.last_error = payload.error
+                status.last_error = failure
         elif payload.status == "failed":
             status.observed_state = PondObservedState.FAILED
             status.healthy = False
-            status.last_error = payload.error
+            status.last_error = failure
 
     async def _complete_backup(
         self, job: Job, payload: CompleteJobRequest, now
