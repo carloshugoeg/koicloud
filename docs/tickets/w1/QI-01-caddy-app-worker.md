@@ -2,7 +2,7 @@
 id: QI-01
 workstream: W1
 persona: Carlos
-estado: en-revision
+estado: hecho
 rama: w1-qi-infra-caddy-worker
 epica: E10-02
 sprint: S4
