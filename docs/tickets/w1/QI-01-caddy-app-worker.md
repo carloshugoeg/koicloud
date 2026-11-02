@@ -2,11 +2,11 @@
 id: QI-01
 workstream: W1
 persona: Carlos
-estado: en-curso
+estado: en-revision
 rama: qi-infra-caddy-worker
 epica: E10-02
 sprint: S4
-pr:
+pr: https://github.com/carloshugoeg/koicloud/pull/186
 depends_on:
 ---
 
