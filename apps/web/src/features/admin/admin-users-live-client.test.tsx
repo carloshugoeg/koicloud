@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -156,5 +156,151 @@ describe("admin users from the API client with MSW off", () => {
     await user.type(screen.getByRole("textbox", { name: /buscar/i }), "demo");
     expect(screen.getByText("Cuenta Demo")).toBeInTheDocument();
     expect(screen.queryByText("QA Uno")).not.toBeInTheDocument();
+  });
+
+  it("keeps focus on Cargar más while the next page loads", async () => {
+    const user = userEvent.setup();
+    let releaseNext: () => void = () => {};
+    const gate = new Promise<void>((resolve) => {
+      releaseNext = resolve;
+    });
+    vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = input instanceof Request ? input.url : String(input);
+      const method = (
+        input instanceof Request ? input.method : (init?.method ?? "GET")
+      ).toUpperCase();
+      if (method === "GET" && url.includes("/api/v1/admin/users")) {
+        const cursor = new URL(url).searchParams.get("cursor");
+        if (cursor == null) {
+          return jsonResponse({ users: [QA_USER], next_cursor: "page-2" });
+        }
+        await gate;
+        return jsonResponse({ users: [DEMO_USER], next_cursor: "page-3" });
+      }
+      if (method === "GET" && url.includes("/api/v1/admin/ponds")) {
+        return jsonResponse({ ponds: [], next_cursor: null });
+      }
+      return jsonResponse({ code: "internal_error", message: "unmocked" }, 500);
+    });
+
+    try {
+      renderUsersScreen();
+      expect(await screen.findByText("QA Uno")).toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: "Cargar más" }));
+
+      const busy = await screen.findByRole("button", { name: "Cargando…" });
+      expect(busy).toHaveFocus();
+      expect(busy).toBeEnabled();
+      expect(busy).toHaveAttribute("aria-busy", "true");
+
+      releaseNext();
+      expect(await screen.findByText("Cuenta Demo")).toBeInTheDocument();
+      expect(screen.getByText("QA Uno")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Cargar más" })).toHaveFocus();
+    } finally {
+      releaseNext();
+    }
+  });
+
+  it("shows an inline error and retries the next page without dropping loaded rows", async () => {
+    const user = userEvent.setup();
+    let failCursor = true;
+    vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = input instanceof Request ? input.url : String(input);
+      const method = (
+        input instanceof Request ? input.method : (init?.method ?? "GET")
+      ).toUpperCase();
+      if (method === "GET" && url.includes("/api/v1/admin/users")) {
+        const cursor = new URL(url).searchParams.get("cursor");
+        if (cursor == null) {
+          return jsonResponse({ users: [QA_USER], next_cursor: "page-2" });
+        }
+        if (failCursor) {
+          return jsonResponse({ code: "internal_error", message: "internal_error" }, 500);
+        }
+        return jsonResponse({ users: [DEMO_USER], next_cursor: null });
+      }
+      if (method === "GET" && url.includes("/api/v1/admin/ponds")) {
+        return jsonResponse({ ponds: [], next_cursor: null });
+      }
+      return jsonResponse({ code: "internal_error", message: "unmocked" }, 500);
+    });
+
+    renderUsersScreen();
+    expect(await screen.findByText("QA Uno")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Cargar más" }));
+
+    const page = screen.getByTestId("admin-users-page");
+    const alert = await within(page).findByRole("alert");
+    expect(alert).toHaveTextContent(/No pudimos cargar más usuarios\./);
+    expect(screen.getByText("QA Uno")).toBeInTheDocument();
+    expect(screen.queryByText("Cuenta Demo")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("admin-users-error")).not.toBeInTheDocument();
+
+    failCursor = false;
+    await user.click(within(alert).getByRole("button", { name: "Reintentar" }));
+    expect(await screen.findByText("Cuenta Demo")).toBeInTheDocument();
+    expect(screen.getByText("QA Uno")).toBeInTheDocument();
+    expect(within(page).queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("names the search as a filter over loaded users and hints when more pages remain", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = input instanceof Request ? input.url : String(input);
+      const method = (
+        input instanceof Request ? input.method : (init?.method ?? "GET")
+      ).toUpperCase();
+      if (method === "GET" && url.includes("/api/v1/admin/users")) {
+        const cursor = new URL(url).searchParams.get("cursor");
+        if (cursor == null) {
+          return jsonResponse({ users: [QA_USER], next_cursor: "page-2" });
+        }
+        return jsonResponse({ users: [DEMO_USER], next_cursor: null });
+      }
+      if (method === "GET" && url.includes("/api/v1/admin/ponds")) {
+        return jsonResponse({ ponds: [], next_cursor: null });
+      }
+      return jsonResponse({ code: "internal_error", message: "unmocked" }, 500);
+    });
+
+    renderUsersScreen();
+    expect(await screen.findByText("QA Uno")).toBeInTheDocument();
+
+    expect(screen.getByRole("textbox", { name: /buscar/i })).toHaveAttribute(
+      "placeholder",
+      "Filtrar usuarios cargados",
+    );
+    expect(screen.getByText("Cargá más para buscar en el resto")).toBeInTheDocument();
+
+    await user.type(screen.getByRole("textbox", { name: /buscar/i }), "zzz-no-existe");
+    expect(screen.getByTestId("admin-users-empty")).toHaveTextContent("No hay usuarios con ese filtro.");
+    expect(screen.getByText("Cargá más para buscar en el resto")).toBeInTheDocument();
+    expect(screen.queryByText("No hay usuarios.")).not.toBeInTheDocument();
+  });
+
+  it("says there are no users yet when the list is empty and no filter is set", async () => {
+    vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = input instanceof Request ? input.url : String(input);
+      const method = (
+        input instanceof Request ? input.method : (init?.method ?? "GET")
+      ).toUpperCase();
+      if (method === "GET" && url.includes("/api/v1/admin/users")) {
+        return jsonResponse({ users: [], next_cursor: null });
+      }
+      if (method === "GET" && url.includes("/api/v1/admin/ponds")) {
+        return jsonResponse({ ponds: [], next_cursor: null });
+      }
+      return jsonResponse({ code: "internal_error", message: "unmocked" }, 500);
+    });
+
+    renderUsersScreen();
+    expect(await screen.findByTestId("admin-users-empty")).toHaveTextContent(/^No hay usuarios\.$/);
+    expect(screen.queryByText("No hay usuarios con ese filtro.")).not.toBeInTheDocument();
+    expect(screen.queryByText("Cargá más para buscar en el resto")).not.toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: /buscar/i })).toHaveAttribute(
+      "placeholder",
+      "Filtrar usuarios cargados",
+    );
   });
 });
