@@ -77,6 +77,32 @@ async def test_admin_list_users_returns_plan_and_cursor() -> None:
     assert len(listed.users) == len(body["users"])
 
 
+async def test_admin_list_users_returns_registered_accounts_not_fixtures() -> None:
+    reset_auth_tables()
+
+    async with _make_client() as client:
+        admin_id = await _register_and_verify(client, "qa-admin@koicloud.test")
+        await _promote(admin_id, UserRole.ADMIN)
+        await _register_and_verify(client, "qa+1@koicloud.test")
+        token = await _login(client, "qa-admin@koicloud.test")
+
+        response = await client.get(
+            "/api/v1/admin/users",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+    assert response.status_code == 200
+    body = response.json()
+    emails = {user["email"] for user in body["users"]}
+    assert emails == {"qa-admin@koicloud.test", "qa+1@koicloud.test"}
+    qa_account = next(user for user in body["users"] if user["email"] == "qa+1@koicloud.test")
+    assert qa_account["full_name"] == "Admin Fixture"
+    assert qa_account["active_subscription_plan"] is None
+    assert qa_account["status"] == "active"
+    assert "carlos@koicloud.dev" not in emails
+    assert "suspended@koicloud.dev" not in emails
+
+
 async def test_non_admin_receives_admin_only() -> None:
     reset_auth_tables()
 
