@@ -13,20 +13,43 @@ stateDiagram-v2
   class lg2 yellow
   class lg3 tan
   s0: Idle
-  s1: Running
-  s2: Error
-  s3: Read-only rejected
-  s4: Success
+  s1: Confirm write
+  s2: Running
+  s3: Error
+  s4: Read-only rejected
+  s5: Timeout
+  s6: Node unavailable
+  s7: Success
+  s8: Truncated
   [*] --> s0
-  s0 --> s1: you click Ejecutar
-  s1 --> s2: the pond reports an error
-  s1 --> s3: read mode rejects the write
-  s1 --> s4: the pond returns the rows
-  s2 --> s1: you click Ejecutar
-  s3 --> s1: you click Ejecutar
-  s4 --> s1: you click Ejecutar
+  s0 --> s1: you click Ejecutar [write]
+  s0 --> s2: you click Ejecutar [read]
+  s1 --> s0: you cancel or press Esc
+  s1 --> s2: you confirm the write
+  s2 --> s3: the pond rejects the SQL
+  s2 --> s4: read mode rejects the write
+  s2 --> s5: the pond times out
+  s2 --> s6: the node is unavailable
+  s2 --> s7: the pond returns the rows
+  s2 --> s8: the pond hits the row cap
+  s3 --> s1: you click Ejecutar [write]
+  s3 --> s2: you click Ejecutar [read]
+  s4 --> s1: you click Ejecutar [write]
+  s4 --> s2: you click Ejecutar [read]
+  s5 --> s1: you click Ejecutar [write]
+  s5 --> s2: you click Ejecutar [read]
+  s6 --> s1: you click Ejecutar [write]
+  s6 --> s2: you click Ejecutar [read]
+  s7 --> s1: you click Ejecutar [write]
+  s7 --> s2: you click Ejecutar [read]
+  s8 --> s1: you click Ejecutar [write]
+  s8 --> s2: you click Ejecutar [read]
   class s0 tan
   class s1 yellow
-  class s2 orange
+  class s2 yellow
   class s3 orange
-  class s4 teal
+  class s4 orange
+  class s5 orange
+  class s6 orange
+  class s7 teal
+  class s8 teal

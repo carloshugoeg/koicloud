@@ -27,6 +27,7 @@ class ErrorCode(StrEnum):
     POND_BUSY = "pond_busy"
     NODE_UNAVAILABLE = "node_unavailable"
     SQL_READONLY_VIOLATION = "sql_readonly_violation"
+    SQL_ERROR = "sql_error"
     SQL_TIMEOUT = "sql_timeout"
     CONFIRMATION_REQUIRED = "confirmation_required"
     CONFIRMATION_NOT_FOUND = "confirmation_not_found"
@@ -70,6 +71,9 @@ ERROR_CATALOG: dict[ErrorCode, ErrorSpec] = {
     ErrorCode.NODE_UNAVAILABLE: ErrorSpec(503, "No hay nodos disponibles en este momento"),
     ErrorCode.SQL_READONLY_VIOLATION: ErrorSpec(
         400, "La query es de escritura pero el modo es read"
+    ),
+    ErrorCode.SQL_ERROR: ErrorSpec(
+        400, "No se pudo ejecutar la consulta. Revisa la sintaxis, la tabla o los permisos."
     ),
     ErrorCode.SQL_TIMEOUT: ErrorSpec(504, "La consulta excedió el límite de 10 segundos"),
     ErrorCode.CONFIRMATION_REQUIRED: ErrorSpec(409, "La acción requiere confirmación explícita"),

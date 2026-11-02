@@ -19,6 +19,7 @@ const CATALOG: Record<ApiProblem["code"], string> = {
   pond_busy: "Ese pond ya tiene una operación en curso.",
   node_unavailable: "No hay un nodo disponible para ejecutar esa acción.",
   sql_readonly_violation: "La consulta intenta escribir datos en modo lectura.",
+  sql_error: "No se pudo ejecutar la consulta. Revisa la sintaxis, la tabla o los permisos.",
   sql_timeout: "La consulta excedió el tiempo máximo permitido.",
   confirmation_required: "Esta acción necesita confirmación explícita.",
   confirmation_not_found: "No encontramos la confirmación solicitada.",

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import time
 from uuid import UUID
 
@@ -21,8 +22,16 @@ from app.schemas import (
     SQLResultResponse,
 )
 
+logger = logging.getLogger(__name__)
+
 ROW_CAP = 1000
 STATEMENT_TIMEOUT = "10s"
+_USER_SQL_ERRORS = (
+    asyncpg.exceptions.SyntaxOrAccessError,
+    asyncpg.exceptions.DataError,
+    asyncpg.exceptions.IntegrityConstraintViolationError,
+    asyncpg.exceptions.RaiseError,
+)
 
 
 def _cell(value: object) -> object:
@@ -66,8 +75,14 @@ async def _execute(connection: ConnectionOut, payload: RunSQLRequest) -> SQLResu
         raise AppError(ErrorCode.SQL_READONLY_VIOLATION) from exc
     except asyncpg.exceptions.QueryCanceledError as exc:
         raise AppError(ErrorCode.SQL_TIMEOUT) from exc
+    except asyncpg.exceptions.PostgresConnectionError as exc:
+        raise AppError(ErrorCode.NODE_UNAVAILABLE) from exc
+    except _USER_SQL_ERRORS as exc:
+        logger.warning("pond sql rejected", exc_info=exc)
+        raise AppError(ErrorCode.SQL_ERROR) from exc
     except asyncpg.PostgresError as exc:
-        raise AppError(ErrorCode.INTERNAL_ERROR, message=str(exc)) from exc
+        logger.warning("pond sql failed", exc_info=exc)
+        raise AppError(ErrorCode.INTERNAL_ERROR) from exc
     finally:
         await conn.close()
 

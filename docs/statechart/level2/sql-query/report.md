@@ -1,6 +1,6 @@
 # SqlQuery
 
-TLC reached 12 states and 17 steps. The chart draws 5 states and 7 arrows.
+TLC reached 55 states and 134 steps. The chart draws 9 states and 22 arrows.
 
 ## Rules that hold
-ReadOnlyKeepsTheRow, SuccessRemembersTheQuery, RejectedDidNotWrite, NoDeadlock
+ReadOnlyKeepsTheRow, SuccessRemembersTheQuery, RejectedDidNotWrite, ErrorDidNotWrite, NoDeadlock

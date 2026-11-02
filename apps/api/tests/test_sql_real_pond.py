@@ -182,6 +182,34 @@ def test_user_sql_error_is_4xx() -> None:
         assert "syntax error" not in leaked
 
 
+def test_sql_endpoint_caps_rows_at_1000() -> None:
+    pond = seed_probe_pond()
+    response = client.post(
+        f"/api/v1/ponds/{pond.pond_id}/sql",
+        headers=_headers(),
+        json={"query": "SELECT generate_series(1, 1001)", "mode": "read"},
+    )
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["row_count"] == 1000
+    assert body["truncated"] is True
+    assert len(body["rows"]) == 1000
+
+
+def test_sql_endpoint_timeout_returns_sql_timeout() -> None:
+    pond = seed_probe_pond()
+    response = client.post(
+        f"/api/v1/ponds/{pond.pond_id}/sql",
+        headers=_headers(),
+        json={"query": "SELECT pg_sleep(30)", "mode": "read"},
+    )
+
+    assert response.status_code == 504, response.text
+    assert response.json()["code"] == "sql_timeout"
+    assert "asyncpg" not in response.text.lower()
+
+
 def test_sql_endpoint_stopped_pond_returns_node_unavailable() -> None:
     pond = seed_probe_pond()
     _close_stopped_pond(pond.pond_id)
