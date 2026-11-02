@@ -4,7 +4,6 @@ from uuid import UUID
 
 from sqlalchemy import select
 
-from app.commands import build_admin_user
 from app.core.auth import AuthContext
 from app.core.db import SessionLocal
 from app.core.enums import ActorKind, SubscriptionStatus, UserStatus
@@ -23,12 +22,15 @@ from app.schemas import (
 
 
 async def admin_list_users() -> AdminUserListResponse:
-    users = [
-        build_admin_user(email="carlos@koicloud.dev", full_name="Carlos Hugo Escobar"),
-        build_admin_user(email="suspended@koicloud.dev", full_name="Usuario Suspendido"),
-    ]
-    users[1].status = UserStatus.SUSPENDED
-    return AdminUserListResponse(users=users, next_cursor=None)
+    async with SessionLocal() as session:
+        rows = (
+            await session.execute(select(User).order_by(User.created_at.desc()))
+        ).scalars().all()
+        users: list[AdminUserOut] = []
+        for user in rows:
+            plan_id = await _active_plan_id(session, user.id)
+            users.append(_admin_user_out(user, plan_id))
+        return AdminUserListResponse(users=users, next_cursor=None)
 
 
 async def _active_plan_id(session, user_id: UUID) -> str | None:

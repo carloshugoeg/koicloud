@@ -36,7 +36,7 @@ function walk(dir: string): string[] {
 describe("production bundle excludes MSW and fixtures", () => {
   it("vite production build ships no mock worker and no fixture accounts", () => {
     const outDir = mkdtempSync(path.join(tmpdir(), "koi-prod-"));
-    const env = { ...process.env, NODE_ENV: "production" };
+    const env: NodeJS.ProcessEnv = { ...process.env, NODE_ENV: "production" };
     delete env.VITE_ENABLE_MOCKS;
 
     const result = spawnSync(
@@ -50,7 +50,7 @@ describe("production bundle excludes MSW and fixtures", () => {
     const hits: string[] = [];
     for (const file of walk(outDir)) {
       const rel = path.relative(outDir, file);
-      let text = "";
+      let text: string;
       try {
         text = readFileSync(file, "utf8");
       } catch {
