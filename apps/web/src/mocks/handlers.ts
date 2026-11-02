@@ -116,6 +116,9 @@ export const handlers = [
   }),
 
   http.post(`${API_ROOT}/auth/logout`, () => {
+    if (sessionStorage.getItem("koi-mock-logout-network") === "1") {
+      return HttpResponse.error();
+    }
     if (sessionStorage.getItem("koi-mock-logout-fails") === "1") {
       return HttpResponse.json(
         {

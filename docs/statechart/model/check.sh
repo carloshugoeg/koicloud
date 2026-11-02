@@ -23,7 +23,7 @@ if [ "$pair" -eq 1 ]; then
   exit $fail
 fi
 echo "AS-IS findings on main (expected until #96 r6 ships):"
-for inv in TabsFixedOrder HistoryScoped ReloadKeepsSession PlansViaBilling NoChargeBadCard; do
+for inv in TabsFixedOrder HistoryScoped ReloadKeepsSession PlansViaBilling NoChargeBadCard LogoutRevokesAccess; do
   printf 'CONSTANT Fixed = FALSE\nSPECIFICATION Spec\nINVARIANT %s\n' "$inv" > /tmp/koi-asis.cfg
   if tlc UserJourney.tla /tmp/koi-asis.cfg | grep -q "is violated"; then echo "  BREAKS $inv"; else echo "  holds  $inv"; fi
 done
