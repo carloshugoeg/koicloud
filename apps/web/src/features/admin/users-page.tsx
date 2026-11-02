@@ -10,6 +10,7 @@ import { isCompleteCursorPage } from "@/features/admin/cursor-page";
 import { MoreResultsNote } from "@/features/admin/more-results-note";
 import { ReactivateDialog } from "@/features/admin/reactivate-dialog";
 import { SuspendDialog } from "@/features/admin/suspend-dialog";
+import { useNextPageFocus } from "@/features/admin/next-page-focus";
 import { UsersTable } from "@/features/admin/users-table";
 import { ApiError, problemToMessage } from "@/lib/errors";
 
@@ -53,6 +54,12 @@ export function AdminUsersPage() {
   const nextCursor = usersQuery.data?.next_cursor ?? null;
   const loadingNextPage = usersQuery.isFetchingNextPage;
   const nextPageError = usersQuery.isFetchNextPageError && !loadingNextPage;
+  const nextPage = useNextPageFocus({
+    users: usersQuery.data?.users ?? [],
+    nextCursor,
+    fetchingNextPage: loadingNextPage,
+    fetchNextPage: usersQuery.fetchNextPage,
+  });
 
   const users = useMemo(() => {
     const rows = usersQuery.data?.users ?? [];
@@ -174,9 +181,10 @@ export function AdminUsersPage() {
         pondCountByEmail={pondCountByEmail}
         onSuspend={openSuspend}
         onReactivate={(user) => setDialog({ kind: "reactivate", user })}
+        focusUserId={nextPage.focusUserId}
       />
 
-      {nextPageError ? (
+      {nextPageError || nextPage.holdRetryAlert ? (
         <div
           className="rounded-md border border-line bg-bone-raised p-5"
           role="alert"
@@ -188,7 +196,7 @@ export function AdminUsersPage() {
           <button
             type="button"
             className="mt-4 h-9 rounded-sm border border-line-control bg-bone-raised px-4 text-sm font-medium text-ink focus:shadow-focus"
-            onClick={() => void usersQuery.fetchNextPage()}
+            onClick={nextPage.retry}
           >
             Reintentar
           </button>
@@ -202,7 +210,7 @@ export function AdminUsersPage() {
             type="button"
             className="h-9 rounded-sm border border-line-control bg-bone-raised px-4 text-sm font-medium text-ink focus:shadow-focus"
             aria-busy={loadingNextPage}
-            onClick={() => void usersQuery.fetchNextPage()}
+            onClick={nextPage.loadMore}
           >
             {loadingNextPage ? "Cargando…" : "Cargar más"}
           </button>

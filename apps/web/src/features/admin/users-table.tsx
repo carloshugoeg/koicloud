@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from "react";
 import type { AdminUser } from "@/api/hooks/admin";
 
 type UsersTableProps = {
@@ -5,6 +6,7 @@ type UsersTableProps = {
   emptyMessage: string;
   pondsComplete: boolean;
   pondCountByEmail: Map<string, number>;
+  focusUserId: string | null;
   onSuspend: (user: AdminUser, trigger: HTMLButtonElement) => void;
   onReactivate: (user: AdminUser) => void;
 };
@@ -14,9 +16,16 @@ export function UsersTable({
   emptyMessage,
   pondsComplete,
   pondCountByEmail,
+  focusUserId,
   onSuspend,
   onReactivate,
 }: UsersTableProps) {
+  const focusRef = useRef<HTMLTableRowElement>(null);
+
+  useLayoutEffect(() => {
+    focusRef.current?.focus();
+  }, [focusUserId]);
+
   if (users.length === 0) {
     return (
       <div className="rounded-md border border-line bg-bone-raised p-8 text-center" data-testid="admin-users-empty">
@@ -39,8 +48,22 @@ export function UsersTable({
         </thead>
         <tbody>
           {users.map((user) => (
-            <tr key={user.id} className="border-t border-line" data-testid={`admin-user-row-${user.id}`}>
-              <td className="px-4 py-3">
+            <tr
+              key={user.id}
+              ref={user.id === focusUserId ? focusRef : undefined}
+              tabIndex={user.id === focusUserId ? -1 : undefined}
+              className={
+                user.id === focusUserId
+                  ? "group border-t border-line focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-turquoise-700"
+                  : "border-t border-line"
+              }
+              data-testid={`admin-user-row-${user.id}`}
+            >
+              <td
+                className={
+                  user.id === focusUserId ? "px-4 py-3 group-focus:shadow-focus" : "px-4 py-3"
+                }
+              >
                 <p className="font-medium text-ink">{user.full_name}</p>
                 <p className="font-mono text-xs text-ink-muted">{user.email}</p>
               </td>

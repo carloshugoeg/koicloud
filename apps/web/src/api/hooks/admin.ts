@@ -10,10 +10,14 @@ export type AuditEvent = components["schemas"]["AuditEventOut"];
 
 export const SUSPEND_CONFIRM_TEXT = "SUSPENDER";
 
+class AdminUsersNextPageError extends ApiError {}
+
 export function useAdminUsersQuery() {
   const query = useInfiniteQuery({
     queryKey: ["admin", "users"],
     initialPageParam: null as string | null,
+    retry: (failureCount, error) =>
+      failureCount < 1 && !(error instanceof AdminUsersNextPageError),
     queryFn: async ({ pageParam }) => {
       const { data, error } = await apiClient.GET("/api/v1/admin/users", {
         params: {
@@ -24,6 +28,9 @@ export function useAdminUsersQuery() {
         },
       });
       if (error || !data) {
+        if (pageParam) {
+          throw new AdminUsersNextPageError(error);
+        }
         throw new ApiError(error);
       }
       return data;
