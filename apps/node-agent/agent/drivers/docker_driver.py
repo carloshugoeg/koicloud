@@ -32,13 +32,7 @@ def database_name_for(pond_name: str) -> str:
 
 
 def restore_script(dump: bytes) -> bytes:
-    """Wrap a plain pg_dump so restore replaces public and rolls back on error.
-
-    pg_dump emits CREATE TABLE and COPY, not DROP. COPY appends when the table
-    is already there, and psql commits each statement unless the script is one
-    transaction. ON_ERROR_STOP makes a later error fail the job. The open
-    transaction rolls back, so the pond keeps the rows it had before.
-    """
+    """Drop and recreate public in one transaction so a dump error rolls back."""
     prefix = (
         "BEGIN;\n"
         "DROP SCHEMA IF EXISTS public CASCADE;\n"
