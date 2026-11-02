@@ -11,17 +11,21 @@ from __future__ import annotations
 import asyncio
 from urllib.parse import quote
 
+import asyncpg
 import httpx
 import psycopg
 import pytest
 from httpx import ASGITransport
+from psycopg import sql as pg_sql
 
+from app.commands import sql as sql_command
 from app.commands.sql import run_sql
 from app.core.auth import AuthContext
 from app.core.config import get_settings, to_sync_database_url
+from app.core.crypto import encrypt_secret
 from app.core.enums import AppSurface, SQLMode, UserRole, UserStatus
 from app.main import app
-from app.modules.ponds.console_role import console_role_password
+from app.modules.ponds.console_role import console_role_password, ensure_console_role
 from app.schemas import RunSQLRequest
 from tests.db_reset import DEMO_EMAIL, DEMO_PASSWORD
 from tests.sql_probe_pond import PROBE_DATABASE, PROBE_PASSWORD, seed_probe_pond
@@ -303,3 +307,129 @@ def test_console_setup_does_not_rerun_when_the_password_is_unchanged() -> None:
     second = asyncio.run(_read())
     assert second.status_code == 200, second.text
     assert _role_xmin() == before
+
+
+LATER_QUERIES = 4
+ROTATED_POND_PASSWORD = "pond-sql-rotated"
+
+
+def _stored_salt() -> str:
+    with psycopg.connect(_admin("postgres"), autocommit=True) as conn:
+        row = conn.execute(
+            "SELECT rolpassword FROM pg_authid WHERE rolname = %s",
+            (CONSOLE_ROLE,),
+        ).fetchone()
+    if row is None or not row[0]:
+        raise AssertionError("console role has no stored password")
+    parts = str(row[0]).split("$")
+    if len(parts) < 3 or ":" not in parts[1]:
+        raise AssertionError("stored role password is not a SCRAM verifier")
+    return parts[1].split(":", 1)[1]
+
+
+def _set_postgres_password(password: str) -> None:
+    statement = pg_sql.SQL("ALTER USER postgres PASSWORD {}").format(pg_sql.Literal(password))
+    with psycopg.connect(_admin("postgres"), autocommit=True) as conn:
+        conn.execute(statement)
+
+
+def _restore_public_schema() -> None:
+    with psycopg.connect(_admin(PROBE_DATABASE), autocommit=True) as conn:
+        conn.execute("CREATE SCHEMA IF NOT EXISTS public AUTHORIZATION postgres")
+
+
+def _set_pond_secret(pond_id: object, password: str) -> None:
+    url = to_sync_database_url(get_settings().database_url).replace(
+        "postgresql+psycopg://", "postgresql://", 1
+    )
+    with psycopg.connect(url, autocommit=True) as conn:
+        conn.execute(
+            "UPDATE ponds SET db_password_encrypted = %s WHERE id = %s",
+            (encrypt_secret(password), pond_id),
+        )
+
+
+def _count_setup(monkeypatch: pytest.MonkeyPatch) -> list[int]:
+    calls: list[int] = []
+    real = sql_command.ensure_console_role
+
+    async def counting(conn: asyncpg.Connection, password: str) -> None:
+        calls.append(1)
+        await real(conn, password)
+
+    monkeypatch.setattr(sql_command, "ensure_console_role", counting)
+    return calls
+
+
+async def _one_read(pond_id: object) -> httpx.Response:
+    transport = ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as http:
+        headers = await _login(http)
+        return await http.post(
+            f"/api/v1/ponds/{pond_id}/sql",
+            headers=headers,
+            json={"query": "SELECT 1 AS n", "mode": "read"},
+        )
+
+
+async def test_later_console_queries_do_not_run_setup(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pond = seed_probe_pond()
+    _drop_console_role()
+    calls = _count_setup(monkeypatch)
+    first = await _one_read(pond.pond_id)
+    assert first.status_code == 200
+    before = _role_xmin()
+    del calls[:]
+    for _ in range(LATER_QUERIES):
+        response = await _one_read(pond.pond_id)
+        assert response.status_code == 200
+    if calls:
+        raise AssertionError(f"later console queries ran setup {len(calls)} times")
+    if _role_xmin() != before:
+        raise AssertionError("later console queries rewrote the console role")
+
+
+async def test_two_ponds_store_different_scram_salts() -> None:
+    seed_probe_pond()
+    _drop_console_role()
+    console_password = console_role_password("shared-pond-password")
+    connection = await asyncpg.connect(_admin(PROBE_DATABASE))
+    try:
+        await ensure_console_role(connection, console_password)
+        salt_a = _stored_salt()
+        _drop_console_role()
+        _restore_public_schema()
+        await ensure_console_role(connection, console_password)
+        salt_b = _stored_salt()
+        if salt_a == salt_b:
+            raise AssertionError("two ponds stored the same SCRAM salt")
+        await ensure_console_role(connection, console_password)
+        if _stored_salt() != salt_b:
+            raise AssertionError("a second setup for the same password changed the SCRAM salt")
+    finally:
+        await connection.close()
+
+
+async def test_password_rotation_runs_setup_once(monkeypatch: pytest.MonkeyPatch) -> None:
+    pond = seed_probe_pond()
+    _drop_console_role()
+    first = await _one_read(pond.pond_id)
+    assert first.status_code == 200
+    salt_before = _stored_salt()
+    calls = _count_setup(monkeypatch)
+    try:
+        _set_postgres_password(ROTATED_POND_PASSWORD)
+        _set_pond_secret(pond.pond_id, ROTATED_POND_PASSWORD)
+        rotated = await _one_read(pond.pond_id)
+        assert rotated.status_code == 200
+        for _ in range(LATER_QUERIES):
+            follow = await _one_read(pond.pond_id)
+            assert follow.status_code == 200
+        if len(calls) != 1:
+            raise AssertionError(f"password rotation ran setup {len(calls)} times")
+        if _stored_salt() == salt_before:
+            raise AssertionError("password rotation kept the previous SCRAM salt")
+    finally:
+        _set_postgres_password(PROBE_PASSWORD)
