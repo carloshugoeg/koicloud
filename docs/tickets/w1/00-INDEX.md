@@ -51,6 +51,7 @@ no existe todavía. `00-INDEX.md` no es un ticket y el agente lo ignora.
 | [W1-45](W1-45-auth-session-persist.md) | Recargar conserva la sesión (cookie `koi_refresh`) | `w1-auth-session-persist` | hecho · [#166](https://github.com/carloshugoeg/koicloud/pull/166) · #96 r6-3 |
 | [W1-46](W1-46-ccr-logout-revoke.md) | Revocar el access token al cerrar sesión | `w1-ccr-logout-revoke` | hecho · [#167](https://github.com/carloshugoeg/koicloud/pull/167) · #96 r6-7(a) |
 | [W1-190](W1-190-restore-replace.md) | Restaurar reemplaza las filas del pond | `w1-190-restore-replace` | en-revision · [#195](https://github.com/carloshugoeg/koicloud/pull/195) · #96 r8-1 |
+| [QI-01](QI-01-caddy-app-worker.md) | Caddy sirve la SPA en /app y el worker pasa el healthcheck | `w1-qi-infra-caddy-worker` | hecho · [#187](https://github.com/carloshugoeg/koicloud/pull/187) |
 
 W1 es el único workstream que puede tocar cualquier ruta, y el único que escribe migraciones,
 regenera contratos (`make contracts`) y edita el harness de agentes.
