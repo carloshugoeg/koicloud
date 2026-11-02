@@ -222,6 +222,8 @@ async def revoke_refresh(
     await AuthService.logout(
         refresh_token=request.cookies.get(REFRESH_COOKIE),
         user_id=UUID(actor.user_id),
+        access_jti=actor.access_jti,
+        access_exp=actor.access_exp,
     )
     outgoing = Response(status_code=status.HTTP_204_NO_CONTENT)
     _clear_refresh_cookie(outgoing, secure=_request_cookie_secure(request))

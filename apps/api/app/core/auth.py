@@ -8,9 +8,11 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.core.base import SchemaModel
 from app.core.config import get_settings
+from app.core.db import SessionLocal
 from app.core.deps import get_surface
 from app.core.enums import AppSurface, UserRole, UserStatus
 from app.core.errors import AppError, ErrorCode
+from app.core.models import RevokedAccessToken
 from app.core.security import decode_token
 
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -22,6 +24,14 @@ class AuthContext(SchemaModel):
     role: UserRole
     status: UserStatus
     surface: AppSurface
+    access_jti: str | None = None
+    access_exp: int | None = None
+
+
+async def access_jti_is_revoked(jti: str) -> bool:
+    async with SessionLocal() as session:
+        row = await session.get(RevokedAccessToken, jti)
+        return row is not None
 
 
 class NodeContext(SchemaModel):
@@ -46,12 +56,21 @@ async def get_current_user(
     if claims.get("token_type") != "access":
         raise AppError(ErrorCode.TOKEN_INVALID)
 
+    jti = claims.get("jti")
+    exp = claims.get("exp")
+    if not isinstance(jti, str) or isinstance(exp, bool) or not isinstance(exp, int):
+        raise AppError(ErrorCode.TOKEN_INVALID)
+    if await access_jti_is_revoked(jti):
+        raise AppError(ErrorCode.TOKEN_INVALID)
+
     return AuthContext(
         user_id=str(claims["sub"]),
         email=str(claims["email"]),
         role=UserRole(str(claims.get("role", UserRole.CLIENT.value))),
         status=UserStatus.ACTIVE,
         surface=surface,
+        access_jti=jti,
+        access_exp=exp,
     )
 
 

@@ -10,7 +10,7 @@ stateDiagram-v2
   LoggedIn --> LoggedIn: access expires → POST /auth/refresh (rotates)
   LoggedIn --> LoggedIn: page reload → POST /auth/refresh (httpOnly koi_refresh) restores session
   LoggedIn --> Verified: refresh fails → session cleared, login
-  LoggedIn --> Verified: POST /auth/logout accepted (cookie cleared; marker stays until the next login)
+  LoggedIn --> Verified: POST /auth/logout accepted (cookie cleared, access jti revoked; marker stays until the next login)
   LoggedIn --> LogoutFailed: POST /auth/logout fails (5xx or network). Marker was stored first. Cookie stays.
   LogoutFailed --> LogoutFailed: reload or /app/uso skips refresh, retries logout, stays on login
   LogoutFailed --> LoggedIn: successful login clears the marker
@@ -28,7 +28,7 @@ stateDiagram-v2
 | A4 | Verified | login | ok creds, active | LoggedIn | access+refresh | `journey: login lands on pond list` |
 | A5 | Verified | login | bad creds | Verified | 401 | `journey: bad login stays on login` |
 | A6 | LoggedIn | access expired | refresh valid | LoggedIn | rotate tokens | `auth: expired access refreshes silently` |
-| A7 | LoggedIn | logout | server accepts | Verified | marker stored before the request; cookie cleared; only a later login clears the marker | `journey: logout returns to login` |
+| A7 | LoggedIn | logout | server accepts | Verified | marker stored before the request; cookie cleared; presented access token returns 401 `token_invalid`; only a later login clears the marker | `journey: logout returns to login` |
 | A13 | LoggedIn | logout | 5xx or network | LogoutFailed | marker stays; toast that the server session may remain; cookie stays | `journey: msw logout failure still returns to login` |
 | A14 | LogoutFailed | reload or `/app/uso` | marker set | LogoutFailed | boot skips refresh and retries logout; the screen stays login | `journey: msw logout failure still returns to login` |
 | A15 | LogoutFailed | login | credentials ok | LoggedIn | marker cleared | `journey: msw logout failure still returns to login` |

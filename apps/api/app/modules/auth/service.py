@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from uuid import UUID
 
 from app.commands import auth as auth_commands
@@ -46,12 +47,25 @@ class AuthService:
         return await auth_commands.rotate_refresh(payload)
 
     @staticmethod
-    async def logout(*, refresh_token: str | None, user_id: UUID) -> None:
-        """Prefer revoking the cookie refresh; fall back to revoking the whole family."""
+    async def logout(
+        *,
+        refresh_token: str | None,
+        user_id: UUID,
+        access_jti: str | None = None,
+        access_exp: int | None = None,
+    ) -> None:
+        """Prefer the cookie refresh. Without a cookie, revoke every refresh token for the user."""
         if refresh_token:
             await auth_commands.revoke_refresh(refresh_token)
+        else:
+            await auth_commands.revoke_all_refresh_tokens(user_id)
+        if access_jti is None or access_exp is None:
             return
-        await auth_commands.revoke_all_refresh_tokens(user_id)
+        await auth_commands.revoke_presented_access(
+            user_id=user_id,
+            jti=access_jti,
+            expires_at=datetime.fromtimestamp(access_exp, tz=UTC),
+        )
 
     @staticmethod
     async def send_reset_token(payload: ForgotPasswordRequest) -> OkResponse:

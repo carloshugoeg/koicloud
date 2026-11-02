@@ -4,9 +4,7 @@ import {
   type ReactNode,
   type RefObject,
 } from "react";
-
-const FOCUSABLE =
-  'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+import { DIALOG_FOCUSABLE, trapDialogTab } from "@/components/dialog-focus-trap";
 
 export type ModalDialogProps = {
   titleId: string;
@@ -48,18 +46,11 @@ export function ModalDialog({
     if (preferred) {
       preferred.focus();
     } else {
-      const first = dialog.querySelector<HTMLElement>(FOCUSABLE);
+      const first = dialog.querySelector<HTMLElement>(DIALOG_FOCUSABLE);
       first?.focus();
     }
 
     const returnTarget = returnFocusRef.current;
-
-    function focusables(): HTMLElement[] {
-      if (!dialogRef.current) return [];
-      return Array.from(dialogRef.current.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
-        (el) => !el.hasAttribute("disabled") && el.tabIndex !== -1,
-      );
-    }
 
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
@@ -68,28 +59,9 @@ export function ModalDialog({
         return;
       }
 
-      if (event.key !== "Tab") {
-        return;
-      }
-
-      const items = focusables();
-      if (items.length === 0) {
-        event.preventDefault();
-        return;
-      }
-
-      const first = items[0];
-      const last = items[items.length - 1];
-      const active = document.activeElement as HTMLElement | null;
-
-      if (event.shiftKey) {
-        if (active === first || !dialogRef.current?.contains(active)) {
-          event.preventDefault();
-          last.focus();
-        }
-      } else if (active === last || !dialogRef.current?.contains(active)) {
-        event.preventDefault();
-        first.focus();
+      const current = dialogRef.current;
+      if (current) {
+        trapDialogTab(event, current);
       }
     }
 

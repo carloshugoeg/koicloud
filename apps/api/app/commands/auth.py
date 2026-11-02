@@ -5,7 +5,7 @@ from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 import jwt
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,7 +13,7 @@ from app.core.config import get_settings
 from app.core.db import SessionLocal
 from app.core.enums import EmailTokenKind, UserRole, UserStatus
 from app.core.errors import AppError, ErrorCode
-from app.core.models import EmailToken, RefreshToken, User
+from app.core.models import EmailToken, RefreshToken, RevokedAccessToken, User
 from app.core.security import (
     decode_token,
     generate_opaque_token,
@@ -273,6 +273,21 @@ async def reset_password(payload: ResetPasswordRequest) -> OkResponse:
         await _revoke_all_refresh(session, user.id)
         await session.commit()
     return OkResponse(ok=True)
+
+
+async def revoke_presented_access(*, user_id: UUID, jti: str, expires_at: datetime) -> None:
+    async with SessionLocal() as session:
+        await session.execute(
+            delete(RevokedAccessToken).where(RevokedAccessToken.expires_at <= utc_now())
+        )
+        if await session.get(RevokedAccessToken, jti) is None:
+            session.add(
+                RevokedAccessToken(jti=jti, user_id=user_id, expires_at=expires_at)
+            )
+        try:
+            await session.commit()
+        except IntegrityError:
+            await session.rollback()
 
 
 async def revoke_refresh(token: str | None) -> None:
