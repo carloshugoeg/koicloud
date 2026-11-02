@@ -91,3 +91,15 @@ await user.click(within(alert).getByRole("button", { name: "Reintentar" }));
 expect(await screen.findByText("Cuenta Demo")).toBeInTheDocument();
 expect(screen.getByText("QA Uno")).toBeInTheDocument();
 ```
+
+## focus never lands on body when a control unmounts
+
+When **Cargar más** leaves the screen because the last page arrived, or the error alert leaves after **Reintentar** loads rows, focus moves to the first newly loaded row. It does not move to the document body. While a page is still loading, focus stays on **Cargar más**.
+
+The live tests are `moves focus to the first new row when the last page loads` and `moves focus to the first new row after Reintentar loads the page` in `apps/web/src/features/admin/admin-users-live-client.test.tsx`. The same names in `e2e/journey/tests/admin-users-focus.spec.ts` check both at 375, 768, and 1440.
+
+## no flaky alert tests: the error-state test passes 20 of 20 runs
+
+The inline error test uses a QueryClient with `retry: false`, so one click shows the alert after exactly one failed request. A failing next page must not sit through several automatic retries before the alert.
+
+The live test is `shows an inline error and retries the next page without dropping loaded rows` in `apps/web/src/features/admin/admin-users-live-client.test.tsx`. `makes exactly one request before the alert when the next page fails` in the same file counts the requests.

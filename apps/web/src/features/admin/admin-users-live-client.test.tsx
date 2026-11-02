@@ -1,8 +1,10 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppProviders } from "@/app/providers";
+import { SessionBootGate } from "@/app/session-boot-gate";
 import { appRoutes } from "@/app/router";
 import { useAuthStore } from "@/lib/auth-store";
 import { server } from "@/mocks/server";
@@ -16,6 +18,17 @@ const QA_USER = {
   email_verified: true,
   created_at: "2026-11-01T12:00:00Z",
   active_subscription_plan: "pro",
+};
+
+const THIRD_USER = {
+  id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa3",
+  email: "tres@koicloud.test",
+  full_name: "Tercera Cuenta",
+  role: "client" as const,
+  status: "active" as const,
+  email_verified: true,
+  created_at: "2026-09-01T12:00:00Z",
+  active_subscription_plan: "micro",
 };
 
 const DEMO_USER = {
@@ -53,7 +66,16 @@ function installNetwork() {
   });
 }
 
-function renderUsersScreen() {
+function clientWithoutRetry() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, staleTime: 0, refetchOnWindowFocus: false },
+      mutations: { retry: 0 },
+    },
+  });
+}
+
+function renderUsersScreen(queryClient?: QueryClient) {
   useAuthStore.setState({
     session: {
       accessToken: "access_admin_token",
@@ -72,11 +94,27 @@ function renderUsersScreen() {
   });
 
   const router = createMemoryRouter(appRoutes, { initialEntries: ["/app/admin/users"] });
+  if (queryClient) {
+    render(
+      <QueryClientProvider client={queryClient}>
+        <SessionBootGate>
+          <RouterProvider router={router} />
+        </SessionBootGate>
+      </QueryClientProvider>,
+    );
+    return;
+  }
   render(
     <AppProviders>
       <RouterProvider router={router} />
     </AppProviders>,
   );
+}
+
+function expectFocusOnRow(userId: string) {
+  const row = screen.getByTestId(`admin-user-row-${userId}`);
+  expect(document.activeElement).not.toBe(document.body);
+  expect(row).toHaveFocus();
 }
 
 describe("admin users from the API client with MSW off", () => {
@@ -226,7 +264,7 @@ describe("admin users from the API client with MSW off", () => {
       return jsonResponse({ code: "internal_error", message: "unmocked" }, 500);
     });
 
-    renderUsersScreen();
+    renderUsersScreen(clientWithoutRetry());
     expect(await screen.findByText("QA Uno")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Cargar más" }));
 
@@ -302,5 +340,124 @@ describe("admin users from the API client with MSW off", () => {
       "placeholder",
       "Filtrar usuarios cargados",
     );
+  });
+
+  it("moves focus to the first new row when the last page loads", async () => {
+    const user = userEvent.setup();
+    let releaseLast: () => void = () => {};
+    const gate = new Promise<void>((resolve) => {
+      releaseLast = resolve;
+    });
+    vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = input instanceof Request ? input.url : String(input);
+      const method = (
+        input instanceof Request ? input.method : (init?.method ?? "GET")
+      ).toUpperCase();
+      if (method === "GET" && url.includes("/api/v1/admin/users")) {
+        const cursor = new URL(url).searchParams.get("cursor");
+        if (cursor == null) {
+          return jsonResponse({ users: [QA_USER], next_cursor: "page-2" });
+        }
+        if (cursor === "page-2") {
+          return jsonResponse({ users: [DEMO_USER], next_cursor: "page-3" });
+        }
+        await gate;
+        return jsonResponse({ users: [THIRD_USER], next_cursor: null });
+      }
+      if (method === "GET" && url.includes("/api/v1/admin/ponds")) {
+        return jsonResponse({ ponds: [], next_cursor: null });
+      }
+      return jsonResponse({ code: "internal_error", message: "unmocked" }, 500);
+    });
+
+    try {
+      renderUsersScreen();
+      expect(await screen.findByText("QA Uno")).toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: "Cargar más" }));
+      expect(await screen.findByText("Cuenta Demo")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Cargar más" })).toHaveFocus();
+
+      await user.click(screen.getByRole("button", { name: "Cargar más" }));
+      const busy = await screen.findByRole("button", { name: "Cargando…" });
+      expect(busy).toHaveFocus();
+      expect(document.activeElement).not.toBe(document.body);
+
+      releaseLast();
+      expect(await screen.findByText("Tercera Cuenta")).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Cargar más" })).not.toBeInTheDocument();
+      expectFocusOnRow(THIRD_USER.id);
+    } finally {
+      releaseLast();
+    }
+  });
+
+  it("moves focus to the first new row after Reintentar loads the page", async () => {
+    const user = userEvent.setup();
+    let failCursor = true;
+    vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = input instanceof Request ? input.url : String(input);
+      const method = (
+        input instanceof Request ? input.method : (init?.method ?? "GET")
+      ).toUpperCase();
+      if (method === "GET" && url.includes("/api/v1/admin/users")) {
+        const cursor = new URL(url).searchParams.get("cursor");
+        if (cursor == null) {
+          return jsonResponse({ users: [QA_USER], next_cursor: "page-2" });
+        }
+        if (failCursor) {
+          return jsonResponse({ code: "internal_error", message: "internal_error" }, 500);
+        }
+        return jsonResponse({ users: [DEMO_USER], next_cursor: "page-3" });
+      }
+      if (method === "GET" && url.includes("/api/v1/admin/ponds")) {
+        return jsonResponse({ ponds: [], next_cursor: null });
+      }
+      return jsonResponse({ code: "internal_error", message: "unmocked" }, 500);
+    });
+
+    renderUsersScreen(clientWithoutRetry());
+    expect(await screen.findByText("QA Uno")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Cargar más" }));
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(/No pudimos cargar más usuarios\./);
+    expect(screen.getByRole("button", { name: "Cargar más" })).toHaveFocus();
+
+    failCursor = false;
+    await user.click(within(alert).getByRole("button", { name: "Reintentar" }));
+    expect(await screen.findByText("Cuenta Demo")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expectFocusOnRow(DEMO_USER.id);
+  });
+
+  it("makes exactly one request before the alert when the next page fails", async () => {
+    const user = userEvent.setup();
+    let cursorHits = 0;
+    vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = input instanceof Request ? input.url : String(input);
+      const method = (
+        input instanceof Request ? input.method : (init?.method ?? "GET")
+      ).toUpperCase();
+      if (method === "GET" && url.includes("/api/v1/admin/users")) {
+        const cursor = new URL(url).searchParams.get("cursor");
+        if (cursor == null) {
+          return jsonResponse({ users: [QA_USER], next_cursor: "page-2" });
+        }
+        cursorHits += 1;
+        return jsonResponse({ code: "internal_error", message: "internal_error" }, 500);
+      }
+      if (method === "GET" && url.includes("/api/v1/admin/ponds")) {
+        return jsonResponse({ ponds: [], next_cursor: null });
+      }
+      return jsonResponse({ code: "internal_error", message: "unmocked" }, 500);
+    });
+
+    renderUsersScreen();
+    expect(await screen.findByText("QA Uno")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Cargar más" }));
+
+    const alert = await screen.findByRole("alert", {}, { timeout: 5000 });
+    expect(alert).toHaveTextContent(/No pudimos cargar más usuarios\./);
+    expect(cursorHits).toBe(1);
   });
 });
