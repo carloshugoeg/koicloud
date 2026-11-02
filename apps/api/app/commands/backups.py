@@ -75,3 +75,9 @@ async def restore_backup(
         )
         await session.commit()
         return JobResponse(job=job)
+
+
+async def get_pond_job(actor: AuthContext, pond_id: UUID, job_id: UUID) -> JobResponse:
+    async with SessionLocal() as session:
+        job = await BackupService(session, get_settings()).get_owned_job(actor, pond_id, job_id)
+        return JobResponse(job=job)

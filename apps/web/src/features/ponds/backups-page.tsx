@@ -3,7 +3,9 @@ import { useParams } from "react-router-dom";
 import { PondTabs } from "@/components/pond-tabs";
 import {
   useGetPond,
+  pondJobReadFailed,
   useListBackups,
+  usePondJob,
   useRestoreBackupMutation,
   useTriggerBackupMutation,
   type Backup,
@@ -12,6 +14,7 @@ import { BackupConfirmDialog } from "@/features/ponds/backup-confirm-dialog";
 import { BackupsTable } from "@/features/ponds/backups-table";
 import { pondStateMeta } from "@/features/ponds/pond-state";
 import { RestoreDialog } from "@/features/ponds/restore-dialog";
+import { RestoreJobBanner } from "@/features/ponds/restore-job-banner";
 import { problemToMessage } from "@/lib/errors";
 import { toast } from "@/lib/toast";
 
@@ -25,6 +28,7 @@ export function BackupsPage() {
   const [confirmName, setConfirmName] = useState("");
   const [backupOpen, setBackupOpen] = useState(false);
   const [queuedJobId, setQueuedJobId] = useState<string | null>(null);
+  const jobQuery = usePondJob(pondId, queuedJobId);
   const restoreTriggerRef = useRef<HTMLElement | null>(null);
 
   if (pondQuery.isPending || backupsQuery.isPending) {
@@ -116,13 +120,14 @@ export function BackupsPage() {
       </div>
 
       {queuedJobId ? (
-        <div
-          className="rounded-md border border-line bg-turquoise-100 px-4 py-3 text-sm text-turquoise-900"
-          data-testid="restore-queued"
-        >
-          Restauración encolada. Job <span className="font-mono">{queuedJobId}</span> · estado{" "}
-          <span className="font-mono">queued</span>.
-        </div>
+        <RestoreJobBanner
+          jobId={queuedJobId}
+          job={jobQuery.data}
+          readFailed={pondJobReadFailed(jobQuery)}
+          onRetry={() => {
+            void jobQuery.refetch();
+          }}
+        />
       ) : null}
 
       {restoreMutation.isError ? (
