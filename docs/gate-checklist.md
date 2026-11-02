@@ -36,3 +36,18 @@ def test_user_sql_error_is_4xx(client, headers, pond_id):
     )
     assert 400 <= response.status_code < 500
 ```
+
+## job errors never echo raw command output
+
+A failed job returns only a closed code and a fixed Spanish message in `last_error`. Raw psql or command output, dump rows and passwords never reach the jobs API; they go to the redacted server log only. Old rows are sanitized on read.
+
+The live tests are in `apps/api/tests/test_job_error_sanitize.py`.
+
+Template test:
+
+```python
+def test_failed_job_hides_command_output(client, headers, pond_id, failed_job_id):
+    body = client.get(f"/api/v1/ponds/{pond_id}/jobs/{failed_job_id}", headers=headers).json()
+    assert "ROWVALUE" not in body["last_error"]
+    assert "postgresql://" not in body["last_error"]
+```
