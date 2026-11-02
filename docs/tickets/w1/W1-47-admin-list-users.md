@@ -1,5 +1,5 @@
 ---
-id: W1-46
+id: W1-47
 workstream: W1
 persona: Carlos
 estado: en-revision
@@ -10,7 +10,7 @@ pr: https://github.com/carloshugoeg/koicloud/pull/183
 depends_on: W1-15 W1-19 W3-11
 ---
 
-# [W1-46] El listado admin de usuarios lee la base
+# [W1-47] El listado admin de usuarios lee la base
 
 ## Qué se ve
 
