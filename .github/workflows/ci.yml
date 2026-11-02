@@ -211,6 +211,72 @@ jobs:
             e2e/journey/test-results/
           if-no-files-found: ignore
 
+  e2e-sql-console:
+    name: e2e-sql-console
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: koi
+          POSTGRES_PASSWORD: koi
+          POSTGRES_DB: koicloud_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U koi" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql+asyncpg://koi:koi@localhost:5432/koicloud_test
+      JWT_SECRET: ci-jwt-secret-not-for-production-0000000000000000
+      POND_PASSWORD_KEY: 7chvGNh8l4rbVgpH0wWJjCT2J8eQ6D8eW5DiKjR3owE=
+      NODE_TOKEN: ci-node-token
+      NODE_ID: node-ci
+      NODE_PUBLIC_HOST: localhost
+      INVOICE_DIR: /tmp/invoices
+      CI: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+      - name: Install API
+        working-directory: apps/api
+        run: uv sync --frozen --group dev
+      - name: Migrate
+        working-directory: apps/api
+        run: uv run alembic upgrade head
+      - name: Install web
+        working-directory: apps/web
+        run: pnpm install --frozen-lockfile
+      - name: Install e2e
+        working-directory: e2e/journey
+        run: npm ci
+      - name: Install Playwright Chromium
+        working-directory: e2e/journey
+        run: npx playwright install --with-deps chromium
+      - name: Run SQL console Playwright
+        working-directory: e2e/journey
+        run: npx playwright test --config=playwright.sql.config.ts
+      - name: Upload Playwright artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-sql-console-artifacts
+          path: |
+            e2e/journey/artifacts/
+            e2e/journey/test-results/
+          if-no-files-found: ignore
+
   cli:
     name: cli
     runs-on: ubuntu-latest

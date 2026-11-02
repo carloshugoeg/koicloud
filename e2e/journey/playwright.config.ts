@@ -7,6 +7,7 @@ const webRoot = path.resolve(root, "../../apps/web");
 
 export default defineConfig({
   testDir: "./tests",
+  testIgnore: "**/sql-console.spec.ts",
   timeout: 120_000,
   expect: { timeout: 15_000 },
   fullyParallel: false,
@@ -48,7 +49,7 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      testIgnore: "**/msw-session.spec.ts",
+      testIgnore: ["**/msw-session.spec.ts", "**/sql-console.spec.ts"],
       use: {
         browserName: "chromium",
         baseURL: "http://127.0.0.1:5173",

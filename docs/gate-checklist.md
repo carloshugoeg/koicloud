@@ -21,9 +21,11 @@ expect(jobReads).toBe(readsAtError);
 
 ## user SQL errors return a 4xx, never a 500
 
-A query the user wrote that Postgres rejects, such as bad syntax or a missing table, returns a 4xx. It does not become `internal_error` with status 500.
+A query the user wrote that Postgres rejects, such as bad syntax or a missing table, returns a 4xx. It does not become `internal_error` with status 500. The message is fixed Spanish and does not include the driver text.
 
-Template test `test_user_sql_error_is_4xx` against `POST /api/v1/ponds/{pond_id}/sql`. The suite does not run this template yet. This change does not touch the SQL console.
+The live test is `test_user_sql_error_is_4xx` in `apps/api/tests/test_sql_real_pond.py`. The console shows that failure in `shows a safe message for a user SQL error` in `apps/web/src/features/sql-console/sql-console.test.tsx`.
+
+Template test:
 
 ```python
 def test_user_sql_error_is_4xx(client, headers, pond_id):

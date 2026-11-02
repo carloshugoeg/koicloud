@@ -323,6 +323,7 @@ Códigos estables (fuente única para clientes). El backend lanza `AppError(code
 | `pond_busy` | 409 | mutación con job activo | — |
 | `node_unavailable` | 503 | create_pond | — |
 | `sql_readonly_violation` | 400 | run_sql | “La query es de escritura pero el modo es read” |
+| `sql_error` | 400 | run_sql | “No se pudo ejecutar la consulta. Revisa la sintaxis, la tabla o los permisos.” |
 | `sql_timeout` | 504 | run_sql | “La consulta excedió 10 s” |
 | `confirmation_required` | 409 | CLI/MCP mutación | — |
 | `confirmation_not_found` | 404 | confirm | — |
