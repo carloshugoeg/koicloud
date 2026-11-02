@@ -35,17 +35,29 @@ class Database:
 
     def __init__(self) -> None:
         self.schemas: dict[str, dict[str, list[str]]] = {"public": {}}
-        self._snapshot: dict[str, dict[str, list[str]]] | None = None
+        self.schema_owner: dict[str, str] = {"public": "postgres"}
+        self.table_owner: dict[tuple[str, str], str] = {}
+        self.public_create: dict[str, bool] = {"public": False}
+        self.roles: set[str] = {"postgres"}
+        self._schemas_snapshot: dict[str, dict[str, list[str]]] | None = None
+        self._schema_owner_snapshot: dict[str, str] = {}
+        self._table_owner_snapshot: dict[tuple[str, str], str] = {}
+        self._public_create_snapshot: dict[str, bool] = {}
+        self._roles_snapshot: set[str] = set()
         self.aborted = False
 
     @property
     def in_transaction(self) -> bool:
-        return self._snapshot is not None
+        return self._schemas_snapshot is not None
 
     def begin(self) -> str | None:
         if self.in_transaction:
             return None
-        self._snapshot = copy.deepcopy(self.schemas)
+        self._schemas_snapshot = copy.deepcopy(self.schemas)
+        self._schema_owner_snapshot = copy.deepcopy(self.schema_owner)
+        self._table_owner_snapshot = copy.deepcopy(self.table_owner)
+        self._public_create_snapshot = copy.deepcopy(self.public_create)
+        self._roles_snapshot = set(self.roles)
         self.aborted = False
         return None
 
@@ -54,15 +66,31 @@ class Database:
             return "there is no transaction in progress"
         if self.aborted:
             return "current transaction is aborted"
-        self._snapshot = None
+        self._schemas_snapshot = None
         return None
 
     def rollback(self) -> str | None:
-        if not self.in_transaction or self._snapshot is None:
+        if not self.in_transaction or self._schemas_snapshot is None:
             return "there is no transaction in progress"
-        self.schemas = self._snapshot
-        self._snapshot = None
+        self.schemas = self._schemas_snapshot
+        self.schema_owner = self._schema_owner_snapshot
+        self.table_owner = self._table_owner_snapshot
+        self.public_create = self._public_create_snapshot
+        self.roles = self._roles_snapshot
+        self._schemas_snapshot = None
         self.aborted = False
+        return None
+
+    def create_as(self, role: str, schema: str, table: str) -> str | None:
+        if schema not in self.schemas:
+            return f"schema {schema} does not exist"
+        owner = self.schema_owner.get(schema, "postgres")
+        if role != "postgres" and role != owner and not self.public_create.get(schema, False):
+            return "permission denied for schema"
+        if table in self.schemas[schema]:
+            return f"relation {table} already exists"
+        self.schemas[schema][table] = []
+        self.table_owner[(schema, table)] = role
         return None
 
     def close(self) -> None:
@@ -116,18 +144,25 @@ class SqlContainer:
             return 1, f"database {name} does not exist".encode()
         # Plain pg_dump has no DROP. CREATE fails on the next restore and COPY appends.
         parts = ["-- PostgreSQL database dump\n", "SET statement_timeout = 0;\n"]
-        for table, rows in sorted(database.schemas.get("public", {}).items()):
-            parts.append(f"CREATE TABLE public.{table} (\n    id integer\n);\n")
-            parts.append(f"COPY public.{table} (id) FROM stdin;\n")
-            parts.extend(f"{row}\n" for row in rows)
-            parts.append("\\.\n")
+        for schema, tables in sorted(database.schemas.items()):
+            if schema != "public":
+                parts.append(f"CREATE SCHEMA {schema};\n")
+            for table, rows in sorted(tables.items()):
+                parts.append(f"CREATE TABLE {schema}.{table} (\n    id integer\n);\n")
+                parts.append(f"COPY {schema}.{table} (id) FROM stdin;\n")
+                parts.extend(f"{row}\n" for row in rows)
+                parts.append("\\.\n")
         return 0, "".join(parts).encode()
 
     def _psql(self, cmd: list[str]) -> tuple[int, bytes]:
-        database_name, script, on_error_stop, single_transaction = _psql_invocation(cmd, self.files)
+        database_name, script, on_error_stop, single_transaction, decode_error = _psql_invocation(
+            cmd, self.files
+        )
         database = self._cluster.databases.get(database_name)
         if database is None:
             return 2, f"database {database_name} does not exist".encode()
+        if decode_error is not None:
+            return 3, decode_error.encode()
         if script is None:
             return 1, b"psql: no script"
         if single_transaction:
@@ -192,7 +227,7 @@ class JobClient:
 def _psql_invocation(
     cmd: list[str],
     files: dict[str, bytes],
-) -> tuple[str, str | None, bool, bool]:
+) -> tuple[str, str | None, bool, bool, str | None]:
     database = "postgres"
     filename: str | None = None
     inline: str | None = None
@@ -217,10 +252,18 @@ def _psql_invocation(
             single_transaction = True
         index += 1
     script = inline
+    decode_error: str | None = None
     if filename is not None:
         payload = files.get(filename)
-        script = payload.decode() if payload is not None else None
-    return database, script, on_error_stop, single_transaction
+        if payload is None:
+            script = None
+        else:
+            try:
+                script = payload.decode("utf-8")
+            except UnicodeDecodeError:
+                script = None
+                decode_error = "invalid byte sequence for encoding UTF8"
+    return database, script, on_error_stop, single_transaction, decode_error
 
 
 def _apply_script(database: Database, script: str, *, on_error_stop: bool) -> str | None:
@@ -248,6 +291,21 @@ def _commands(script: str) -> list[tuple[str, str]]:
     while index < len(lines):
         stripped = lines[index].strip()
         if not buffer and (stripped == "" or stripped.startswith("--")):
+            index += 1
+            continue
+        do_block = re.match(r"DO\s+\$([A-Za-z0-9_]*)\$", stripped, re.IGNORECASE)
+        if not buffer and do_block is not None:
+            closer = f"${do_block.group(1)}$;"
+            block = [lines[index]]
+            index += 1
+            while index < len(lines) and closer not in lines[index]:
+                block.append(lines[index])
+                index += 1
+            if index >= len(lines):
+                commands.append(("error", "unterminated DO"))
+                return commands
+            block.append(lines[index])
+            commands.append(("sql", "\n".join(block)))
             index += 1
             continue
         buffer.append(lines[index])
@@ -278,13 +336,90 @@ def _commands(script: str) -> list[tuple[str, str]]:
     return commands
 
 
+def _unquote(token: str) -> str:
+    if token.startswith('"') and token.endswith('"'):
+        return token[1:-1].replace('""', '"')
+    return token
+
+
+def _grant(database: Database, body: str) -> str | None:
+    matched = re.fullmatch(
+        r"GRANT\s+ALL\s+ON\s+SCHEMA\s+(\"(?:[^\"]|\"\")+\"|[A-Za-z_][\w]*)\s+TO\s+([A-Za-z_][\w]*)",
+        body,
+        re.IGNORECASE,
+    )
+    if matched is None:
+        return None
+    schema = _unquote(matched.group(1))
+    who = matched.group(2)
+    if schema not in database.schemas:
+        return f"schema {schema} does not exist"
+    if who.lower() == "public":
+        database.public_create[schema] = True
+    return None
+
+
+def _alter_owner(database: Database, body: str) -> str | None:
+    schema = re.fullmatch(
+        r"ALTER\s+SCHEMA\s+(\"(?:[^\"]|\"\")+\"|[A-Za-z_][\w]*)\s+OWNER\s+TO\s+([A-Za-z_][\w]*)",
+        body,
+        re.IGNORECASE,
+    )
+    if schema is not None:
+        name, role = _unquote(schema.group(1)), schema.group(2)
+        if role not in database.roles:
+            return f"role {role} does not exist"
+        if name not in database.schemas:
+            return f"schema {name} does not exist"
+        database.schema_owner[name] = role
+        return None
+    table = re.fullmatch(
+        r"ALTER\s+TABLE\s+(\"(?:[^\"]|\"\")+\"|[A-Za-z_][\w]*)\.(\"(?:[^\"]|\"\")+\"|[A-Za-z_][\w]*)"
+        r"\s+OWNER\s+TO\s+([A-Za-z_][\w]*)",
+        body,
+        re.IGNORECASE,
+    )
+    if table is None:
+        return None
+    schema_name, table_name, role = (
+        _unquote(table.group(1)),
+        _unquote(table.group(2)),
+        table.group(3),
+    )
+    if role not in database.roles:
+        return f"role {role} does not exist"
+    if schema_name not in database.schemas or table_name not in database.schemas[schema_name]:
+        return f"relation {table_name} does not exist"
+    database.table_owner[(schema_name, table_name)] = role
+    return None
+
+
+def _do(database: Database, statement: str) -> str | None:
+    if re.search(r"CREATE\s+ROLE\s+koi_console\b", statement, re.IGNORECASE):
+        database.roles.add("koi_console")
+    if re.search(r"OWNER\s+TO\s+koi_console\b", statement, re.IGNORECASE):
+        if "koi_console" not in database.roles:
+            return "role koi_console does not exist"
+        for schema in database.schemas:
+            database.schema_owner[schema] = "koi_console"
+            for table in database.schemas[schema]:
+                database.table_owner[(schema, table)] = "koi_console"
+    return None
+
+
 def _execute(database: Database, statement: str) -> str | None:
     if statement.upper().startswith("COPY "):
         return _copy(database, statement)
     body = statement.strip().rstrip(";").strip()
     head = body.split(None, 1)[0].upper() if body else ""
-    if head in {"SET", "GRANT", "COMMENT"}:
+    if head in {"SET", "COMMENT"}:
         return None
+    if head == "GRANT":
+        return _grant(database, body)
+    if head == "DO":
+        return _do(database, body)
+    if head == "ALTER":
+        return _alter_owner(database, body)
     if head == "BEGIN":
         return database.begin()
     if head == "COMMIT":
@@ -292,39 +427,48 @@ def _execute(database: Database, statement: str) -> str | None:
     if head == "ROLLBACK":
         return database.rollback()
     dropped = re.fullmatch(
-        r"DROP\s+SCHEMA\s+(IF\s+EXISTS\s+)?([A-Za-z_][\w]*)(?:\s+CASCADE)?",
+        r"DROP\s+SCHEMA\s+(IF\s+EXISTS\s+)?(\"(?:[^\"]|\"\")+\"|[A-Za-z_][\w]*)(?:\s+CASCADE)?",
         body,
         re.IGNORECASE,
     )
     if dropped is not None:
-        if_exists, name = dropped.group(1), dropped.group(2)
+        if_exists, name = dropped.group(1), _unquote(dropped.group(2))
         if name not in database.schemas:
             return None if if_exists else f"schema {name} does not exist"
         del database.schemas[name]
+        database.schema_owner.pop(name, None)
+        database.public_create.pop(name, None)
+        for key in [key for key in database.table_owner if key[0] == name]:
+            del database.table_owner[key]
         return None
     created = re.fullmatch(
-        r"CREATE\s+SCHEMA\s+(IF\s+NOT\s+EXISTS\s+)?([A-Za-z_][\w]*)(?:\s+AUTHORIZATION\s+\S+)?",
+        r"CREATE\s+SCHEMA\s+(IF\s+NOT\s+EXISTS\s+)?"
+        r"(\"(?:[^\"]|\"\")+\"|[A-Za-z_][\w]*)(?:\s+AUTHORIZATION\s+\S+)?",
         body,
         re.IGNORECASE,
     )
     if created is not None:
-        if_not_exists, name = created.group(1), created.group(2)
+        if_not_exists, name = created.group(1), _unquote(created.group(2))
         if name in database.schemas:
             return None if if_not_exists else f"schema {name} already exists"
         database.schemas[name] = {}
+        database.schema_owner[name] = "postgres"
+        database.public_create[name] = False
         return None
     table = re.fullmatch(
-        r"CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?([A-Za-z_][\w]*)\.([A-Za-z_][\w]*)\s*\(.*\)",
+        r"CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?"
+        r"(\"(?:[^\"]|\"\")+\"|[A-Za-z_][\w]*)\.(\"(?:[^\"]|\"\")+\"|[A-Za-z_][\w]*)\s*\(.*\)",
         body,
         re.IGNORECASE | re.DOTALL,
     )
     if table is not None:
-        schema, name = table.group(1), table.group(2)
+        schema, name = _unquote(table.group(1)), _unquote(table.group(2))
         if schema not in database.schemas:
             return f"schema {schema} does not exist"
         if name in database.schemas[schema]:
             return f"relation {name} already exists"
         database.schemas[schema][name] = []
+        database.table_owner[(schema, name)] = "postgres"
         return None
     return f"syntax error at {body}"
 
@@ -332,13 +476,14 @@ def _execute(database: Database, statement: str) -> str | None:
 def _copy(database: Database, statement: str) -> str | None:
     header, _, data = statement.partition("\n")
     matched = re.match(
-        r"COPY\s+([A-Za-z_][\w]*)\.([A-Za-z_][\w]*)\s*\([^)]*\)\s+FROM\s+stdin\s*;",
+        r"COPY\s+(\"(?:[^\"]|\"\")+\"|[A-Za-z_][\w]*)\.(\"(?:[^\"]|\"\")+\"|[A-Za-z_][\w]*)"
+        r"\s*\([^)]*\)\s+FROM\s+stdin\s*;",
         header.strip(),
         re.IGNORECASE,
     )
     if matched is None:
         return "syntax error at COPY"
-    schema, name = matched.group(1), matched.group(2)
+    schema, name = _unquote(matched.group(1)), _unquote(matched.group(2))
     if schema not in database.schemas or name not in database.schemas[schema]:
         return f"relation {name} does not exist"
     rows = [line for line in data.split("\n") if line != ""]
@@ -399,4 +544,66 @@ def test_restore_failure_keeps_previous_rows(tmp_path: Path) -> None:
     report = _run_restore(driver, "job_restore_fail", "bak7")
 
     assert report.status == "failed"
+    assert _items(cluster) == PREVIOUS_ROWS
+
+
+def test_restore_replaces_every_non_system_schema(tmp_path: Path) -> None:
+    cluster, driver = _pond(tmp_path)
+    database = cluster.databases[DATABASE]
+    database.schemas["inv"] = {"stock": list(BACKUP_ROWS)}
+    driver.dump(POND_NAME, "bak-inv")
+
+    for index in range(3):
+        database.schemas["public"]["items"].append("99")
+        database.schemas["inv"]["stock"].append("99")
+        report = _run_restore(driver, f"job_inv_{index}", "bak-inv")
+        assert report.status == "succeeded"
+        assert report.error is None
+        assert _items(cluster) == BACKUP_ROWS
+        assert database.schemas["inv"]["stock"] == BACKUP_ROWS
+
+
+def test_restore_denies_create_in_public_to_non_owner(tmp_path: Path) -> None:
+    cluster, driver = _pond(tmp_path)
+    driver.dump(POND_NAME, "bak-acl")
+
+    report = _run_restore(driver, "job_acl", "bak-acl")
+
+    assert report.status == "succeeded"
+    denied = cluster.databases[DATABASE].create_as("stranger", "public", "probe")
+    assert denied is not None
+    assert "probe" not in cluster.databases[DATABASE].schemas["public"]
+
+
+def test_restored_tables_and_schemas_owned_by_koi_console(tmp_path: Path) -> None:
+    cluster, driver = _pond(tmp_path)
+    database = cluster.databases[DATABASE]
+    database.schemas["inv"] = {"stock": ["1", "2"]}
+    driver.dump(POND_NAME, "bak-own")
+
+    report = _run_restore(driver, "job_own", "bak-own")
+
+    assert report.status == "succeeded"
+    assert database.schema_owner["public"] == "koi_console"
+    assert database.schema_owner["inv"] == "koi_console"
+    assert database.table_owner[("public", "items")] == "koi_console"
+    assert database.table_owner[("inv", "stock")] == "koi_console"
+
+
+def test_non_utf8_dump_fails_the_job(tmp_path: Path) -> None:
+    cluster, driver = _pond(tmp_path)
+    cluster.databases[DATABASE].schemas["public"]["items"] = list(PREVIOUS_ROWS)
+    dump_path = tmp_path / f"{POND_NAME}-badbytes.sql"
+    dump_path.write_bytes(b"-- dump\nCOPY public.items (id) FROM stdin;\n1\n\xff\n\\.\n")
+
+    try:
+        report = _run_restore(driver, "job_bytes", "badbytes")
+    except UnicodeDecodeError as error:
+        raise AssertionError("UnicodeDecodeError escaped the job") from error
+
+    assert report.status == "failed"
+    assert report.error is not None
+    assert "UnicodeDecodeError" not in report.error
+    assert "utf-8" not in report.error.lower()
+    assert "codec" not in report.error.lower()
     assert _items(cluster) == PREVIOUS_ROWS
