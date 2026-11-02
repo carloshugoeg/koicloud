@@ -1,9 +1,11 @@
+import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/api/client";
 import type { components } from "@/api/schema";
 import { ApiError } from "@/lib/errors";
 
 export type Pond = components["schemas"]["PondOut"];
+export type PondJob = components["schemas"]["JobOut"];
 export type PondObservedState = components["schemas"]["PondObservedState"];
 export type Backup = components["schemas"]["BackupOut"];
 export type Connection = components["schemas"]["ConnectionOut"];
@@ -16,6 +18,8 @@ const TRANSIENT_STATES = new Set<PondObservedState>([
 ]);
 
 const POLL_MS = 4_000;
+const JOB_POLL_MS = 1_000;
+const ACTIVE_JOB_STATUS = new Set(["queued", "running"]);
 
 async function listPonds(): Promise<Pond[]> {
   const { data, error } = await apiClient.GET("/api/v1/ponds", {});
@@ -109,6 +113,39 @@ export function useCreatePondMutation() {
       void queryClient.setQueryData(["ponds", data.pond.id], data.pond);
     },
   });
+}
+
+export function pondJobReadFailed(query: { error: unknown; isFetching: boolean }) {
+  return Boolean(query.error) && !query.isFetching;
+}
+
+export function usePondJob(pondId: string, jobId: string | null) {
+  const queryClient = useQueryClient();
+  const query = useQuery({
+    queryKey: ["ponds", pondId, "jobs", jobId],
+    enabled: Boolean(pondId && jobId),
+    queryFn: async () => {
+      const { data, error } = await apiClient.GET("/api/v1/ponds/{pond_id}/jobs/{job_id}", {
+        params: { path: { pond_id: pondId, job_id: jobId as string } },
+      });
+      if (error || !data) throw new ApiError(error);
+      return data.job;
+    },
+    refetchInterval: (current) => {
+      if (current.state.error) return false;
+      const status = current.state.data?.status;
+      return status && ACTIVE_JOB_STATUS.has(status) ? JOB_POLL_MS : false;
+    },
+  });
+
+  const status = query.data?.status;
+  useEffect(() => {
+    if (!status || ACTIVE_JOB_STATUS.has(status)) return;
+    void queryClient.invalidateQueries({ queryKey: ["ponds", pondId], exact: true });
+    void queryClient.invalidateQueries({ queryKey: ["ponds", pondId, "backups"], exact: true });
+  }, [queryClient, pondId, status]);
+
+  return query;
 }
 
 export function useRestoreBackupMutation(pondId: string) {

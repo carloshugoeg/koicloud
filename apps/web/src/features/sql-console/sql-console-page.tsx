@@ -1,6 +1,6 @@
 import { sql } from "@codemirror/lang-sql";
 import CodeMirror from "@uiw/react-codemirror";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { PondTabs } from "@/components/pond-tabs";
 import { useRunSqlMutation, type SQLMode, type SQLResultResponse } from "@/api/hooks/sql-console";
@@ -8,6 +8,7 @@ import { ApiError, problemToMessage } from "@/lib/errors";
 import { SqlHistoryPanel } from "@/features/sql-console/sql-history-panel";
 import { SqlResults } from "@/features/sql-console/sql-results";
 import { sqlEditorChrome, sqlSyntaxHighlight } from "@/features/sql-console/sql-editor-theme";
+import { SqlWriteConfirmDialog } from "@/features/sql-console/sql-write-confirm-dialog";
 
 type Outcome =
   | { kind: "idle" }
@@ -19,13 +20,16 @@ export function SqlConsolePage() {
   const [query, setQuery] = useState("SELECT 1");
   const [mode, setMode] = useState<SQLMode>("read");
   const [outcome, setOutcome] = useState<Outcome>({ kind: "idle" });
+  const [confirmWrite, setConfirmWrite] = useState(false);
+  const runButtonRef = useRef<HTMLButtonElement>(null);
   const runSql = useRunSqlMutation(pondId);
   const write = mode === "write";
 
-  function run() {
+  function submit() {
     if (!pondId || !query.trim()) {
       return;
     }
+    setConfirmWrite(false);
     runSql.mutate(
       { query, mode },
       {
@@ -33,6 +37,17 @@ export function SqlConsolePage() {
         onError: (error) => setOutcome({ kind: "error", error }),
       },
     );
+  }
+
+  function run() {
+    if (!pondId || !query.trim() || runSql.isPending) {
+      return;
+    }
+    if (write) {
+      setConfirmWrite(true);
+      return;
+    }
+    submit();
   }
 
   return (
@@ -47,7 +62,8 @@ export function SqlConsolePage() {
         </div>
         <button
           type="button"
-          className="h-9 rounded-sm bg-turquoise-700 px-4 text-sm font-medium text-bone-raised disabled:opacity-60"
+          className="h-9 rounded-sm bg-turquoise-700 px-4 text-sm font-medium text-bone-raised focus-visible:outline-none focus-visible:shadow-focus disabled:opacity-60"
+          ref={runButtonRef}
           disabled={!pondId || runSql.isPending || !query.trim()}
           onClick={run}
           data-testid="sql-run"
@@ -137,6 +153,13 @@ export function SqlConsolePage() {
 
         <SqlHistoryPanel pondId={pondId} />
       </div>
+      {confirmWrite ? (
+        <SqlWriteConfirmDialog
+          onCancel={() => setConfirmWrite(false)}
+          onConfirm={submit}
+          returnFocusRef={runButtonRef}
+        />
+      ) : null}
     </div>
   );
 }

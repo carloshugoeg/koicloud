@@ -103,6 +103,114 @@ describe("W2-07 Consola SQL", () => {
     expect(editor.className).toContain("bg-paper");
   });
 
+  it("shows a safe message for a user SQL error", async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.post(`*/api/v1/ponds/${POND_ID}/sql`, () =>
+        HttpResponse.json(
+          {
+            code: "sql_error",
+            message: 'relation "table_that_is_not_there" does not exist',
+            request_id: "req_sql_user",
+          },
+          { status: 400 },
+        ),
+      ),
+    );
+
+    renderConsole();
+    await screen.findByTestId("sql-console");
+    await user.click(screen.getByTestId("sql-run"));
+
+    const alert = await screen.findByTestId("sql-error");
+    expect(alert).toHaveTextContent(
+      "No se pudo ejecutar la consulta. Revisa la sintaxis, la tabla o los permisos.",
+    );
+    expect(alert).toHaveTextContent("sql_error");
+    expect(alert).not.toHaveTextContent("does not exist");
+    expect(alert).not.toHaveTextContent("relation");
+  });
+
+  it("does not run a write until you confirm, and cancel or escape aborts it", async () => {
+    const user = userEvent.setup();
+    let posts = 0;
+    server.use(
+      http.post(`*/api/v1/ponds/${POND_ID}/sql`, () => {
+        posts += 1;
+        return HttpResponse.json(fixtures.sqlResult);
+      }),
+    );
+
+    renderConsole();
+    await screen.findByTestId("sql-console");
+    await user.click(screen.getByTestId("sql-mode-write"));
+    await user.click(screen.getByTestId("sql-run"));
+
+    const dialog = await screen.findByRole("dialog");
+    expect(posts).toBe(0);
+    await user.click(within(dialog).getByRole("button", { name: "Cancelar" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(posts).toBe(0);
+    expect(screen.queryByTestId("sql-results")).not.toBeInTheDocument();
+
+    await user.click(screen.getByTestId("sql-run"));
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(posts).toBe(0);
+  });
+
+  it("runs the write after confirmation", async () => {
+    const user = userEvent.setup();
+    let posts = 0;
+    server.use(
+      http.post(`*/api/v1/ponds/${POND_ID}/sql`, async ({ request }) => {
+        posts += 1;
+        const body = (await request.json()) as { mode?: string };
+        expect(body.mode).toBe("write");
+        return HttpResponse.json({
+          ...fixtures.sqlResult,
+          columns: ["affected"],
+          rows: [[1]],
+          row_count: 1,
+          duration_ms: 31,
+        });
+      }),
+    );
+
+    renderConsole();
+    await screen.findByTestId("sql-console");
+    await user.click(screen.getByTestId("sql-mode-write"));
+    await user.click(screen.getByTestId("sql-run"));
+    const dialog = await screen.findByRole("dialog");
+    expect(posts).toBe(0);
+    await user.click(within(dialog).getByRole("button", { name: "Ejecutar escritura" }));
+
+    expect(await screen.findByTestId("sql-results")).toBeInTheDocument();
+    expect(posts).toBe(1);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("traps focus in the write confirmation", async () => {
+    const user = userEvent.setup();
+    renderConsole();
+    await screen.findByTestId("sql-console");
+    const run = screen.getByTestId("sql-run");
+    await user.click(screen.getByTestId("sql-mode-write"));
+    await user.click(run);
+
+    const dialog = await screen.findByRole("dialog");
+    const cancel = within(dialog).getByRole("button", { name: "Cancelar" });
+    const confirm = within(dialog).getByRole("button", { name: "Ejecutar escritura" });
+    expect(cancel).toHaveFocus();
+    await user.tab();
+    expect(confirm).toHaveFocus();
+    await user.tab();
+    expect(cancel).toHaveFocus();
+    await user.tab({ shift: true });
+    expect(confirm).toHaveFocus();
+  });
+
   it("shows catalog message for sql_readonly_violation", async () => {
     const user = userEvent.setup();
     server.use(
