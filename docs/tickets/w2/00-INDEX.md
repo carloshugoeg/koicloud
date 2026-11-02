@@ -26,7 +26,7 @@ el agente lo ignora.
 | W2-18 | Escape del selector de plan devuelve el foco | `w2-plan-picker-escape` | hecho ([PR #174](https://github.com/carloshugoeg/koicloud/pull/174)) |
 | W2-19 | El foco permanece dentro de los diálogos de contratación y factura | `w2-dialog-focus-trap` | hecho ([PR #178](https://github.com/carloshugoeg/koicloud/pull/178)) |
 | W2-20 | La restauración sale de la cola y la pantalla lo muestra | `w2-restore-job-runs` | hecho ([PR #179](https://github.com/carloshugoeg/koicloud/pull/179)) |
-| W2-21 | Consola SQL contra el pond real | `w2-sql-console-real` | en-revision ([PR #180](https://github.com/carloshugoeg/koicloud/pull/180)) |
+| W2-21 | Consola SQL contra el pond real | `w2-sql-console-real` | hecho ([PR #180](https://github.com/carloshugoeg/koicloud/pull/180)) |
 
 **Dos fuentes por pantalla, y no se confunden:** la arquitectura de información (qué campos,
 qué tablas, qué pasos) sale de los mockups de `docs/entrega-2/mockups/`; la piel (color,
