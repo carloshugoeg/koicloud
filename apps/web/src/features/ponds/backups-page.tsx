@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { PondTabs } from "@/components/pond-tabs";
 import {
   useGetPond,
+  pondJobReadFailed,
   useListBackups,
   usePondJob,
   useRestoreBackupMutation,
@@ -118,7 +119,16 @@ export function BackupsPage() {
         </button>
       </div>
 
-      {queuedJobId ? <RestoreJobBanner jobId={queuedJobId} job={jobQuery.data} /> : null}
+      {queuedJobId ? (
+        <RestoreJobBanner
+          jobId={queuedJobId}
+          job={jobQuery.data}
+          readFailed={pondJobReadFailed(jobQuery)}
+          onRetry={() => {
+            void jobQuery.refetch();
+          }}
+        />
+      ) : null}
 
       {restoreMutation.isError ? (
         <div className="rounded-md border border-line bg-bone-raised px-4 py-3 text-sm text-danger">

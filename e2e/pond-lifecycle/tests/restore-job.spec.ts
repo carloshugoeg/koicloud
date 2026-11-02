@@ -75,7 +75,13 @@ async function json(route: Route, status: number, body: unknown) {
   });
 }
 
-async function installApi(page: Page) {
+async function installApi(
+  page: Page,
+  onJob: (reads: number) => { status: number; body: unknown } = (reads) => ({
+    status: 200,
+    body: { job: job(reads < 2 ? "queued" : "succeeded") },
+  }),
+) {
   let jobReads = 0;
   await page.route("**/api/v1/**", async (route) => {
     const req = route.request();
@@ -100,8 +106,8 @@ async function installApi(page: Page) {
     }
     if (method === "GET" && pathname.endsWith(`/ponds/${POND_ID}/jobs/${JOB_ID}`)) {
       jobReads += 1;
-      const status = jobReads < 2 ? "queued" : "succeeded";
-      return json(route, 200, { job: job(status) });
+      const result = onJob(jobReads);
+      return json(route, result.status, result.body);
     }
     if (method === "GET" && pathname.endsWith(`/ponds/${POND_ID}`)) {
       return json(route, 200, { pond });
@@ -114,7 +120,51 @@ async function installApi(page: Page) {
     }
     return json(route, 404, { code: "not_found", message: pathname, request_id: "req" });
   });
+  return {
+    jobReads: () => jobReads,
+  };
 }
+
+test("restore job read error offers retry", async ({ page }) => {
+  const api = await installApi(page, () => ({
+    status: 500,
+    body: { code: "internal_error", message: "boom", request_id: "req" },
+  }));
+
+  await page.goto("/login?next=" + encodeURIComponent(`/app/ponds/${POND_ID}/backups`));
+  await page.getByLabel("Correo").fill("demo@koicloud.dev");
+  await page.getByLabel("Contraseña").fill("Sup3rSegura!2026");
+  await page.getByRole("button", { name: "Iniciar sesión" }).click();
+  await expect(page.getByTestId("backups-page")).toBeVisible();
+
+  await page.getByRole("button", { name: "Restaurar…" }).click();
+  await page.getByTestId("restore-confirm-input").fill(POND_NAME);
+  await page.getByTestId("restore-confirm-button").click();
+
+  await expect(page.getByTestId("restore-job-error")).toContainText(
+    "No pudimos leer el estado de la restauración.",
+  );
+  await expect(page.getByRole("button", { name: "Reintentar" })).toBeVisible();
+  await expect(page.getByTestId("restore-job-status")).toHaveCount(0);
+
+  const readsAtError = api.jobReads();
+  await page.waitForTimeout(1500);
+  expect(api.jobReads()).toBe(readsAtError);
+
+  const outDir = path.resolve("/opt/cursor/artifacts/restore-job-error");
+  fs.mkdirSync(outDir, { recursive: true });
+  fs.mkdirSync(shotsDir, { recursive: true });
+  for (const width of [375, 768, 1440] as const) {
+    await page.setViewportSize({ width, height: width === 375 ? 812 : 900 });
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+    );
+    expect(overflow).toBe(false);
+    const file = `restore-error-${width}.png`;
+    await page.screenshot({ path: path.join(outDir, file), fullPage: true });
+    await page.screenshot({ path: path.join(shotsDir, file), fullPage: true });
+  }
+});
 
 test("restore job status reaches succeeded", async ({ page }) => {
   await installApi(page);

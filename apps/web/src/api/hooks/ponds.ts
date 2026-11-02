@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/api/client";
 import type { components } from "@/api/schema";
@@ -114,8 +115,13 @@ export function useCreatePondMutation() {
   });
 }
 
+export function pondJobReadFailed(query: { error: unknown; isFetching: boolean }) {
+  return Boolean(query.error) && !query.isFetching;
+}
+
 export function usePondJob(pondId: string, jobId: string | null) {
-  return useQuery({
+  const queryClient = useQueryClient();
+  const query = useQuery({
     queryKey: ["ponds", pondId, "jobs", jobId],
     enabled: Boolean(pondId && jobId),
     queryFn: async () => {
@@ -125,9 +131,21 @@ export function usePondJob(pondId: string, jobId: string | null) {
       if (error || !data) throw new ApiError(error);
       return data.job;
     },
-    refetchInterval: (query) =>
-      query.state.data && ACTIVE_JOB_STATUS.has(query.state.data.status) ? JOB_POLL_MS : false,
+    refetchInterval: (current) => {
+      if (current.state.error) return false;
+      const status = current.state.data?.status;
+      return status && ACTIVE_JOB_STATUS.has(status) ? JOB_POLL_MS : false;
+    },
   });
+
+  const status = query.data?.status;
+  useEffect(() => {
+    if (!status || ACTIVE_JOB_STATUS.has(status)) return;
+    void queryClient.invalidateQueries({ queryKey: ["ponds", pondId], exact: true });
+    void queryClient.invalidateQueries({ queryKey: ["ponds", pondId, "backups"], exact: true });
+  }, [queryClient, pondId, status]);
+
+  return query;
 }
 
 export function useRestoreBackupMutation(pondId: string) {

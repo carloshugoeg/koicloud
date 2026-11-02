@@ -46,11 +46,15 @@ stateDiagram-v2
 | R3 | Running | the restore fails | dump missing or `psql` error | Failed | `last_error` set, pond `failed` | failure-path test |
 | R4 | Running | the job sits too long | claimed and not completed | Timed out | reconciler marks the zombie failed after retries | existing zombie reclaim |
 | R5 | Queued | the agent stays silent | no claim before the clock runs out | Agent unreachable | job leaves `queued` with a reason | not in this change |
+| R6 | Queued or Running on screen | the job read fails | HTTP 500 or 404 | Polling error | the screen leaves the non-terminal status and offers Reintentar | `job polling error doesn't leave the UI stuck in a non-terminal state` |
+
+R6 is the screen transition. TLC does not draw it. The named test in `apps/web/src/features/ponds/__tests__/backups.test.tsx` is the check.
 
 ## Rules
 
 - **ScreenShowsJob.** The backups screen shows the same status as the job.
 - **AgentDownEnds.** A silent agent does not leave the restore queued.
+- **PollErrorLeaves.** A failed job read does not leave the screen on `queued` or `running`.
 
 On `AsIs = FALSE`, TLC reached 22 states and 34 steps. Both rules hold. The chart draws 6 states and 5 arrows.
 
