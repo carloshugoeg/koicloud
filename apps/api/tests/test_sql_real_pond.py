@@ -156,6 +156,32 @@ def _close_stopped_pond(pond_id) -> None:
     engine.dispose()
 
 
+def test_user_sql_error_is_4xx() -> None:
+    pond = seed_probe_pond()
+    headers = _headers()
+    queries = (
+        "SELECT * FROM table_that_is_not_there",
+        "SELEC 1",
+    )
+    for query in queries:
+        response = client.post(
+            f"/api/v1/ponds/{pond.pond_id}/sql",
+            headers=headers,
+            json={"query": query, "mode": "read"},
+        )
+        assert 400 <= response.status_code < 500, response.text
+        body = response.json()
+        assert body["code"] == "sql_error"
+        assert body["message"] == (
+            "No se pudo ejecutar la consulta. Revisa la sintaxis, la tabla o los permisos."
+        )
+        leaked = response.text.lower()
+        assert "asyncpg" not in leaked
+        assert "traceback" not in leaked
+        assert "does not exist" not in leaked
+        assert "syntax error" not in leaked
+
+
 def test_sql_endpoint_stopped_pond_returns_node_unavailable() -> None:
     pond = seed_probe_pond()
     _close_stopped_pond(pond.pond_id)
