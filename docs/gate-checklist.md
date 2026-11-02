@@ -36,3 +36,22 @@ def test_user_sql_error_is_4xx(client, headers, pond_id):
     )
     assert 400 <= response.status_code < 500
 ```
+
+## restore leaves the backup row count
+
+A backup of a table with 7 rows, restored 3 times, still has those 7 rows. A restore that fails after the load has started leaves the rows the pond had before that attempt, and the job ends `failed`.
+
+The live tests are `test_restore_three_times_leaves_seven_rows` and `test_restore_failure_keeps_previous_rows` in `apps/node-agent/tests/test_restore_replaces.py`.
+
+Template test:
+
+```python
+def test_restore_three_times_leaves_seven_rows(tmp_path):
+    rows = ["1", "2", "3", "4", "5", "6", "7"]
+    cluster, driver = pond_with_items(tmp_path, rows)
+    driver.dump("inventario-demo", "bak7")
+    for index in range(3):
+        report = run_restore(driver, f"job_restore_{index}", "bak7")
+        assert report.status == "succeeded"
+        assert item_rows(cluster) == rows
+```
