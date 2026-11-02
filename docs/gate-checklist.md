@@ -1,0 +1,36 @@
+# Gate checklist
+
+## job polling error doesn't leave the UI stuck in a non-terminal state
+
+A failed `GET /api/v1/ponds/{pond_id}/jobs/{job_id}` must not leave the backups screen showing `queued` or `running` after polling has stopped.
+
+The live test is `job polling error doesn't leave the UI stuck in a non-terminal state` in `apps/web/src/features/ponds/__tests__/backups.test.tsx`.
+
+Template test:
+
+```ts
+expect(await screen.findByTestId("restore-job-error")).toHaveTextContent(
+  "No pudimos leer el estado de la restauración.",
+);
+expect(screen.getByRole("button", { name: "Reintentar" })).toBeInTheDocument();
+expect(screen.queryByTestId("restore-job-status")).not.toBeInTheDocument();
+const readsAtError = jobReads;
+await new Promise((resolve) => setTimeout(resolve, 1500));
+expect(jobReads).toBe(readsAtError);
+```
+
+## user SQL errors return a 4xx, never a 500
+
+A query the user wrote that Postgres rejects, such as bad syntax or a missing table, returns a 4xx. It does not become `internal_error` with status 500.
+
+Template test `test_user_sql_error_is_4xx` against `POST /api/v1/ponds/{pond_id}/sql`. The suite does not run this template yet. This change does not touch the SQL console.
+
+```python
+def test_user_sql_error_is_4xx(client, headers, pond_id):
+    response = client.post(
+        f"/api/v1/ponds/{pond_id}/sql",
+        headers=headers,
+        json={"query": "SELECT * FROM table_that_is_not_there", "mode": "read"},
+    )
+    assert 400 <= response.status_code < 500
+```
