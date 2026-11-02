@@ -322,3 +322,5 @@ echo "deploy.sh correctly refuses EMAIL_PROVIDER=console before traffic (exit $c
 if [[ "$static_rc" -ne 0 || "$unset_fail" -ne 0 ]]; then
   exit 1
 fi
+
+bash "$ROOT/infra/scripts/check-caddy-spa-worker.sh"

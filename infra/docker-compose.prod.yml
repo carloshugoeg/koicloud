@@ -99,7 +99,7 @@ services:
       api:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "pgrep -f 'app.workers' >/dev/null"]
+      test: ["CMD", "python3", "-c", "import pathlib,sys; cmd=pathlib.Path('/proc/1/cmdline').read_bytes().replace(bytes([0]), b' ').decode(); sys.exit(0 if 'app.workers' in cmd else 1)"]
       interval: 30s
       timeout: 5s
       retries: 3

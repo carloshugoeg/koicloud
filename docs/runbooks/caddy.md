@@ -4,6 +4,10 @@ Plantilla: `infra/Caddyfile`. Sirve la SPA desde `/srv/koicloud/web`, hace proxy
 `/api/*`, `/mcp`, `/docs`, `/openapi.json` y `/health` a `api:8000`, y responde
 **403** a `/internal/*`.
 
+Una recarga de `/app/ponds/<id>` sirve `app.html` cuando esa ruta no es un archivo.
+Un archivo que sí existe bajo `/app` se entrega tal cual. `/` sigue cayendo en
+`index.html`.
+
 Sin un DNS real apuntando al host, Let's Encrypt no emite certificado. No uses
 `koicloud.example` en un VPS inventado.
 
