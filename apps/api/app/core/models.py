@@ -73,6 +73,16 @@ class EmailToken(Base):
     consumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
+class RevokedAccessToken(Base):
+    __tablename__ = "revoked_access_tokens"
+
+    jti: Mapped[str] = mapped_column(Text, primary_key=True)
+    user_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
 class RefreshToken(Base):
     __tablename__ = "refresh_tokens"
 
