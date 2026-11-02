@@ -2,7 +2,7 @@
 id: W2-19
 workstream: W2
 persona: Jason
-estado: en-revision
+estado: hecho
 rama: w2-dialog-focus-trap
 epica: E2-03
 sprint: S5
