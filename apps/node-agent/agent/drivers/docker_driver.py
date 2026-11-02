@@ -32,7 +32,6 @@ def database_name_for(pond_name: str) -> str:
 
 
 def restore_script(dump: bytes) -> bytes:
-    """Drop and recreate public in one transaction so a dump error rolls back."""
     prefix = (
         "BEGIN;\n"
         "DROP SCHEMA IF EXISTS public CASCADE;\n"
@@ -47,11 +46,7 @@ def restore_script(dump: bytes) -> bytes:
 
 
 class DockerDriver(PondDriver):
-    """Real postgres:16-alpine ponds via the local Docker daemon.
-
-    CI stays on ``AGENT_MODE=mock``. Use this driver on a laptop or VPS that
-    has a Docker socket (see ``docs/runbooks/local-pond.md``).
-    """
+    """Real postgres:16-alpine ponds via the local Docker daemon."""
 
     def __init__(
         self,
@@ -216,7 +211,7 @@ class DockerDriver(PondDriver):
                 code, _output = container.exec_run(["pg_isready", "-U", "postgres"])
                 if code == 0:
                     return
-            except (OSError, RuntimeError) as error:  # pragma: no cover - daemon race
+            except OSError as error:
                 last_error = error
             time.sleep(0.2)
         raise PondDriverError("pond_not_ready") from last_error
