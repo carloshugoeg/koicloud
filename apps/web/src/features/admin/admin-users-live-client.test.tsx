@@ -120,4 +120,41 @@ describe("admin users from the API client with MSW off", () => {
     expect(screen.queryByText("Cuenta Demo")).not.toBeInTheDocument();
     expect(screen.getByTestId("admin-users-summary")).toHaveTextContent("1 cuentas visibles");
   });
+
+  it("appends the next page when Cargar más is used", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = input instanceof Request ? input.url : String(input);
+      const method = (
+        input instanceof Request ? input.method : (init?.method ?? "GET")
+      ).toUpperCase();
+      if (method === "GET" && url.includes("/api/v1/admin/users")) {
+        const cursor = new URL(url).searchParams.get("cursor");
+        if (cursor == null) {
+          return jsonResponse({ users: [QA_USER], next_cursor: "page-2" });
+        }
+        expect(cursor).toBe("page-2");
+        return jsonResponse({ users: [DEMO_USER], next_cursor: null });
+      }
+      if (method === "GET" && url.includes("/api/v1/admin/ponds")) {
+        return jsonResponse({ ponds: [], next_cursor: null });
+      }
+      return jsonResponse({ code: "internal_error", message: "unmocked" }, 500);
+    });
+
+    renderUsersScreen();
+
+    expect(await screen.findByText("QA Uno")).toBeInTheDocument();
+    expect(screen.queryByText("Cuenta Demo")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Cargar más" }));
+
+    expect(await screen.findByText("Cuenta Demo")).toBeInTheDocument();
+    expect(screen.getByText("QA Uno")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Cargar más" })).not.toBeInTheDocument();
+
+    await user.type(screen.getByRole("textbox", { name: /buscar/i }), "demo");
+    expect(screen.getByText("Cuenta Demo")).toBeInTheDocument();
+    expect(screen.queryByText("QA Uno")).not.toBeInTheDocument();
+  });
 });

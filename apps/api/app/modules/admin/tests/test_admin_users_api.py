@@ -1,13 +1,15 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import select, text
+from sqlalchemy import event, select, text
 
-from app.core.db import SessionLocal
-from app.core.enums import EmailTokenKind, UserRole, UserStatus
-from app.core.models import AuditEvent, User
+from app.core.db import SessionLocal, engine
+from app.core.enums import EmailTokenKind, SubscriptionStatus, UserRole, UserStatus
+from app.core.models import AuditEvent, Subscription, User
+from app.core.security import hash_password
 from app.main import app
 from app.modules.admin import AdminService
 from app.modules.auth import AuthService
@@ -394,3 +396,172 @@ async def test_suspend_missing_user_returns_user_not_found() -> None:
 
     assert response.status_code == 404
     assert response.json()["code"] == "user_not_found"
+
+
+async def _seed_users(count: int, *, tie_at: datetime | None = None) -> None:
+    reset_auth_tables()
+    password_hash = hash_password(PASSWORD)
+    base = datetime(2026, 1, 1, tzinfo=UTC)
+    async with SessionLocal() as session:
+        users: list[User] = []
+        for index in range(count):
+            created_at = tie_at if tie_at is not None else base + timedelta(seconds=index)
+            user = User(
+                id=UUID(int=index + 1),
+                email=f"page-{index:03d}@koicloud.test",
+                password_hash=password_hash,
+                full_name=f"Cuenta {index:03d}",
+                role=UserRole.ADMIN if index == 0 else UserRole.CLIENT,
+                status=UserStatus.ACTIVE,
+                email_verified_at=base,
+                created_at=created_at,
+            )
+            session.add(user)
+            users.append(user)
+        await session.flush()
+        for index, user in enumerate(users):
+            if index % 10 == 0:
+                session.add(
+                    Subscription(
+                        user_id=user.id,
+                        plan_id="pro",
+                        status=SubscriptionStatus.ACTIVE,
+                        current_period_start=base,
+                        current_period_end=base + timedelta(days=30),
+                        cancel_at_period_end=False,
+                    )
+                )
+            elif index % 10 == 1:
+                session.add(
+                    Subscription(
+                        user_id=user.id,
+                        plan_id="micro",
+                        status=SubscriptionStatus.CANCELED,
+                        current_period_start=base,
+                        current_period_end=base + timedelta(days=30),
+                        cancel_at_period_end=False,
+                    )
+                )
+        await session.commit()
+
+
+async def _admin_headers(client: AsyncClient) -> dict[str, str]:
+    token = await _login(client, "page-000@koicloud.test")
+    return {"Authorization": f"Bearer {token}"}
+
+
+async def test_admin_list_users_returns_three_pages_for_120_users() -> None:
+    await _seed_users(120)
+
+    async with _make_client() as client:
+        headers = await _admin_headers(client)
+        first = await client.get("/api/v1/admin/users", headers=headers)
+
+    assert first.status_code == 200
+    body = first.json()
+    assert len(body["users"]) == 50
+    assert isinstance(body["next_cursor"], str)
+    assert body["next_cursor"]
+    for user in body["users"]:
+        assert user["id"] not in body["next_cursor"]
+    by_email = {user["email"]: user for user in body["users"]}
+    assert by_email["page-110@koicloud.test"]["active_subscription_plan"] == "pro"
+    assert by_email["page-111@koicloud.test"]["active_subscription_plan"] is None
+
+    pages = [body["users"]]
+    cursor = body["next_cursor"]
+    async with _make_client() as client:
+        headers = await _admin_headers(client)
+        while cursor is not None:
+            page = await client.get(
+                "/api/v1/admin/users",
+                headers=headers,
+                params={"cursor": cursor},
+            )
+            assert page.status_code == 200
+            payload = page.json()
+            pages.append(payload["users"])
+            cursor = payload["next_cursor"]
+
+    sizes = [len(page) for page in pages]
+    assert sizes == [50, 50, 20]
+    emails = [user["email"] for page in pages for user in page]
+    assert emails == [f"page-{index:03d}@koicloud.test" for index in range(119, -1, -1)]
+    assert len(emails) == len(set(emails))
+
+
+async def test_admin_list_users_rejects_limit_above_200() -> None:
+    await _seed_users(120)
+
+    async with _make_client() as client:
+        headers = await _admin_headers(client)
+        over = await client.get("/api/v1/admin/users", headers=headers, params={"limit": 201})
+        assert over.status_code == 422
+
+        zero = await client.get("/api/v1/admin/users", headers=headers, params={"limit": 0})
+        assert zero.status_code == 422
+
+        wide = await client.get("/api/v1/admin/users", headers=headers, params={"limit": 200})
+        assert wide.status_code == 200
+        assert len(wide.json()["users"]) == 120
+        assert wide.json()["next_cursor"] is None
+
+        bad_cursor = await client.get(
+            "/api/v1/admin/users",
+            headers=headers,
+            params={"cursor": "not-a-cursor"},
+        )
+        assert bad_cursor.status_code == 422
+
+
+async def test_admin_list_users_loads_plans_in_one_query() -> None:
+    await _seed_users(120)
+    statements: list[str] = []
+
+    def before_cursor_execute(
+        _conn: object,
+        _cursor: object,
+        statement: str,
+        _parameters: object,
+        _context: object,
+        _executemany: bool,
+    ) -> None:
+        statements.append(statement)
+
+    event.listen(engine.sync_engine, "before_cursor_execute", before_cursor_execute)
+    try:
+        async with _make_client() as client:
+            headers = await _admin_headers(client)
+            statements.clear()
+            response = await client.get("/api/v1/admin/users", headers=headers)
+    finally:
+        event.remove(engine.sync_engine, "before_cursor_execute", before_cursor_execute)
+
+    assert response.status_code == 200
+    body = response.json()
+    assert any(user["active_subscription_plan"] == "pro" for user in body["users"])
+    subscription_sql = [sql for sql in statements if "subscriptions" in sql.lower()]
+    assert len(subscription_sql) == 1
+
+
+async def test_admin_list_users_orders_equal_timestamps_by_id_desc() -> None:
+    shared = datetime(2026, 6, 1, tzinfo=UTC)
+    await _seed_users(2, tie_at=shared)
+
+    async with _make_client() as client:
+        headers = await _admin_headers(client)
+        first = await client.get("/api/v1/admin/users", headers=headers, params={"limit": 1})
+        assert first.status_code == 200
+        page = first.json()
+        assert [user["id"] for user in page["users"]] == [str(UUID(int=2))]
+        assert page["next_cursor"]
+
+        second = await client.get(
+            "/api/v1/admin/users",
+            headers=headers,
+            params={"limit": 1, "cursor": page["next_cursor"]},
+        )
+        assert second.status_code == 200
+        rest = second.json()
+        assert [user["id"] for user in rest["users"]] == [str(UUID(int=1))]
+        assert rest["next_cursor"] is None
