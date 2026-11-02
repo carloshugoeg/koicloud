@@ -2,7 +2,7 @@
 id: W1-46
 workstream: W1
 persona: Carlos
-estado: en-revision
+estado: hecho
 rama: w1-ccr-logout-revoke
 epica: E1-03
 sprint: S4
