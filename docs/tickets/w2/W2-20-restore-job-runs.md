@@ -2,7 +2,7 @@
 id: W2-20
 workstream: W2
 persona: Jason
-estado: en-revision
+estado: hecho
 rama: w2-restore-job-runs
 epica: "E6-02, E6-03"
 sprint: S5
