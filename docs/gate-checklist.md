@@ -58,3 +58,40 @@ def test_copy_program_is_rejected(client, headers, pond_id):
     assert response.status_code == 400
     assert response.json()["code"] == "sql_error"
 ```
+
+## concurrent console queries succeed
+
+Ten console queries sent together against one pond all return 200. None of them comes back as `internal_error`, and Postgres does not report `tuple concurrently updated`. The role setup runs once for that pond, or again only when the console password changes, and concurrent callers take the same advisory lock.
+
+The live test is `test_ten_parallel_console_queries_all_succeed` in `apps/api/tests/test_sql_console_role_lifecycle.py`. The unchanged-password check is `test_console_setup_does_not_rerun_when_the_password_is_unchanged`.
+
+Template test:
+
+```python
+async def test_ten_parallel_console_queries_all_succeed(pond_id, headers):
+    responses = await asyncio.gather(
+        *[
+            client.post(
+                f"/api/v1/ponds/{pond_id}/sql",
+                headers=headers,
+                json={"query": "SELECT 1 AS n", "mode": "read"},
+            )
+            for _ in range(10)
+        ]
+    )
+    assert [response.status_code for response in responses] == [200] * 10
+```
+
+## no secrets in logs
+
+The console password and the pond password never appear in the Postgres log or in a captured error. The role password is stored as a SCRAM-SHA-256 verifier, so the plaintext is not SQL text.
+
+The live test is `test_console_password_never_reaches_the_log_or_captured_errors` in `apps/api/tests/test_sql_console_role_lifecycle.py`.
+
+Template test:
+
+```python
+def test_console_password_is_absent_from_logs(log_text, captured_errors, console_password):
+    assert console_password not in log_text
+    assert console_password not in captured_errors
+```

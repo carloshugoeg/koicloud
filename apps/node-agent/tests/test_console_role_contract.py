@@ -1,0 +1,207 @@
+"""The provision script and the API setup share one console-role contract."""
+
+from __future__ import annotations
+
+import os
+import shutil
+import subprocess
+
+import pytest
+
+from agent.console_role import (
+    console_role_argv,
+    console_role_environment,
+    console_role_password,
+)
+
+POND_PASSWORD = "super-secret"
+PROBE_DATABASE = "console_role_probe"
+OTHER_DATABASE = "console_role_other"
+ADMIN_PASSWORD = "pond-sql-test"
+
+
+def test_console_role_script_uses_a_scram_verifier_under_a_lock() -> None:
+    env = console_role_environment("inventario_demo", POND_PASSWORD)
+    script = env["KOI_SQL"]
+    secret = console_role_password(POND_PASSWORD)
+    substituted = env.get("KOI_CONSOLE_VERIFIER", env.get("KOI_CONSOLE_PASSWORD", ""))
+    problems: list[str] = []
+    if not substituted.startswith("SCRAM-SHA-256$"):
+        problems.append("the value sent to Postgres is not a SCRAM-SHA-256 verifier")
+    if substituted == secret:
+        problems.append("psql would send the console password")
+    if secret in script:
+        problems.append("the script text contains the console password")
+    if POND_PASSWORD in script:
+        problems.append("the script text contains the pond password")
+    if "pg_advisory_xact_lock" not in script:
+        problems.append("the script does not take an advisory lock")
+    if "REVOKE CONNECT" not in script:
+        problems.append("the script does not revoke CONNECT on other databases")
+    if "OWNER TO koi_console" not in script:
+        problems.append("the script does not reassign object ownership")
+    assert problems == [], "; ".join(problems)
+
+
+def _psql(
+    sql: str,
+    database: str = "postgres",
+    password: str = ADMIN_PASSWORD,
+) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [
+            "psql",
+            "-h",
+            "127.0.0.1",
+            "-U",
+            "postgres",
+            "-d",
+            database,
+            "-v",
+            "ON_ERROR_STOP=1",
+            "-At",
+            "-c",
+            sql,
+        ],
+        env={**os.environ, "PGPASSWORD": password},
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
+def _postgres_reachable() -> bool:
+    if shutil.which("psql") is None:
+        return False
+    probe = _psql("SELECT current_setting('server_version_num')")
+    return probe.returncode == 0 and probe.stdout.strip().startswith("16")
+
+
+def _run_provision(database: str) -> subprocess.CompletedProcess[str]:
+    env = os.environ.copy()
+    env.update(console_role_environment(database, POND_PASSWORD))
+    env.setdefault("KOI_CONSOLE_PASSWORD", "")
+    env.setdefault("KOI_CONSOLE_VERIFIER", "")
+    return subprocess.run(
+        [
+            "sudo",
+            "-n",
+            "-u",
+            "postgres",
+            "--preserve-env=KOI_SQL,KOI_DB,KOI_CONSOLE_PASSWORD,KOI_CONSOLE_VERIFIER,PGPASSWORD",
+            *console_role_argv(),
+        ],
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
+def _log_offset() -> int | None:
+    name = _psql("SELECT coalesce(pg_current_logfile(), '')")
+    if name.returncode != 0 or not name.stdout.strip():
+        return None
+    size = _psql(f"SELECT size FROM pg_stat_file('{name.stdout.strip()}')")
+    if size.returncode != 0:
+        return None
+    return int(size.stdout.strip())
+
+
+def _log_since(offset: int | None) -> str:
+    if offset is None:
+        return ""
+    name = _psql("SELECT pg_current_logfile()").stdout.strip()
+    size = int(_psql(f"SELECT size FROM pg_stat_file('{name}')").stdout.strip())
+    length = max(0, size - offset)
+    if length == 0:
+        return ""
+    chunk = _psql(f"SELECT pg_read_file('{name}', {offset}, {length})")
+    return chunk.stdout
+
+
+@pytest.mark.skipif(not _postgres_reachable(), reason="PostgreSQL 16 is not reachable")
+def test_provision_script_on_postgres_16_matches_the_console_contract() -> None:
+    secret = console_role_password(POND_PASSWORD)
+    _psql(
+        """
+        SELECT pg_terminate_backend(pid)
+        FROM pg_stat_activity
+        WHERE datname IN ('console_role_probe', 'console_role_other')
+          AND pid <> pg_backend_pid()
+        """
+    )
+    _psql(f"DROP DATABASE IF EXISTS {PROBE_DATABASE}")
+    _psql(f"DROP DATABASE IF EXISTS {OTHER_DATABASE}")
+    if _psql("SELECT 1 FROM pg_roles WHERE rolname = 'koi_console'").stdout.strip() == "1":
+        _psql("DROP OWNED BY koi_console")
+        _psql("DROP ROLE IF EXISTS koi_console")
+    assert _psql(f"CREATE DATABASE {PROBE_DATABASE}").returncode == 0
+    assert _psql(f"CREATE DATABASE {OTHER_DATABASE}").returncode == 0
+    assert _psql("CREATE TABLE public.kept (n integer)", database=PROBE_DATABASE).returncode == 0
+    offset = _log_offset()
+    first = _run_provision(PROBE_DATABASE)
+    xmin = _psql("SELECT xmin::text FROM pg_authid WHERE rolname = 'koi_console'").stdout.strip()
+    second = _run_provision(PROBE_DATABASE)
+    xmin_after = _psql(
+        "SELECT xmin::text FROM pg_authid WHERE rolname = 'koi_console'"
+    ).stdout.strip()
+    altered = subprocess.run(
+        [
+            "psql",
+            "-h",
+            "127.0.0.1",
+            "-U",
+            "koi_console",
+            "-d",
+            PROBE_DATABASE,
+            "-v",
+            "ON_ERROR_STOP=1",
+            "-c",
+            "ALTER TABLE public.kept ADD COLUMN extra text",
+        ],
+        env={**os.environ, "PGPASSWORD": secret},
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    other = subprocess.run(
+        [
+            "psql",
+            "-h",
+            "127.0.0.1",
+            "-U",
+            "koi_console",
+            "-d",
+            OTHER_DATABASE,
+            "-c",
+            "SELECT 1",
+        ],
+        env={**os.environ, "PGPASSWORD": secret},
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    log = _log_since(offset)
+    captured = f"{first.stderr}\n{first.stdout}\n{second.stderr}\n{second.stdout}"
+    problems: list[str] = []
+    if first.returncode != 0:
+        problems.append(f"first provision exited {first.returncode}")
+    if secret in log:
+        problems.append(f"postgres log contains the console password ({log.count(secret)} hits)")
+    if POND_PASSWORD in log:
+        problems.append(f"postgres log contains the pond password ({log.count(POND_PASSWORD)} hits)")
+    if secret in captured or POND_PASSWORD in captured:
+        problems.append("captured provision output contains a password")
+    if altered.returncode != 0:
+        if "authentication failed" in altered.stderr.lower():
+            problems.append("koi_console could not log in")
+        else:
+            problems.append("CREATE/ALTER on a postgres-owned table failed")
+    if other.returncode == 0:
+        problems.append("koi_console connected to another database")
+    elif "authentication failed" in other.stderr.lower():
+        problems.append("koi_console could not log in to the other database")
+    if xmin and xmin_after and xmin != xmin_after:
+        problems.append("setup rewrote the role when the password was unchanged")
+    assert problems == [], "; ".join(problems)
