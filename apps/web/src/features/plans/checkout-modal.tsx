@@ -1,5 +1,6 @@
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { trapDialogTab } from "@/components/dialog-focus-trap";
 import { useSubscribeMutation, type PlanOut, type SubscribeResponse } from "@/api/hooks";
 import { cardDigits, cardNumberError, cvvError, expiryError, nitError } from "@/lib/billing-checks";
 import { ApiError, problemToMessage } from "@/lib/errors";
@@ -22,6 +23,7 @@ export function CheckoutModal({ plan, onClose, onSuccess }: CheckoutModalProps) 
   const [issued, setIssued] = useState<SubscribeResponse | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{ nit?: string; card?: string; expiry?: string; cvc?: string }>({});
   const returnFocusRef = useRef<HTMLElement | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     onCloseRef.current = onClose;
@@ -31,10 +33,16 @@ export function CheckoutModal({ plan, onClose, onSuccess }: CheckoutModalProps) 
     returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key !== "Escape") return;
-      event.preventDefault();
-      event.stopPropagation();
-      onCloseRef.current();
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        onCloseRef.current();
+        return;
+      }
+      const dialog = dialogRef.current;
+      if (dialog) {
+        trapDialogTab(event, dialog);
+      }
     }
 
     document.addEventListener("keydown", onKeyDown, true);
@@ -91,7 +99,7 @@ export function CheckoutModal({ plan, onClose, onSuccess }: CheckoutModalProps) 
   if (issued) {
     const { invoice } = issued;
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/30" role="dialog" aria-modal="true" aria-labelledby="checkout-title">
+      <div ref={dialogRef} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/30" role="dialog" aria-modal="true" aria-labelledby="checkout-title">
         <div className="w-full max-w-lg rounded-sm border border-line-control bg-bone-raised p-6 shadow-dialog">
           <h2 id="checkout-title" className="font-display text-2xl text-ink">
             Factura {invoice.number}
@@ -141,7 +149,7 @@ export function CheckoutModal({ plan, onClose, onSuccess }: CheckoutModalProps) 
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/30" role="dialog" aria-modal="true" aria-labelledby="checkout-title">
+    <div ref={dialogRef} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/30" role="dialog" aria-modal="true" aria-labelledby="checkout-title">
       <div className="w-full max-w-lg rounded-sm border border-line-control bg-bone-raised p-6 shadow-dialog">
         <div className="flex items-center justify-between border-b border-line pb-3">
           <h2 id="checkout-title" className="font-display text-2xl text-ink">
