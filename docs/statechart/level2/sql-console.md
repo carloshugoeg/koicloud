@@ -14,6 +14,6 @@ stateDiagram-v2
 |---|---|---|---|---|---|---|
 | S1 | Idle | run | running | Running→Idle | history row | `console: query runs and appears in history` |
 | S2 | Idle | run | not running | Rejected | 409 | `console: stopped pond returns pond_not_running` |
-| S3 | Running | SQL error | — | Error | message shown, history row | `console: sql error shows message` |
+| S3 | Running | user SQL error | — | Error | 400 `sql_error`, safe message, no history row | `test_user_sql_error_is_4xx` |
 | S4 | Idle | open Consola | — | Idle | history only this pond | `console: new pond has empty history` |
 | S5 | — | history of foreign pond | — | — | 403/404 | `console: foreign pond history rejected` |

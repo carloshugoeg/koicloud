@@ -32,7 +32,7 @@ services:
       AGENT_MODE: docker
       NODE_ID: node-e2e
       NODE_TOKEN: e2e-node-token
-      NODE_PUBLIC_HOST: 127.0.0.1
+      NODE_PUBLIC_HOST: host.docker.internal
       KOICLOUD_DOMAIN: koicloud.example
       POND_PORT_RANGE_START: "15000"
       POND_PORT_RANGE_END: "15999"
@@ -42,6 +42,8 @@ services:
       INVOICE_DIR: /var/lib/koicloud/invoices
       BACKUP_DIR: /var/lib/koicloud/backups
       PYTHONUNBUFFERED: "1"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - e2e_invoices:/var/lib/koicloud/invoices
       - e2e_backups:/var/lib/koicloud/backups
