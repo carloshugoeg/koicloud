@@ -2,7 +2,7 @@
 id: W2-21
 workstream: W2
 persona: Jason
-estado: en-revision
+estado: hecho
 rama: w2-sql-console-real
 epica: E5-01
 sprint: S5
