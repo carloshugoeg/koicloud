@@ -93,6 +93,7 @@ export function usePondSchema(pondId: string | undefined) {
     enabled: false,
     refetchOnWindowFocus: false,
     refetchInterval: false,
+    retry: false,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/ponds/{pond_id}/schema", {
         params: { path: { pond_id: pondId as string } },
