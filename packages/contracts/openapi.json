@@ -2046,7 +2046,8 @@
             "get_connection",
             "list_subscriptions",
             "list_backups",
-            "get_usage"
+            "get_usage",
+            "list_tables"
           ]
         },
         "properties": {
@@ -2412,6 +2413,46 @@
         "title": "PlanOut",
         "type": "object"
       },
+      "PondColumnOut": {
+        "additionalProperties": false,
+        "example": {
+          "name": "id",
+          "nullable": false,
+          "type": "integer"
+        },
+        "properties": {
+          "default": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "nullable": {
+            "title": "Nullable",
+            "type": "boolean"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "type",
+          "nullable"
+        ],
+        "title": "PondColumnOut",
+        "type": "object"
+      },
       "PondDesiredState": {
         "enum": [
           "running",
@@ -2621,6 +2662,88 @@
           "pond"
         ],
         "title": "PondResponse",
+        "type": "object"
+      },
+      "PondSchemaResponse": {
+        "additionalProperties": false,
+        "example": {
+          "tables": [
+            {
+              "columns": [
+                {
+                  "name": "id",
+                  "nullable": false,
+                  "type": "integer"
+                },
+                {
+                  "default": "'x'::text",
+                  "name": "label",
+                  "nullable": false,
+                  "type": "text"
+                }
+              ],
+              "estimated_rows": 2,
+              "name": "public.orders"
+            }
+          ]
+        },
+        "properties": {
+          "tables": {
+            "items": {
+              "$ref": "#/components/schemas/PondTableOut"
+            },
+            "title": "Tables",
+            "type": "array"
+          }
+        },
+        "required": [
+          "tables"
+        ],
+        "title": "PondSchemaResponse",
+        "type": "object"
+      },
+      "PondTableOut": {
+        "additionalProperties": false,
+        "example": {
+          "columns": [
+            {
+              "name": "id",
+              "nullable": false,
+              "type": "integer"
+            },
+            {
+              "default": "'x'::text",
+              "name": "label",
+              "nullable": false,
+              "type": "text"
+            }
+          ],
+          "estimated_rows": 2,
+          "name": "public.orders"
+        },
+        "properties": {
+          "columns": {
+            "items": {
+              "$ref": "#/components/schemas/PondColumnOut"
+            },
+            "title": "Columns",
+            "type": "array"
+          },
+          "estimated_rows": {
+            "title": "Estimated Rows",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "estimated_rows",
+          "columns"
+        ],
+        "title": "PondTableOut",
         "type": "object"
       },
       "ReadyResponse": {
@@ -6658,6 +6781,120 @@
           }
         ],
         "summary": "Retry Failed Job",
+        "tags": [
+          "ponds"
+        ]
+      }
+    },
+    "/api/v1/ponds/{pond_id}/schema": {
+      "get": {
+        "operationId": "get_pond_schema",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pond_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Pond Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-KOI-Surface",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Surface"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PondSchemaResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Pond Schema",
         "tags": [
           "ponds"
         ]

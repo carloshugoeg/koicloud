@@ -14,7 +14,8 @@ from app.core.crypto import encrypt_secret
 from app.core.security import hash_password, hash_token
 from tests.db_reset import DEMO_EMAIL, ensure_demo_user
 
-PROBE_PASSWORD = "pond-schema-test"
+# Same password as tests/sql_probe_pond.py so probes do not fight over the role.
+PROBE_PASSWORD = "pond-sql-test"
 PROBE_HOST = "127.0.0.1"
 PROBE_PORT = 5432
 
@@ -45,8 +46,11 @@ def _ensure_postgres_role() -> None:
                 )
             )
         else:
+            # Keep password in sync with sql_probe_pond without surprising other suites.
             conn.execute(
-                sql.SQL("ALTER ROLE postgres PASSWORD {}").format(sql.Literal(PROBE_PASSWORD))
+                sql.SQL("ALTER ROLE postgres WITH LOGIN SUPERUSER PASSWORD {}").format(
+                    sql.Literal(PROBE_PASSWORD)
+                )
             )
 
 
@@ -192,17 +196,20 @@ def seed_schema_pond(*, with_tables: bool = False) -> SchemaProbePond:
 
 
 def mark_pond_stopped(pond_id: UUID) -> None:
+    # Unique dead port: observed_state gate fires before connect, so the port
+    # only needs to stay unique under ponds_host_port_uk.
+    dead_port = 16000 + (pond_id.int % 4000)
     engine = create_engine(to_sync_database_url(get_settings().database_url))
     with engine.begin() as connection:
         connection.execute(
             text(
                 """
                 UPDATE ponds
-                SET desired_state = 'stopped', host_port = 1
+                SET desired_state = 'stopped', host_port = :port
                 WHERE id = :id
                 """
             ),
-            {"id": pond_id},
+            {"id": pond_id, "port": dead_port},
         )
         connection.execute(
             text(

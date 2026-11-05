@@ -664,6 +664,52 @@ class ConnectionResponse(SchemaModel):
     model_config = config_with_example({"connection": ConnectionOut.example_data()})
 
 
+class PondColumnOut(SchemaModel):
+    name: str
+    type: str
+    nullable: bool
+    default: str | None = None
+
+    model_config = config_with_example(
+        {
+            "name": "id",
+            "type": "integer",
+            "nullable": False,
+            "default": None,
+        }
+    )
+
+
+class PondTableOut(SchemaModel):
+    name: str
+    estimated_rows: int
+    columns: list[PondColumnOut]
+
+    model_config = config_with_example(
+        {
+            "name": "public.orders",
+            "estimated_rows": 2,
+            "columns": [
+                PondColumnOut.example_data(),
+                {
+                    "name": "label",
+                    "type": "text",
+                    "nullable": False,
+                    "default": "'x'::text",
+                },
+            ],
+        }
+    )
+
+
+class PondSchemaResponse(SchemaModel):
+    tables: list[PondTableOut]
+
+    model_config = config_with_example(
+        {"tables": [PondTableOut.example_data()]}
+    )
+
+
 class BackupOut(SchemaModel):
     id: UUID
     pond_id: UUID
@@ -1176,6 +1222,7 @@ class MCPInfoResponse(SchemaModel):
                 "list_subscriptions",
                 "list_backups",
                 "get_usage",
+                "list_tables",
             ],
             "mutable_tools": [
                 "create_pond",

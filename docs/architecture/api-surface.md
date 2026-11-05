@@ -74,6 +74,7 @@ Notación: `M ROUTE → CommandOrService` con response resumido. `[C]` = requier
 | GET | `/ponds/{id}` | `get_pond` | Detalle con estado observado | `{pond}` con `size_bytes` (última muestra o null) |
 | GET | `/ponds/by-name/{name}` | `get_pond_by_name` | Lookup por nombre | `{pond}` |
 | GET | `/ponds/{id}/connection` | `get_connection` | Host/port/user/pass/uri | `{connection}` |
+| GET | `/ponds/{id}/schema` | `get_pond_schema` | Tablas (schema-qualified), columnas y estimación de filas vía rol de consola | `{tables:[{name, estimated_rows, columns:[{name, type, nullable, default}]}]}` |
 | POST | `/ponds/{id}/retry` | `retry_failed_job` [C-CLI/MCP] | Reencola último job failed | `202 {job}` |
 | POST | `/ponds/{id}/stop` | `stop_pond` [C-CLI/MCP] | `desired=stopped` + job `stop_pond` | `202 {pond, job}` |
 | POST | `/ponds/{id}/start` | `start_pond` [C-CLI/MCP] | `desired=running` + job `start_pond` | `202 {pond, job}` |
@@ -185,6 +186,7 @@ Servidor **FastMCP** montado en el mismo proceso API. Cada tool es de ≤ 25 lí
 | `start_pond(name)` | Encola arranque (`desired=running`) | — | ✓ |
 | `list_subscriptions()` | Suscripciones del usuario | ✓ | — |
 | `list_backups(pond_name)` | Respaldos disponibles | ✓ | — |
+| `list_tables(pond_id)` | Esquema del pond (mismo payload que `GET /ponds/{id}/schema`) | ✓ | — |
 | `restore_backup(pond_name, backup_id)` | Encola restore | — | ✓ |
 | `run_sql(pond_name, query, mode)` | Ejecuta SQL — `mode="read"` directo; `mode="write"` con propose | Depende | Sí para `write` |
 | `get_usage(month?)` | Uso del mes | ✓ | — |

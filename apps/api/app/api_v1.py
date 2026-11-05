@@ -55,6 +55,7 @@ from app.schemas import (
     PlanListResponse,
     PondListResponse,
     PondResponse,
+    PondSchemaResponse,
     ReadyResponse,
     RefreshTokenRequest,
     RegisterUserRequest,
@@ -446,6 +447,20 @@ async def get_connection(
     actor: Annotated[AuthContext, Depends(get_current_user)],
 ) -> ConnectionResponse:
     return await pond_commands.get_connection(actor, pond_id)
+
+
+@router.get(
+    "/ponds/{pond_id}/schema",
+    response_model=PondSchemaResponse,
+    operation_id="get_pond_schema",
+    tags=["ponds"],
+    responses=_error_responses(401, 403, 404, 409, 503),
+)
+async def get_pond_schema(
+    pond_id: UUID,
+    actor: Annotated[AuthContext, Depends(get_current_user)],
+) -> PondSchemaResponse:
+    return await sql_commands.get_pond_schema(actor, pond_id)
 
 
 @router.post(
