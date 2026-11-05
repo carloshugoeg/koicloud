@@ -196,6 +196,7 @@ export function AdminUsersPage() {
           <button
             type="button"
             className="mt-4 h-9 rounded-sm border border-line-control bg-bone-raised px-4 text-sm font-medium text-ink focus:shadow-focus"
+            aria-busy={loadingNextPage}
             onClick={nextPage.retry}
           >
             Reintentar

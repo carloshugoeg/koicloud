@@ -24,6 +24,9 @@ export function useNextPageFocus({
   }
 
   function retry() {
+    if (fetchingNextPage) {
+      return;
+    }
     setIntent({ kind: "retry", baseline: users.length });
     void fetchNextPage();
   }
