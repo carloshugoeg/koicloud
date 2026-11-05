@@ -218,27 +218,31 @@ describe("Pond table explorer (#207)", () => {
     expect(schemaGets).toBe(0);
   });
 
-  it("does not poll /schema after a successful load without another press", async () => {
-    const user = userEvent.setup();
-    let schemaGets = 0;
-    server.use(
-      http.get(schemaPath(), () => {
-        schemaGets += 1;
-        return HttpResponse.json(TWO_TABLES_SCHEMA);
-      }),
-    );
+  it(
+    "does not poll /schema after a successful load without another press",
+    async () => {
+      const user = userEvent.setup();
+      let schemaGets = 0;
+      server.use(
+        http.get(schemaPath(), () => {
+          schemaGets += 1;
+          return HttpResponse.json(TWO_TABLES_SCHEMA);
+        }),
+      );
 
-    renderDetail();
-    expect(await screen.findByTestId("pond-tables")).toBeInTheDocument();
-    await user.click(screen.getByTestId("pond-tables-reload"));
-    expect(await screen.findByTestId("pond-tables-list")).toBeInTheDocument();
-    expect(schemaGets).toBe(1);
+      renderDetail();
+      expect(await screen.findByTestId("pond-tables")).toBeInTheDocument();
+      await user.click(screen.getByTestId("pond-tables-reload"));
+      expect(await screen.findByTestId("pond-tables-list")).toBeInTheDocument();
+      expect(schemaGets).toBe(1);
 
-    await new Promise((resolve) => {
-      setTimeout(resolve, 5_000);
-    });
-    expect(schemaGets).toBe(1);
-  });
+      await new Promise((resolve) => {
+        setTimeout(resolve, 5_000);
+      });
+      expect(schemaGets).toBe(1);
+    },
+    15_000,
+  );
 
   it("marks Recargar aria-busy while loading and updates the polite live region", async () => {
     const user = userEvent.setup();
