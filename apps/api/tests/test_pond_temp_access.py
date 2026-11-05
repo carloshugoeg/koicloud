@@ -191,7 +191,55 @@ def test_valid_token_authenticates_mcp_and_pins_to_pond() -> None:
     reset_pond_tables()
     headers = auth_headers()
     pond_a = _create_running_pond(headers, name=_unique("alpha"))
-    pond_b = _create_running_pond(headers, name=_unique("beta"))
+    # Micro plan max_ponds=1: insert a second owned pond directly so the pin
+    # assertion can compare two real ponds without hitting quota_exceeded.
+    pond_b_name = _unique("beta")
+    pond_b_id = str(uuid.uuid4())
+    engine = create_engine(to_sync_database_url(get_settings().database_url))
+    with engine.begin() as connection:
+        row = connection.execute(
+            text(
+                """
+                SELECT user_id, plan_id, node_id, host_port, db_password_encrypted, engine_version
+                FROM ponds WHERE id = :id
+                """
+            ),
+            {"id": pond_a["id"]},
+        ).one()
+        connection.execute(
+            text(
+                """
+                INSERT INTO ponds (
+                    id, user_id, plan_id, node_id, name, engine_version,
+                    desired_state, host_port, db_password_encrypted, created_at
+                ) VALUES (
+                    :id, :user_id, :plan_id, :node_id, :name, :engine_version,
+                    'running', :host_port, :db_password_encrypted, CURRENT_TIMESTAMP
+                )
+                """
+            ),
+            {
+                "id": pond_b_id,
+                "user_id": row.user_id,
+                "plan_id": row.plan_id,
+                "node_id": row.node_id,
+                "name": pond_b_name,
+                "engine_version": row.engine_version,
+                "host_port": int(row.host_port) + 1,
+                "db_password_encrypted": row.db_password_encrypted,
+            },
+        )
+        connection.execute(
+            text(
+                """
+                INSERT INTO pond_status (pond_id, observed_state, healthy)
+                VALUES (:id, 'running', true)
+                """
+            ),
+            {"id": pond_b_id},
+        )
+    engine.dispose()
+    pond_b = {"id": pond_b_id, "name": pond_b_name}
     created = _create_temp_access(headers, pond_a["id"])
     assert created["response"].status_code == 201, created["response"].text
     slug = created["body"]["slug"]
