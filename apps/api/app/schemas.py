@@ -850,6 +850,72 @@ class ToggleAgentAccessResponse(SchemaModel):
     model_config = config_with_example({"enabled": False})
 
 
+class PondTempAccessCreateRequest(SchemaModel):
+    expires_at: datetime
+    scopes: list[str] | None = None
+
+    model_config = config_with_example(
+        {
+            "expires_at": EXAMPLE_LATER,
+            "scopes": ["whoami", "get_pond", "run_sql"],
+        }
+    )
+
+
+class PondTempAccessOut(SchemaModel):
+    id: UUID
+    pond_id: UUID
+    slug: str
+    url: str
+    expires_at: datetime
+    revoked_at: datetime | None = None
+    scopes: list[str]
+    created_at: datetime
+
+    model_config = config_with_example(
+        {
+            "id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+            "pond_id": EXAMPLE_POND_ID,
+            "slug": "pond-demo-token",
+            "url": "https://koicloud.local/mcp",
+            "expires_at": EXAMPLE_LATER,
+            "revoked_at": None,
+            "scopes": ["whoami", "get_pond", "run_sql"],
+            "created_at": EXAMPLE_NOW,
+        }
+    )
+
+
+class PondTempAccessSecretOut(SchemaModel):
+    id: UUID
+    pond_id: UUID
+    slug: str
+    url: str
+    password: str
+    expires_at: datetime
+    scopes: list[str]
+
+    model_config = config_with_example(
+        {
+            "id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+            "pond_id": EXAMPLE_POND_ID,
+            "slug": "pond-demo-token",
+            "url": "https://koicloud.local/mcp",
+            "password": "one-time-password",
+            "expires_at": EXAMPLE_LATER,
+            "scopes": ["whoami", "get_pond", "run_sql"],
+        }
+    )
+
+
+class PondTempAccessListResponse(SchemaModel):
+    tokens: list[PondTempAccessOut]
+
+    model_config = config_with_example(
+        {"tokens": [PondTempAccessOut.example_data()]}
+    )
+
+
 class ConfirmationNextStep(SchemaModel):
     confirm_url: str
     cli_example: str

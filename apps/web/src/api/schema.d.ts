@@ -621,6 +621,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ponds/{pond_id}/temp-access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Pond Temp Access */
+        get: operations["list_pond_temp_access"];
+        put?: never;
+        /** Create Pond Temp Access */
+        post: operations["create_pond_temp_access"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ponds/{pond_id}/temp-access/{token_id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke Pond Temp Access */
+        post: operations["revoke_pond_temp_access"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ready": {
         parameters: {
             query?: never;
@@ -2278,6 +2313,137 @@ export interface components {
          */
         PondResponse: {
             pond: components["schemas"]["PondOut"];
+        };
+        /**
+         * PondTempAccessCreateRequest
+         * @example {
+         *       "expires_at": "2026-09-22T20:05:00Z",
+         *       "scopes": [
+         *         "whoami",
+         *         "get_pond",
+         *         "run_sql"
+         *       ]
+         *     }
+         */
+        PondTempAccessCreateRequest: {
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Scopes */
+            scopes?: string[] | null;
+        };
+        /**
+         * PondTempAccessListResponse
+         * @example {
+         *       "tokens": [
+         *         {
+         *           "created_at": "2026-09-22T20:00:00Z",
+         *           "expires_at": "2026-09-22T20:05:00Z",
+         *           "id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+         *           "pond_id": "66666666-6666-6666-6666-666666666666",
+         *           "scopes": [
+         *             "whoami",
+         *             "get_pond",
+         *             "run_sql"
+         *           ],
+         *           "slug": "pond-demo-token",
+         *           "url": "https://koicloud.local/mcp"
+         *         }
+         *       ]
+         *     }
+         */
+        PondTempAccessListResponse: {
+            /** Tokens */
+            tokens: components["schemas"]["PondTempAccessOut"][];
+        };
+        /**
+         * PondTempAccessOut
+         * @example {
+         *       "created_at": "2026-09-22T20:00:00Z",
+         *       "expires_at": "2026-09-22T20:05:00Z",
+         *       "id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+         *       "pond_id": "66666666-6666-6666-6666-666666666666",
+         *       "scopes": [
+         *         "whoami",
+         *         "get_pond",
+         *         "run_sql"
+         *       ],
+         *       "slug": "pond-demo-token",
+         *       "url": "https://koicloud.local/mcp"
+         *     }
+         */
+        PondTempAccessOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Pond Id
+             * Format: uuid
+             */
+            pond_id: string;
+            /** Revoked At */
+            revoked_at?: string | null;
+            /** Scopes */
+            scopes: string[];
+            /** Slug */
+            slug: string;
+            /** Url */
+            url: string;
+        };
+        /**
+         * PondTempAccessSecretOut
+         * @example {
+         *       "expires_at": "2026-09-22T20:05:00Z",
+         *       "id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+         *       "password": "one-time-password",
+         *       "pond_id": "66666666-6666-6666-6666-666666666666",
+         *       "scopes": [
+         *         "whoami",
+         *         "get_pond",
+         *         "run_sql"
+         *       ],
+         *       "slug": "pond-demo-token",
+         *       "url": "https://koicloud.local/mcp"
+         *     }
+         */
+        PondTempAccessSecretOut: {
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Password */
+            password: string;
+            /**
+             * Pond Id
+             * Format: uuid
+             */
+            pond_id: string;
+            /** Scopes */
+            scopes: string[];
+            /** Slug */
+            slug: string;
+            /** Url */
+            url: string;
         };
         /**
          * ReadyResponse
@@ -5142,6 +5308,191 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    list_pond_temp_access: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-KOI-Surface"?: string | null;
+            };
+            path: {
+                pond_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PondTempAccessListResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_pond_temp_access: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-KOI-Surface"?: string | null;
+            };
+            path: {
+                pond_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PondTempAccessCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PondTempAccessSecretOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_pond_temp_access: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-KOI-Surface"?: string | null;
+            };
+            path: {
+                pond_id: string;
+                token_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PondTempAccessOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
