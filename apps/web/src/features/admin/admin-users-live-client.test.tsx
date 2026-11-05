@@ -460,4 +460,71 @@ describe("admin users from the API client with MSW off", () => {
     expect(alert).toHaveTextContent(/No pudimos cargar más usuarios\./);
     expect(cursorHits).toBe(1);
   });
+
+  it("ignores extra Reintentar presses while the retry is in flight", async () => {
+    const user = userEvent.setup();
+    let failCursor = true;
+    let releaseRetry: () => void = () => {};
+    const gate = new Promise<void>((resolve) => {
+      releaseRetry = resolve;
+    });
+    let cursorHits = 0;
+    vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = input instanceof Request ? input.url : String(input);
+      const method = (
+        input instanceof Request ? input.method : (init?.method ?? "GET")
+      ).toUpperCase();
+      if (method === "GET" && url.includes("/api/v1/admin/users")) {
+        const cursor = new URL(url).searchParams.get("cursor");
+        if (cursor == null) {
+          return jsonResponse({ users: [QA_USER], next_cursor: "page-2" });
+        }
+        cursorHits += 1;
+        if (failCursor) {
+          return jsonResponse({ code: "internal_error", message: "internal_error" }, 500);
+        }
+        await gate;
+        return jsonResponse({ users: [DEMO_USER], next_cursor: "page-3" });
+      }
+      if (method === "GET" && url.includes("/api/v1/admin/ponds")) {
+        return jsonResponse({ ponds: [], next_cursor: null });
+      }
+      return jsonResponse({ code: "internal_error", message: "unmocked" }, 500);
+    });
+
+    try {
+      renderUsersScreen(clientWithoutRetry());
+      expect(await screen.findByText("QA Uno")).toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: "Cargar más" }));
+
+      const alert = await screen.findByRole("alert");
+      expect(alert).toHaveTextContent(/No pudimos cargar más usuarios\./);
+      expect(cursorHits).toBe(1);
+
+      failCursor = false;
+      await user.click(within(alert).getByRole("button", { name: "Reintentar" }));
+
+      const retry = within(alert).getByRole("button", { name: "Reintentar" });
+      expect(retry).toHaveAttribute("aria-busy", "true");
+      expect(retry).toBeEnabled();
+      expect(retry).toHaveFocus();
+      expect(document.activeElement).not.toBe(document.body);
+      expect(cursorHits).toBe(2);
+
+      await user.click(retry);
+      await user.click(retry);
+      await user.click(retry);
+
+      expect(cursorHits).toBe(2);
+      expect(retry).toHaveAttribute("aria-busy", "true");
+      expect(document.activeElement).not.toBe(document.body);
+
+      releaseRetry();
+      expect(await screen.findByText("Cuenta Demo")).toBeInTheDocument();
+      expect(screen.getByText("QA Uno")).toBeInTheDocument();
+      expectFocusOnRow(DEMO_USER.id);
+    } finally {
+      releaseRetry();
+    }
+  });
 });
