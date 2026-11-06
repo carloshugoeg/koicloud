@@ -339,7 +339,7 @@ Cada variable con placeholder y un comentario que documente su significado. Ejem
 | `rules` | `python3 scripts/sync-rules.py` y `git diff --exit-code .agents/rules/` | `.agents/rules/` no está al día respecto de `.cursor/rules/`, o alguna regla pasa de 12 000 caracteres (tope de Antigravity) |
 | `authorship` | recorre `git log origin/main..HEAD`: autor de cada commit contra el registro de `docs/WORKSTREAMS.md` §3, y `grep -i 'co-authored-by.*\(cursor\|antigravity\|gemini\|claude\)\|generated with'` | Un commit trae un trailer de herramienta, o un autor que no está en el registro del equipo |
 
-La compuerta de merge (además de CI required) es un comentario de revisión de **ship** (Grok Bot de W1) en el head commit que empiece por `ship review: LGTM`. Si empieza por `ship review: changes needed`, se corrige en la misma rama. Detalle en [`agent-docs.md`](./agent-docs.md) §8. El antiguo workflow Claude de revisión automática ya no existe.
+La compuerta de merge (además de CI required) es el veredicto de **Gate**: un comentario cuya primera línea es `gate: PASS <40-char head sha>` para el head actual. Un `gate: FAIL …`, un PASS de otro sha, o ningún veredicto dejan `guards` en rojo. Un `ship review: LGTM` solo no cuenta. Detalle en [`agent-docs.md`](./agent-docs.md) §8.
 
 `.github/workflows/deploy.yml` (W4) se dispara con push a `main` que toque `apps/**`, `packages/contracts/**` o `infra/**`. Hace `ssh <vps> "cd /srv/koicloud && infra/scripts/deploy.sh"`.
 
@@ -392,7 +392,7 @@ La lista operativa completa, con verificaciones y criterios de «hecho», está 
    - Required status checks: `ownership`, `api`, `web`, `node-agent`, `cli`, `secrets`, `rules`, `authorship`.
    - Require linear history; allow squash only; allow auto-merge; block force-push and deletions.
 7. Añadir secretos: `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY`, `POND_PASSWORD_KEY`, `JWT_SECRET`.
-8. Correr el primer PR de prueba (creación de `apps/api/app/main.py` con “hello world”) para verificar CI, ownership, autoría y un comentario `ship review: LGTM` en el head.
+8. Correr el primer PR de prueba (creación de `apps/api/app/main.py` con “hello world”) para verificar CI, ownership, autoría y un comentario `gate: PASS <head sha>` en el head.
 9. **Probar el harness con una persona real:** alguien que no escribió el pack abre el repo en su herramienta y escribe «Soy Jason. ¿Qué me toca y ejecútalo?». Si no sale el ticket correcto con su rama y sus rutas prohibidas, el harness no está listo y se arregla antes de repartir trabajo.
 10. A partir de aquí, seguir el plan de Fase 0 → Sprints en [`feature-breakdown.md`](./feature-breakdown.md).
 

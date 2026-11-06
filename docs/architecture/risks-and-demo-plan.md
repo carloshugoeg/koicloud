@@ -17,7 +17,7 @@ Este documento reúne los modos en que KoiCloud puede fallar durante el semestre
 | R-07 | Docker deja contenedores zombis | Baja | Medio | `koi-pond-*` en `Exited` con datos huérfanos | Runbook `docs/runbooks/reap-ponds.md`; script `scripts/cleanup-orphans.sh` |
 | R-08 | El servidor Postgres interno pierde datos por error de migración | Baja | Muy alto | Deploy falla, `/ready` responde 503 | `alembic downgrade` guiado por runbook; respaldo diario de la base interna |
 | R-09 | `GH_TOKEN` expira / rate-limit de GitHub | Baja | Bajo | `gh` responde 401/403 | Fallback: Mac worker autenticado como `carloshugoeg`. Ver `../github-publish.md` |
-| R-10 | ship (Grok Bot) no deja `ship review: LGTM` | Baja | Medio | PR sin comentario ship en el head | W1 revisa a mano o re-pide ship; no se fusiona sin LGTM + CI verde |
+| R-10 | Gate no deja `gate: PASS <head sha>` | Baja | Medio | PR sin veredicto Gate en el head | Re-pedir Gate en el head actual; no se fusiona sin PASS + CI verde |
 | R-11 | El servidor MCP presenta bugs con montaje in-process | Media | Medio | Endpoints `/mcp` responden 500 en dev | Plan B: correr FastMCP como proceso separado detrás de Caddy `/mcp`; ADR-013 del harness previo documenta el cambio |
 | R-12 | Fricción con `SET TRANSACTION READ ONLY` en pond con extensiones raras | Baja | Bajo | `run_sql` mode=read falla en ciertos casos | Restringir la consola a Postgres base sin extensiones (fuera de alcance de todos modos) |
 | R-13 | Falta de tiempo de un integrante | Media | Alto | Semana con < 20 % de PRs mergeados | Recorte guiado por §6; W1 redistribuye tickets |
