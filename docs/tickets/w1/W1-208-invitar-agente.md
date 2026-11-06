@@ -2,7 +2,7 @@
 id: W1-208
 workstream: W1
 persona: Carlos
-estado: en_curso
+estado: en-curso
 rama: w1-208-invitar-agente
 epica: "E9-02"
 sprint: S7
