@@ -44,7 +44,9 @@ def _named_vendored_requirement(api: Path, requirement: str) -> str:
     name = data.get("project", {}).get("name")
     if not name:
         return requirement
-    return f"{name} @ ./vendor/{pkg_dir.name}"
+    # No leading "./": Vercel rewrites "./vendor/..." to "apps/web/vendor/..." and
+    # then resolves that again from apps/web, producing apps/web/apps/web/vendor.
+    return f"{name} @ vendor/{pkg_dir.name}"
 
 
 def sync_vendor_path_deps(api: Path) -> None:
