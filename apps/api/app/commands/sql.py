@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import time
+from collections import defaultdict
 from uuid import UUID
 
 import asyncpg
@@ -10,13 +11,16 @@ from app.commands import build_confirmation
 from app.core.auth import AuthContext
 from app.core.config import get_settings
 from app.core.db import SessionLocal
-from app.core.enums import AppSurface, SQLMode
+from app.core.enums import AppSurface, PondObservedState, SQLMode
 from app.core.errors import AppError, ErrorCode
 from app.modules.ponds import PondService
 from app.modules.sql_console import HistoryWrite, SqlConsoleService
 from app.schemas import (
     ConfirmationRequiredResponse,
     ConnectionOut,
+    PondColumnOut,
+    PondSchemaResponse,
+    PondTableOut,
     RunSQLRequest,
     SQLHistoryResponse,
     SQLResultResponse,
@@ -33,6 +37,42 @@ _USER_SQL_ERRORS = (
     asyncpg.exceptions.RaiseError,
 )
 
+_SCHEMA_TABLES_SQL = """
+SELECT
+  n.nspname AS schema_name,
+  c.relname AS table_name,
+  GREATEST(COALESCE(c.reltuples, 0), 0)::bigint AS estimated_rows
+FROM pg_catalog.pg_class c
+JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+WHERE c.relkind = 'r'
+  AND n.nspname NOT IN ('pg_catalog', 'information_schema')
+  AND n.nspname NOT LIKE 'pg_toast%'
+  AND n.nspname NOT LIKE 'pg_temp%'
+ORDER BY n.nspname, c.relname
+"""
+
+_SCHEMA_COLUMNS_SQL = """
+SELECT
+  n.nspname AS schema_name,
+  c.relname AS table_name,
+  a.attname AS column_name,
+  pg_catalog.format_type(a.atttypid, a.atttypmod) AS data_type,
+  NOT a.attnotnull AS nullable,
+  pg_catalog.pg_get_expr(ad.adbin, ad.adrelid) AS column_default
+FROM pg_catalog.pg_attribute a
+JOIN pg_catalog.pg_class c ON c.oid = a.attrelid
+JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+LEFT JOIN pg_catalog.pg_attrdef ad
+  ON ad.adrelid = a.attrelid AND ad.adnum = a.attnum
+WHERE a.attnum > 0
+  AND NOT a.attisdropped
+  AND c.relkind = 'r'
+  AND n.nspname NOT IN ('pg_catalog', 'information_schema')
+  AND n.nspname NOT LIKE 'pg_toast%'
+  AND n.nspname NOT LIKE 'pg_temp%'
+ORDER BY n.nspname, c.relname, a.attnum
+"""
+
 
 def _cell(value: object) -> object:
     if value is None or isinstance(value, str | int | float | bool):
@@ -42,10 +82,9 @@ def _cell(value: object) -> object:
     return str(value)
 
 
-async def _execute(connection: ConnectionOut, payload: RunSQLRequest) -> SQLResultResponse:
-    started = time.perf_counter()
+async def _connect(connection: ConnectionOut) -> asyncpg.Connection:
     try:
-        conn = await asyncpg.connect(
+        return await asyncpg.connect(
             host=connection.host,
             port=connection.port,
             user=connection.username,
@@ -55,6 +94,11 @@ async def _execute(connection: ConnectionOut, payload: RunSQLRequest) -> SQLResu
         )
     except (OSError, asyncpg.PostgresError) as exc:
         raise AppError(ErrorCode.NODE_UNAVAILABLE) from exc
+
+
+async def _execute(connection: ConnectionOut, payload: RunSQLRequest) -> SQLResultResponse:
+    started = time.perf_counter()
+    conn = await _connect(connection)
     try:
         await conn.execute(
             "SELECT set_config('statement_timeout', $1, false)",
@@ -140,3 +184,62 @@ async def list_sql_history(actor: AuthContext, pond_id: UUID) -> SQLHistoryRespo
             limit=get_settings().default_limit,
             cursor=None,
         )
+
+
+async def _fetch_pond_schema(connection: ConnectionOut) -> PondSchemaResponse:
+    conn = await _connect(connection)
+    try:
+        await conn.execute(
+            "SELECT set_config('statement_timeout', $1, false)",
+            STATEMENT_TIMEOUT,
+        )
+        async with conn.transaction(readonly=True):
+            table_rows = await conn.fetch(_SCHEMA_TABLES_SQL)
+            column_rows = await conn.fetch(_SCHEMA_COLUMNS_SQL)
+    except asyncpg.exceptions.QueryCanceledError as exc:
+        raise AppError(ErrorCode.SQL_TIMEOUT) from exc
+    except asyncpg.exceptions.PostgresConnectionError as exc:
+        raise AppError(ErrorCode.NODE_UNAVAILABLE) from exc
+    except _USER_SQL_ERRORS as exc:
+        logger.warning("pond schema rejected", exc_info=exc)
+        raise AppError(ErrorCode.SQL_ERROR) from exc
+    except asyncpg.PostgresError as exc:
+        logger.warning("pond schema failed", exc_info=exc)
+        raise AppError(ErrorCode.INTERNAL_ERROR) from exc
+    finally:
+        await conn.close()
+
+    columns_by_table: dict[tuple[str, str], list[PondColumnOut]] = defaultdict(list)
+    for row in column_rows:
+        key = (row["schema_name"], row["table_name"])
+        columns_by_table[key].append(
+            PondColumnOut(
+                name=row["column_name"],
+                type=row["data_type"],
+                nullable=bool(row["nullable"]),
+                default=row["column_default"],
+            )
+        )
+
+    tables = [
+        PondTableOut(
+            name=f"{row['schema_name']}.{row['table_name']}",
+            estimated_rows=int(row["estimated_rows"]),
+            columns=columns_by_table[(row["schema_name"], row["table_name"])],
+        )
+        for row in table_rows
+    ]
+    return PondSchemaResponse(tables=tables)
+
+
+async def get_pond_schema(actor: AuthContext, pond_id: UUID) -> PondSchemaResponse:
+    async with SessionLocal() as session:
+        service = PondService(session, get_settings())
+        _pond, status = await service.get_owned(actor, pond_id)
+        if status.observed_state != PondObservedState.RUNNING:
+            raise AppError(
+                ErrorCode.POND_BUSY,
+                message="El pond no está en ejecución",
+            )
+        connection = await service.connection_for_owned(actor, pond_id)
+    return await _fetch_pond_schema(connection)
