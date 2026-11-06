@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import logging
+import re
 import time
+from datetime import timedelta
 from uuid import UUID
 
 import asyncpg
+from sqlalchemy import func, select
 
 from app.commands import build_confirmation
 from app.core.auth import AuthContext
@@ -12,6 +15,8 @@ from app.core.config import get_settings
 from app.core.db import SessionLocal
 from app.core.enums import AppSurface, SQLMode
 from app.core.errors import AppError, ErrorCode
+from app.core.models import AuditEvent
+from app.core.time import utc_now
 from app.modules.ponds import PondService
 from app.modules.sql_console import HistoryWrite, SqlConsoleService
 from app.schemas import (
@@ -26,6 +31,15 @@ logger = logging.getLogger(__name__)
 
 ROW_CAP = 1000
 STATEMENT_TIMEOUT = "10s"
+TEMP_SQL_RATE_LIMIT = 10
+TEMP_SQL_RATE_WINDOW = timedelta(seconds=60)
+TEMP_SQL_RATE_ACTION = "temp_sql_run"
+
+_DANGEROUS_SQL = re.compile(
+    r"(?is)\bDROP\s+DATABASE\b|\bDROP\s+ROLE\b|\bALTER\s+SYSTEM\b|\bCOPY\b[\s\S]*?\bPROGRAM\b"
+)
+_PRIVILEGE_SQL = re.compile(r"(?is)\bGRANT\b|\bREVOKE\b|\bALTER\s+ROLE\b")
+
 _USER_SQL_ERRORS = (
     asyncpg.exceptions.SyntaxOrAccessError,
     asyncpg.exceptions.DataError,
@@ -34,12 +48,53 @@ _USER_SQL_ERRORS = (
 )
 
 
+def _is_temp_actor(actor: AuthContext) -> bool:
+    return actor.pond_id is not None
+
+
+def _reject_temp_forbidden_sql(query: str) -> None:
+    if _DANGEROUS_SQL.search(query) or _PRIVILEGE_SQL.search(query):
+        raise AppError(ErrorCode.SQL_ERROR)
+
+
 def _cell(value: object) -> object:
     if value is None or isinstance(value, str | int | float | bool):
         return value
     if isinstance(value, bytes | memoryview):
         return bytes(value).decode("utf-8", errors="replace")
     return str(value)
+
+
+async def _consume_temp_rate_limit(actor: AuthContext) -> None:
+    """Count temp-access SQL calls per pond in the window via audit_events."""
+    assert actor.pond_id is not None
+    pond_id = UUID(actor.pond_id)
+    user_id = UUID(actor.user_id)
+    since = utc_now() - TEMP_SQL_RATE_WINDOW
+    async with SessionLocal() as session:
+        used = await session.scalar(
+            select(func.count())
+            .select_from(AuditEvent)
+            .where(
+                AuditEvent.actor_user_id == user_id,
+                AuditEvent.target_id == pond_id,
+                AuditEvent.action == TEMP_SQL_RATE_ACTION,
+                AuditEvent.at >= since,
+            )
+        )
+        if (used or 0) >= TEMP_SQL_RATE_LIMIT:
+            raise AppError(ErrorCode.RATE_LIMITED)
+        session.add(
+            AuditEvent(
+                actor_user_id=user_id,
+                actor_kind="temp_access",
+                target_kind="pond",
+                target_id=pond_id,
+                action=TEMP_SQL_RATE_ACTION,
+                event_metadata={},
+            )
+        )
+        await session.commit()
 
 
 async def _execute(connection: ConnectionOut, payload: RunSQLRequest) -> SQLResultResponse:
@@ -104,7 +159,18 @@ async def run_sql(
     surface: AppSurface,
     confirm_token: str | None = None,
 ) -> SQLResultResponse | ConfirmationRequiredResponse:
-    if payload.mode == SQLMode.WRITE and surface in {AppSurface.CLI, AppSurface.MCP} and not confirm_token:
+    temp = _is_temp_actor(actor)
+    if temp:
+        await _consume_temp_rate_limit(actor)
+        _reject_temp_forbidden_sql(payload.query)
+
+    needs_confirm = (
+        payload.mode == SQLMode.WRITE
+        and surface in {AppSurface.CLI, AppSurface.MCP}
+        and not confirm_token
+        and not temp
+    )
+    if needs_confirm:
         return await build_confirmation(
             actor=actor,
             action="run_sql_write",
