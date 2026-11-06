@@ -1,0 +1,69 @@
+---
+title: "Email verification send"
+---
+stateDiagram-v2
+  direction LR
+  state "Legend" as legend {
+    lg0: Breaks NoDoubleBurst or NoPlaintextOnResend or RaceSettles or ResendAlwaysNeutral or SendWhenResendRegisters in some cases
+    lg1: Path to the NoDoubleBurst or NoPlaintextOnResend or RaceSettles or ResendAlwaysNeutral or SendWhenResendRegisters bug
+  }
+  class lg0 mayBreak
+  class lg1 bugPath
+  state "At the same time" as all {
+    state "Account" as r0 {
+      s0: No account
+      s1: Unverified account
+      s2: Verified account
+      [*] --> s0
+      s0 --> s1: you register a new email [when Race is Idle]
+      s0 --> s1: register creates a token but never sends [when Mail is Resend idle and Race is Idle]
+      s0 --> s1: a second register commits during the race or re-signup races and leaves a second register in flight [when Race is Register in flight]
+      s1 --> s2: you open the verify link
+    }
+    --
+    state "Mail" as r1 {
+      s3: Console quiet
+      s4: Resend idle
+      s5: Console logged token
+      s6: Resend sent x1
+      s7: Resend sent x2
+      s8: Resend sent x3
+      [*] --> s3
+      [*] --> s4
+      s3 --> s5: you register a new email [when Race is Idle]
+      s4 --> s6: you register a new email [when Account is No account and Race is Idle]
+      s3 --> s5: a second register commits during the race or re-signup races and leaves a second register in flight [when Race is Register in flight]
+      s4 --> s6: a second register commits during the race or re-signup races and leaves a second register in flight [when Account is No account and Race is Register in flight]
+      s4 --> s6: you register again [unverified] or you ask to resend [unverified]
+      s4 --> s7: one resend fires two deliveries [when Account is Unverified account and Race is Idle]
+      s6 --> s7: you register again [unverified] or you ask to resend [unverified]
+      s6 --> s8: one resend fires two deliveries [when Account is Unverified account]
+    }
+    --
+    state "Race" as r2 {
+      s9: Idle
+      s10: Register in flight
+      [*] --> s9
+      s9 --> s10: a register starts and has not committed [when Account is No account and Mail is one of Console quiet, Resend idle]
+      s10 --> s9: a second register commits during the race [when Account is No account and Mail is one of Console quiet, Resend idle]
+    }
+  }
+  classDef mayBreak fill:#fff3e6,stroke:#e8730c,stroke-width:2.5px,color:#b85a06
+  class s0 mayBreak
+  class s0 bugPath
+  class s1 mayBreak
+  class s1 bugPath
+  class s3 mayBreak
+  class s3 bugPath
+  class s4 mayBreak
+  class s4 bugPath
+  class s5 mayBreak
+  class s5 bugPath
+  class s6 mayBreak
+  class s6 bugPath
+  class s7 mayBreak
+  class s8 mayBreak
+  class s8 bugPath
+  class s9 bugPath
+  class s10 mayBreak
+  class s10 bugPath
