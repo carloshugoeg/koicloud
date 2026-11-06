@@ -139,7 +139,7 @@ jobs:
 
   e2e-pond-lifecycle:
     name: e2e-pond-lifecycle
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -176,7 +176,7 @@ jobs:
 
   e2e-journey:
     name: e2e-journey
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -213,7 +213,7 @@ jobs:
 
   e2e-sql-console:
     name: e2e-sql-console
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     services:
       postgres:
         image: postgres:16-alpine

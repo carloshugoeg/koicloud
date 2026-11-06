@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
@@ -24,6 +25,7 @@ from app.core.security import (
     verify_password,
 )
 from app.core.time import utc_now
+from app.modules.notifications import send
 from app.schemas import (
     ForgotPasswordRequest,
     LoginRequest,
@@ -32,6 +34,7 @@ from app.schemas import (
     RefreshTokenRequest,
     RegisterUserRequest,
     RegisterUserResponse,
+    ResendVerificationRequest,
     ResetPasswordRequest,
     TokenPairResponse,
     UserOut,
@@ -139,16 +142,51 @@ async def issue_email_token(user_id: UUID, kind: EmailTokenKind) -> str:
         return plaintext
 
 
+def _verify_email_url(plaintext: str) -> str:
+    domain = get_settings().koicloud_domain.strip()
+    return f"https://{domain}/verify?token={plaintext}"
+
+
+def _log_verify_token_if_console(email: str, plaintext: str) -> None:
+    """Surface plaintext verify token only for EMAIL_PROVIDER=console (pack R-03)."""
+    if get_settings().email_provider == "console":
+        logger.info("verify_email token for %s: %s", email, plaintext)
+
+
+async def _deliver_verify_email(email: str, plaintext: str) -> None:
+    """Send verify_email via Resend, or log plaintext when the provider is console."""
+    if get_settings().email_provider == "console":
+        _log_verify_token_if_console(email, plaintext)
+        return
+    await asyncio.to_thread(
+        send,
+        "verify_email",
+        email,
+        {"url": _verify_email_url(plaintext), "email": email},
+    )
+
+
 async def register_user(payload: RegisterUserRequest) -> RegisterUserResponse:
     if len(payload.password) < 8:
         raise AppError(ErrorCode.PASSWORD_TOO_WEAK)
 
     async with SessionLocal() as session:
-        taken = (
-            await session.execute(select(User.id).where(User.email == payload.email))
+        existing = (
+            await session.execute(select(User).where(User.email == payload.email))
         ).scalar_one_or_none()
-        if taken is not None:
-            raise AppError(ErrorCode.EMAIL_TAKEN)
+        if existing is not None:
+            if existing.email_verified_at is not None:
+                raise AppError(ErrorCode.EMAIL_TAKEN)
+            # Unverified re-register: refresh credentials and resend verify mail.
+            existing.password_hash = hash_password(payload.password)
+            existing.full_name = payload.full_name
+            existing.nit = payload.nit
+            plaintext = await _issue_email_token_row(
+                session, existing.id, EmailTokenKind.VERIFY_EMAIL
+            )
+            await session.commit()
+            await _deliver_verify_email(payload.email, plaintext)
+            return RegisterUserResponse(user_id=existing.id, email_verified=False)
 
         user = User(
             email=payload.email,
@@ -167,14 +205,22 @@ async def register_user(payload: RegisterUserRequest) -> RegisterUserResponse:
 
         plaintext = await _issue_email_token_row(session, user.id, EmailTokenKind.VERIFY_EMAIL)
         await session.commit()
-        _log_verify_token_if_console(payload.email, plaintext)
+        await _deliver_verify_email(payload.email, plaintext)
         return RegisterUserResponse(user_id=user.id, email_verified=False)
 
 
-def _log_verify_token_if_console(email: str, plaintext: str) -> None:
-    """Surface plaintext verify token only for EMAIL_PROVIDER=console (pack R-03)."""
-    if get_settings().email_provider == "console":
-        logger.info("verify_email token for %s: %s", email, plaintext)
+async def resend_verification(payload: ResendVerificationRequest) -> OkResponse:
+    """Always succeed. Only deliver when the email exists and is still unverified."""
+    async with SessionLocal() as session:
+        user = (
+            await session.execute(select(User).where(User.email == payload.email))
+        ).scalar_one_or_none()
+        if user is None or user.email_verified_at is not None:
+            return OkResponse(ok=True)
+        plaintext = await _issue_email_token_row(session, user.id, EmailTokenKind.VERIFY_EMAIL)
+        await session.commit()
+    await _deliver_verify_email(payload.email, plaintext)
+    return OkResponse(ok=True)
 
 
 async def verify_email(payload: VerifyEmailRequest) -> RegisterUserResponse:
