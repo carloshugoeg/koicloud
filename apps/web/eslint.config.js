@@ -6,7 +6,7 @@ import reactRefresh from "eslint-plugin-react-refresh";
 
 export default tseslint.config(
   {
-    ignores: ["dist", "coverage", "node_modules", ".chrome-for-testing"],
+    ignores: ["dist", "coverage", "node_modules", ".chrome-for-testing", "src/vendor/**"],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
