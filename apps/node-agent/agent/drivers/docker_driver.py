@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import io
 import os
+import re
 import tarfile
 import time
 from pathlib import Path
@@ -31,12 +32,145 @@ def database_name_for(pond_name: str) -> str:
     return pond_name.replace("-", "_")
 
 
-class DockerDriver(PondDriver):
-    """Real postgres:16-alpine ponds via the local Docker daemon.
+_POND_OWNER_ROLE = "koi_console"
+_SYSTEM_SCHEMAS = {"pg_catalog", "information_schema"}
+_SCHEMA_STATEMENT = re.compile(
+    rb"(?im)^CREATE\s+SCHEMA\s+(?:IF\s+NOT\s+EXISTS\s+)?"
+    rb"(?P<name>\"(?:[^\"]|\"\")+\"|[A-Za-z_][A-Za-z0-9_$]*)\s*;\s*$"
+)
+_ENSURE_OWNER_ROLE = f"""DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '{_POND_OWNER_ROLE}') THEN
+    CREATE ROLE {_POND_OWNER_ROLE} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION
+      NOBYPASSRLS;
+  END IF;
+END
+$$;
+"""
 
-    CI stays on ``AGENT_MODE=mock``. Use this driver on a laptop or VPS that
-    has a Docker socket (see ``docs/runbooks/local-pond.md``).
-    """
+
+def _quote_ident(name: str) -> str:
+    return '"' + name.replace('"', '""') + '"'
+
+
+def _sql_literal(name: str) -> str:
+    return "'" + name.replace("'", "''") + "'"
+
+
+def _is_system_schema(name: str) -> bool:
+    lowered = name.lower()
+    return lowered in _SYSTEM_SCHEMAS or lowered.startswith(("pg_toast", "pg_temp"))
+
+
+def _schema_name(raw: bytes) -> str:
+    try:
+        if raw[:1] == b'"':
+            return raw[1:-1].replace(b'""', b'"').decode("utf-8")
+        return raw.decode("ascii")
+    except UnicodeDecodeError as error:
+        raise PondDriverError("restore_failed:invalid_dump") from error
+
+
+def _schemas_in_dump(dump: bytes) -> list[str]:
+    names: list[str] = []
+    seen: set[str] = set()
+    for match in _SCHEMA_STATEMENT.finditer(dump):
+        name = _schema_name(match.group("name"))
+        key = name.lower()
+        if _is_system_schema(name) or key in seen:
+            continue
+        seen.add(key)
+        names.append(name)
+    return names
+
+
+def _schemas_to_replace(dump: bytes) -> list[str]:
+    ordered: list[str] = []
+    seen: set[str] = set()
+    for name in ["public", *_schemas_in_dump(dump)]:
+        key = name.lower()
+        if key in seen or _is_system_schema(name):
+            continue
+        seen.add(key)
+        ordered.append(name)
+    return ordered
+
+
+def _owner_sql(names: list[str]) -> str:
+    literals = ", ".join(_sql_literal(name) for name in names)
+    role = _POND_OWNER_ROLE
+    return f"""DO $$
+DECLARE
+  sch text;
+  rel record;
+  fn record;
+  typ record;
+BEGIN
+  FOREACH sch IN ARRAY ARRAY[{literals}]::text[]
+  LOOP
+    IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = sch) THEN
+      EXECUTE format('ALTER SCHEMA %I OWNER TO {role}', sch);
+    END IF;
+  END LOOP;
+  FOR rel IN
+    SELECT c.oid::regclass AS obj, c.relkind
+    FROM pg_class AS c
+    JOIN pg_namespace AS n ON n.oid = c.relnamespace
+    WHERE n.nspname = ANY (ARRAY[{literals}]::text[])
+      AND c.relkind IN ('r', 'p', 'v', 'm', 'S', 'f')
+  LOOP
+    IF rel.relkind = 'S' THEN
+      EXECUTE format('ALTER SEQUENCE %s OWNER TO {role}', rel.obj);
+    ELSIF rel.relkind = 'v' THEN
+      EXECUTE format('ALTER VIEW %s OWNER TO {role}', rel.obj);
+    ELSIF rel.relkind = 'm' THEN
+      EXECUTE format('ALTER MATERIALIZED VIEW %s OWNER TO {role}', rel.obj);
+    ELSIF rel.relkind = 'f' THEN
+      EXECUTE format('ALTER FOREIGN TABLE %s OWNER TO {role}', rel.obj);
+    ELSE
+      EXECUTE format('ALTER TABLE %s OWNER TO {role}', rel.obj);
+    END IF;
+  END LOOP;
+  FOR fn IN
+    SELECT p.oid::regprocedure AS obj
+    FROM pg_proc AS p
+    JOIN pg_namespace AS n ON n.oid = p.pronamespace
+    WHERE n.nspname = ANY (ARRAY[{literals}]::text[])
+  LOOP
+    EXECUTE format('ALTER FUNCTION %s OWNER TO {role}', fn.obj);
+  END LOOP;
+  FOR typ IN
+    SELECT t.oid::regtype AS obj
+    FROM pg_type AS t
+    JOIN pg_namespace AS n ON n.oid = t.typnamespace
+    WHERE n.nspname = ANY (ARRAY[{literals}]::text[])
+      AND t.typtype IN ('c', 'd', 'e')
+      AND NOT EXISTS (
+        SELECT 1
+        FROM pg_class AS c
+        WHERE c.reltype = t.oid AND c.relkind IN ('r', 'p')
+      )
+  LOOP
+    EXECUTE format('ALTER TYPE %s OWNER TO {role}', typ.obj);
+  END LOOP;
+END
+$$;
+"""
+
+
+def restore_script(dump: bytes) -> bytes:
+    names = _schemas_to_replace(dump)
+    created = {name.lower() for name in _schemas_in_dump(dump)}
+    drops = "".join(f"DROP SCHEMA IF EXISTS {_quote_ident(name)} CASCADE;\n" for name in names)
+    create_public = "" if "public" in created else "CREATE SCHEMA public;\n"
+    prefix = f"{_ENSURE_OWNER_ROLE}BEGIN;\n{drops}{create_public}"
+    body = dump if dump.endswith(b"\n") else dump + b"\n"
+    suffix = f"{_owner_sql(names)}COMMIT;\n"
+    return prefix.encode() + body + suffix.encode()
+
+
+class DockerDriver(PondDriver):
+    """Real postgres:16-alpine ponds via the local Docker daemon."""
 
     def __init__(
         self,
@@ -144,10 +278,20 @@ class DockerDriver(PondDriver):
         path = self.backup_dir / f"{pond_name}-{backup_id}.sql"
         if not path.is_file():
             raise PondDriverError(f"backup_not_found:{backup_id}")
-        self._put_file(container, "/tmp/restore.sql", path.read_bytes())
+        self._put_file(container, "/tmp/restore.sql", restore_script(path.read_bytes()))
         database = database_name_for(pond_name)
         code, output = container.exec_run(
-            ["psql", "-U", "postgres", "-d", database, "-f", "/tmp/restore.sql"]
+            [
+                "psql",
+                "-U",
+                "postgres",
+                "-d",
+                database,
+                "-v",
+                "ON_ERROR_STOP=1",
+                "-f",
+                "/tmp/restore.sql",
+            ]
         )
         if code != 0:
             detail = output.decode() if isinstance(output, bytes) else str(output)
@@ -191,7 +335,7 @@ class DockerDriver(PondDriver):
                 code, _output = container.exec_run(["pg_isready", "-U", "postgres"])
                 if code == 0:
                     return
-            except (OSError, RuntimeError) as error:  # pragma: no cover - daemon race
+            except (OSError, RuntimeError) as error:
                 last_error = error
             time.sleep(0.2)
         raise PondDriverError("pond_not_ready") from last_error
