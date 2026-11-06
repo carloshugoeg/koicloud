@@ -151,6 +151,12 @@ class ForgotPasswordRequest(SchemaModel):
     model_config = config_with_example({"email": "carlos@koicloud.dev"})
 
 
+class ResendVerificationRequest(SchemaModel):
+    email: str
+
+    model_config = config_with_example({"email": "jason@koicloud.dev"})
+
+
 class ResetPasswordRequest(SchemaModel):
     token: str
     new_password: str = Field(min_length=8)

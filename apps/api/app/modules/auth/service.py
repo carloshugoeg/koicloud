@@ -13,6 +13,7 @@ from app.schemas import (
     RefreshTokenRequest,
     RegisterUserRequest,
     RegisterUserResponse,
+    ResendVerificationRequest,
     ResetPasswordRequest,
     TokenPairResponse,
     VerifyEmailRequest,
@@ -26,13 +27,17 @@ class AuthService:
 
     @staticmethod
     async def register_user(payload: RegisterUserRequest) -> RegisterUserResponse:
-        # register_user already inserts the verify token and logs plaintext once.
+        # register_user inserts the verify token and delivers verify_email (or console log).
         return await auth_commands.register_user(payload)
 
     @staticmethod
     async def verify_email(payload: VerifyEmailRequest) -> RegisterUserResponse:
         response = await auth_commands.verify_email(payload)
         return RegisterUserResponse(user_id=response.user_id, email_verified=True)
+
+    @staticmethod
+    async def resend_verification(payload: ResendVerificationRequest) -> OkResponse:
+        return await auth_commands.resend_verification(payload)
 
     @staticmethod
     async def issue_email_token(user_id: UUID, kind: EmailTokenKind) -> str:

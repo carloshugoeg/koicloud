@@ -48,6 +48,7 @@ Notación: `M ROUTE → CommandOrService` con response resumido. `[C]` = requier
 | POST | `/auth/login` | `issue_tokens` | Login → JWT + refresh | `{access_token, refresh_token, user}` |
 | POST | `/auth/refresh` | `rotate_refresh` | Rota refresh y emite JWT | `{access_token, refresh_token}` |
 | POST | `/auth/forgot` | `send_reset_token` | Envía email de reset | `{ok:true}` |
+| POST | `/auth/resend-verification` | `resend_verification` | Reenvía token verify_email; siempre 202 | `{ok:true}` |
 | POST | `/auth/reset` | `reset_password` | Consume token + nueva contraseña | `{ok:true}` |
 | POST | `/auth/logout` | `revoke_refresh` | Revoca refresh actual | `204` |
 | GET | `/me` | `get_me` | Perfil del usuario logueado | `{user, subscription?, ponds_count}` |
@@ -464,6 +465,7 @@ Authorization: Bearer <token del agente=user via gate>
 | `POST /auth/login` | 10/min |
 | `POST /auth/register` | 5/min |
 | `POST /auth/forgot` | 3/min |
+| `POST /auth/resend-verification` | 3/min |
 | `/mcp` | 60/min por slug |
 | `POST /confirm/{token}` | 20/min por usuario |
 | `POST /ponds/{id}/sql` (write) | 10/min por usuario |

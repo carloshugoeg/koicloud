@@ -1,5 +1,6 @@
 # Contracts changelog
 
+- 2026-11-06 · Carlos ask + CCR #126 (resend-verification slice) · `POST /auth/resend-verification` (`resend_verification`) with `ResendVerificationRequest {email}` → always `202 {ok:true}`. Unverified re-register resends verify mail; verified stays `email_taken`. No migration.
 - 2026-11-05 · CCR approved by Carlos Nov 5 2026 2:23 PM GT (card t303s1220) · `POST/GET /ponds/{pond_id}/temp-access`, `POST /ponds/{pond_id}/temp-access/{token_id}/revoke` (issue #203). Table `pond_tokens`. Does **not** land `GET /ponds/{id}/schema` (S5).
 - 2026-10-27 · CCR #127 NIT checkout → invoice · `SubscribeRequest.nit?` (trim, empty→null, max 32); `InvoiceOut.nit` from `users.nit`. No migration.
 - 2026-10-27 · CCR #135 · `BackupOut.expires_at` (datetime \| null, derived; no column). Null when status≠succeeded or kind=pre_delete; else created_at + 7 days UTC. No migration. Does not land `PlanOut.backup_retention_days`.
