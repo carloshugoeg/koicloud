@@ -16,9 +16,10 @@ Este documento resume **cómo se comporta el sistema hoy**, derivado del código
 2. **Control plane vs data plane.** La API nunca ejecuta `docker` directamente. Escribe estado deseado, encola jobs (`FOR UPDATE SKIP LOCKED` en la misma base) y el **node-agent** (`apps/node-agent`) materializa ponds con `docker_driver` o `mock_driver`.
 3. **Estado en PostgreSQL.** Usuarios, ponds, jobs, facturación simulada, confirmaciones pendientes, acceso de agente y auditoría mínima viven en la base interna. Sin estado significativo en memoria entre requests.
 4. **Superficies.** La Web usa JWT en header y el refresh en la cookie httpOnly `koi_refresh`. Al recargar, el arranque llama `POST /auth/refresh` antes de pintar el shell; si el refresh falla, la sesión queda cerrada. Cerrar sesión borra el token en memoria y vuelve al login aunque `POST /auth/logout` falle. La cookie lleva `Secure` cuando la petición es HTTPS o el entorno es producción, y el cierre repite esos atributos. CLI y MCP usan JWT; las mutaciones remotas pasan por **`propose → confirmation_token → confirm`** (409 con `summary` en español, token de 5 minutos).
-5. **Consola SQL.** Conexión efímera al puerto público del pond del usuario (`asyncpg`), read-only por defecto; SQL write exige confirmación en CLI/MCP.
-6. **Un solo nodo.** No hay HA ni multi-VPS en alcance. El reconciler del worker es best-effort, no SLA.
-7. **Despliegue académico ($0).** Objetivo: una VM Oracle Always Free (ARM) + hostname sslip.io/nip.io + Caddy TLS + `AGENT_MODE=docker` (ADR 014; ENTREGA-2 §6.3). Con `ENVIRONMENT=production`, la API **no arranca** si `JWT_SECRET`, `POND_PASSWORD_KEY`, `NODE_TOKEN` o `MCP_DEMO_PASSWORD` usan el default de desarrollo o un valor que empieza por `change-me`. `infra/docker-compose.prod.yml` exige esas variables, más `POSTGRES_PASSWORD` y `DATABASE_URL`, sin fallback. En ese entorno no se publican `/docs`, `/redoc` ni `/openapi.json`. Caddy envía HSTS, `X-Content-Type-Options: nosniff`, Referrer-Policy y `X-Frame-Options: DENY`. El preview de Vercel no usa ese compose. En el VPS, Caddy sirve `app.html` cuando `/app/*` no es un archivo, y el healthcheck del worker lee la línea de comandos de pid 1. No usa `pgrep`. Al arrancar, la función aplica `alembic upgrade head` en el schema compartido. Es idempotente. La revisión 0005 solo crea la tabla `revoked_access_tokens`.
+5. **Consola SQL.** Conexión efímera al puerto público del pond del usuario (`asyncpg`), read-only por defecto; SQL write exige confirmación en CLI/MCP. El path de ejecución es el mismo para Web y MCP (`commands.sql.run_sql`); el rol no-superuser `koi_console` llega con #198.
+6. **Acceso temporal a un pond (S2 demo).** Además del gate de cuenta (`agent_access`), un dueño puede emitir `pond_tokens` (link + password, vence y se revoca). MCP autentica ese slug, fija `AuthContext.pond_id` y limita tools a `whoami` / `get_pond` / `run_sql`.
+7. **Un solo nodo.** No hay HA ni multi-VPS en alcance. El reconciler del worker es best-effort, no SLA.
+8. **Despliegue académico ($0).** Objetivo: una VM Oracle Always Free (ARM) + hostname sslip.io/nip.io + Caddy TLS + `AGENT_MODE=docker` (ADR 014; ENTREGA-2 §6.3). Con `ENVIRONMENT=production`, la API **no arranca** si `JWT_SECRET`, `POND_PASSWORD_KEY`, `NODE_TOKEN` o `MCP_DEMO_PASSWORD` usan el default de desarrollo o un valor que empieza por `change-me`. `infra/docker-compose.prod.yml` exige esas variables, más `POSTGRES_PASSWORD` y `DATABASE_URL`, sin fallback. En ese entorno no se publican `/docs`, `/redoc` ni `/openapi.json`. Caddy envía HSTS, `X-Content-Type-Options: nosniff`, Referrer-Policy y `X-Frame-Options: DENY`. El preview de Vercel no usa ese compose. En el VPS, Caddy sirve `app.html` cuando `/app/*` no es un archivo, y el healthcheck del worker lee la línea de comandos de pid 1. No usa `pgrep`. Al arrancar, la función aplica `alembic upgrade head` en el schema compartido. Es idempotente. La revisión 0006 crea `pond_tokens` (acceso temporal por pond).
 
 ---
 
@@ -37,7 +38,7 @@ flowchart TB
         R2["internal_v1.py<br/>/internal/v1"]
         CONF["commands/confirmations"]
         CMD["commands/*<br/>ponds · auth · billing · sql · …"]
-        MOD["modules/*<br/>auth · users · billing · ponds<br/>jobs · nodes · backups · metering<br/>sql_console · admin · agent_access<br/>notifications"]
+        MOD["modules/*<br/>auth · users · billing · ponds<br/>jobs · nodes · backups · metering<br/>sql_console · admin · agent_access<br/>pond_tokens · notifications"]
         WRK["workers/*<br/>scheduler · reconciler"]
     end
 
