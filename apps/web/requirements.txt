@@ -1,6 +1,7 @@
 # Generated from apps/api for Vercel Python on Linux.
 # Win32/emscripten-only deps omitted (Vercel uv sync --locked).
 # Regen: python apps/web/scripts/export-preview-requirements.py
+koicloud-job-sanitize @ ../../packages/job_sanitize
 aiofile==3.12.3
 alembic==1.20.0
 annotated-doc==0.0.5

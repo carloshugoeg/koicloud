@@ -17,8 +17,10 @@ services:
       retries: 30
 
   api:
-    build: ./apps/api
-    working_dir: /app
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    working_dir: /src/apps/api
     # Bind-mount hides the image .venv; keep a named volume and sync runtime deps only
     # (no --group dev / ruff) so Demo B does not depend on PyPI at every start.
     command: sh -lc "uv sync --frozen && uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
@@ -27,9 +29,9 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://koi:koi@db:5432/koicloud
     volumes:
-      - ./apps/api:/app
-      - api_venv:/app/.venv
-      - ./packages:/packages
+      - ./apps/api:/src/apps/api
+      - api_venv:/src/apps/api/.venv
+      - ./packages:/src/packages
     depends_on:
       db:
         condition: service_healthy
@@ -47,24 +49,28 @@ services:
       start_period: 40s
 
   worker:
-    build: ./apps/api
-    working_dir: /app
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    working_dir: /src/apps/api
     command: sh -lc "uv sync --frozen && uv run python -m app.workers.reconciler"
     env_file:
       - .env.example
     environment:
       DATABASE_URL: postgresql+asyncpg://koi:koi@db:5432/koicloud
     volumes:
-      - ./apps/api:/app
-      - api_venv:/app/.venv
-      - ./packages:/packages
+      - ./apps/api:/src/apps/api
+      - api_venv:/src/apps/api/.venv
+      - ./packages:/src/packages
     depends_on:
       db:
         condition: service_healthy
 
   node-agent:
-    build: ./apps/node-agent
-    working_dir: /app
+    build:
+      context: .
+      dockerfile: apps/node-agent/Dockerfile
+    working_dir: /src/apps/node-agent
     command: sh -lc "uv sync --frozen && uv run python -m agent.main"
     env_file:
       - .env.example
@@ -72,8 +78,9 @@ services:
       AGENT_MODE: ${AGENT_MODE:-mock}
       INTERNAL_API_URL: http://api:8000/internal/v1
     volumes:
-      - ./apps/node-agent:/app
-      - agent_venv:/app/.venv
+      - ./apps/node-agent:/src/apps/node-agent
+      - agent_venv:/src/apps/node-agent/.venv
+      - ./packages:/src/packages
     depends_on:
       api:
         condition: service_healthy

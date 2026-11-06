@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 import subprocess
+import tomllib
 from pathlib import Path
 
 WEB = Path(__file__).resolve().parents[1]
@@ -18,6 +19,26 @@ HEADER = (
     "# Win32/emscripten-only deps omitted (Vercel uv sync --locked).\n"
     "# Regen: python apps/web/scripts/export-preview-requirements.py\n"
 )
+
+
+def _named_path_requirement(api: Path, requirement: str) -> str:
+    """Turn a bare local path into ``name @ path`` so guards can see the package name."""
+    if " @" in requirement or requirement.startswith("-e "):
+        return requirement
+    candidate = Path(requirement)
+    if candidate.is_absolute() or not (
+        requirement.startswith(".") or requirement.startswith("..")
+    ):
+        return requirement
+    pkg_dir = (api / requirement).resolve()
+    pyproject = pkg_dir / "pyproject.toml"
+    if not pyproject.is_file():
+        return requirement
+    data = tomllib.loads(pyproject.read_text(encoding="utf-8"))
+    name = data.get("project", {}).get("name")
+    if not name:
+        return requirement
+    return f"{name} @ {requirement}"
 
 
 def render_preview_requirements(api: Path) -> str:
@@ -41,7 +62,8 @@ def render_preview_requirements(api: Path) -> str:
             continue
         if any(p.search(s) for p in SKIP):
             continue
-        pkgs.append(s.split(";", 1)[0].strip())
+        req = s.split(";", 1)[0].strip()
+        pkgs.append(_named_path_requirement(api, req))
     return HEADER + "\n".join(pkgs) + "\n"
 
 
