@@ -5,31 +5,8 @@
     python3 scripts/agent_guards.py pr
     python3 scripts/agent_guards.py comment
 
-Ship review LGTM. The guard does not look at the commenter's login. A comment
-whose first non-empty line is "ship review: LGTM" counts only when its
-timestamp is at or after the head clock. An older LGTM does not count and
-does not fail the job. With no LGTM on the current head, the guard passes.
-
-A counted LGTM is void when either of these is true:
-
-- Its timestamp is less than 10 minutes after the head clock.
-- An earlier comment whose first line is "ship review: changes needed" lists
-  numbered findings outside code fences, and this LGTM does not mention that
-  review or does not mark every finding. A mention is the review's commit sha
-  or the words "changes needed". A mark is one "resolved" or "addressed" word
-  per numbered finding.
-
-The guard fails when every counted LGTM is void. The cross-workstream label
-is not checked here. Path ownership stays in check_ownership.py.
-
-The head clock is the earliest created_at among GitHub Actions runs for that
-sha whose event is pull_request, plus push runs whose head_branch is the
-pull request branch. A push of the same sha on another branch does not start
-the clock. If no such run exists, the guard fails closed.
-
-A pull_request run only sees comments that already exist. A later comment
-whose first non-empty line starts with "ship review:" runs
-`python3 scripts/agent_guards.py comment` from
+A later comment whose first non-empty line starts with `gate:` or `ship review:`
+runs `python3 scripts/agent_guards.py comment` from
 .github/workflows/guards-comment.yml. That waits until the pull_request ci
 run for the sha is completed, then reruns the guards job. It posts its own
 check run only when that ci run has completed and no guards job exists.
@@ -49,7 +26,7 @@ import sys
 import time
 import tomllib
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 
 SCRIPTS = Path(__file__).resolve().parent
@@ -80,12 +57,8 @@ CHECK_HEADING = re.compile(r"^## Salida de `make check[^`]*`\s*$", re.M)
 FENCE = re.compile(r"```[^\n]*\n(.*?)```", re.S)
 PR_NUMBER = re.compile(r"(?:pull/|#)(\d+)")
 TABLE_CALL = re.compile(r"\bTable\(")
-LGTM_OPEN = re.compile(r"(?i)^ship review:\s*lgtm\b")
-CHANGES_OPEN = re.compile(r"(?i)^ship review:\s*changes needed\b")
-FINDING_LINE = re.compile(r"^\s*\d+\.\s+\S")
-RESOLVED_WORD = re.compile(r"(?i)\b(?:resolved|addressed)\b")
-SHA_TOKEN = re.compile(r"\b[0-9a-fA-F]{7,40}\b")
-LGTM_MIN_DELAY = timedelta(minutes=10)
+GATE_LINE = re.compile(r"^gate: (PASS|FAIL) ([0-9a-f]{40})$")
+GATE_KINDS = frozenset({"gate-pass", "gate-fail"})
 GUARDS_JOB_PENDING = frozenset({"queued", "in_progress", "waiting", "pending", "requested"})
 RECHECK_WAIT_SECONDS = 300
 RECHECK_POLL_SECONDS = 15
@@ -461,47 +434,23 @@ def first_line(body: str) -> str:
     return ""
 
 
+def gate_match(body: str) -> re.Match[str] | None:
+    return GATE_LINE.match(first_line(body))
+
+
 def note_kind(body: str) -> str | None:
-    line = first_line(body)
-    if LGTM_OPEN.match(line):
-        return "lgtm"
-    if CHANGES_OPEN.match(line):
-        return "changes"
-    return None
-
-
-def numbered_findings(body: str) -> int:
-    count = 0
-    inside_fence = False
-    for line in body.splitlines():
-        if line.strip().startswith("```"):
-            inside_fence = not inside_fence
-            continue
-        if inside_fence:
-            continue
-        if FINDING_LINE.match(line):
-            count += 1
-    return count
+    matched = gate_match(body)
+    if matched is None:
+        return None
+    return "gate-pass" if matched.group(1) == "PASS" else "gate-fail"
 
 
 def ship_review_comment(body: str) -> bool:
     return first_line(body).lower().startswith("ship review:")
 
 
-def earliest_head_clock(runs: list[dict], branch: str | None = None) -> datetime | None:
-    stamps: list[datetime] = []
-    for run in runs:
-        stamp = run.get("created_at")
-        if not stamp:
-            continue
-        event = run.get("event")
-        if event == "pull_request":
-            stamps.append(parse_time(stamp))
-        elif event == "push" and branch and run.get("head_branch") == branch:
-            stamps.append(parse_time(stamp))
-    if not stamps:
-        return None
-    return min(stamps)
+def recheck_trigger_comment(body: str) -> bool:
+    return ship_review_comment(body) or gate_match(body) is not None
 
 
 def latest_completed_guards_job(jobs: list[dict]) -> int | None:
@@ -548,49 +497,45 @@ def choose_recheck(jobs: list[dict], runs: list[dict] | None = None) -> tuple[st
     return "post", None
 
 
-def mentions_review(lgtm_body: str, changes_body: str) -> bool:
-    lowered = lgtm_body.lower()
-    if "changes needed" in lowered:
-        return True
-    for sha in SHA_TOKEN.findall(changes_body):
-        if sha.lower() in lowered:
-            return True
-    return False
-
-
-def void_reason(note: ReviewNote, head_time: datetime, earlier: list[ReviewNote]) -> str | None:
-    if note.created_at - head_time < LGTM_MIN_DELAY:
-        return (
-            "ship review: LGTM was posted less than 10 minutes after GitHub recorded the head. "
-            "Wait 10 minutes after the earliest pull_request or push workflow run."
-        )
-    changes = [item for item in earlier if item.kind == "changes" and item.created_at < note.created_at]
-    if not changes:
-        return None
-    latest = max(changes, key=lambda item: item.created_at)
-    count = numbered_findings(latest.body)
-    if count == 0:
-        return None
-    addressed = len(RESOLVED_WORD.findall(note.body))
-    if not mentions_review(note.body, latest.body) or addressed < count:
-        return (
-            f"ship review: LGTM does not answer the earlier changes-needed review "
-            f"({count} findings). Mention that review and write one resolved or "
-            "addressed word per finding."
-        )
-    return None
-
-
-def check_lgtm_notes(notes: list[ReviewNote], head_time: datetime) -> list[Finding]:
-    on_head = [
-        note for note in notes if note.kind == "lgtm" and note.created_at >= head_time
-    ]
-    if not on_head:
-        return []
-    reasons = [void_reason(note, head_time, notes) for note in on_head]
-    if any(reason is None for reason in reasons):
-        return []
-    return [Finding("ship-review", "LGTM", reason) for reason in reasons if reason]
+def check_gate_verdicts(notes: list[ReviewNote], head_sha: str) -> list[Finding]:
+    gate_notes = [note for note in notes if note.kind in GATE_KINDS]
+    if not gate_notes:
+        return [
+            Finding(
+                "gate-verdict",
+                "gate",
+                "No gate verdict on this pull request. "
+                "Post a comment whose first line is gate: PASS <40-char head sha>.",
+            )
+        ]
+    latest = max(gate_notes, key=lambda note: note.created_at)
+    matched = gate_match(latest.body)
+    if matched is None:
+        return [
+            Finding(
+                "gate-verdict",
+                "gate",
+                "Latest gate comment is not gate: PASS|FAIL <40-char sha>.",
+            )
+        ]
+    result, sha = matched.group(1), matched.group(2)
+    if result == "FAIL":
+        return [
+            Finding(
+                "gate-verdict",
+                "gate",
+                f"Latest gate verdict is FAIL for {sha}.",
+            )
+        ]
+    if sha != head_sha:
+        return [
+            Finding(
+                "gate-verdict",
+                "gate",
+                f"Latest gate PASS is for {sha}, but the pull request head is {head_sha}.",
+            )
+        ]
+    return []
 
 
 def check_tree(root: Path, states: dict[int, str] | None = None) -> list[Finding]:
@@ -636,7 +581,7 @@ def fetch_states(repo: str, numbers: set[int]) -> dict[int, str]:
     return states
 
 
-def fetch_pull_request(repo: str, number: int) -> tuple[str, list[ReviewNote], datetime]:
+def fetch_pull_request(repo: str, number: int) -> tuple[str, list[ReviewNote], str]:
     owner, name = repo.split("/", 1)
     query = """
     query($owner: String!, $name: String!, $n: Int!) {
@@ -644,7 +589,6 @@ def fetch_pull_request(repo: str, number: int) -> tuple[str, list[ReviewNote], d
         pullRequest(number: $n) {
           body
           headRefOid
-          headRefName
           comments(first: 100) { nodes { createdAt body } }
           reviews(first: 100) { nodes { createdAt submittedAt body } }
         }
@@ -675,8 +619,7 @@ def fetch_pull_request(repo: str, number: int) -> tuple[str, list[ReviewNote], d
             continue
         stamp = node.get("submittedAt") or node.get("createdAt")
         notes.append(ReviewNote(kind, node.get("body") or "", parse_time(stamp)))
-    head_oid = pull["headRefOid"]
-    return pull.get("body") or "", notes, fetch_head_clock(repo, head_oid, pull["headRefName"])
+    return pull.get("body") or "", notes, pull["headRefOid"]
 
 
 def fetch_workflow_runs(repo: str, sha: str) -> list[dict]:
@@ -698,17 +641,6 @@ def fetch_workflow_runs(repo: str, sha: str) -> list[dict]:
             break
         page += 1
     return runs
-
-
-def fetch_head_clock(repo: str, sha: str, branch: str) -> datetime:
-    clock = earliest_head_clock(fetch_workflow_runs(repo, sha), branch)
-    if clock is None:
-        raise SystemExit(
-            "::error::No GitHub Actions pull_request run for the head, "
-            "and no push run on the pull request branch. "
-            "The guard clock is that run's created_at."
-        )
-    return clock
 
 
 def pull_request_ci_jobs(repo: str, runs: list[dict]) -> list[dict]:
@@ -786,7 +718,7 @@ def rerun_guards_job(repo: str, job_id: int) -> bool:
 
 
 def recheck_comment(repo: str, number: int, body: str) -> int:
-    if not ship_review_comment(body):
+    if not recheck_trigger_comment(body):
         print("guards comment skipped")
         return 0
     head_sha, head_repo = fetch_head_identity(repo, number)
@@ -820,8 +752,8 @@ def recheck_comment(repo: str, number: int, body: str) -> int:
 
 
 def check_pull_request(repo: str, number: int) -> list[Finding]:
-    body, notes, head_time = fetch_pull_request(repo, number)
-    return check_pr_body(body) + check_lgtm_notes(notes, head_time)
+    body, notes, head_sha = fetch_pull_request(repo, number)
+    return check_pr_body(body) + check_gate_verdicts(notes, head_sha)
 
 
 def report(findings: list[Finding]) -> int:

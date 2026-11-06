@@ -5,7 +5,7 @@ from __future__ import annotations
 import sys
 import tempfile
 import unittest
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 
 SCRIPTS = Path(__file__).resolve().parent
@@ -243,106 +243,6 @@ class PullRequestTest(unittest.TestCase):
         )
         self.assertEqual(agent_guards.check_pr_body(body), [])
 
-    def test_rushed_lgtm_is_void(self) -> None:
-        head = datetime(2026, 10, 19, 18, 0, tzinfo=timezone.utc)
-        notes = [
-            agent_guards.ReviewNote(
-                "lgtm",
-                "ship review: LGTM\n\nHead abcdef1",
-                head + timedelta(minutes=9),
-            )
-        ]
-        findings = agent_guards.check_lgtm_notes(notes, head)
-        self.assertTrue(any("10 minutes" in item.fix for item in findings))
-
-    def test_stale_lgtm_does_not_count(self) -> None:
-        head = datetime(2026, 10, 19, 18, 0, tzinfo=timezone.utc)
-        notes = [
-            agent_guards.ReviewNote(
-                "lgtm",
-                "ship review: LGTM\n\nHead abcdef1",
-                head - timedelta(minutes=1),
-            )
-        ]
-        self.assertEqual(agent_guards.check_lgtm_notes(notes, head), [])
-
-    def test_stale_lgtm_does_not_hide_a_rushed_one(self) -> None:
-        head = datetime(2026, 10, 19, 18, 0, tzinfo=timezone.utc)
-        notes = [
-            agent_guards.ReviewNote(
-                "lgtm",
-                "ship review: LGTM\n\nHead abcdef1",
-                head - timedelta(minutes=30),
-            ),
-            agent_guards.ReviewNote(
-                "lgtm",
-                "ship review: LGTM\n\nHead abcdef1",
-                head + timedelta(minutes=2),
-            ),
-        ]
-        findings = agent_guards.check_lgtm_notes(notes, head)
-        self.assertTrue(any("10 minutes" in item.fix for item in findings))
-
-    def test_numbered_findings_skip_code_fences(self) -> None:
-        body = "\n".join(
-            [
-                "ship review: changes needed",
-                "",
-                "1. Fix the guard.",
-                "```",
-                "1. not a finding",
-                "2. still inside",
-                "```",
-                "2. Add the ticket.",
-            ]
-        )
-        self.assertEqual(agent_guards.numbered_findings(body), 2)
-        head = datetime(2026, 10, 19, 18, 0, tzinfo=timezone.utc)
-        notes = [
-            agent_guards.ReviewNote("changes", body, head + timedelta(minutes=12)),
-            agent_guards.ReviewNote(
-                "lgtm",
-                "ship review: LGTM\n\nchanges needed\n1. resolved\n2. addressed\n",
-                head + timedelta(minutes=20),
-            ),
-        ]
-        self.assertEqual(agent_guards.check_lgtm_notes(notes, head), [])
-
-    def test_head_clock_is_the_earliest_github_run(self) -> None:
-        branch = "w1-agent-mistake-guards"
-        runs = [
-            {
-                "event": "push",
-                "head_branch": branch,
-                "created_at": "2026-10-19T21:12:31Z",
-                "head_commit": {"committer": {"date": "2026-10-19T20:00:00Z"}},
-            },
-            {"event": "pull_request", "created_at": "2026-10-19T21:12:33Z"},
-            {"event": "issue_comment", "created_at": "2026-10-19T21:00:00Z"},
-            {"event": "push", "head_branch": "other", "created_at": "2026-10-19T21:00:00Z"},
-        ]
-        self.assertEqual(
-            agent_guards.earliest_head_clock(runs, branch),
-            datetime(2026, 10, 19, 21, 12, 31, tzinfo=timezone.utc),
-        )
-
-    def test_head_clock_ignores_a_push_on_another_branch(self) -> None:
-        runs = [
-            {"event": "push", "head_branch": "other", "created_at": "2026-10-19T21:00:00Z"},
-            {"event": "pull_request", "created_at": "2026-10-19T21:12:33Z"},
-        ]
-        self.assertEqual(
-            agent_guards.earliest_head_clock(runs, "w1-agent-mistake-guards"),
-            datetime(2026, 10, 19, 21, 12, 33, tzinfo=timezone.utc),
-        )
-
-    def test_head_clock_ignores_committer_date(self) -> None:
-        runs = [
-            {"event": "issue_comment", "created_at": "2026-10-19T21:00:00Z"},
-            {"event": "pull_request", "committer": {"date": "2026-10-19T20:00:00Z"}},
-        ]
-        self.assertIsNone(agent_guards.earliest_head_clock(runs))
-
     def test_ship_review_comment_uses_the_first_line(self) -> None:
         self.assertTrue(agent_guards.ship_review_comment("ship review: LGTM\n"))
         self.assertTrue(agent_guards.ship_review_comment("\nShip review: changes needed\n"))
@@ -372,38 +272,67 @@ class PullRequestTest(unittest.TestCase):
         self.assertNotIn("issue_comment:", ci)
         self.assertNotIn("deploy.yml", comment)
 
-    def test_lgtm_that_ignores_findings_is_void(self) -> None:
-        head = datetime(2026, 10, 19, 18, 0, tzinfo=timezone.utc)
-        notes = [
-            agent_guards.ReviewNote(
-                "changes",
-                "ship review: changes needed\n\nHead: abcdef1\n\n1. Fix the guard.\n2. Add the ticket.\n",
-                head + timedelta(minutes=12),
-            ),
-            agent_guards.ReviewNote(
-                "lgtm",
-                "ship review: LGTM\n\nLooks fine.",
-                head + timedelta(minutes=20),
-            ),
-        ]
-        findings = agent_guards.check_lgtm_notes(notes, head)
-        self.assertTrue(any("2 findings" in item.fix for item in findings))
 
-    def test_valid_lgtm_from_the_same_login_passes(self) -> None:
-        head = datetime(2026, 10, 19, 18, 0, tzinfo=timezone.utc)
+class GateVerdictTest(unittest.TestCase):
+    """Review step accepts Gate's verdict on the current head, not ship review LGTM."""
+
+    HEAD = "b95aba8c57847930b97d7044acbbd8303fea28ed"
+    OLD = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+
+    def test_pass_on_current_head_passes(self) -> None:
+        stamped = datetime(2026, 11, 6, 16, 28, 52, tzinfo=timezone.utc)
         notes = [
             agent_guards.ReviewNote(
-                "changes",
-                "ship review: changes needed\n\nHead: abcdef1\n\n1. Fix the guard.\n2. Add the ticket.\n",
-                head + timedelta(minutes=12),
-            ),
+                "gate-pass",
+                f"gate: PASS {self.HEAD}\n/workspace/gate/report.md",
+                stamped,
+            )
+        ]
+        self.assertEqual(agent_guards.check_gate_verdicts(notes, self.HEAD), [])
+
+    def test_pass_on_old_head_fails(self) -> None:
+        stamped = datetime(2026, 11, 6, 16, 28, 52, tzinfo=timezone.utc)
+        notes = [
+            agent_guards.ReviewNote(
+                "gate-pass",
+                f"gate: PASS {self.OLD}\n/workspace/gate/report.md",
+                stamped,
+            )
+        ]
+        findings = agent_guards.check_gate_verdicts(notes, self.HEAD)
+        self.assertTrue(findings)
+        self.assertTrue(any("gate" in item.fix.lower() for item in findings))
+
+    def test_fail_verdict_fails(self) -> None:
+        stamped = datetime(2026, 11, 6, 16, 28, 52, tzinfo=timezone.utc)
+        notes = [
+            agent_guards.ReviewNote(
+                "gate-fail",
+                f"gate: FAIL {self.HEAD}\n/workspace/gate/koicloud-r33/201/REPORT.md",
+                stamped,
+            )
+        ]
+        findings = agent_guards.check_gate_verdicts(notes, self.HEAD)
+        self.assertTrue(findings)
+        self.assertTrue(any("FAIL" in item.fix for item in findings))
+
+    def test_no_gate_verdict_fails(self) -> None:
+        findings = agent_guards.check_gate_verdicts([], self.HEAD)
+        self.assertTrue(findings)
+        self.assertTrue(any("gate" in item.fix.lower() for item in findings))
+
+    def test_ship_review_lgtm_alone_no_longer_counts(self) -> None:
+        stamped = datetime(2026, 11, 6, 16, 40, 0, tzinfo=timezone.utc)
+        notes = [
             agent_guards.ReviewNote(
                 "lgtm",
-                "ship review: LGTM\n\nHead abcdef1\n1. resolved\n2. addressed\n",
-                head + timedelta(minutes=30),
-            ),
+                "ship review: LGTM\n\nHead looks good.",
+                stamped,
+            )
         ]
-        self.assertEqual(agent_guards.check_lgtm_notes(notes, head), [])
+        findings = agent_guards.check_gate_verdicts(notes, self.HEAD)
+        self.assertTrue(findings)
+        self.assertTrue(any("gate" in item.fix.lower() for item in findings))
 
 
 if __name__ == "__main__":

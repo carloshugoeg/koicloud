@@ -111,7 +111,7 @@ Cualquier dependencia nueva se declara en el PR bajo “Dependencias nuevas” (
 | Área | Elección | Rol |
 |------|----------|-----|
 | CI runner | **GitHub Actions** (runner hosted) | Jobs required: ownership · api · web · node-agent · cli · secrets · rules · authorship |
-| Compuerta de merge | **ship** (Grok Bot) + CI verde | Comentario `ship review: LGTM` en el head; ver [`agent-docs.md`](./agent-docs.md) §8 |
+| Compuerta de merge | **Gate** + CI verde | Comentario `gate: PASS <40-char head sha>` en el head; ver [`agent-docs.md`](./agent-docs.md) §8 |
 | Revisor auxiliar | **Cursor Bugbot** | Reglas en `.cursor/BUGBOT.md`; no es required check |
 | Secret scanning | **gitleaks** | Job `secrets` |
 | Load testing | **k6** | 3 escenarios: login, list_ponds, create_pond |

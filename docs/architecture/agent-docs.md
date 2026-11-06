@@ -262,22 +262,22 @@ Nunca inicia un flujo interactivo de `gh auth login` en runners cloud (rompería
 
 ---
 
-## 8. Compuerta de merge (ship + CI)
+## 8. Compuerta de merge (Gate + CI)
 
-El antiguo workflow Claude de revisión automática (y su job de auto-aprobación) se eliminó. No hay secretos de API Anthropic en CI para revisar PRs.
+El antiguo workflow Claude de revisión automática (y su job de auto-aprobación) se eliminó. No hay secretos de API Anthropic en CI para revisar PRs. Gate es el único revisor de PRs de KoiCloud.
 
 Un PR es mergeable cuando:
 
 1. Los checks required de CI están verdes, incluido `ownership` (`ownership`, `api`, `web`, `node-agent`, `cli`, `secrets`, `rules`, `authorship`).
-2. En el **head commit** actual hay un comentario de revisión de **ship** (Grok Bot de Carlos) cuyo cuerpo empieza por:
+2. En el PR hay un comentario de **Gate** (conversación o review) cuya primera línea no vacía es exactamente:
 
 ```
-ship review: LGTM
+gate: PASS <40-char head sha>
 ```
 
-Si el comentario empieza por `ship review: changes needed`, se corrige en la misma rama y se espera un nuevo `ship review: LGTM` en el head nuevo. ship puede fusionar el PR.
+y ese sha coincide con el `headRefOid` actual. El job `guards` toma el último comentario con primera línea `gate: PASS|FAIL <sha>`. Un `gate: FAIL …`, un PASS de otro sha, o ningún veredicto dejan el paso en rojo. Un `ship review: LGTM` solo no cuenta.
 
-**Cursor Bugbot** (`.cursor/BUGBOT.md`) puede seguir comentando riesgos; no es compuerta de merge ni sustituye a ship.
+**Cursor Bugbot** (`.cursor/BUGBOT.md`) puede seguir comentando riesgos; no es compuerta de merge ni sustituye a Gate.
 
 **Lo que bloquea sin discusión**, además de las prohibiciones de
 `AGENTS.md` §8: un commit con trailer de herramienta (`Co-authored-by: Cursor|Antigravity|
@@ -287,7 +287,7 @@ de otro workstream sin CCR ni etiqueta `cross-workstream`. En rutas críticas
 (`core/`, `commands/`, `alembic/`, `packages/contracts/`, `internal_api/`, `workers/`,
 `node-agent/`, `.github/**`, `AGENTS.md`, rules) CODEOWNERS sigue exigiendo aprobación de W1.
 
-**ship / Bugbot NO sustituyen:**
+**Gate / Bugbot NO sustituyen:**
 
 - El caso feliz manual (que sigue en el DoD del ticket).
 - La revisión visual del W2 dueño de la SPA.
