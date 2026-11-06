@@ -59,6 +59,7 @@ from app.schemas import (
     RefreshTokenRequest,
     RegisterUserRequest,
     RegisterUserResponse,
+    ResendVerificationRequest,
     ResetPasswordRequest,
     RestoreBackupRequest,
     RetryFailedJobResponse,
@@ -195,6 +196,18 @@ async def rotate_refresh(
 )
 async def send_reset_token(payload: ForgotPasswordRequest) -> OkResponse:
     return await auth_commands.send_reset_token(payload)
+
+
+@router.post(
+    "/auth/resend-verification",
+    response_model=OkResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    operation_id="resend_verification",
+    tags=["auth"],
+    responses=_error_responses(429),
+)
+async def resend_verification(payload: ResendVerificationRequest) -> OkResponse:
+    return await AuthService.resend_verification(payload)
 
 
 @router.post(
