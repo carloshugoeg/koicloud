@@ -11,6 +11,7 @@ import {
 import { BackupConfirmDialog } from "@/features/ponds/backup-confirm-dialog";
 import { ConnectionCard } from "@/features/ponds/connection-card";
 import { DeletePondDialog } from "@/features/ponds/delete-pond-dialog";
+import { jobErrorSentence } from "@/features/ponds/job-error-text";
 import { PondLifecycleActions } from "@/features/ponds/pond-lifecycle-actions";
 import { PondRiskZone } from "@/features/ponds/pond-risk-zone";
 import { pondDisplayMeta, pondLifecycleInFlight } from "@/features/ponds/pond-state";
@@ -182,7 +183,7 @@ export function PondDetailPage() {
             </p>
             <p className="mt-1 text-sm text-ink">
               {pond.last_error
-                ? `Último error: ${pond.last_error}`
+                ? `Último error: ${jobErrorSentence(pond.last_error)}`
                 : "El nodo no pudo completar la operación. Revisá el listado o reintentá más tarde."}
             </p>
           </div>

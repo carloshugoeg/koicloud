@@ -24,7 +24,12 @@ dependencies = [
   "uvicorn[standard]",
   "fastmcp>=4.0.10",
   "fpdf2>=2.8.9",
+  "sentry-sdk>=2.73.0",
+  "koicloud-job-sanitize",
 ]
+
+[tool.uv.sources]
+koicloud-job-sanitize = { path = "../../packages/job_sanitize" }
 
 [dependency-groups]
 dev = [

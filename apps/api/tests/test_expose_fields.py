@@ -115,7 +115,7 @@ def test_admin_fields_totals_and_non_admin_forbidden() -> None:
     assert ponds.status_code == 200
     match = next(row for row in ponds.json()["ponds"] if row["id"] == pond_id)
     assert match["size_bytes"] == 4096
-    assert match["last_error"] == "driver timeout"
+    assert match["last_error"] == "job_failed: No se pudo completar la operación."
 
     totals = client.get("/api/v1/admin/totals", headers=admin)
     assert totals.status_code == 200
