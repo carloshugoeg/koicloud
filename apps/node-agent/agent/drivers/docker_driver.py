@@ -9,6 +9,8 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
+from koicloud_job_sanitize import filter_pg_dump_output
+
 from agent.drivers.base import (
     BackupArtifact,
     PondDriver,
@@ -127,7 +129,10 @@ class DockerDriver(PondDriver):
         )
         if code != 0:
             detail = output.decode(errors="replace") if isinstance(output, bytes) else str(output)
-            raise PondDriverError(f"dump_failed:{pond_name}:{detail}")
+            filtered = filter_pg_dump_output(detail)
+            raise PondDriverError(
+                f"dump_failed:{pond_name}:{filtered}" if filtered else f"dump_failed:{pond_name}"
+            )
         raw = output if isinstance(output, bytes) else str(output).encode()
         path = self.backup_dir / f"{pond_name}-{backup_id}.sql"
         path.parent.mkdir(parents=True, exist_ok=True)

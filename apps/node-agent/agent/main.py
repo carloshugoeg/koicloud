@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import logging
-import re
 import time
+
+from koicloud_job_sanitize import log_text
 
 from agent.client import CompletionReport, InternalClient
 from agent.config import AgentSettings, get_settings
@@ -14,21 +15,15 @@ from agent.sampler import collect_samples
 
 logger = logging.getLogger(__name__)
 
-_URI_PASSWORD = re.compile(r"(://[^\s/:@]+:)[^\s/@]+@")
-_SECRET_ASSIGN = re.compile(r"(?i)\b(password|passwd|pwd|secret|token)\b\s*[=:]\s*\S+")
-_DATA_LINE = re.compile(r"(?i)^\s*(INSERT\b|COPY\b|UPDATE\b|DELETE\b)")
 
-
-def _redact_output(raw: str) -> str:
-    kept: list[str] = []
-    for line in raw.splitlines():
-        if _DATA_LINE.match(line):
-            kept.append("[redacted]")
-            continue
-        line = _URI_PASSWORD.sub(r"\1[redacted]@", line)
-        line = _SECRET_ASSIGN.sub(lambda match: f"{match.group(1)}=[redacted]", line)
-        kept.append(line)
-    return "\n".join(kept)
+def _bare_error(raw: str, job_id: str) -> str:
+    head = raw.split(":", 1)[0].strip()
+    if head == "dump_failed":
+        return f"backup_failed:{job_id}"
+    if head.endswith("_failed"):
+        return f"{head}:{job_id}"
+    # Preserve short driver codes such as MOCK_FAIL_NEXT=create_pond.
+    return head or "job_failed"
 
 
 def build_driver(settings: AgentSettings) -> PondDriver:
@@ -58,12 +53,11 @@ def run_once(
     try:
         result = dispatch(job, driver)
         report = CompletionReport(status="succeeded", result=result)
-    except Exception as error:  # pragma: no cover - exercised by tests via output state
-        # Traceback formatting prints the exception text, so redact before logging.
-        redacted = _redact_output(str(error))
-        error.args = (redacted,)
-        logger.exception("job %s failed", job.id)
-        report = CompletionReport(status="failed", error=redacted)
+    except Exception as error:  # noqa: BLE001  # pragma: no cover - exercised by tests via output state
+        raw = str(error)
+        bare = _bare_error(raw, job.id)
+        logger.error("job %s failed: %s", job.id, log_text(raw))
+        report = CompletionReport(status="failed", error=bare)
 
     client.complete_job(job.id, report)
     if completions is not None:

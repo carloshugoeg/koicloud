@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from agent.client import ClaimedJob, CompletionReport
-from agent.drivers.base import PondDriverError, PondSpec
+from agent.drivers.base import PondDriverError
 from agent.drivers.docker_driver import DockerDriver
 from agent.drivers.mock_driver import MockDriver
 from agent.main import run_once

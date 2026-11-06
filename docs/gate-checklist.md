@@ -39,7 +39,7 @@ def test_user_sql_error_is_4xx(client, headers, pond_id):
 
 ## job errors never echo raw command output
 
-A failed job returns only a closed code and a fixed Spanish message in `last_error`. Raw psql or command output, dump rows and passwords never reach the jobs API; they go to the redacted server log only. Old rows are sanitized on read.
+A failed job returns only a closed code and a fixed Spanish message in `last_error`. Raw psql or command output, dump rows and passwords never reach the jobs API. The server log keeps only `pg_dump:` / `psql:` ERROR lines (no DETAIL/CONTEXT/COPY rows), capped at 500 characters. Sentry gets only the code plus job id (and pond id). Old rows are sanitized on read.
 
 The live tests are in `apps/api/tests/test_job_error_sanitize.py`.
 

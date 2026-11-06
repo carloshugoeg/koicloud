@@ -94,7 +94,12 @@ class JobService:
         else:
             job.status = JobStatus.FAILED
             failure = public_failure(job.type, payload.error)
-            report_failure(job.id, payload.error)
+            report_failure(
+                job.id,
+                payload.error,
+                pond_id=job.pond_id,
+                code=failure.split(":", 1)[0].strip(),
+            )
             job.last_error = failure
 
         status = await self.session.get(PondStatus, job.pond_id)

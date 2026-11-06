@@ -1037,6 +1037,7 @@ dependencies = [
     { name = "fpdf2" },
     { name = "greenlet" },
     { name = "httpx" },
+    { name = "koicloud-job-sanitize" },
     { name = "psycopg", extra = ["binary"] },
     { name = "pydantic-settings" },
     { name = "pyjwt" },
@@ -1065,6 +1066,7 @@ requires-dist = [
     { name = "fpdf2", specifier = ">=2.8.9" },
     { name = "greenlet" },
     { name = "httpx" },
+    { name = "koicloud-job-sanitize", directory = "../../packages/job_sanitize" },
     { name = "psycopg", extras = ["binary"] },
     { name = "pydantic-settings" },
     { name = "pyjwt" },
@@ -1081,6 +1083,11 @@ dev = [
     { name = "pytest-asyncio" },
     { name = "ruff" },
 ]
+
+[[package]]
+name = "koicloud-job-sanitize"
+version = "0.1.2"
+source = { directory = "../../packages/job_sanitize" }
 
 [[package]]
 name = "librt"

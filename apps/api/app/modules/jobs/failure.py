@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import logging
-import os
-import re
 from uuid import UUID
 
+from koicloud_job_sanitize import log_text, redact
+
 from app.core.enums import JobType
+from app.core.sentry import capture_job_failure
 
 logger = logging.getLogger(__name__)
 
@@ -35,10 +36,6 @@ _BY_TYPE: dict[JobType, str] = {
 
 _PUBLIC = {f"{code}: {message}" for code, message in _MESSAGES.items()}
 
-_URI_PASSWORD = re.compile(r"(://[^\s/:@]+:)[^\s/@]+@")
-_SECRET_ASSIGN = re.compile(r"(?i)\b(password|passwd|pwd|secret|token)\b\s*[=:]\s*\S+")
-_DATA_LINE = re.compile(r"(?i)^\s*(INSERT\b|COPY\b|UPDATE\b|DELETE\b)")
-
 
 def _public(code: str) -> str:
     return f"{code}: {_MESSAGES[code]}"
@@ -46,6 +43,8 @@ def _public(code: str) -> str:
 
 def _classify(job_type: JobType, raw: str) -> str:
     head = raw.split(":", 1)[0].strip()
+    if head == "dump_failed":
+        return "backup_failed"
     if head in _MESSAGES and head != "job_failed":
         return head
     return _BY_TYPE.get(job_type, "job_failed")
@@ -63,30 +62,33 @@ def for_client(stored: str | None) -> str | None:
     return _public("job_failed")
 
 
-def redact(raw: str) -> str:
-    kept: list[str] = []
-    for line in raw.splitlines():
-        if _DATA_LINE.match(line):
-            kept.append("[redacted]")
-            continue
-        line = _URI_PASSWORD.sub(r"\1[redacted]@", line)
-        line = _SECRET_ASSIGN.sub(lambda match: f"{match.group(1)}=[redacted]", line)
-        kept.append(line)
-    return "\n".join(kept)
+def report_failure(
+    job_id: UUID,
+    raw: str | None,
+    *,
+    pond_id: UUID | None = None,
+    code: str | None = None,
+) -> None:
+    if code is None:
+        head = (raw or "").split(":", 1)[0].strip()
+        if head in {"dump_failed", "pg_dump"} or head.startswith("pg_dump"):
+            code = "backup_failed"
+        elif head == "psql" or head.startswith("psql"):
+            code = "restore_failed"
+        elif head in _MESSAGES:
+            code = head
+        elif head:
+            code = head
+        else:
+            code = "job_failed"
+    diagnostic = log_text(raw or "")
+    logger.error("job %s failed: %s", job_id, diagnostic)
+    capture_job_failure(code=code, job_id=job_id, pond_id=pond_id)
 
 
-def report_failure(job_id: UUID, raw: str | None) -> None:
-    redacted = redact(raw or "")
-    logger.error("job %s failed: %s", job_id, redacted)
-    _capture_sentry(f"job {job_id} failed: {redacted}")
-
-
-def _capture_sentry(message: str) -> None:
-    dsn = os.environ.get("SENTRY_DSN", "").strip()
-    if not dsn:
-        return
-    import sentry_sdk
-
-    if not sentry_sdk.is_initialized():
-        sentry_sdk.init(dsn=dsn, send_default_pii=False)
-    sentry_sdk.capture_message(message, level="error")
+__all__ = [
+    "for_client",
+    "public_failure",
+    "redact",
+    "report_failure",
+]
