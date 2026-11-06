@@ -10,6 +10,7 @@ import { isCompleteCursorPage } from "@/features/admin/cursor-page";
 import { MoreResultsNote } from "@/features/admin/more-results-note";
 import { ReactivateDialog } from "@/features/admin/reactivate-dialog";
 import { SuspendDialog } from "@/features/admin/suspend-dialog";
+import { useNextPageFocus } from "@/features/admin/next-page-focus";
 import { UsersTable } from "@/features/admin/users-table";
 import { ApiError, problemToMessage } from "@/lib/errors";
 
@@ -45,6 +46,20 @@ export function AdminUsersPage() {
     }
     return counts;
   }, [pondsComplete, pondsQuery.data]);
+
+  const hasLoadedFilter = query.trim() !== "" || statusFilter !== "all";
+  const emptyMessage = hasLoadedFilter
+    ? "No hay usuarios con ese filtro."
+    : "No hay usuarios.";
+  const nextCursor = usersQuery.data?.next_cursor ?? null;
+  const loadingNextPage = usersQuery.isFetchingNextPage;
+  const nextPageError = usersQuery.isFetchNextPageError && !loadingNextPage;
+  const nextPage = useNextPageFocus({
+    users: usersQuery.data?.users ?? [],
+    nextCursor,
+    fetchingNextPage: loadingNextPage,
+    fetchNextPage: usersQuery.fetchNextPage,
+  });
 
   const users = useMemo(() => {
     const rows = usersQuery.data?.users ?? [];
@@ -105,7 +120,7 @@ export function AdminUsersPage() {
     );
   }
 
-  if (usersQuery.isError) {
+  if (usersQuery.isError && !usersQuery.data) {
     return (
       <div className="rounded-md border border-line bg-bone-raised p-5" data-testid="admin-users-error">
         <div className="border-l-[3px] border-danger pl-3">
@@ -135,12 +150,15 @@ export function AdminUsersPage() {
           <label className="text-xs text-ink-muted">
             Buscar
             <input
-              className="mt-1 block h-9 w-52 rounded-sm border border-line-control bg-bone-raised px-3 text-sm"
+              className="mt-1 block h-9 w-52 rounded-sm border border-line-control bg-bone-raised px-3 text-sm focus:shadow-focus"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="correo o nombre"
+              placeholder="Filtrar usuarios cargados"
             />
           </label>
+          {nextCursor ? (
+            <p className="text-sm text-ink-muted">Cargá más para buscar en el resto</p>
+          ) : null}
           <label className="text-xs text-ink-muted">
             Estado
             <select
@@ -158,13 +176,47 @@ export function AdminUsersPage() {
 
       <UsersTable
         users={users}
+        emptyMessage={emptyMessage}
         pondsComplete={pondsComplete}
         pondCountByEmail={pondCountByEmail}
         onSuspend={openSuspend}
         onReactivate={(user) => setDialog({ kind: "reactivate", user })}
+        focusUserId={nextPage.focusUserId}
       />
 
-      {usersQuery.data?.next_cursor ? <MoreResultsNote /> : null}
+      {nextPageError || nextPage.holdRetryAlert ? (
+        <div
+          className="rounded-md border border-line bg-bone-raised p-5"
+          role="alert"
+          data-testid="admin-users-next-error"
+        >
+          <div className="border-l-[3px] border-danger pl-3">
+            <p className="text-sm text-ink">No pudimos cargar más usuarios.</p>
+          </div>
+          <button
+            type="button"
+            className="mt-4 h-9 rounded-sm border border-line-control bg-bone-raised px-4 text-sm font-medium text-ink focus:shadow-focus"
+            aria-busy={loadingNextPage}
+            onClick={nextPage.retry}
+          >
+            Reintentar
+          </button>
+        </div>
+      ) : null}
+
+      {nextCursor ? (
+        <div className="flex flex-wrap items-center gap-3">
+          <MoreResultsNote />
+          <button
+            type="button"
+            className="h-9 rounded-sm border border-line-control bg-bone-raised px-4 text-sm font-medium text-ink focus:shadow-focus"
+            aria-busy={loadingNextPage}
+            onClick={nextPage.loadMore}
+          >
+            {loadingNextPage ? "Cargando…" : "Cargar más"}
+          </button>
+        </div>
+      ) : null}
 
       {dialog.kind === "suspend" ? (
         <SuspendDialog

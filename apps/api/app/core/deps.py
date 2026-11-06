@@ -22,6 +22,17 @@ def pagination_params(
     return PaginationParams(cursor=cursor, limit=limit or settings.default_limit)
 
 
+ADMIN_USERS_PAGE_LIMIT = 50
+ADMIN_USERS_MAX_LIMIT = 200
+
+
+def admin_users_pagination(
+    cursor: str | None = Query(default=None),
+    limit: int | None = Query(default=None, ge=1, le=ADMIN_USERS_MAX_LIMIT),
+) -> PaginationParams:
+    return PaginationParams(cursor=cursor, limit=limit or ADMIN_USERS_PAGE_LIMIT)
+
+
 def get_surface(x_koi_surface: str | None = Header(default=None, alias="X-KOI-Surface")) -> AppSurface:
     if x_koi_surface is None:
         return AppSurface.WEB

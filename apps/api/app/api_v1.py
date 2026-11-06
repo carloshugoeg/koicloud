@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Annotated, Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from sqlalchemy import text
@@ -21,7 +21,12 @@ from app.commands import users as user_commands
 from app.core.auth import AuthContext, get_admin_user, get_current_user
 from app.core.config import get_settings
 from app.core.db import SessionLocal
-from app.core.deps import get_confirmation_token, get_surface
+from app.core.deps import (
+    PaginationParams,
+    admin_users_pagination,
+    get_confirmation_token,
+    get_surface,
+)
 from app.core.enums import AppSurface
 from app.modules.auth import AuthService
 from app.modules.auth.refresh_cookie import cookie_is_secure
@@ -774,8 +779,12 @@ async def discard_pending_confirmation(
 )
 async def admin_list_users(
     _: Annotated[AuthContext, Depends(get_admin_user)],
+    page: Annotated[PaginationParams, Depends(admin_users_pagination)],
 ) -> AdminUserListResponse:
-    return await admin_commands.admin_list_users()
+    try:
+        return await admin_commands.admin_list_users(limit=page.limit, cursor=page.cursor)
+    except admin_commands.InvalidUserCursor as exc:
+        raise HTTPException(status_code=422, detail="cursor inválido") from exc
 
 
 @router.post(
