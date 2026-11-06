@@ -22,7 +22,10 @@ stateDiagram-v2
 ```
 | # | From | Event | Guard | To | Side effect | e2e test |
 |---|---|---|---|---|---|---|
-| A1 | — | register | email free, pwd ok | Registered | verify email (Resend) | `auth: register sends verification` |
+| A1 | — | register | email free, pwd ok | Registered | verify email via `send` when `EMAIL_PROVIDER=resend`; console logs plaintext only | `test_verify_email_send` |
+| A1b | Registered | register again | still unverified | Registered | new verify token + resend | `test_reregister_unverified_resends_and_verified_stays_email_taken` |
+| A1c | Registered | resend-verification | always | Registered | 202; send only if unverified | `test_resend_verification_is_202_for_unknown_and_unverified` |
+| A1d | Verified | register again | email taken | Verified | 409 `email_taken` | `test_reregister_unverified_resends_and_verified_stays_email_taken` |
 | A2 | Registered | verify | token valid | Verified | `email_verified_at` | `auth: verify link activates` |
 | A3 | Registered | login | — | Registered | 403 `email_not_verified` | `auth: unverified login rejected` |
 | A4 | Verified | login | ok creds, active | LoggedIn | access+refresh | `journey: login lands on pond list` |

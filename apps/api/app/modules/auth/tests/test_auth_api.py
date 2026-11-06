@@ -99,7 +99,7 @@ async def test_register_rejects_duplicate_email_and_weak_password_api() -> None:
     reset_auth_tables()
 
     async with _make_client() as client:
-        # Create initial user
+        # Create initial user (unverified)
         res1 = await client.post(
             "/api/v1/auth/register",
             json={
@@ -109,8 +109,9 @@ async def test_register_rejects_duplicate_email_and_weak_password_api() -> None:
             },
         )
         assert res1.status_code == 201
+        user_id = UUID(res1.json()["user_id"])
 
-        # Duplicate email returns 409 email_taken
+        # Unverified re-register resends (same user_id) instead of email_taken
         res_dup = await client.post(
             "/api/v1/auth/register",
             json={
@@ -119,8 +120,24 @@ async def test_register_rejects_duplicate_email_and_weak_password_api() -> None:
                 "full_name": "Dup User Two",
             },
         )
-        assert res_dup.status_code == 409
-        assert res_dup.json()["code"] == "email_taken"
+        assert res_dup.status_code == 201
+        assert UUID(res_dup.json()["user_id"]) == user_id
+        assert res_dup.json()["email_verified"] is False
+
+        token = await AuthService.issue_email_token(user_id, EmailTokenKind.VERIFY_EMAIL)
+        assert (await client.post("/api/v1/auth/verify", json={"token": token})).status_code == 200
+
+        # Verified email stays email_taken
+        res_taken = await client.post(
+            "/api/v1/auth/register",
+            json={
+                "email": "dup@koicloud.dev",
+                "password": PASSWORD,
+                "full_name": "Dup User Three",
+            },
+        )
+        assert res_taken.status_code == 409
+        assert res_taken.json()["code"] == "email_taken"
 
         # Password shorter than 8 characters returns 422
         res_weak = await client.post(
@@ -653,12 +670,16 @@ async def test_refresh_cookie_secure_on_https_and_production() -> None:
     saved_secrets = {
         "POND_PASSWORD_KEY": os.environ.get("POND_PASSWORD_KEY"),
         "MCP_DEMO_PASSWORD": os.environ.get("MCP_DEMO_PASSWORD"),
+        "JWT_SECRET": os.environ.get("JWT_SECRET"),
+        "NODE_TOKEN": os.environ.get("NODE_TOKEN"),
     }
     os.environ["ENVIRONMENT"] = "production"
     os.environ["EMAIL_PROVIDER"] = "resend"
     os.environ["EMAIL_FROM"] = "koi@koicloud.dev"
     os.environ["POND_PASSWORD_KEY"] = "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8="
     os.environ["MCP_DEMO_PASSWORD"] = "ci-mcp-demo-password"
+    os.environ["JWT_SECRET"] = "ci-jwt-secret-not-the-builtin-default-value"
+    os.environ["NODE_TOKEN"] = "ci-node-token-not-builtin"
     get_settings.cache_clear()
     try:
         async with _make_client() as production:

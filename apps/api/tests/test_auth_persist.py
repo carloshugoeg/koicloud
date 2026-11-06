@@ -61,6 +61,16 @@ async def test_register_persists_user_and_verify_token() -> None:
         assert tokens[0].consumed_at is None
         assert tokens[0].expires_at > utc_now()
 
+    # Unverified re-register resends instead of email_taken.
+    resent = await register_user(_register_payload())
+    assert resent.user_id == created.user_id
+    assert resent.email_verified is False
+
+    plaintext = await issue_email_token(created.user_id, EmailTokenKind.VERIFY_EMAIL)
+    verified = await verify_email(VerifyEmailRequest(token=plaintext))
+    assert verified.user_id == created.user_id
+    assert verified.email_verified is True
+
     taken = None
     try:
         await register_user(_register_payload())
@@ -68,11 +78,6 @@ async def test_register_persists_user_and_verify_token() -> None:
         taken = exc
     assert taken is not None
     assert taken.code == ErrorCode.EMAIL_TAKEN
-
-    plaintext = await issue_email_token(created.user_id, EmailTokenKind.VERIFY_EMAIL)
-    verified = await verify_email(VerifyEmailRequest(token=plaintext))
-    assert verified.user_id == created.user_id
-    assert verified.email_verified is True
 
     async with SessionLocal() as session:
         user = await session.get(User, created.user_id)
