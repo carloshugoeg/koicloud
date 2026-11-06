@@ -2,11 +2,11 @@
 id: W1-208
 workstream: W1
 persona: Carlos
-estado: en-curso
+estado: en-revision
 rama: w1-208-invitar-agente
 epica: "E9-02"
 sprint: S7
-pr:
+pr: https://github.com/carloshugoeg/koicloud/pull/220
 
 depends_on:
   - W1-203

@@ -11,6 +11,7 @@ import {
 import { BackupConfirmDialog } from "@/features/ponds/backup-confirm-dialog";
 import { ConnectionCard } from "@/features/ponds/connection-card";
 import { DeletePondDialog } from "@/features/ponds/delete-pond-dialog";
+import { InviteAgentButton } from "@/features/ponds/invite-agent-button";
 import { PondLifecycleActions } from "@/features/ponds/pond-lifecycle-actions";
 import { PondRiskZone } from "@/features/ponds/pond-risk-zone";
 import { pondDisplayMeta, pondLifecycleInFlight } from "@/features/ponds/pond-state";
@@ -137,6 +138,7 @@ export function PondDetailPage() {
               {backupMutation.isPending ? "Respaldando…" : "Respaldar ahora"}
             </button>
           ) : null}
+          <InviteAgentButton pondId={pond.id} disabled={actionsDisabled} />
           <button
             type="button"
             className="h-9 rounded-sm border border-danger bg-bone-raised px-4 text-sm font-medium text-danger disabled:border-line-control disabled:text-ink-faint"
@@ -227,6 +229,7 @@ export function PondDetailPage() {
           onSubmit={() => void handleDelete()}
         />
       ) : null}
+
     </div>
   );
 }
