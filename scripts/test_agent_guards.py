@@ -406,5 +406,67 @@ class PullRequestTest(unittest.TestCase):
         self.assertEqual(agent_guards.check_lgtm_notes(notes, head), [])
 
 
+class GateVerdictTest(unittest.TestCase):
+    """Review step accepts Gate's verdict on the current head, not ship review LGTM."""
+
+    HEAD = "b95aba8c57847930b97d7044acbbd8303fea28ed"
+    OLD = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+
+    def test_pass_on_current_head_passes(self) -> None:
+        stamped = datetime(2026, 11, 6, 16, 28, 52, tzinfo=timezone.utc)
+        notes = [
+            agent_guards.ReviewNote(
+                "gate-pass",
+                f"gate: PASS {self.HEAD}\n/workspace/gate/report.md",
+                stamped,
+            )
+        ]
+        self.assertEqual(agent_guards.check_gate_verdicts(notes, self.HEAD), [])
+
+    def test_pass_on_old_head_fails(self) -> None:
+        stamped = datetime(2026, 11, 6, 16, 28, 52, tzinfo=timezone.utc)
+        notes = [
+            agent_guards.ReviewNote(
+                "gate-pass",
+                f"gate: PASS {self.OLD}\n/workspace/gate/report.md",
+                stamped,
+            )
+        ]
+        findings = agent_guards.check_gate_verdicts(notes, self.HEAD)
+        self.assertTrue(findings)
+        self.assertTrue(any("gate" in item.fix.lower() for item in findings))
+
+    def test_fail_verdict_fails(self) -> None:
+        stamped = datetime(2026, 11, 6, 16, 28, 52, tzinfo=timezone.utc)
+        notes = [
+            agent_guards.ReviewNote(
+                "gate-fail",
+                f"gate: FAIL {self.HEAD}\n/workspace/gate/koicloud-r33/201/REPORT.md",
+                stamped,
+            )
+        ]
+        findings = agent_guards.check_gate_verdicts(notes, self.HEAD)
+        self.assertTrue(findings)
+        self.assertTrue(any("FAIL" in item.fix for item in findings))
+
+    def test_no_gate_verdict_fails(self) -> None:
+        findings = agent_guards.check_gate_verdicts([], self.HEAD)
+        self.assertTrue(findings)
+        self.assertTrue(any("gate" in item.fix.lower() for item in findings))
+
+    def test_ship_review_lgtm_alone_no_longer_counts(self) -> None:
+        stamped = datetime(2026, 11, 6, 16, 40, 0, tzinfo=timezone.utc)
+        notes = [
+            agent_guards.ReviewNote(
+                "lgtm",
+                "ship review: LGTM\n\nHead looks good.",
+                stamped,
+            )
+        ]
+        findings = agent_guards.check_gate_verdicts(notes, self.HEAD)
+        self.assertTrue(findings)
+        self.assertTrue(any("gate" in item.fix.lower() for item in findings))
+
+
 if __name__ == "__main__":
     unittest.main()
