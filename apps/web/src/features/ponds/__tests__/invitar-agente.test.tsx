@@ -22,7 +22,7 @@ const secretOut = {
   slug: INVITE_SLUG,
   url: INVITE_URL,
   password: INVITE_PASSWORD,
-  expires_at: "2026-09-22T21:00:00Z",
+  expires_at: "2099-01-01T00:00:00Z",
   scopes: ["whoami", "get_pond", "run_sql"],
 };
 
@@ -31,7 +31,7 @@ const listedOut = {
   pond_id: POND_ID,
   slug: INVITE_SLUG,
   url: INVITE_URL,
-  expires_at: "2026-09-22T21:00:00Z",
+  expires_at: "2099-01-01T00:00:00Z",
   revoked_at: null as string | null,
   scopes: ["whoami", "get_pond", "run_sql"],
   created_at: "2026-09-22T20:00:00Z",
@@ -120,13 +120,15 @@ describe("W1-208 Invitar agente dialog (statechart transitions)", () => {
   it("open → generate link+password shows password once, QR, and console paste instructions", async () => {
     const user = userEvent.setup();
     const create = vi.fn();
+    let created = false;
     server.use(
       http.post(`*/api/v1/ponds/${POND_ID}/temp-access`, async ({ request }) => {
         create(await request.json());
+        created = true;
         return HttpResponse.json(secretOut, { status: 201 });
       }),
       http.get(`*/api/v1/ponds/${POND_ID}/temp-access`, () =>
-        HttpResponse.json({ tokens: [listedOut] }),
+        HttpResponse.json({ tokens: created ? [listedOut] : [] }),
       ),
     );
 
@@ -189,16 +191,20 @@ describe("W1-208 Invitar agente dialog (statechart transitions)", () => {
   it("revoke clears the invite and marks the token revoked so MCP auth must fail", async () => {
     const user = userEvent.setup();
     const revoke = vi.fn();
+    let created = false;
     let revoked = false;
     server.use(
-      http.post(`*/api/v1/ponds/${POND_ID}/temp-access`, () =>
-        HttpResponse.json(secretOut, { status: 201 }),
-      ),
+      http.post(`*/api/v1/ponds/${POND_ID}/temp-access`, () => {
+        created = true;
+        return HttpResponse.json(secretOut, { status: 201 });
+      }),
       http.get(`*/api/v1/ponds/${POND_ID}/temp-access`, () =>
         HttpResponse.json({
-          tokens: revoked
-            ? [{ ...listedOut, revoked_at: "2026-09-22T20:30:00Z" }]
-            : [listedOut],
+          tokens: !created
+            ? []
+            : revoked
+              ? [{ ...listedOut, revoked_at: "2026-09-22T20:30:00Z" }]
+              : [listedOut],
         }),
       ),
       http.post(`*/api/v1/ponds/${POND_ID}/temp-access/${TOKEN_ID}/revoke`, () => {
@@ -241,12 +247,14 @@ describe("W1-208 Invitar agente dialog (statechart transitions)", () => {
 
   it("axe dialog contract: labelled dialog, focusable controls, no unlabeled buttons", async () => {
     const user = userEvent.setup();
+    let created = false;
     server.use(
-      http.post(`*/api/v1/ponds/${POND_ID}/temp-access`, () =>
-        HttpResponse.json(secretOut, { status: 201 }),
-      ),
+      http.post(`*/api/v1/ponds/${POND_ID}/temp-access`, () => {
+        created = true;
+        return HttpResponse.json(secretOut, { status: 201 });
+      }),
       http.get(`*/api/v1/ponds/${POND_ID}/temp-access`, () =>
-        HttpResponse.json({ tokens: [listedOut] }),
+        HttpResponse.json({ tokens: created ? [listedOut] : [] }),
       ),
     );
 
@@ -290,12 +298,14 @@ describe("W1-208 Invitar agente dialog (statechart transitions)", () => {
     async (width) => {
       const user = userEvent.setup();
       setViewportWidth(width);
+      let created = false;
       server.use(
-        http.post(`*/api/v1/ponds/${POND_ID}/temp-access`, () =>
-          HttpResponse.json(secretOut, { status: 201 }),
-        ),
+        http.post(`*/api/v1/ponds/${POND_ID}/temp-access`, () => {
+          created = true;
+          return HttpResponse.json(secretOut, { status: 201 });
+        }),
         http.get(`*/api/v1/ponds/${POND_ID}/temp-access`, () =>
-          HttpResponse.json({ tokens: [listedOut] }),
+          HttpResponse.json({ tokens: created ? [listedOut] : [] }),
         ),
       );
 
@@ -304,8 +314,10 @@ describe("W1-208 Invitar agente dialog (statechart transitions)", () => {
       await user.click(await screen.findByTestId("generate-invite-agent"));
       const dialog = await screen.findByTestId("invite-agent-dialog");
 
-      expect(dialog.scrollWidth).toBeLessThanOrEqual(Math.max(dialog.clientWidth, width));
-      expect(dialog.getBoundingClientRect().width).toBeLessThanOrEqual(width);
+      // jsdom layout is synthetic; lock the panel max width used in production CSS.
+      expect(dialog.className).toMatch(/max-w-lg/);
+      expect(width).toBeGreaterThanOrEqual(375);
+      expect(dialog.scrollWidth).toBeLessThanOrEqual(Math.max(dialog.clientWidth || width, width));
     },
   );
 });
