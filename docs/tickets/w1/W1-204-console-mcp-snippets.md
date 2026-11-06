@@ -2,11 +2,12 @@
 id: W1-204
 workstream: W1
 persona: Carlos
-estado: en-curso
+estado: en-revision
 rama: w1-204-console-mcp-snippets
 epica: "E9-02"
 sprint: S3
-pr:
+pr: https://github.com/carloshugoeg/koicloud/pull/219
+
 depends_on:
 ---
 
