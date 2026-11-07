@@ -262,10 +262,8 @@ def test_first_create_succeeds_on_pond_with_serial_and_identity() -> None:
             "ON_ERROR_STOP=1",
             "-At",
             "-c",
-            (
-                "INSERT INTO public.serial_legacy (label) VALUES ('s2') RETURNING id;"
-                "INSERT INTO public.identity_legacy (label) VALUES ('i2') RETURNING id;"
-            ),
+            "INSERT INTO public.serial_legacy (label) VALUES ('s2') RETURNING id;"
+            "INSERT INTO public.identity_legacy (label) VALUES ('i2') RETURNING id;",
         ],
         env={**os.environ, "PGPASSWORD": secret},
         capture_output=True,

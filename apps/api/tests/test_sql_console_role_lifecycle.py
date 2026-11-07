@@ -327,36 +327,37 @@ def _seed_postgres_owned_serial_and_identity_tables() -> None:
 
 
 def _run_setup_sql_via_peer_psql(database: str) -> subprocess.CompletedProcess[str]:
-    """Run the API setup body as a superuser session against the probe database.
+    """Run the API setup body over a local peer session.
 
-    A fresh serial-only catalog can visit linked sequences before their tables,
-    which is the PG 16 failure mode for ALTER SEQUENCE OWNER TO. Use the same
-    TCP admin URL as the rest of this suite; CI has no peer Unix socket.
+    Peer plans on a fresh serial-only catalog visit linked sequences before
+    their tables, which is the PG 16 failure mode for ALTER SEQUENCE OWNER TO.
     """
     verifier = scram_sha256_verifier(_secret(), os.urandom(16))
-    try:
-        with psycopg.connect(_admin(database)) as conn:
-            with conn.transaction():
-                conn.execute(
-                    "SELECT pg_advisory_xact_lock(hashtext('koicloud.console-role.v1'))"
-                )
-                conn.execute(
-                    "SELECT set_config('koicloud.console_verifier', %s, true)",
-                    (verifier,),
-                )
-                conn.execute(_SETUP_SQL)
-    except psycopg.Error as exc:
-        return subprocess.CompletedProcess(
-            args=["psycopg", database],
-            returncode=1,
-            stdout="",
-            stderr=str(exc),
-        )
-    return subprocess.CompletedProcess(
-        args=["psycopg", database],
-        returncode=0,
-        stdout="",
-        stderr="",
+    script = (
+        "BEGIN;\n"
+        "SELECT pg_advisory_xact_lock(hashtext('koicloud.console-role.v1'));\n"
+        f"SELECT set_config('koicloud.console_verifier', '{verifier}', true);\n"
+        f"{_SETUP_SQL}\n"
+        "COMMIT;\n"
+    )
+    return subprocess.run(
+        [
+            "sudo",
+            "-n",
+            "-u",
+            "postgres",
+            "psql",
+            "-d",
+            database,
+            "-v",
+            "ON_ERROR_STOP=1",
+            "-f",
+            "-",
+        ],
+        input=script,
+        capture_output=True,
+        text=True,
+        check=False,
     )
 
 
