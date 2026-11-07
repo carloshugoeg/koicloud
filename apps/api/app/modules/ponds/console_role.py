@@ -82,16 +82,30 @@ BEGIN
     EXECUTE format('ALTER SCHEMA %I OWNER TO koi_console', sch);
   END LOOP;
 
+  -- Tables and views first: ownership cascades to SERIAL/IDENTITY sequences.
+  -- Linked sequences reject ALTER SEQUENCE OWNER TO on PG 16 (SQLSTATE 0A000).
   FOR rel IN
-    SELECT c.oid::regclass::text AS obj, c.relkind
+    SELECT c.oid, c.oid::regclass::text AS obj, c.relkind
     FROM pg_class AS c
     JOIN pg_namespace AS n ON n.oid = c.relnamespace
     WHERE n.nspname <> 'information_schema'
       AND n.nspname NOT LIKE 'pg_%'
       AND c.relkind IN ('r', 'p', 'v', 'm', 'S', 'f', 'i')
       AND c.relowner <> (SELECT oid FROM pg_roles WHERE rolname = 'koi_console')
+    ORDER BY CASE c.relkind WHEN 'S' THEN 1 ELSE 0 END, c.oid
   LOOP
     IF rel.relkind = 'S' THEN
+      IF EXISTS (
+        SELECT 1
+        FROM pg_depend AS d
+        WHERE d.classid = 'pg_class'::regclass
+          AND d.objid = rel.oid
+          AND d.refclassid = 'pg_class'::regclass
+          AND d.refobjsubid <> 0
+          AND d.deptype IN ('a', 'i')
+      ) THEN
+        CONTINUE;
+      END IF;
       EXECUTE format('ALTER SEQUENCE %s OWNER TO koi_console', rel.obj);
     ELSIF rel.relkind = 'v' THEN
       EXECUTE format('ALTER VIEW %s OWNER TO koi_console', rel.obj);
