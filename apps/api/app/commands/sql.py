@@ -52,6 +52,8 @@ _AUTH_FAILURES = (
     asyncpg.InvalidPasswordError,
     asyncpg.InvalidAuthorizationSpecificationError,
 )
+# Sibling repair REVOKE CONNECT yields 42501, not an auth failure.
+_CONSOLE_CONNECT_DENIED = (asyncpg.exceptions.InsufficientPrivilegeError,)
 
 
 async def _open(connection: ConnectionOut, *, user: str, password: str) -> asyncpg.Connection:
@@ -91,7 +93,7 @@ async def _repair_console_role(connection: ConnectionOut, console_password: str)
 async def _open_console(connection: ConnectionOut, console_password: str) -> asyncpg.Connection:
     try:
         conn = await _open(connection, user=CONSOLE_ROLE, password=console_password)
-    except _AUTH_FAILURES:
+    except (*_AUTH_FAILURES, *_CONSOLE_CONNECT_DENIED):
         return await _repair_console_role(connection, console_password)
     except (OSError, asyncpg.PostgresError) as exc:
         raise AppError(ErrorCode.NODE_UNAVAILABLE) from exc
