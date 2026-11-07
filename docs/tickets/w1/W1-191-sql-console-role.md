@@ -2,7 +2,7 @@
 id: W1-191
 workstream: W1
 persona: Carlos
-estado: en-revision
+estado: hecho
 rama: w1-191-sql-console-role
 epica: E5-01
 sprint: S5
