@@ -95,3 +95,18 @@ def test_console_password_is_absent_from_logs(log_text, captured_errors, console
     assert console_password not in log_text
     assert console_password not in captured_errors
 ```
+
+## console on serial ponds
+
+A pond that already has `SERIAL` or `IDENTITY` columns must accept first-create and a console query. Setup must not run `ALTER SEQUENCE ... OWNER TO koi_console` on a sequence linked to a table column (PG 16 returns `0A000`). Tables and views are re-owned first so ownership cascades.
+
+The live tests are `test_console_setup_succeeds_on_serial_and_identity_pond` and `test_console_query_succeeds_on_pond_with_serial_and_identity` in `apps/api/tests/test_sql_console_role_lifecycle.py`, and `test_first_create_succeeds_on_pond_with_serial_and_identity` in `apps/node-agent/tests/test_console_role_contract.py`.
+
+Template test:
+
+```python
+def test_console_setup_succeeds_on_serial_and_identity_pond():
+    prepare_fresh_serial_identity_database(database)
+    result = run_setup_sql_via_peer_psql(database)
+    assert result.returncode == 0, result.stderr
+```
