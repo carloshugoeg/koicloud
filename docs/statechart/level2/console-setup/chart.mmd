@@ -1,0 +1,22 @@
+---
+title: "Rol de la consola"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: ok
+    lg1: busy
+    lg2: wait
+  }
+  class lg0 teal
+  class lg1 yellow
+  class lg2 tan
+  s0: Setup pending
+  s1: Setup done
+  s2: Password rotated
+  [*] --> s0
+  s0 --> s1: the server accepts the database
+  s1 --> s2: the password rotates
+  s2 --> s1: setup runs once for the new password
+  class s0 tan
+  class s1 teal
+  class s2 yellow
