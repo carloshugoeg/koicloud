@@ -81,7 +81,6 @@ def _post_temp_access(
     include_scopes: bool = True,
     expires_in_seconds: int = 3600,
 ) -> dict:
-    """POST temp-access with optional custom scopes (or omit the field)."""
     expires_at = (datetime.now(UTC) + timedelta(seconds=expires_in_seconds)).isoformat()
     payload: dict = {"expires_at": expires_at}
     if include_scopes:
@@ -106,7 +105,6 @@ def _count_pond_tokens(pond_id: str) -> int:
 
 
 def _assert_scopes_validation_422(response, *, require_value_error: bool = True) -> None:
-    """FastAPI RequestValidationError shape for scopes; no create credentials."""
     assert response.status_code == 422, response.text
     body = response.json()
     detail = body.get("detail")
@@ -466,11 +464,7 @@ def test_revoke_unknown_token_returns_404() -> None:
     assert response.status_code == 404
 
 
-# --- CCR #222: invalid scopes → FastAPI 422 before any side effects ---
-
-
 def test_create_temp_access_invalid_scope_returns_validation_422_no_side_effects() -> None:
-    """Unknown scope string is rejected at the request boundary with zero DB writes."""
     reset_pond_tables()
     headers = auth_headers()
     pond = _create_running_pond(headers)
@@ -482,7 +476,6 @@ def test_create_temp_access_invalid_scope_returns_validation_422_no_side_effects
 
 
 def test_create_temp_access_empty_scope_string_returns_422_no_side_effects() -> None:
-    """Empty string inside scopes is not a valid tool grant."""
     reset_pond_tables()
     headers = auth_headers()
     pond = _create_running_pond(headers)
@@ -494,7 +487,6 @@ def test_create_temp_access_empty_scope_string_returns_422_no_side_effects() -> 
 
 
 def test_create_temp_access_disallowed_scope_returns_422_no_side_effects() -> None:
-    """Real MCP tools outside the REST allow-list (e.g. confirm_action) are rejected."""
     reset_pond_tables()
     headers = auth_headers()
     pond = _create_running_pond(headers)
@@ -506,7 +498,6 @@ def test_create_temp_access_disallowed_scope_returns_422_no_side_effects() -> No
 
 
 def test_create_temp_access_mixed_scopes_rejects_whole_request_422() -> None:
-    """One disallowed entry rejects the whole request; no partial grant is stored."""
     reset_pond_tables()
     headers = auth_headers()
     pond = _create_running_pond(headers)
@@ -518,7 +509,6 @@ def test_create_temp_access_mixed_scopes_rejects_whole_request_422() -> None:
 
 
 def test_create_temp_access_empty_list_null_and_omitted_keep_default_scopes() -> None:
-    """scopes=[], null, or omitted all issue the default {whoami, get_pond, run_sql}."""
     reset_pond_tables()
     headers = auth_headers()
     pond = _create_running_pond(headers)
@@ -537,7 +527,6 @@ def test_create_temp_access_empty_list_null_and_omitted_keep_default_scopes() ->
 
 
 def test_create_temp_access_valid_subset_and_duplicates_preserve_scope_contract() -> None:
-    """Nonempty valid subset and duplicate valid strings are stored/returned as requested."""
     reset_pond_tables()
     headers = auth_headers()
     pond = _create_running_pond(headers)
@@ -572,7 +561,6 @@ def test_create_temp_access_valid_subset_and_duplicates_preserve_scope_contract(
 
 
 def test_create_temp_access_wrong_scopes_type_retains_validation_422() -> None:
-    """scopes as a non-list type still yields FastAPI 422 with detail involving scopes."""
     reset_pond_tables()
     headers = auth_headers()
     pond = _create_running_pond(headers)
@@ -588,7 +576,6 @@ def test_create_temp_access_wrong_scopes_type_retains_validation_422() -> None:
 
 
 def test_create_temp_access_auth_and_ownership_failures_unchanged() -> None:
-    """Unauthenticated → 401; foreign/missing pond with a valid body → 404 pond_not_found."""
     reset_pond_tables()
     missing = str(uuid.uuid4())
     expires_at = (datetime.now(UTC) + timedelta(hours=1)).isoformat()
@@ -611,7 +598,6 @@ def test_create_temp_access_auth_and_ownership_failures_unchanged() -> None:
 
 
 def test_mcp_forbidden_scope_remains_agent_disabled_403() -> None:
-    """Narrow valid grant still denies out-of-scope MCP tools with agent_disabled."""
     reset_pond_tables()
     headers = auth_headers()
     pond = _create_running_pond(headers)

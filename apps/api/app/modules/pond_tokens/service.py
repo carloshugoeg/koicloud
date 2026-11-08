@@ -16,12 +16,13 @@ from app.core.security import hash_password, verify_password
 from app.core.time import utc_now
 from app.modules.ponds import PondService
 from app.schemas import (
+    TEMP_ACCESS_SCOPES,
     PondTempAccessListResponse,
     PondTempAccessOut,
     PondTempAccessSecretOut,
 )
 
-TEMP_ACCESS_TOOLS: frozenset[str] = frozenset({"whoami", "get_pond", "run_sql"})
+TEMP_ACCESS_TOOLS: frozenset[str] = TEMP_ACCESS_SCOPES
 
 
 def phase_of(row: PondToken, *, now: datetime | None = None) -> str:

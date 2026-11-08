@@ -856,8 +856,6 @@ class ToggleAgentAccessResponse(SchemaModel):
     model_config = config_with_example({"enabled": False})
 
 
-# Duplicated from pond_tokens.TEMP_ACCESS_TOOLS to avoid import cycle
-# (pond_tokens imports schemas). Keep in sync manually.
 TEMP_ACCESS_SCOPES: frozenset[str] = frozenset({"whoami", "get_pond", "run_sql"})
 
 
