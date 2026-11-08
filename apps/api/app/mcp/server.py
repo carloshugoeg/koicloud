@@ -130,9 +130,16 @@ async def run_sql(pond_name: str, query: str, mode: str = "read") -> dict[str, A
 
 
 @mcp.tool
-async def confirm_action(token: str, **_extra: Any) -> dict[str, Any]:
-    # Spec: client extras never override stored SQL/action/pond; ignore unknown args.
-    _ = _extra
+async def confirm_action(
+    token: str,
+    query: str | None = None,
+    mode: str | None = None,
+    pond_id: str | None = None,
+    action: str | None = None,
+    pond_token_id: str | None = None,
+) -> dict[str, Any]:
+    # Spec: client extras never override the stored proposal; accept and drop them.
+    _ = (query, mode, pond_id, action, pond_token_id)
     actor = _actor_for_tool("confirm_action")
     return await confirmation_commands.confirm_action(token, actor=actor)
 
