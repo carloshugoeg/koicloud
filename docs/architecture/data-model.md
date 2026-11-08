@@ -40,6 +40,7 @@ erDiagram
     ponds ||--o{ pond_samples : "measured_by"
     ponds ||--o{ usage_daily : "aggregated"
     ponds ||--o{ sql_history : "queried"
+    ponds ||--o{ pond_tokens : "temp_access"
 
     users {
       uuid id PK
@@ -203,6 +204,16 @@ erDiagram
       text password_hash
       boolean enabled
       timestamptz rotated_at
+      timestamptz created_at
+    }
+    pond_tokens {
+      uuid id PK
+      uuid pond_id FK
+      text access_slug UK
+      text password_hash
+      timestamptz expires_at
+      timestamptz revoked_at
+      jsonb scopes
       timestamptz created_at
     }
     pending_confirmations {
@@ -432,6 +443,7 @@ Los precios y descripciones deben coincidir con los del catálogo público ([`..
 | Confirmation token (CLI/MCP) | `pending_confirmations.token_hash` | SHA-256 |
 | Password de pond | `ponds.db_password_encrypted` | Cifrado con Fernet (`POND_PASSWORD_KEY`) |
 | Password de agent gate | `agent_access.password_hash` | Argon2id |
+| Password de acceso temporal a pond | `pond_tokens.password_hash` | Argon2id |
 | Token del node | `nodes.token_hash` | SHA-256 |
 
 **Nunca** se guarda el valor plano de un token/password. Los valores en claro solo existen:
@@ -479,7 +491,7 @@ Ninguna es requisito de release.
 Aunque el harness previo o el instinto de agentes podría sugerirlas, **no** existen en MVP:
 
 - `organizations`, `memberships`, `org_users` — no hay teams.
-- `api_keys`, `agent_keys` con scopes — `agent_access` (uno por usuario) es todo.
+- `api_keys`, `agent_keys` con scopes — `agent_access` (uno por usuario) es el gate de cuenta; `pond_tokens` es el acceso temporal por pond (issue #203 / S2 demo).
 - `approvals` (workflow humano-aprueba-bot) — sustituido por `pending_confirmations`.
 - `budgets`, `agent_spend` — sin spend caps.
 - `incidents`, `uptime_checks` — sin status page.

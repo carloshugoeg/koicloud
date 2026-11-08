@@ -14,6 +14,7 @@ from app.commands import auth as auth_commands
 from app.commands import backups as backup_commands
 from app.commands import billing as billing_commands
 from app.commands import confirmations as confirmation_commands
+from app.commands import pond_tokens as pond_token_commands
 from app.commands import ponds as pond_commands
 from app.commands import sql as sql_commands
 from app.commands import usage as usage_commands
@@ -55,6 +56,10 @@ from app.schemas import (
     PlanListResponse,
     PondListResponse,
     PondResponse,
+    PondTempAccessCreateRequest,
+    PondTempAccessListResponse,
+    PondTempAccessOut,
+    PondTempAccessSecretOut,
     ReadyResponse,
     RefreshTokenRequest,
     RegisterUserRequest,
@@ -652,6 +657,51 @@ async def run_sql(
         confirm_token=confirm_token,
     )
     return _render(result, success_status=status.HTTP_200_OK)
+
+
+@router.post(
+    "/ponds/{pond_id}/temp-access",
+    response_model=PondTempAccessSecretOut,
+    status_code=status.HTTP_201_CREATED,
+    operation_id="create_pond_temp_access",
+    tags=["pond-temp-access"],
+    responses=_error_responses(401, 403, 404),
+)
+async def create_pond_temp_access(
+    pond_id: UUID,
+    payload: PondTempAccessCreateRequest,
+    actor: Annotated[AuthContext, Depends(get_current_user)],
+) -> PondTempAccessSecretOut:
+    return await pond_token_commands.create_pond_temp_access(actor, pond_id, payload)
+
+
+@router.get(
+    "/ponds/{pond_id}/temp-access",
+    response_model=PondTempAccessListResponse,
+    operation_id="list_pond_temp_access",
+    tags=["pond-temp-access"],
+    responses=_error_responses(401, 403, 404),
+)
+async def list_pond_temp_access(
+    pond_id: UUID,
+    actor: Annotated[AuthContext, Depends(get_current_user)],
+) -> PondTempAccessListResponse:
+    return await pond_token_commands.list_pond_temp_access(actor, pond_id)
+
+
+@router.post(
+    "/ponds/{pond_id}/temp-access/{token_id}/revoke",
+    response_model=PondTempAccessOut,
+    operation_id="revoke_pond_temp_access",
+    tags=["pond-temp-access"],
+    responses=_error_responses(401, 403, 404),
+)
+async def revoke_pond_temp_access(
+    pond_id: UUID,
+    token_id: UUID,
+    actor: Annotated[AuthContext, Depends(get_current_user)],
+) -> PondTempAccessOut:
+    return await pond_token_commands.revoke_pond_temp_access(actor, pond_id, token_id)
 
 
 @router.get(
