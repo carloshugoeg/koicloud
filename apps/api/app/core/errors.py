@@ -105,9 +105,7 @@ class AppError(Exception):
         self.code = code
         self.message = message or spec.message
         self.http_status = http_status or spec.http_status
-        # Exception text includes the code so Streamable HTTP ToolError envelopes
-        # remain machine-parseable without changing HTTP/JSON-RPC payloads.
-        super().__init__(f"{self.code.value}: {self.message}")
+        super().__init__(self.message)
 
     def to_payload(self, request_id: str | None = None) -> dict[str, str | None]:
         return {
