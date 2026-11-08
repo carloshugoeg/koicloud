@@ -856,9 +856,27 @@ class ToggleAgentAccessResponse(SchemaModel):
     model_config = config_with_example({"enabled": False})
 
 
+# Duplicated from pond_tokens.TEMP_ACCESS_TOOLS to avoid import cycle
+# (pond_tokens imports schemas). Keep in sync manually.
+TEMP_ACCESS_SCOPES: frozenset[str] = frozenset({"whoami", "get_pond", "run_sql"})
+
+
 class PondTempAccessCreateRequest(SchemaModel):
     expires_at: datetime
     scopes: list[str] | None = None
+
+    @field_validator("scopes")
+    @classmethod
+    def scopes_must_be_allowed(cls, value: list[str] | None) -> list[str] | None:
+        if not value:
+            return value
+        invalid = [scope for scope in value if scope not in TEMP_ACCESS_SCOPES]
+        if invalid:
+            raise ValueError(
+                "scopes must be a nonempty subset of "
+                f"{sorted(TEMP_ACCESS_SCOPES)}; invalid: {invalid}"
+            )
+        return value
 
     model_config = config_with_example(
         {
