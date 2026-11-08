@@ -131,12 +131,12 @@ async def run_sql(pond_name: str, query: str, mode: str = "read") -> dict[str, A
 
 @mcp.tool
 async def confirm_action(token: str) -> dict[str, Any]:
-    _actor_for_tool("confirm_action")
-    return await confirmation_commands.confirm_action(token)
+    actor = _actor_for_tool("confirm_action")
+    return await confirmation_commands.confirm_action(token, actor=actor)
 
 
 @mcp.tool
 async def cancel_confirmation(token: str) -> dict[str, str]:
-    _actor_for_tool("cancel_confirmation")
-    await confirmation_commands.discard_pending_confirmation(token)
+    actor = _actor_for_tool("cancel_confirmation")
+    await confirmation_commands.discard_pending_confirmation(token, actor=actor)
     return {"status": "discarded"}

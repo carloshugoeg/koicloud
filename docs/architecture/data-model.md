@@ -225,6 +225,9 @@ erDiagram
       text summary
       timestamptz expires_at
       timestamptz consumed_at
+      uuid pond_token_id FK "nullable; temp SQL bind"
+      uuid pond_id FK "nullable; temp SQL bind"
+      varchar request_digest "nullable; sha256 hex"
     }
     audit_events {
       uuid id PK
@@ -242,6 +245,7 @@ Cambios respecto a la Entrega 2:
 
 - `users.status` (`active | suspended`) explícito para el admin (E8-03).
 - `pending_confirmations.summary` (texto humano) añadido para que CLI/MCP muestren el resumen sin recomputar.
+- `pending_confirmations.pond_token_id` / `pond_id` / `request_digest` (CCR TEMP-CONFIRM #96): binding de propuestas `run_sql_write` temporales; las tres null = fila legacy de dueño. CHECK exige las tres presentes y `action='run_sql_write'` cuando cualquiera está set.
 - `jobs.attempts`, `jobs.last_error`, `jobs.claimed_at`, `jobs.completed_at` — necesarios para el reconciler mínimo.
 - `backups.sha256`, `backups.size_bytes` — para auditoría del respaldo.
 - `sql_history.mode` (`read | write`) explícito.
