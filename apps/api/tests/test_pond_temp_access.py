@@ -56,19 +56,73 @@ def _basic(slug: str, password: str) -> dict[str, str]:
     return {"Authorization": f"Basic {token}"}
 
 
+DEFAULT_TEMP_SCOPES = {"whoami", "get_pond", "run_sql"}
+
+
 def _create_temp_access(
     headers: dict[str, str],
     pond_id: str,
     *,
     expires_in_seconds: int = 3600,
 ) -> dict:
+    return _post_temp_access(
+        headers,
+        pond_id,
+        scopes=["whoami", "get_pond", "run_sql"],
+        expires_in_seconds=expires_in_seconds,
+    )
+
+
+def _post_temp_access(
+    headers: dict[str, str] | None,
+    pond_id: str,
+    *,
+    scopes: object | None = None,
+    include_scopes: bool = True,
+    expires_in_seconds: int = 3600,
+) -> dict:
+    """POST temp-access with optional custom scopes (or omit the field)."""
     expires_at = (datetime.now(UTC) + timedelta(seconds=expires_in_seconds)).isoformat()
+    payload: dict = {"expires_at": expires_at}
+    if include_scopes:
+        payload["scopes"] = scopes
     response = client.post(
         f"/api/v1/ponds/{pond_id}/temp-access",
-        headers=headers,
-        json={"expires_at": expires_at, "scopes": ["whoami", "get_pond", "run_sql"]},
+        headers=headers or {},
+        json=payload,
     )
     return {"response": response, "body": response.json() if response.content else {}}
+
+
+def _count_pond_tokens(pond_id: str) -> int:
+    engine = create_engine(to_sync_database_url(get_settings().database_url))
+    with engine.begin() as connection:
+        count = connection.execute(
+            text("SELECT COUNT(*) FROM pond_tokens WHERE pond_id = :pond_id"),
+            {"pond_id": pond_id},
+        ).scalar_one()
+    engine.dispose()
+    return int(count)
+
+
+def _assert_scopes_validation_422(response, *, require_value_error: bool = True) -> None:
+    """FastAPI RequestValidationError shape for scopes; no create credentials."""
+    assert response.status_code == 422, response.text
+    body = response.json()
+    detail = body.get("detail")
+    assert isinstance(detail, list) and detail, body
+    scopes_entries = [
+        item
+        for item in detail
+        if isinstance(item, dict) and "scopes" in (item.get("loc") or [])
+    ]
+    assert scopes_entries, body
+    if require_value_error:
+        assert any(
+            "value_error" in str(item.get("type", "")) for item in scopes_entries
+        ), body
+    assert "password" not in body
+    assert "slug" not in body
 
 
 # --- issued ---
@@ -410,3 +464,188 @@ def test_revoke_unknown_token_returns_404() -> None:
         headers=headers,
     )
     assert response.status_code == 404
+
+
+# --- CCR #222: invalid scopes → FastAPI 422 before any side effects ---
+
+
+def test_create_temp_access_invalid_scope_returns_validation_422_no_side_effects() -> None:
+    """Unknown scope string is rejected at the request boundary with zero DB writes."""
+    reset_pond_tables()
+    headers = auth_headers()
+    pond = _create_running_pond(headers)
+    before = _count_pond_tokens(pond["id"])
+
+    created = _post_temp_access(headers, pond["id"], scopes=["not_a_real_tool"])
+    _assert_scopes_validation_422(created["response"])
+    assert _count_pond_tokens(pond["id"]) == before
+
+
+def test_create_temp_access_empty_scope_string_returns_422_no_side_effects() -> None:
+    """Empty string inside scopes is not a valid tool grant."""
+    reset_pond_tables()
+    headers = auth_headers()
+    pond = _create_running_pond(headers)
+    before = _count_pond_tokens(pond["id"])
+
+    created = _post_temp_access(headers, pond["id"], scopes=[""])
+    _assert_scopes_validation_422(created["response"])
+    assert _count_pond_tokens(pond["id"]) == before
+
+
+def test_create_temp_access_disallowed_scope_returns_422_no_side_effects() -> None:
+    """Real MCP tools outside the REST allow-list (e.g. confirm_action) are rejected."""
+    reset_pond_tables()
+    headers = auth_headers()
+    pond = _create_running_pond(headers)
+    before = _count_pond_tokens(pond["id"])
+
+    created = _post_temp_access(headers, pond["id"], scopes=["confirm_action"])
+    _assert_scopes_validation_422(created["response"])
+    assert _count_pond_tokens(pond["id"]) == before
+
+
+def test_create_temp_access_mixed_scopes_rejects_whole_request_422() -> None:
+    """One disallowed entry rejects the whole request; no partial grant is stored."""
+    reset_pond_tables()
+    headers = auth_headers()
+    pond = _create_running_pond(headers)
+    before = _count_pond_tokens(pond["id"])
+
+    created = _post_temp_access(headers, pond["id"], scopes=["whoami", "delete_pond"])
+    _assert_scopes_validation_422(created["response"])
+    assert _count_pond_tokens(pond["id"]) == before
+
+
+def test_create_temp_access_empty_list_null_and_omitted_keep_default_scopes() -> None:
+    """scopes=[], null, or omitted all issue the default {whoami, get_pond, run_sql}."""
+    reset_pond_tables()
+    headers = auth_headers()
+    pond = _create_running_pond(headers)
+
+    cases = (
+        _post_temp_access(headers, pond["id"], scopes=[]),
+        _post_temp_access(headers, pond["id"], scopes=None),
+        _post_temp_access(headers, pond["id"], include_scopes=False),
+    )
+    for created in cases:
+        assert created["response"].status_code == 201, created["response"].text
+        body = created["body"]
+        assert set(body["scopes"]) == DEFAULT_TEMP_SCOPES, body
+        assert body.get("password")
+        assert body.get("slug") or body.get("url")
+
+
+def test_create_temp_access_valid_subset_and_duplicates_preserve_scope_contract() -> None:
+    """Nonempty valid subset and duplicate valid strings are stored/returned as requested."""
+    reset_pond_tables()
+    headers = auth_headers()
+    pond = _create_running_pond(headers)
+
+    subset = ["whoami", "get_pond"]
+    created = _post_temp_access(headers, pond["id"], scopes=subset)
+    assert created["response"].status_code == 201, created["response"].text
+    assert created["body"]["scopes"] == subset, created["body"]
+
+    engine = create_engine(to_sync_database_url(get_settings().database_url))
+    with engine.begin() as connection:
+        stored = connection.execute(
+            text("SELECT scopes FROM pond_tokens WHERE id = :id"),
+            {"id": created["body"]["id"]},
+        ).scalar_one()
+    engine.dispose()
+    assert list(stored) == subset
+
+    dupes = ["whoami", "whoami"]
+    duplicated = _post_temp_access(headers, pond["id"], scopes=dupes)
+    assert duplicated["response"].status_code == 201, duplicated["response"].text
+    assert duplicated["body"]["scopes"] == dupes, duplicated["body"]
+
+    engine = create_engine(to_sync_database_url(get_settings().database_url))
+    with engine.begin() as connection:
+        stored_dupes = connection.execute(
+            text("SELECT scopes FROM pond_tokens WHERE id = :id"),
+            {"id": duplicated["body"]["id"]},
+        ).scalar_one()
+    engine.dispose()
+    assert list(stored_dupes) == dupes
+
+
+def test_create_temp_access_wrong_scopes_type_retains_validation_422() -> None:
+    """scopes as a non-list type still yields FastAPI 422 with detail involving scopes."""
+    reset_pond_tables()
+    headers = auth_headers()
+    pond = _create_running_pond(headers)
+    before = _count_pond_tokens(pond["id"])
+
+    as_string = _post_temp_access(headers, pond["id"], scopes="whoami")
+    _assert_scopes_validation_422(as_string["response"], require_value_error=False)
+    assert _count_pond_tokens(pond["id"]) == before
+
+    as_number = _post_temp_access(headers, pond["id"], scopes=42)
+    _assert_scopes_validation_422(as_number["response"], require_value_error=False)
+    assert _count_pond_tokens(pond["id"]) == before
+
+
+def test_create_temp_access_auth_and_ownership_failures_unchanged() -> None:
+    """Unauthenticated → 401; foreign/missing pond with a valid body → 404 pond_not_found."""
+    reset_pond_tables()
+    missing = str(uuid.uuid4())
+    expires_at = (datetime.now(UTC) + timedelta(hours=1)).isoformat()
+    valid_body = {
+        "expires_at": expires_at,
+        "scopes": ["whoami", "get_pond", "run_sql"],
+    }
+
+    unauth = client.post(f"/api/v1/ponds/{missing}/temp-access", json=valid_body)
+    assert unauth.status_code == 401, unauth.text
+
+    headers = auth_headers()
+    foreign = client.post(
+        f"/api/v1/ponds/{missing}/temp-access",
+        headers=headers,
+        json=valid_body,
+    )
+    assert foreign.status_code == 404, foreign.text
+    assert foreign.json().get("code") == "pond_not_found"
+
+
+def test_mcp_forbidden_scope_remains_agent_disabled_403() -> None:
+    """Narrow valid grant still denies out-of-scope MCP tools with agent_disabled."""
+    reset_pond_tables()
+    headers = auth_headers()
+    pond = _create_running_pond(headers)
+    created = _post_temp_access(headers, pond["id"], scopes=["whoami", "get_pond"])
+    assert created["response"].status_code == 201, created["response"].text
+    mcp = _basic(created["body"]["slug"], created["body"]["password"])
+
+    response = client.post(
+        "/mcp",
+        headers=mcp,
+        json={
+            "jsonrpc": "2.0",
+            "id": 42,
+            "method": "run_sql",
+            "params": {
+                "pond_name": pond["name"],
+                "query": "SELECT 1 AS n",
+                "mode": "read",
+            },
+        },
+    )
+    body = response.json()
+    if response.status_code in {401, 403}:
+        assert body.get("code") == "agent_disabled", body
+    else:
+        assert response.status_code == 200, response.text
+        result = body.get("result") or {}
+        error = body.get("error") or {}
+        code = (
+            body.get("code")
+            or result.get("code")
+            or (error.get("code") if isinstance(error, dict) else None)
+        )
+        assert code == "agent_disabled" or (
+            isinstance(result, dict) and result.get("status") == "error"
+            and "agent_disabled" in str(result)
+        ), body
