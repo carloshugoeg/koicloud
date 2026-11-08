@@ -32,9 +32,6 @@ from app.schemas import RunSQLRequest
 from tests.db_reset import DEMO_EMAIL, DEMO_PASSWORD, ensure_demo_user, reset_pond_tables
 from tests.sql_probe_pond import (
     PROBE_DATABASE,
-    PROBE_HOST,
-    PROBE_PASSWORD,
-    PROBE_PORT,
     seed_probe_pond,
 )
 
@@ -44,6 +41,21 @@ COPY_MARKER = "/tmp/koicloud-temp-confirm-copy-marker"
 COPY_PROGRAM = f"COPY (SELECT 1) TO PROGRAM 'touch {COPY_MARKER}'"
 
 client = TestClient(app)
+
+# Streamable HTTP needs the FastMCP lifespan task group. One shared TestClient
+# with an entered lifespan keeps concurrent confirms from racing nested lifespans.
+_STREAM_LOCK = threading.Lock()
+_STREAM_CM: TestClient | None = None
+_STREAM_CLIENT: TestClient | None = None
+
+
+def _stream_client() -> TestClient:
+    global _STREAM_CM, _STREAM_CLIENT
+    with _STREAM_LOCK:
+        if _STREAM_CLIENT is None:
+            _STREAM_CM = TestClient(app)
+            _STREAM_CLIENT = _STREAM_CM.__enter__()
+        return _STREAM_CLIENT
 
 
 @dataclass(frozen=True, slots=True)
@@ -200,21 +212,20 @@ def _mcp_call(
     if transport != "streamable":
         raise AssertionError(f"unknown transport {transport}")
 
-    with TestClient(app) as stream_client:
-        response = stream_client.post(
-            "/mcp",
-            headers={
-                **headers,
-                "Accept": STREAM_ACCEPT,
-                "Content-Type": "application/json",
-            },
-            json={
-                "jsonrpc": "2.0",
-                "id": rpc_id,
-                "method": "tools/call",
-                "params": {"name": tool, "arguments": arguments},
-            },
-        )
+    response = _stream_client().post(
+        "/mcp",
+        headers={
+            **headers,
+            "Accept": STREAM_ACCEPT,
+            "Content-Type": "application/json",
+        },
+        json={
+            "jsonrpc": "2.0",
+            "id": rpc_id,
+            "method": "tools/call",
+            "params": {"name": tool, "arguments": arguments},
+        },
+    )
     if response.status_code != 200:
         try:
             return response.status_code, response.json()
@@ -250,6 +261,24 @@ def _mcp_call(
             if candidate in joined:
                 code = candidate
                 break
+        if code is None:
+            # Streamable FastMCP surfaces AppError.message (Spanish catalog text)
+            # without the machine code; map the known TEMP-CONFIRM messages.
+            from app.core.errors import ERROR_CATALOG, ErrorCode
+
+            for candidate in (
+                ErrorCode.CONFIRMATION_NOT_FOUND,
+                ErrorCode.CONFIRMATION_EXPIRED,
+                ErrorCode.CONFIRMATION_ACTION_MISMATCH,
+                ErrorCode.AGENT_BAD_CREDENTIALS,
+                ErrorCode.AGENT_DISABLED,
+                ErrorCode.SQL_READONLY_VIOLATION,
+                ErrorCode.SQL_ERROR,
+                ErrorCode.POND_NOT_FOUND,
+            ):
+                if ERROR_CATALOG[candidate].message in joined:
+                    code = candidate.value
+                    break
         return response.status_code, {
             "status": "error",
             "code": code,
@@ -333,7 +362,7 @@ def _sql_history_count(pond_id: str, query: str) -> int:
             text(
                 """
                 SELECT count(*) FROM sql_history
-                WHERE pond_id = :pond_id AND query = :query
+                WHERE pond_id = :pond_id AND query_truncated = :query
                 """
             ),
             {"pond_id": pond_id, "query": query},
@@ -1280,45 +1309,58 @@ def test_temp_confirm_does_not_expand_sql_privileges(transport: str) -> None:
 def test_owner_confirmation_flows_regression() -> None:
     reset_pond_tables()
     ensure_demo_user()
-    owner = _owner_headers()
-    account = _account_mcp_headers()
+    # Harness only: Micro defaults to max_ponds=1, but this regression exercises two
+    # sequential owner creates (HTTP confirm + MCP confirm). Raise the cap without
+    # changing the assertion matrix; restore afterward so plan seed tests stay green.
+    engine = _engine()
+    with engine.begin() as connection:
+        connection.execute(text("UPDATE plans SET max_ponds = 10 WHERE id = 'micro'"))
+    engine.dispose()
+    try:
+        owner = _owner_headers()
+        account = _account_mcp_headers()
 
-    proposed = client.post(
-        "/mcp",
-        headers=account,
-        json={
-            "jsonrpc": "2.0",
-            "id": 1,
-            "method": "create_pond",
-            "params": {"name": _unique("regpond")},
-        },
-    )
-    assert proposed.status_code == 200, proposed.text
-    result = proposed.json()["result"]
-    assert result["status"] == "confirmation_required"
-    assert result["next"]["confirm_url"].startswith("/api/v1/confirm/")
-    assert result["next"]["cli_example"].startswith("koicloud confirm ")
+        proposed = client.post(
+            "/mcp",
+            headers=account,
+            json={
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "create_pond",
+                "params": {"name": _unique("regpond")},
+            },
+        )
+        assert proposed.status_code == 200, proposed.text
+        result = proposed.json()["result"]
+        assert result["status"] == "confirmation_required"
+        assert result["next"]["confirm_url"].startswith("/api/v1/confirm/")
+        assert result["next"]["cli_example"].startswith("koicloud confirm ")
 
-    confirmed = client.post(f"/api/v1/confirm/{result['token']}", headers=owner)
-    assert confirmed.status_code == 200, confirmed.text
-    assert confirmed.json()["pond"]["name"].startswith("regpond")
+        confirmed = client.post(f"/api/v1/confirm/{result['token']}", headers=owner)
+        assert confirmed.status_code == 200, confirmed.text
+        assert confirmed.json()["pond"]["name"].startswith("regpond")
 
-    # Account MCP confirm_action path still works for owner proposals.
-    proposed2 = client.post(
-        "/mcp",
-        headers=account,
-        json={
-            "jsonrpc": "2.0",
-            "id": 2,
-            "method": "create_pond",
-            "params": {"name": _unique("regpond2")},
-        },
-    )
-    assert proposed2.status_code == 200, proposed2.text
-    token2 = proposed2.json()["result"]["token"]
-    status, mcp_ok = _confirm("jsonrpc", account, token2)
-    assert status == 200, mcp_ok
-    assert mcp_ok.get("pond", {}).get("name", "").startswith("regpond2"), mcp_ok
+        # Account MCP confirm_action path still works for owner proposals.
+        proposed2 = client.post(
+            "/mcp",
+            headers=account,
+            json={
+                "jsonrpc": "2.0",
+                "id": 2,
+                "method": "create_pond",
+                "params": {"name": _unique("regpond2")},
+            },
+        )
+        assert proposed2.status_code == 200, proposed2.text
+        token2 = proposed2.json()["result"]["token"]
+        status, mcp_ok = _confirm("jsonrpc", account, token2)
+        assert status == 200, mcp_ok
+        assert mcp_ok.get("pond", {}).get("name", "").startswith("regpond2"), mcp_ok
+    finally:
+        engine = _engine()
+        with engine.begin() as connection:
+            connection.execute(text("UPDATE plans SET max_ponds = 1 WHERE id = 'micro'"))
+        engine.dispose()
 
 
 @pytest.mark.asyncio
@@ -1552,15 +1594,15 @@ def test_migration_downgrade_deletes_temp_bound_rows_first() -> None:
                     pond_token_id, pond_id, request_digest
                 )
                 SELECT
-                    :id,
+                    CAST(:id AS uuid),
                     u.id,
                     :token_hash,
                     'run_sql_write',
-                    :payload::jsonb,
+                    CAST(:payload AS jsonb),
                     'temp-bound-for-downgrade',
                     CURRENT_TIMESTAMP + interval '5 minutes',
-                    :pond_token_id::uuid,
-                    :pond_id::uuid,
+                    CAST(:pond_token_id AS uuid),
+                    CAST(:pond_id AS uuid),
                     :digest
                 FROM users u
                 WHERE u.email = :email

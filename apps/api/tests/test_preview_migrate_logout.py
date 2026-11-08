@@ -21,7 +21,7 @@ from app.modules.auth.tests.test_auth_api import PASSWORD, _register_and_verify
 from tests.db_reset import reset_auth_tables
 from tests.test_preview_api_entry import _load_index
 
-HEAD = "0006_pond_tokens"
+HEAD = "0007_temp_sql_confirm"
 BEFORE = "0004_billing_payment_port"
 API_ROOT = Path(__file__).resolve().parents[1]
 MIGRATION = API_ROOT / "alembic" / "versions" / "0005_revoked_access_tokens.py"
