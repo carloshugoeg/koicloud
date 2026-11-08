@@ -1,6 +1,6 @@
 """Bind temporary SQL confirmations to PondToken + pond + digest.
 
-Revision ID: 0007_temp_sql_confirmation_binding
+Revision ID: 0007_temp_sql_confirm
 Revises: 0006_pond_tokens
 Create Date: 2026-11-08 05:50:00
 
@@ -15,7 +15,7 @@ from sqlalchemy.dialects import postgresql
 
 from alembic import op
 
-revision = "0007_temp_sql_confirmation_binding"
+revision = "0007_temp_sql_confirm"
 down_revision = "0006_pond_tokens"
 branch_labels = None
 depends_on = None
