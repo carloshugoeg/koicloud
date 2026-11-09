@@ -120,6 +120,92 @@ async def test_non_admin_receives_admin_only() -> None:
     assert response.json()["code"] == "admin_only"
 
 
+_SECRET_USER_KEYS = frozenset(
+    {
+        "password",
+        "password_hash",
+        "token",
+        "access_token",
+        "refresh_token",
+        "jwt",
+        "secret",
+        "db_password_encrypted",
+    }
+)
+
+
+async def test_admin_list_users_superadmin_panel_fields() -> None:
+    reset_auth_tables()
+
+    async with _make_client() as client:
+        owner_id = await _register_and_verify(client, "owner-panel@koicloud.test")
+        owner_token = await _login(client, "owner-panel@koicloud.test")
+        created = await client.post(
+            "/api/v1/ponds",
+            headers={"Authorization": f"Bearer {owner_token}"},
+            json={"name": "panel-demo"},
+        )
+        assert created.status_code == 202
+
+        admin_id = await _register_and_verify(client, "admin-panel@koicloud.test")
+        await _promote(admin_id, UserRole.ADMIN)
+        admin_token = await _login(client, "admin-panel@koicloud.test")
+
+        response = await client.get(
+            "/api/v1/admin/users",
+            headers={"Authorization": f"Bearer {admin_token}"},
+        )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert "next_cursor" in body
+    by_email = {user["email"]: user for user in body["users"]}
+    assert set(by_email) == {"owner-panel@koicloud.test", "admin-panel@koicloud.test"}
+
+    owner = by_email["owner-panel@koicloud.test"]
+    assert owner["email"] == "owner-panel@koicloud.test"
+    assert owner["email_verified"] is True
+    assert isinstance(owner["created_at"], str) and owner["created_at"]
+    assert "active_subscription_plan" in owner
+    assert owner["ponds_count"] == 1
+    assert owner["id"] == str(owner_id)
+
+    admin_row = by_email["admin-panel@koicloud.test"]
+    assert admin_row["ponds_count"] == 0
+    assert admin_row["email_verified"] is True
+
+    for user in body["users"]:
+        assert _SECRET_USER_KEYS.isdisjoint(user.keys())
+        assert "password_hash" not in user
+        lowered = {key.lower() for key in user}
+        assert not any("token" in key or "secret" in key or "password" in key for key in lowered)
+
+
+async def test_admin_list_users_anonymous_receives_401() -> None:
+    reset_auth_tables()
+
+    async with _make_client() as client:
+        response = await client.get("/api/v1/admin/users")
+
+    assert response.status_code == 401
+    assert response.json()["code"] == "token_invalid"
+
+
+async def test_admin_list_users_non_admin_forbidden_for_panel() -> None:
+    reset_auth_tables()
+
+    async with _make_client() as client:
+        await _register_and_verify(client, "client-panel@koicloud.test")
+        token = await _login(client, "client-panel@koicloud.test")
+        response = await client.get(
+            "/api/v1/admin/users",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+    assert response.status_code == 403
+    assert response.json()["code"] == "admin_only"
+
+
 async def test_suspend_and_reactivate_user() -> None:
     reset_auth_tables()
 
