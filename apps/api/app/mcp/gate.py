@@ -72,18 +72,37 @@ async def authenticate_mcp(
         raise AppError(ErrorCode.AGENT_BAD_CREDENTIALS)
 
     async with SessionLocal() as session:
-        await _ensure_demo_agent_access(session, settings)
-        service = AgentAccessService(session, settings)
-        user = await service.authenticate(slug, password)
-        if user.status != UserStatus.ACTIVE:
-            raise AppError(ErrorCode.AGENT_DISABLED)
-        actor = AuthContext(
-            user_id=str(user.id),
-            email=user.email,
-            role=user.role if isinstance(user.role, UserRole) else UserRole(str(user.role)),
-            status=UserStatus.ACTIVE,
-            surface=AppSurface.MCP,
-        )
+        # Pond-scoped temporary credentials (issue #203) take the slug first.
+        if slug.startswith("pond-"):
+            from app.modules.pond_tokens import PondTokenService
+
+            user, pond, tools = await PondTokenService(session, settings).authenticate(
+                slug, password
+            )
+            if user.status != UserStatus.ACTIVE:
+                raise AppError(ErrorCode.AGENT_DISABLED)
+            actor = AuthContext(
+                user_id=str(user.id),
+                email=user.email,
+                role=user.role if isinstance(user.role, UserRole) else UserRole(str(user.role)),
+                status=UserStatus.ACTIVE,
+                surface=AppSurface.MCP,
+                pond_id=str(pond.id),
+                allowed_tools=tools,
+            )
+        else:
+            await _ensure_demo_agent_access(session, settings)
+            service = AgentAccessService(session, settings)
+            user = await service.authenticate(slug, password)
+            if user.status != UserStatus.ACTIVE:
+                raise AppError(ErrorCode.AGENT_DISABLED)
+            actor = AuthContext(
+                user_id=str(user.id),
+                email=user.email,
+                role=user.role if isinstance(user.role, UserRole) else UserRole(str(user.role)),
+                status=UserStatus.ACTIVE,
+                surface=AppSurface.MCP,
+            )
 
     set_mcp_actor(actor)
     return actor
