@@ -135,6 +135,19 @@ BEGIN
     JOIN pg_namespace AS n ON n.oid = c.relnamespace
     WHERE n.nspname = ANY (ARRAY[{literals}]::text[])
       AND c.relkind IN ('r', 'p', 'v', 'm', 'S', 'f')
+      -- SERIAL/IDENTITY sequences follow their table's owner; ALTER SEQUENCE
+      -- OWNER on them fails with 0A000 on PG 16.
+      AND NOT (
+        c.relkind = 'S'
+        AND EXISTS (
+          SELECT 1
+          FROM pg_depend AS d
+          WHERE d.classid = 'pg_class'::regclass
+            AND d.objid = c.oid
+            AND d.refclassid = 'pg_class'::regclass
+            AND d.deptype IN ('a', 'i')
+        )
+      )
   LOOP
     IF rel.relkind = 'S' THEN
       EXECUTE format('ALTER SEQUENCE %s OWNER TO {role}', rel.obj);
