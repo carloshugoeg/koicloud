@@ -6,7 +6,7 @@ estado: en-revision
 rama: w1-superadmin-panel
 epica: E8-01
 sprint: S4
-pr:
+pr: https://github.com/carloshugoeg/koicloud/pull/228
 depends_on:
 ---
 
