@@ -99,6 +99,8 @@ class PondService:
         ]
 
     async def get_owned(self, actor: AuthContext, pond_id: UUID) -> tuple[Pond, PondStatus]:
+        if actor.pond_id is not None and actor.pond_id != str(pond_id):
+            raise AppError(ErrorCode.POND_NOT_FOUND)
         row = (
             await self.session.execute(
                 self._owned_query(UUID(actor.user_id)).where(Pond.id == pond_id)
@@ -127,7 +129,10 @@ class PondService:
         ).first()
         if row is None:
             raise AppError(ErrorCode.POND_NOT_FOUND)
-        return row[0], row[1]
+        pond, status = row[0], row[1]
+        if actor.pond_id is not None and actor.pond_id != str(pond.id):
+            raise AppError(ErrorCode.POND_NOT_FOUND)
+        return pond, status
 
     async def get_owned_by_name_out(self, actor: AuthContext, name: str) -> PondOut:
         pond, status = await self.get_owned_by_name(actor, name)

@@ -37,6 +37,80 @@ def test_user_sql_error_is_4xx(client, headers, pond_id):
     assert 400 <= response.status_code < 500
 ```
 
+## SQL console role is not a superuser
+
+The console connects as the pond role `koi_console`. That role is not a superuser, owns schema `app`, and is not a member of `pg_read_server_files`, `pg_write_server_files`, or `pg_execute_server_program`. `COPY … PROGRAM` returns 400 `sql_error` with the fixed Spanish message and does not run the program. Read mode still rejects writes. The 1000-row cap and the statement timeout stay as they are.
+
+The live test is `test_copy_program_returns_sql_error_and_runs_nothing` in `apps/api/tests/test_sql_real_pond.py`. The session check is `test_console_session_is_not_superuser_and_not_a_server_file_role`. App-schema reads, writes, and `CREATE TABLE` are `test_console_reads_and_writes_app_data_and_can_create_a_table`.
+
+Template test:
+
+```python
+def test_copy_program_is_rejected(client, headers, pond_id):
+    response = client.post(
+        f"/api/v1/ponds/{pond_id}/sql",
+        headers=headers,
+        json={
+            "query": "COPY (SELECT 1) TO PROGRAM 'touch /tmp/koicloud-copy-program-marker'",
+            "mode": "write",
+        },
+    )
+    assert response.status_code == 400
+    assert response.json()["code"] == "sql_error"
+```
+
+## concurrent console queries succeed
+
+Ten console queries sent together against one pond all return 200. None of them comes back as `internal_error`, and Postgres does not report `tuple concurrently updated`. The role setup runs once for that pond, or again only when the console password changes, and concurrent callers take the same advisory lock.
+
+The live test is `test_ten_parallel_console_queries_all_succeed` in `apps/api/tests/test_sql_console_role_lifecycle.py`. The unchanged-password check is `test_console_setup_does_not_rerun_when_the_password_is_unchanged`.
+
+Template test:
+
+```python
+async def test_ten_parallel_console_queries_all_succeed(pond_id, headers):
+    responses = await asyncio.gather(
+        *[
+            client.post(
+                f"/api/v1/ponds/{pond_id}/sql",
+                headers=headers,
+                json={"query": "SELECT 1 AS n", "mode": "read"},
+            )
+            for _ in range(10)
+        ]
+    )
+    assert [response.status_code for response in responses] == [200] * 10
+```
+
+## no secrets in logs
+
+The console password and the pond password never appear in the Postgres log or in a captured error. The role password is stored as a SCRAM-SHA-256 verifier, so the plaintext is not SQL text.
+
+The live test is `test_console_password_never_reaches_the_log_or_captured_errors` in `apps/api/tests/test_sql_console_role_lifecycle.py`.
+
+Template test:
+
+```python
+def test_console_password_is_absent_from_logs(log_text, captured_errors, console_password):
+    assert console_password not in log_text
+    assert console_password not in captured_errors
+```
+
+## console on serial ponds
+
+A pond that already has `SERIAL` or `IDENTITY` columns must accept first-create and a console query. Setup must not run `ALTER SEQUENCE ... OWNER TO koi_console` on a sequence linked to a table column (PG 16 returns `0A000`). Tables and views are re-owned first so ownership cascades.
+
+The live tests are `test_console_setup_succeeds_on_serial_and_identity_pond` and `test_console_query_succeeds_on_pond_with_serial_and_identity` in `apps/api/tests/test_sql_console_role_lifecycle.py`, and `test_first_create_succeeds_on_pond_with_serial_and_identity` in `apps/node-agent/tests/test_console_role_contract.py`.
+
+Template test:
+
+```python
+def test_console_setup_succeeds_on_serial_and_identity_pond():
+    prepare_fresh_serial_identity_database(database)
+    result = run_setup_sql_via_peer_psql(database)
+    assert result.returncode == 0, result.stderr
+```
+
 ## job errors never echo raw command output
 
 A failed job returns only a closed code and a fixed Spanish message in `last_error`. Raw psql or command output, dump rows and passwords never reach the jobs API. The server log keeps only `pg_dump:` / `psql:` ERROR lines (no DETAIL/CONTEXT/COPY rows), capped at 500 characters. Sentry gets only the code plus job id (and pond id). Old rows are sanitized on read.
