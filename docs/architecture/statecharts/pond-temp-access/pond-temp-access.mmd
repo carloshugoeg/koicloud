@@ -1,0 +1,56 @@
+---
+title: "Pond temporary access"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: denied
+    lg1: ended
+  }
+  class lg0 orange
+  class lg1 pink
+  s0: Issued
+  s1: Active
+  s2: Expired
+  s3: Issued (wrong password)
+  s4: Revoked
+  s5: Active (wrong password)
+  s6: Expired (use denied)
+  s7: Revoked (use denied)
+  s8: Active (create/delete denied)
+  s9: Active (wrong pond denied)
+  [*] --> s0
+  s0 --> s1: audience authenticates
+  s0 --> s2: expires_at passes
+  s0 --> s3: wrong password
+  s0 --> s4: presenter revokes
+  s1 --> s2: expires_at passes
+  s1 --> s4: presenter revokes
+  s1 --> s5: wrong password
+  s2 --> s6: use after expiry [401]
+  s3 --> s0: correct password again
+  s3 --> s2: expires_at passes
+  s3 --> s4: presenter revokes
+  s4 --> s7: use after revoke [401]
+  s5 --> s2: expires_at passes
+  s5 --> s4: presenter revokes
+  s5 --> s1: correct password again
+  s1 --> s8: create/delete pond [denied]
+  s1 --> s9: other pond [denied]
+  s8 --> s1: audience authenticates or back to pinned pond
+  s8 --> s2: expires_at passes
+  s8 --> s4: presenter revokes
+  s8 --> s5: wrong password
+  s9 --> s1: back to pinned pond or audience authenticates
+  s9 --> s2: expires_at passes
+  s9 --> s4: presenter revokes
+  s9 --> s5: wrong password
+  s5 --> s8: correct password again
+  s5 --> s9: correct password again
+  class s2 pink
+  class s3 orange
+  class s4 pink
+  class s5 orange
+  class s6 pink
+  class s7 pink
+  class s8 orange
+  class s9 orange

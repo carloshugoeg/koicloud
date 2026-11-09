@@ -110,6 +110,19 @@ Notación: `M ROUTE → CommandOrService` con response resumido. `[C]` = requier
 | POST | `/agent-access/rotate` | `rotate_agent_password` [C-CLI] | Genera nueva password (única vez visible) | `{slug, url, password}` |
 | POST | `/agent-access/toggle` | `toggle_agent_access` [C-CLI] | Activa/desactiva | `{enabled}` |
 
+### 2.7b Acceso temporal a un pond (S2 demo / issue #203)
+
+CCR approved by Carlos Nov 5 2026 2:23 PM GT (card t303s1220), limited to
+temp-access create/list/revoke (+ GET `/ponds/{id}/schema` for S5, not this table).
+
+| M | Ruta | Command | Descripción | Response |
+|---|------|---------|-------------|----------|
+| POST | `/ponds/{id}/temp-access` | `create_pond_temp_access` | Emite link+password one-time; guarda solo hash | `201 {id, pond_id, slug, url, password, expires_at, scopes}` |
+| GET | `/ponds/{id}/temp-access` | `list_pond_temp_access` | Lista metadatos (sin password) | `{tokens:[{id, pond_id, slug, url, expires_at, revoked_at, scopes, created_at}]}` |
+| POST | `/ponds/{id}/temp-access/{token_id}/revoke` | `revoke_pond_temp_access` | Setea `revoked_at` | `{id, pond_id, slug, url, expires_at, revoked_at, scopes, created_at}` |
+
+MCP Basic auth con `slug:password` de un `pond_tokens` vigente autentica como el dueño del pond, con `AuthContext.pond_id` fijado y `allowed_tools` = `whoami` / `get_pond` / `run_sql`. Credencial vencida o revocada → `401 agent_bad_credentials`.
+
 ### 2.8 Confirmaciones (usadas por CLI/MCP)
 
 | M | Ruta | Command | Descripción | Response |

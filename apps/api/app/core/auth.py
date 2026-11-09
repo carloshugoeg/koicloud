@@ -26,6 +26,9 @@ class AuthContext(SchemaModel):
     surface: AppSurface
     access_jti: str | None = None
     access_exp: int | None = None
+    # Pond-scoped temporary access (issue #203). None = full account actor.
+    pond_id: str | None = None
+    allowed_tools: frozenset[str] | None = None
 
 
 async def access_jti_is_revoked(jti: str) -> bool:
