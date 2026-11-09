@@ -51,6 +51,7 @@ no existe todavía. `00-INDEX.md` no es un ticket y el agente lo ignora.
 | [W1-45](W1-45-auth-session-persist.md) | Recargar conserva la sesión (cookie `koi_refresh`) | `w1-auth-session-persist` | hecho · [#166](https://github.com/carloshugoeg/koicloud/pull/166) · #96 r6-3 |
 | [W1-46](W1-46-ccr-logout-revoke.md) | Revocar el access token al cerrar sesión | `w1-ccr-logout-revoke` | hecho · [#167](https://github.com/carloshugoeg/koicloud/pull/167) · #96 r6-7(a) |
 | [W1-47](W1-47-admin-list-users.md) | El listado admin de usuarios lee la base | `w1-g02-admin-users` | en-revision · [#183](https://github.com/carloshugoeg/koicloud/pull/183) |
+| [W1-191](W1-191-sql-console-role.md) | SQL console connects as a non-superuser role | `w1-191-sql-console-role` | hecho · [#198](https://github.com/carloshugoeg/koicloud/pull/198) · #96 r8-2 |
 | [QI-01](QI-01-caddy-app-worker.md) | Caddy sirve la SPA en /app y el worker pasa el healthcheck | `w1-qi-infra-caddy-worker` | hecho · [#187](https://github.com/carloshugoeg/koicloud/pull/187) |
 
 W1 es el único workstream que puede tocar cualquier ruta, y el único que escribe migraciones,

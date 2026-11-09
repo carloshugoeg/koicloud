@@ -2623,6 +2623,216 @@
         "title": "PondResponse",
         "type": "object"
       },
+      "PondTempAccessCreateRequest": {
+        "additionalProperties": false,
+        "example": {
+          "expires_at": "2026-09-22T20:05:00Z",
+          "scopes": [
+            "whoami",
+            "get_pond",
+            "run_sql"
+          ]
+        },
+        "properties": {
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "scopes": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scopes"
+          }
+        },
+        "required": [
+          "expires_at"
+        ],
+        "title": "PondTempAccessCreateRequest",
+        "type": "object"
+      },
+      "PondTempAccessListResponse": {
+        "additionalProperties": false,
+        "example": {
+          "tokens": [
+            {
+              "created_at": "2026-09-22T20:00:00Z",
+              "expires_at": "2026-09-22T20:05:00Z",
+              "id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+              "pond_id": "66666666-6666-6666-6666-666666666666",
+              "scopes": [
+                "whoami",
+                "get_pond",
+                "run_sql"
+              ],
+              "slug": "pond-demo-token",
+              "url": "https://koicloud.local/mcp"
+            }
+          ]
+        },
+        "properties": {
+          "tokens": {
+            "items": {
+              "$ref": "#/components/schemas/PondTempAccessOut"
+            },
+            "title": "Tokens",
+            "type": "array"
+          }
+        },
+        "required": [
+          "tokens"
+        ],
+        "title": "PondTempAccessListResponse",
+        "type": "object"
+      },
+      "PondTempAccessOut": {
+        "additionalProperties": false,
+        "example": {
+          "created_at": "2026-09-22T20:00:00Z",
+          "expires_at": "2026-09-22T20:05:00Z",
+          "id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+          "pond_id": "66666666-6666-6666-6666-666666666666",
+          "scopes": [
+            "whoami",
+            "get_pond",
+            "run_sql"
+          ],
+          "slug": "pond-demo-token",
+          "url": "https://koicloud.local/mcp"
+        },
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "pond_id": {
+            "format": "uuid",
+            "title": "Pond Id",
+            "type": "string"
+          },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoked At"
+          },
+          "scopes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Scopes",
+            "type": "array"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "pond_id",
+          "slug",
+          "url",
+          "expires_at",
+          "scopes",
+          "created_at"
+        ],
+        "title": "PondTempAccessOut",
+        "type": "object"
+      },
+      "PondTempAccessSecretOut": {
+        "additionalProperties": false,
+        "example": {
+          "expires_at": "2026-09-22T20:05:00Z",
+          "id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+          "password": "one-time-password",
+          "pond_id": "66666666-6666-6666-6666-666666666666",
+          "scopes": [
+            "whoami",
+            "get_pond",
+            "run_sql"
+          ],
+          "slug": "pond-demo-token",
+          "url": "https://koicloud.local/mcp"
+        },
+        "properties": {
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "password": {
+            "title": "Password",
+            "type": "string"
+          },
+          "pond_id": {
+            "format": "uuid",
+            "title": "Pond Id",
+            "type": "string"
+          },
+          "scopes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Scopes",
+            "type": "array"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "pond_id",
+          "slug",
+          "url",
+          "password",
+          "expires_at",
+          "scopes"
+        ],
+        "title": "PondTempAccessSecretOut",
+        "type": "object"
+      },
       "ReadyResponse": {
         "additionalProperties": false,
         "example": {
@@ -7266,6 +7476,306 @@
         "summary": "Stop Pond",
         "tags": [
           "ponds"
+        ]
+      }
+    },
+    "/api/v1/ponds/{pond_id}/temp-access": {
+      "get": {
+        "operationId": "list_pond_temp_access",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pond_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Pond Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-KOI-Surface",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Surface"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PondTempAccessListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Pond Temp Access",
+        "tags": [
+          "pond-temp-access"
+        ]
+      },
+      "post": {
+        "operationId": "create_pond_temp_access",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pond_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Pond Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-KOI-Surface",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Surface"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PondTempAccessCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PondTempAccessSecretOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Pond Temp Access",
+        "tags": [
+          "pond-temp-access"
+        ]
+      }
+    },
+    "/api/v1/ponds/{pond_id}/temp-access/{token_id}/revoke": {
+      "post": {
+        "operationId": "revoke_pond_temp_access",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pond_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Pond Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "token_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Token Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-KOI-Surface",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Surface"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PondTempAccessOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Revoke Pond Temp Access",
+        "tags": [
+          "pond-temp-access"
         ]
       }
     },

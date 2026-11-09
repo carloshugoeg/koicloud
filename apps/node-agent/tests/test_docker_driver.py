@@ -41,6 +41,7 @@ class FakeContainer:
         self.attrs = {"NetworkSettings": {"Ports": {"5432/tcp": [{"HostPort": str(host_port)}]}}}
         self.removed = False
         self.execs: list[list[str]] = []
+        self.environments: list[dict[str, str]] = []
         self.archives: list[str] = []
         self._registry = registry
 
@@ -58,14 +59,22 @@ class FakeContainer:
         self.removed = True
         self._registry.pop(self.name, None)
 
-    def exec_run(self, cmd: list[str]) -> tuple[int, bytes]:
+    def exec_run(
+        self,
+        cmd: list[str],
+        environment: dict[str, str] | None = None,
+        **_kwargs: object,
+    ) -> tuple[int, bytes]:
         self.execs.append(cmd)
+        self.environments.append(environment or {})
         if cmd[0] == "pg_isready":
             return 0, b"accepting connections"
         if cmd[0] == "pg_dump":
             return 0, b"-- mock dump\n"
         if cmd[0] == "psql":
             return 0, b"RESTORE"
+        if cmd[0] == "sh":
+            return 0, b""
         return 1, b"unknown"
 
     def put_archive(self, path: str, data: bytes) -> bool:
@@ -84,11 +93,16 @@ class FakeContainers:
         if name in self.items:
             raise RuntimeError(f"Conflict. The container name {name} is already in use")
         labels = dict(kwargs.get("labels") or {})  # type: ignore[arg-type]
+        environment = kwargs.get("environment") or {}
         ports = kwargs.get("ports") or {}
         host_port = 15432
         if isinstance(ports, dict) and ports.get("5432/tcp"):
             host_port = int(ports["5432/tcp"])  # type: ignore[arg-type]
         container = FakeContainer(name, labels, host_port, self.items)
+        if isinstance(environment, dict):
+            container.attrs["Config"] = {
+                "Env": [f"{key}={value}" for key, value in environment.items()]
+            }
         self.items[name] = container
         return container
 
@@ -162,6 +176,124 @@ def test_docker_driver_dump_and_restore(driver: DockerDriver, tmp_path: Path) ->
 
     with pytest.raises(PondDriverError, match="backup_not_found"):
         driver.restore("inventario-demo", "missing")
+
+
+def _scram_salt(verifier: str) -> str:
+    parts = verifier.split("$")
+    if len(parts) < 3 or ":" not in parts[1]:
+        raise AssertionError("pond setup did not send a SCRAM verifier")
+    return parts[1].split(":", 1)[1]
+
+
+def _setup_verifiers(driver: DockerDriver, pond_name: str) -> list[str]:
+    container = driver._docker_client().containers.get(container_name_for(pond_name))
+    return [
+        env["KOI_CONSOLE_VERIFIER"]
+        for env in container.environments
+        if env.get("KOI_CONSOLE_VERIFIER")
+    ]
+
+
+def _last_setup_salt(driver: DockerDriver, pond_name: str) -> str:
+    verifiers = _setup_verifiers(driver, pond_name)
+    if not verifiers:
+        raise AssertionError("pond setup did not send a SCRAM verifier")
+    return _scram_salt(verifiers[-1])
+
+
+def test_two_ponds_get_different_scram_salts(driver: DockerDriver) -> None:
+    driver.create_pond(build_spec("pond-a"))
+    driver.create_pond(build_spec("pond-b"))
+    salt_a = _last_setup_salt(driver, "pond-a")
+    salt_b = _last_setup_salt(driver, "pond-b")
+    if salt_a == salt_b:
+        raise AssertionError("two ponds stored the same SCRAM salt")
+
+
+class _BootRaceContainer(FakeContainer):
+    """First console-role exec hits the init server, before POSTGRES_DB exists."""
+
+    def __init__(
+        self,
+        name: str,
+        labels: dict[str, str],
+        host_port: int,
+        registry: dict[str, FakeContainer],
+    ) -> None:
+        super().__init__(name, labels, host_port, registry)
+        self._setup_failures_left = 1
+
+    def exec_run(
+        self,
+        cmd: list[str],
+        environment: dict[str, str] | None = None,
+        **_kwargs: object,
+    ) -> tuple[int, bytes]:
+        if cmd and cmd[0] == "sh" and self._setup_failures_left:
+            self._setup_failures_left -= 1
+            self.execs.append(cmd)
+            self.environments.append(environment or {})
+            return 2, b'FATAL:  database "inventario_demo" does not exist\n'
+        return super().exec_run(cmd, environment=environment, **_kwargs)
+
+
+class _BootRaceContainers(FakeContainers):
+    def run(self, image: str, **kwargs: object) -> FakeContainer:
+        _ = image
+        name = str(kwargs["name"])
+        if name in self.items:
+            raise RuntimeError(f"Conflict. The container name {name} is already in use")
+        raw_labels = kwargs.get("labels")
+        labels: dict[str, str] = {}
+        if isinstance(raw_labels, dict):
+            labels = {str(key): str(value) for key, value in raw_labels.items()}
+        raw_environment = kwargs.get("environment")
+        raw_ports = kwargs.get("ports")
+        host_port = 15432
+        if isinstance(raw_ports, dict):
+            mapped = raw_ports.get("5432/tcp")
+            if isinstance(mapped, int):
+                host_port = mapped
+        container = _BootRaceContainer(name, labels, host_port, self.items)
+        if isinstance(raw_environment, dict):
+            container.attrs["Config"] = {
+                "Env": [f"{key}={value}" for key, value in raw_environment.items()]
+            }
+        self.items[name] = container
+        return container
+
+
+def test_create_pond_reaches_running_when_setup_fails_until_the_database_exists(
+    tmp_path: Path,
+) -> None:
+    client = FakeClient()
+    client.containers = _BootRaceContainers()
+    driver = DockerDriver(
+        client=client,
+        backup_dir=tmp_path,
+        public_host="127.0.0.1",
+        ready_timeout_seconds=2.0,
+    )
+    runtime = driver.create_pond(build_spec())
+    assert runtime.state == "running"
+    container = driver._docker_client().containers.get(container_name_for("inventario-demo"))
+    setup_execs = [cmd for cmd in container.execs if cmd and cmd[0] == "sh"]
+    assert len(setup_execs) >= 2
+
+
+def test_create_pond_provisions_a_non_superuser_console_role(driver: DockerDriver) -> None:
+    driver.create_pond(build_spec())
+    container = driver._docker_client().containers.get(container_name_for("inventario-demo"))
+    scripts = [env.get("KOI_SQL", "") for env in container.environments]
+    script = "\n".join(scripts)
+    assert "koi_console" in script
+    assert "NOSUPERUSER" in script
+    assert "pg_read_server_files" in script
+    assert "pg_write_server_files" in script
+    assert "pg_execute_server_program" in script
+    assert "OWNER TO koi_console" in script
+    assert "super-secret" not in script
+    assert all("super-secret" not in " ".join(cmd) for cmd in container.execs)
 
 
 def test_docker_driver_name_conflict(driver: DockerDriver) -> None:

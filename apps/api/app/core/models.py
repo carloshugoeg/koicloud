@@ -310,6 +310,27 @@ class AgentAccess(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utc_now)
 
 
+class PondToken(Base):
+    """Pond-scoped temporary MCP credential (issue #203).
+
+    Lifecycle phases are derived: revoked_at set → revoked; now >= expires_at →
+    expired; otherwise issued (or active once authenticated this request).
+    """
+
+    __tablename__ = "pond_tokens"
+
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
+    pond_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("ponds.id", ondelete="CASCADE"), nullable=False
+    )
+    access_slug: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
+    password_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    scopes: Mapped[list[str]] = mapped_column(JSONB, nullable=False, default=list)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utc_now)
+
+
 class AuditEvent(Base):
     __tablename__ = "audit_events"
 
