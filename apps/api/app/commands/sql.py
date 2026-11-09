@@ -7,11 +7,19 @@ from uuid import UUID
 import asyncpg
 
 from app.commands import build_confirmation
+from app.commands.temp_sql_confirmation import (
+    TempSqlDispatchGrant,
+    assert_grant_matches_request,
+    is_temp_actor,
+    lock_live_pond_token,
+)
 from app.core.auth import AuthContext
 from app.core.config import get_settings
 from app.core.db import SessionLocal
 from app.core.enums import AppSurface, SQLMode
 from app.core.errors import AppError, ErrorCode
+from app.core.time import utc_now
+from app.modules.pond_tokens.service import phase_of
 from app.modules.ponds import (
     CONSOLE_ROLE,
     PondService,
@@ -155,20 +163,85 @@ async def run_sql(
     actor: AuthContext,
     surface: AppSurface,
     confirm_token: str | None = None,
+    temp_grant: TempSqlDispatchGrant | None = None,
 ) -> SQLResultResponse | ConfirmationRequiredResponse:
-    if payload.mode == SQLMode.WRITE and surface in {AppSurface.CLI, AppSurface.MCP} and not confirm_token:
-        return await build_confirmation(
-            actor=actor,
-            action="run_sql_write",
-            summary=(
-                f"Se ejecutará SQL en modo write sobre el pond '{pond_id}' para {actor.email}. "
-                "Expira en 5 min."
-            ),
-            payload={"pond_id": str(pond_id), "request": payload.model_dump(mode="json")},
-        )
+    if payload.mode == SQLMode.WRITE and surface in {AppSurface.CLI, AppSurface.MCP}:
+        if is_temp_actor(actor):
+            # Truthy confirm_token is not authorization for temp actors.
+            if temp_grant is None:
+                return await build_confirmation(
+                    actor=actor,
+                    action="run_sql_write",
+                    summary=(
+                        f"Se ejecutará SQL en modo write sobre el pond '{pond_id}' "
+                        f"para {actor.email}."
+                    ),
+                    payload={
+                        "pond_id": str(pond_id),
+                        "request": payload.model_dump(mode="json"),
+                    },
+                )
+            assert_grant_matches_request(
+                temp_grant,
+                pond_id=pond_id,
+                query=payload.query,
+                mode=payload.mode.value,
+            )
+            return await _execute_temp_admitted(
+                pond_id, payload, actor=actor, grant=temp_grant
+            )
+        if not confirm_token:
+            return await build_confirmation(
+                actor=actor,
+                action="run_sql_write",
+                summary=(
+                    f"Se ejecutará SQL en modo write sobre el pond '{pond_id}' "
+                    f"para {actor.email}. Expira en 5 min."
+                ),
+                payload={"pond_id": str(pond_id), "request": payload.model_dump(mode="json")},
+            )
 
     async with SessionLocal() as session:
         connection = await PondService(session, get_settings()).connection_for_owned(actor, pond_id)
+        result = await _execute(connection, payload)
+        await SqlConsoleService(session).record(
+            HistoryWrite(
+                user_id=UUID(actor.user_id),
+                pond_id=pond_id,
+                query=payload.query,
+                mode=payload.mode,
+                row_count=result.row_count,
+                duration_ms=result.duration_ms,
+            )
+        )
+        await session.commit()
+    return result
+
+
+async def _execute_temp_admitted(
+    pond_id: UUID,
+    payload: RunSQLRequest,
+    *,
+    actor: AuthContext,
+    grant: TempSqlDispatchGrant,
+) -> SQLResultResponse:
+    """Re-lock credential, recheck deadline, retain lock across SQL execution."""
+    if actor.pond_token_id is None:
+        raise AppError(ErrorCode.AGENT_BAD_CREDENTIALS)
+    async with SessionLocal() as session:
+        token_row = await lock_live_pond_token(
+            session,
+            pond_token_id=UUID(actor.pond_token_id),
+            actor=actor,
+        )
+        if token_row.id != grant.pond_token_id or token_row.pond_id != pond_id:
+            raise AppError(ErrorCode.CONFIRMATION_ACTION_MISMATCH)
+        connection = await PondService(session, get_settings()).connection_for_owned(
+            actor, pond_id
+        )
+        await session.refresh(token_row)
+        if phase_of(token_row, now=utc_now()) in {"expired", "revoked"}:
+            raise AppError(ErrorCode.AGENT_BAD_CREDENTIALS)
         result = await _execute(connection, payload)
         await SqlConsoleService(session).record(
             HistoryWrite(
