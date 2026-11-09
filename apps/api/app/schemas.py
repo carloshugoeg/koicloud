@@ -894,6 +894,7 @@ class AdminUserOut(SchemaModel):
     status: UserStatus
     email_verified: bool
     created_at: datetime
+    ponds_count: int
     active_subscription_plan: str | None = None
 
     model_config = config_with_example(
@@ -905,6 +906,7 @@ class AdminUserOut(SchemaModel):
             "status": "active",
             "email_verified": True,
             "created_at": EXAMPLE_NOW,
+            "ponds_count": 1,
             "active_subscription_plan": "micro",
         }
     )

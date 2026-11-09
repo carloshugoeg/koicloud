@@ -11,6 +11,39 @@ type UsersTableProps = {
   onReactivate: (user: AdminUser) => void;
 };
 
+const MONTHS_ES = [
+  "ene",
+  "feb",
+  "mar",
+  "abr",
+  "may",
+  "jun",
+  "jul",
+  "ago",
+  "sep",
+  "oct",
+  "nov",
+  "dic",
+] as const;
+
+function formatCreatedAt(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) {
+    return iso;
+  }
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Guatemala",
+    day: "numeric",
+    month: "numeric",
+    year: "numeric",
+  }).formatToParts(date);
+  const day = parts.find((part) => part.type === "day")?.value ?? "";
+  const monthIndex = Number(parts.find((part) => part.type === "month")?.value ?? "0") - 1;
+  const year = parts.find((part) => part.type === "year")?.value ?? "";
+  const month = MONTHS_ES[monthIndex] ?? "—";
+  return `${day} ${month} ${year}`;
+}
+
 export function UsersTable({
   users,
   emptyMessage,
@@ -36,12 +69,14 @@ export function UsersTable({
 
   return (
     <div className="overflow-x-auto rounded-md border border-line bg-bone-raised">
-      <table className="w-full min-w-[720px] border-collapse text-sm">
+      <table className="w-full min-w-[880px] border-collapse text-sm">
         <thead className="bg-bone-sunk text-left text-xs uppercase tracking-[0.12em] text-ink-muted">
           <tr>
             <th className="px-4 py-3 font-medium">Usuario</th>
             <th className="px-4 py-3 font-medium">Plan</th>
             <th className="px-4 py-3 font-medium">Ponds</th>
+            <th className="px-4 py-3 font-medium">Verificado</th>
+            <th className="px-4 py-3 font-medium">Creado</th>
             <th className="px-4 py-3 font-medium">Estado</th>
             <th className="px-4 py-3 font-medium">Acciones</th>
           </tr>
@@ -68,8 +103,22 @@ export function UsersTable({
                 <p className="font-mono text-xs text-ink-muted">{user.email}</p>
               </td>
               <td className="px-4 py-3 font-mono text-xs">{user.active_subscription_plan ?? "—"}</td>
-              <td className="px-4 py-3 font-mono text-xs" data-testid={`pond-count-${user.id}`}>
+              <td
+                className="px-4 py-3 text-right font-mono text-xs tabular-nums"
+                data-testid={`pond-count-${user.id}`}
+              >
                 {pondsComplete ? (pondCountByEmail.get(user.email.toLowerCase()) ?? 0) : "—"}
+              </td>
+              <td className="px-4 py-3" data-testid={`email-verified-${user.id}`}>
+                <span className="text-xs text-ink">
+                  {user.email_verified ? "sí · ●" : "no · ○"}
+                </span>
+              </td>
+              <td
+                className="px-4 py-3 font-mono text-xs tabular-nums"
+                data-testid={`created-at-${user.id}`}
+              >
+                {formatCreatedAt(user.created_at)}
               </td>
               <td className="px-4 py-3">
                 <span
