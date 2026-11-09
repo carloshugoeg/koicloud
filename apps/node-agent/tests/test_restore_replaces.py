@@ -113,11 +113,14 @@ class SqlContainer:
         self.status = "running"
         self.files: dict[str, bytes] = {}
         self._cluster = cluster
+        self.attrs: dict[str, object] = {}
 
     def reload(self) -> None:
         return None
 
-    def exec_run(self, cmd: list[str]) -> tuple[int, bytes]:
+    def exec_run(
+        self, cmd: list[str], environment: dict[str, str] | None = None, **_kwargs: object
+    ) -> tuple[int, bytes]:
         if not cmd:
             return 1, b"empty"
         if cmd[0] == "pg_isready":
@@ -126,6 +129,9 @@ class SqlContainer:
             return self._dump(cmd)
         if cmd[0] == "psql":
             return self._psql(cmd)
+        if cmd[0] == "sh":
+            # Console-role setup from main (#198); same stub as test_docker_driver.FakeContainer.
+            return 0, b""
         return 1, b"unknown"
 
     def put_archive(self, path: str, data: bytes) -> bool:
@@ -196,6 +202,10 @@ class SqlContainers:
         pond = labels.get("koicloud.pond", name.removeprefix("koicloud-"))
         self.cluster.create_database(database_name_for(pond))
         container = SqlContainer(name, labels, self.cluster)
+        environment = kwargs.get("environment") or {}
+        if isinstance(environment, dict):
+            # Same as test_docker_driver.FakeContainers: main's console role reads POSTGRES_PASSWORD.
+            container.attrs = {"Config": {"Env": [f"{key}={value}" for key, value in environment.items()]}}
         self.items[name] = container
         return container
 
