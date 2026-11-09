@@ -109,7 +109,9 @@ def _driver(tmp_path: Path, *, leak_psql: bool, leak_dump: bool):
     original_exec = module.FakeContainer.exec_run
     original_put = module.FakeContainer.put_archive
 
-    def exec_run(self, cmd: list[str]) -> tuple[int, bytes]:
+    def exec_run(
+        self, cmd: list[str], environment: dict[str, str] | None = None, **kwargs: object
+    ) -> tuple[int, bytes]:
         if leak_psql and cmd and cmd[0] == "psql":
             dumped = getattr(self, "dumped", b"")
             detail = (
@@ -123,7 +125,7 @@ def _driver(tmp_path: Path, *, leak_psql: bool, leak_dump: bool):
                 f"postgresql://postgres:{PASSWORD}@127.0.0.1:5432/demo\n"
             )
             return 1, detail.encode()
-        return original_exec(self, cmd)
+        return original_exec(self, cmd, environment=environment, **kwargs)
 
     def put_archive(self, path: str, data: bytes) -> bool:
         self.dumped = _untar(data)
