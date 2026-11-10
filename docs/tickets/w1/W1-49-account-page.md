@@ -6,7 +6,7 @@ estado: en-revision
 rama: w1-account-page
 epica: "E1-05"
 sprint: S4
-pr:
+pr: "https://github.com/carloshugoeg/koicloud/pull/235"
 depends_on:
 ---
 
