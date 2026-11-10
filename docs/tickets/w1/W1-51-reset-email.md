@@ -2,7 +2,7 @@
 id: W1-51
 workstream: W1
 persona: Carlos
-estado: en-revision
+estado: hecho
 rama: w1-reset-email
 epica: E1-04
 sprint: S5
