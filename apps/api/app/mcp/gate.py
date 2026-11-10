@@ -9,9 +9,9 @@ from starlette.requests import Request as StarletteRequest
 from starlette.responses import JSONResponse
 
 from app.core.auth import AuthContext
-from app.core.config import get_settings
+from app.core.config import Settings, get_settings
 from app.core.db import SessionLocal
-from app.core.enums import AppSurface, UserRole, UserStatus
+from app.core.enums import AppSurface, UserStatus
 from app.core.errors import ERROR_CATALOG, AppError, ErrorCode
 from app.core.models import User
 from app.mcp.context import set_mcp_actor
@@ -30,8 +30,26 @@ def _parse_basic(authorization: str | None) -> tuple[str | None, str | None]:
         raise AppError(ErrorCode.AGENT_BAD_CREDENTIALS) from exc
 
 
-async def _ensure_demo_agent_access(session, settings) -> None:
-    """Bootstrap demo slug/password into agent_access when the demo user exists."""
+def _actor_from_user(
+    user: User,
+    *,
+    pond_id: str | None = None,
+    allowed_tools: frozenset[str] | None = None,
+    pond_token_id: str | None = None,
+) -> AuthContext:
+    return AuthContext(
+        user_id=str(user.id),
+        email=user.email,
+        role=user.role,
+        status=UserStatus.ACTIVE,
+        surface=AppSurface.MCP,
+        pond_id=pond_id,
+        allowed_tools=allowed_tools,
+        pond_token_id=pond_token_id,
+    )
+
+
+async def _ensure_demo_agent_access(session, settings: Settings) -> None:
     from sqlalchemy import select
 
     user = (
@@ -55,6 +73,38 @@ async def _ensure_demo_agent_access(session, settings) -> None:
     await session.commit()
 
 
+async def _authenticate_pond_token(
+    session,
+    settings: Settings,
+    slug: str,
+    password: str,
+) -> AuthContext:
+    from app.modules.pond_tokens import PondTokenService
+
+    user, pond, tools, token_id = await PondTokenService(session, settings).authenticate(
+        slug, password
+    )
+    return _actor_from_user(
+        user,
+        pond_id=str(pond.id),
+        allowed_tools=tools,
+        pond_token_id=str(token_id),
+    )
+
+
+async def _authenticate_agent_access(
+    session,
+    settings: Settings,
+    slug: str,
+    password: str,
+) -> AuthContext:
+    await _ensure_demo_agent_access(session, settings)
+    user = await AgentAccessService(session, settings).authenticate(slug, password)
+    if user.status != UserStatus.ACTIVE:
+        raise AppError(ErrorCode.AGENT_DISABLED)
+    return _actor_from_user(user)
+
+
 async def authenticate_mcp(
     *,
     authorization: str | None,
@@ -72,37 +122,10 @@ async def authenticate_mcp(
         raise AppError(ErrorCode.AGENT_BAD_CREDENTIALS)
 
     async with SessionLocal() as session:
-        # Pond-scoped temporary credentials (issue #203) take the slug first.
         if slug.startswith("pond-"):
-            from app.modules.pond_tokens import PondTokenService
-
-            user, pond, tools, token_id = await PondTokenService(session, settings).authenticate(
-                slug, password
-            )
-            # authenticate already maps suspended/invalid owner → 401.
-            actor = AuthContext(
-                user_id=str(user.id),
-                email=user.email,
-                role=user.role if isinstance(user.role, UserRole) else UserRole(str(user.role)),
-                status=UserStatus.ACTIVE,
-                surface=AppSurface.MCP,
-                pond_id=str(pond.id),
-                allowed_tools=tools,
-                pond_token_id=str(token_id),
-            )
+            actor = await _authenticate_pond_token(session, settings, slug, password)
         else:
-            await _ensure_demo_agent_access(session, settings)
-            service = AgentAccessService(session, settings)
-            user = await service.authenticate(slug, password)
-            if user.status != UserStatus.ACTIVE:
-                raise AppError(ErrorCode.AGENT_DISABLED)
-            actor = AuthContext(
-                user_id=str(user.id),
-                email=user.email,
-                role=user.role if isinstance(user.role, UserRole) else UserRole(str(user.role)),
-                status=UserStatus.ACTIVE,
-                surface=AppSurface.MCP,
-            )
+            actor = await _authenticate_agent_access(session, settings, slug, password)
 
     set_mcp_actor(actor)
     return actor

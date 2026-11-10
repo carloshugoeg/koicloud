@@ -1,145 +1,143 @@
-# Revisión SOLID — módulos del control plane
+# Revisión SOLID — módulos principales del control plane
 
-**Fecha:** 2026-10-22  
-**Alcance:** código actual en `main` (`779efda`) · ítem P7 de [#96](https://github.com/carloshugoeg/koicloud/issues/96)  
-**Método:** revisión estática por módulo (sin refactors en este PR). Criterios: SRP, OCP, LSP, ISP, DIP, alineados con `AGENTS.md` §4 y `.cursor/rules/10-api.mdc` (`router → service → models`).  
-**Convención de estado:** `ok` · `menor` · `debe-ticket` (arreglo estimado >30 min → ticket en `docs/tickets/`).
+**Fecha:** 2026-11-10  
+**Alcance:** `main` actual + refactors de este PR (`w1-solid-review` / W1-50)  
+**Módulos:** auth · billing/payments · ponds/provisioning · metering · MCP/agent access · admin  
+**Método:** revisión estática con citas `ruta:línea` verificadas en el árbol. Criterios S·O·L·I·D alineados con `AGENTS.md` §4.  
+**Convención:** cada principio trae un ejemplo **cumplido** y, si aplica, una **violación**. Los arreglos hechos aquí listan antes → después.
 
 ---
 
 ## Resumen
 
-| Módulo | Estado | Archivo principal | Ticket si >30 min |
-|--------|--------|-------------------|-------------------|
-| billing | ok (DIP G1) | `apps/api/app/modules/billing/service.py` | — |
-| ponds | debe-ticket | `apps/api/app/modules/ponds/service.py` | [W1-21](../tickets/w1/W1-21-pond-service-srp.md) |
-| jobs | debe-ticket | `apps/api/app/modules/jobs/service.py` | [W1-22](../tickets/w1/W1-22-job-transitions-ocp.md) |
-| sql_console | menor | `apps/api/app/modules/sql_console/router.py` | [W1-23](../tickets/w1/W1-23-sql-history-dip.md) |
-| metering | ok | `apps/api/app/modules/metering/service.py` | — |
+| Módulo | Lectura rápida | Refactor en este PR |
+|--------|----------------|---------------------|
+| auth | Bien separado servicio→comandos; token de nodo ahora en tiempo constante | `node_token_matches` |
+| billing/payments | DIP de `PaymentProvider` sólido | — |
+| ponds | SRP ancho + DIP a `BackupService` concreto | recomendación (W1-21; no tocar aquí por PR #236) |
+| metering | Funciones puras + servicio de dominio acotado | — |
+| MCP / agent access | Tools delgadas; gate partido en autenticadores | split de `authenticate_mcp` |
+| admin | Usuarios vía commands; listados abren `SessionLocal` | recomendación |
 
 ---
 
-## billing
+## Refactors aplicados (comportamiento igual)
 
-**Estado:** `ok` (DIP de pago cumplido; G1 cerrado)  
-**Archivos:** `apps/api/app/modules/billing/service.py`, `payments/port.py`, `payments/__init__.py`, `payments/simulated.py`, `invoice_pdf.py`
+### R1 — Comparación en tiempo constante del token de nodo
 
-### G1 — `PaymentProvider` (DIP) — hecho
+- **Antes:** `apps/api/app/core/auth.py` usaba `x_node_token != settings.node_token` (comparación corta ante fallo).
+- **Después:** `node_token_matches` en `apps/api/app/core/auth.py:22` con `hmac.compare_digest`; `get_node_identity` en `:98` llama `:102`.
+- **Pruebas:** `apps/api/tests/test_node_token_compare.py`.
 
-Decisión del 9 oct (#11 / G1). Verificación contra el código actual:
+### R2 — Gate MCP: un autenticador por tipo de credencial
 
-| Criterio | Estado | Evidencia |
-|----------|--------|-----------|
-| `BillingService` recibe `PaymentProvider` por inyección y no importa adaptadores | ✅ | `service.py` importa solo `payments.port`; ctor `(session, settings, payment_provider)` |
-| Factory en `payments/__init__.py` + `PAYMENT_PROVIDER=simulated` | ✅ | `get_payment_provider(settings)` → `SimulatedPaymentProvider` |
-| Mismo `confirm_payment()` para flujo síncrono y asíncrono | ✅ | `_start_and_maybe_confirm` llama `confirm_payment(provider_ref)` cuando el intento ya viene `SUCCEEDED` |
-| Webhook `POST /billing/webhooks/{provider}` | ⬜ fuera de alcance (decisión) | — |
-
-El comando `commands/billing.py` arma el servicio con `get_payment_provider(settings)`; el servicio de dominio no conoce `simulated`.
-
-### Otros principios
-
-- **SRP:** el servicio agrupa planes, suscripciones, facturas, pagos y PDF. Es ancho, pero el dominio de facturación académica es uno solo; no justifica un ticket solo por tamaño.
-- **OCP:** un proveedor nuevo se añade en la factory + módulo bajo `payments/`, sin tocar `BillingService`.
-- **LSP / ISP:** el `Protocol` `PaymentProvider` es mínimo (`start_payment`, `parse_confirmation`).
-- **Olor menor (no ticket):** varios `AppError(ErrorCode.POND_NOT_FOUND)` para pago/factura/suscripción ausentes — catálogo, no estructura SOLID.
-
-**Conclusión:** no hay refactor >30 min pendiente por SOLID en billing.
+- **Antes:** `authenticate_mcp` mezclaba parseo, bootstrap demo, pond-token y agent-access en un solo cuerpo (~50 líneas).
+- **Después:** `_authenticate_pond_token` (`apps/api/app/mcp/gate.py:78`), `_authenticate_agent_access` (`:97`), `_actor_from_user` (`:33`); `authenticate_mcp` (`:110`) solo orquesta.
+- **Pruebas:** suite MCP existente (`tests/test_mcp_gate_confirm.py`, `app/mcp/tests`).
 
 ---
 
-## ponds
+## auth
 
-**Estado:** `debe-ticket`  
-**Archivo:** `apps/api/app/modules/ponds/service.py` (~392 líneas)
+**Archivos:** `apps/api/app/modules/auth/service.py`, `apps/api/app/core/auth.py`, `apps/api/app/core/security.py`
 
-### Hallazgos
-
-| Principio | Hallazgo | Severidad |
-|-----------|----------|-----------|
-| **SRP** | `PondService` mezcla CRUD de ponds, upsert de usuario (`ensure_actor`), auto-suscripción Micro (`ensure_subscription`), upsert/stale de nodo (`ensure_live_node` / `_upsert_node`), cuota, puertos, URI y orquestación de delete→backup | alto |
-| **DIP** | Importa concreto `BackupService` dentro de `delete` | medio |
-| **DRY / DIP** | `_upsert_node` diverge de `JobService._touch_node` (jobs siempre marca `ALIVE` + `last_seen_at`; ponds solo si `last_seen_at is None`) | medio |
-
-Los comandos en `commands/ponds.py` delegan bien al servicio (capa fina). El problema está *dentro* del módulo.
-
-**Ticket:** [W1-21](../tickets/w1/W1-21-pond-service-srp.md) — extraer actor/suscripción/nodo; un solo touch de nodo compartido con jobs.
+| Principio | Cumple | Violación / nota |
+|-----------|--------|------------------|
+| **S** | `AuthService` solo delega a `app.commands.auth` (`service.py:25`, p. ej. `register_user` en `:31`) | `logout` (`:55`) concentra cookie + revoke refresh + revoke access; aceptable como un caso de uso |
+| **O** | Nuevos flujos de auth se añaden como métodos delgados que llaman un comando nuevo, sin reabrir el router | ninguna relevante |
+| **L** | `get_admin_user` (`core/auth.py:90`) reusa `get_current_user` y solo endurece el rol | ninguna |
+| **I** | Dependencias HTTP (`HTTPBearer`, headers) viven en `core/auth.py`; el servicio de módulo no importa FastAPI | ninguna |
+| **D** | Hash/verify de password detrás de `core/security.py:24` (`verify_password`) | **corregida:** el token de nodo ya no usa `!=` (ver R1) |
 
 ---
 
-## jobs
+## billing / payments
 
-**Estado:** `debe-ticket`  
-**Archivo:** `apps/api/app/modules/jobs/service.py` (~220 líneas)
+**Archivos:** `apps/api/app/modules/billing/service.py`, `payments/port.py`, `payments/__init__.py`, `payments/simulated.py`
 
-### Hallazgos
-
-| Principio | Hallazgo | Severidad |
-|-----------|----------|-----------|
-| **OCP** | `complete()` es una cadena `if/elif` por `JobType` (create/start/delete/backup/restore + fallos). Añadir un tipo de job obliga a editar este método | alto |
-| **SRP** | El mismo método actualiza job, `PondStatus`, `Pond`, `Backup` y encola `DELETE_POND` tras `PRE_DELETE` | medio |
-| **DRY** | `_touch_node` duplicado y semánticamente distinto al upsert de ponds (ver arriba) | medio |
-
-`claim()` con `FOR UPDATE SKIP LOCKED` está bien acotado. Heartbeat + claim + complete es el rol natural del módulo; el olor es la tabla de transiciones implícita.
-
-**Ticket:** [W1-22](../tickets/w1/W1-22-job-transitions-ocp.md) — tabla/función de transición explícita + unificar touch de nodo con ponds.
+| Principio | Cumple | Violación / nota |
+|-----------|--------|------------------|
+| **S** | Cobro, planes y PDF viven en el dominio de facturación; el puerto de pago está aparte (`payments/`) | `subscribe` (`service.py:151`, ~73 líneas) es largo; partirlo es mejora de lectura, no bloquea el curso |
+| **O** | Un proveedor nuevo: entrada en `get_payment_provider` (`payments/__init__.py:8`) + módulo bajo `payments/`, sin editar reglas de `BillingService` | solo `simulated` hoy (`:11`) |
+| **L** | `SimulatedPaymentProvider` (`payments/simulated.py:12`) cumple el `Protocol` `PaymentProvider` (`port.py:19`) | ninguna |
+| **I** | El protocolo expone solo `start_payment` y `parse_confirmation` (`port.py:19`) | ninguna |
+| **D** | `BillingService.__init__` recibe `PaymentProvider` (`service.py:100`–`:104`); no importa `simulated` | ninguna |
 
 ---
 
-## sql_console
+## ponds / provisioning
 
-**Estado:** `menor` (con ticket para el cableado completo)  
-**Archivos:** `apps/api/app/modules/sql_console/router.py`, `service.py`, `models.py`
+**Archivos:** `apps/api/app/modules/ponds/service.py`, `apps/api/app/commands/ponds.py`
 
-### Observación (#96) — `AsyncSession` en el router
+| Principio | Cumple | Violación / nota |
+|-----------|--------|------------------|
+| **S** | Comandos en `commands/ponds.py` solo orquestan (`:31` y vecinos) | **violación:** `PondService` (`service.py:88`) mezcla create/stop/start/delete, `ensure_actor` (`:325`), `ensure_subscription` (`:354`) y `ensure_live_node` (`:343`) |
+| **O** | Nuevos verbos de ciclo de vida se añaden como métodos + `JobType`; la cola no cambia | create (`:141`) sigue siendo un método grande |
+| **L** | `pond_to_out` / `job_to_out` proyectan el mismo contrato hacia la API | ninguna |
+| **I** | La superficie pública que usan los commands es la del servicio; no hay fat interface HTTP aquí | ninguna |
+| **D** | Session + `Settings` inyectados en el constructor | **violación:** `delete` importa y instancia `BackupService` concreto (`service.py:198`–`:210`) |
 
-`sql_console/router.py` importa `AsyncSession` y, en `list_sql_history`, inyecta `get_session` y llama a `SqlConsoleService(session)` directamente. El router conoce la persistencia (DIP / capa HTTP).
-
-Notas de contexto:
-
-1. **`run_sql` en el mismo router sí delega** a `commands.sql.run_sql` sin sesión — patrón correcto.
-2. **El router del módulo no está montado** en `main.py`. Producción usa `api_v1.py` → `commands.sql.list_sql_history`, que hoy devuelve `SQLHistoryResponse.example()` (fixture).
-3. Las pruebas de `sql_console/tests/` montan el router del módulo a mano; ahí sí se ejercita la ruta con `AsyncSession`.
-
-### Otros
-
-- **SRP del service:** `SqlConsoleService` (historial truncado + paginación por cursor) está bien acotado.
-- **ISP:** el router usa `HTTPException(422)` para cursor inválido en lugar de `AppError` del catálogo — olor menor de consistencia, no bloqueante.
-
-**Ticket:** [W1-23](../tickets/w1/W1-23-sql-history-dip.md) — historial real vía `commands/sql.py` y routers sin `AsyncSession` (quitar la dependencia de persistencia en la capa HTTP). Estimado >30 min con pruebas.
+**Recomendación (no en este PR):** ticket [W1-21](../tickets/w1/W1-21-pond-service-srp.md). No se refactoriza aquí para no chocar con el PR #236 (`ponds/service.py`).
 
 ---
 
 ## metering
 
-**Estado:** `ok`  
-**Archivo:** `apps/api/app/modules/metering/service.py`
+**Archivos:** `apps/api/app/modules/metering/service.py`, `rates.py`, `samples.py`
 
-### Hallazgos
-
-| Principio | Evaluación |
-|-----------|------------|
-| **SRP** | Ingesta de muestras, agregación diaria e informe de uso mensual viven juntos en el dominio de medición; coherente |
-| **OCP** | `compute_day_metrics` es función pura y testeable; la política de “ventana inicial = running” está documentada en el docstring |
-| **DIP** | Depende de `AsyncSession` + modelos de `core` (patrón del monorepo); no hay adaptadores externos que abstraer |
-| **ISP** | Superficie estrecha: ingest / aggregate_day / get_usage |
-
-Dos caminos de ingesta (`ingest_samples` por id, `ingest_heartbeat_samples` por nombre) son adaptadores al contrato interno, no una violación. Sin ticket.
+| Principio | Cumple | Violación / nota |
+|-----------|--------|------------------|
+| **S** | `compute_day_metrics` es pura (`service.py:48`); persistencia en `MeteringService` (`:103`) | `get_usage` (`:205`) combina ventana mensual + filas; sigue siendo el caso de uso de “usage” |
+| **O** | Tasas Pro salen de `rates.pro_hourly_unit_price_usd` (`rates.py`) reexportando el catálogo de billing | ninguna |
+| **L** | Muestras node vs heartbeat son adaptadores al mismo agregado diario | ninguna |
+| **I** | API estrecha: ingest / aggregate_day / get_usage (`:108`, `:152`, `:205`) | ninguna |
+| **D** | Depende de `AsyncSession` + modelos (patrón del monorepo); sin proveedor externo que abstraer | ninguna |
 
 ---
 
-## Fuera de alcance de esta revisión
+## MCP / agent access
 
-- Routers monolitos en `api_v1.py` / ownership W1 vs módulos (harness; no es un hallazgo nuevo de estos cinco módulos).
-- Fixtures en `commands/*` que aún responden `example()` (p. ej. `run_sql` / `list_sql_history` en producción) — deuda de persistencia, citada solo donde afecta DIP de `sql_console`.
-- Web, CLI, MCP, node-agent.
+**Archivos:** `apps/api/app/mcp/gate.py`, `server.py`, `tools/*`, `apps/api/app/modules/agent_access/service.py`
+
+| Principio | Cumple | Violación / nota |
+|-----------|--------|------------------|
+| **S** | Tools de lectura ≤ ~15 líneas y delegan a commands (p. ej. `tools/get_usage.py:10`) | **corregida en parte:** el gate ya no mezcla los dos caminos de auth (ver R2) |
+| **O** | Tool nueva = archivo bajo `tools/` + registro FastMCP; el gate no se toca | ninguna |
+| **L** | Credencial de agente y temp-link pond-* producen el mismo `AuthContext` vía `_actor_from_user` (`gate.py:33`) | ninguna |
+| **I** | `AgentAccessService` (`service.py:30`) expone ensure/rotate/toggle/authenticate; el gate solo usa authenticate | ninguna |
+| **D** | Gate depende de `AgentAccessService` / `PondTokenService`, no de SQL crudo; password vía `verify_password` (`agent_access/service.py:13`, uso en `:106`) | `authenticate_mcp` aún abre `SessionLocal` (aceptable como borde HTTP) |
+
+---
+
+## admin
+
+**Archivos:** `apps/api/app/modules/admin/service.py`, `apps/api/app/commands/admin.py`
+
+| Principio | Cumple | Violación / nota |
+|-----------|--------|------------------|
+| **S** | Acciones de usuario (`list_users` / suspend) delegan a commands (`service.py:39`) | Listados de ponds/subscriptions/totals/audit (`:55`+) concentran SQL de reporting |
+| **O** | Filtro de bitácora sensible es una tupla (`SENSITIVE_AUDIT_ACTIONS`, `:28`) fácil de extender | ninguna fuerte |
+| **L** | Respuestas tipadas (`AdminPondOut`, etc.) estables para la Web | ninguna |
+| **I** | Métodos estáticos por operación; el router no ve SQL | ninguna |
+| **D** | `list_users` → commands | **violación menor:** `list_ponds` abre `SessionLocal` directo (`:56`) mientras `commands/admin.py:195` vuelve a llamar al servicio (ciclo commands↔service) |
+
+**Recomendación:** unificar listados admin detrás de commands con una sola dirección de dependencia (sin cambiar contratos HTTP).
+
+---
+
+## Fuera de alcance de esta pasada
+
+- Jobs / sql_console (ya cubiertos en la revisión W1-24 / PRs asociados).
+- Web, CLI, node-agent.
+- Partir `PondService` o cablear un puerto `BackupEnqueue` (W1-21; evita conflicto con #236).
+- Cambiar OpenAPI, firmas de `commands/*`, migraciones o env.
 
 ---
 
 ## Cómo usar este documento
 
-1. Antes de un refactor de capas, leer la fila del módulo.
-2. Si el arreglo cabe en <30 min y no toca contrato congelado, se puede hacer en un PR de higiene W1 sin ticket nuevo.
-3. Si supera ~30 min o cruza ownership, abrir/usar el ticket enlazado; no mezclar con entregas de producto.
+1. El ingeniero del curso puede puntuar cada módulo con la tabla S·O·L·I·D y las citas.
+2. Arreglos <30 min y sin contrato congelado caben en un PR de higiene W1 (como R1/R2).
+3. Arreglos mayores → ticket enlazado; no mezclar con demos de producto.
 
-**PR de esta revisión:** [#101](https://github.com/carloshugoeg/koicloud/pull/101).
+**Ticket:** W1-50 · **Rama:** `w1-solid-review`.
