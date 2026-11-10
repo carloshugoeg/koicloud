@@ -53,6 +53,7 @@ Notación: `M ROUTE → CommandOrService` con response resumido. `[C]` = requier
 | POST | `/auth/logout` | `revoke_refresh` | Revoca refresh actual | `204` |
 | GET | `/me` | `get_me` | Perfil del usuario logueado | `{user, subscription?, ponds_count}` |
 | PATCH | `/me` | `update_profile` | Actualiza `full_name`, `nit` | `{user}` |
+| POST | `/me/change-password` | `change_password` | Verifica `current_password`, setea `new_password` (min 8), revoca otros refresh | `204` |
 
 ### 2.2 Planes y suscripciones
 

@@ -1,5 +1,4 @@
 import { Navigate, useLocation } from "react-router-dom";
-import { PlaceholderPage } from "@/components/placeholder-page";
 
 export { LoginPage } from "@/features/auth/login-page";
 export { RegisterPage } from "@/features/auth/register-page";
@@ -28,16 +27,7 @@ export function BillingRoute() {
   return <Navigate replace to="/app/uso" />;
 }
 
-export function AccountPage() {
-  return (
-    <PlaceholderPage
-      description="Scaffold de perfil para nombre, NIT y cambios de contraseña."
-      route="/app/account"
-      ticket="E1-05"
-      title="Cuenta"
-    />
-  );
-}
+export { AccountPage } from "@/features/account/account-page";
 
 export { AgentAccessPage } from "@/features/agent-access/agent-access-page";
 
