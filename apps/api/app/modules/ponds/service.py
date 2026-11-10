@@ -356,7 +356,7 @@ class PondService:
 
     async def ensure_subscription(self, user: User) -> Subscription:
         active = (
-            await self.session.execute(
+            await self.session.scalars(
                 select(Subscription)
                 .where(
                     Subscription.user_id == user.id,
@@ -365,13 +365,13 @@ class PondService:
                 )
                 .order_by(Subscription.current_period_end.desc())
             )
-        ).scalar_one_or_none()
+        ).first()
         if active is not None:
             return active
 
         # W1-54: keep a sandbox row (even past period) instead of stacking Micro.
         sandbox = (
-            await self.session.execute(
+            await self.session.scalars(
                 select(Subscription)
                 .where(
                     Subscription.user_id == user.id,
@@ -380,15 +380,15 @@ class PondService:
                 )
                 .order_by(Subscription.current_period_end.desc())
             )
-        ).scalar_one_or_none()
+        ).first()
         if sandbox is not None:
             return sandbox
 
         existing = (
-            await self.session.execute(
-                select(Subscription).where(Subscription.user_id == user.id).limit(1)
+            await self.session.scalars(
+                select(Subscription).where(Subscription.user_id == user.id)
             )
-        ).scalar_one_or_none()
+        ).first()
         if existing is not None:
             raise AppError(ErrorCode.PLAN_REQUIRED)
 
