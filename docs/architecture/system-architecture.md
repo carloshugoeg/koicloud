@@ -147,7 +147,10 @@ flowchart TB
 
 **Reglas de despliegue:**
 
-- Un único dominio (`koicloud.example` — placeholder hasta que exista). Caddy termina TLS y multiplexa.
+- Un único dominio público desde la variable `KOICLOUD_DOMAIN` (hoy
+  `2-25-128-44.sslip.io` en el VPS Hostinger). `koicloud.example` es solo el
+  placeholder local que `infra/scripts/deploy.sh` rechaza. Caddy termina TLS y
+  multiplexa.
 - `/internal/*` **no** se expone al exterior: Caddy responde 403 al recibirlo desde fuera del loopback; el node-agent entra por `127.0.0.1:8000/internal/v1`.
 - Ponds escuchan en `15000–15999` con `--restart=no`. El reconciler mínimo puede reencolar `start_pond` si `desired=running && observed=stopped`, pero no se vende como “auto-heal”.
 - Backups son archivos `.dump` en disco local del VPS; el respaldo de la propia base interna es un cron en el host (7 días de retención).
