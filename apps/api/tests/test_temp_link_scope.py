@@ -214,23 +214,13 @@ def test_temp_basic_rejected_on_non_pond_http_routes() -> None:
     ]
     for method, path, body in cases:
         response = aud.request(method, path, headers=basic, json=body)
-        assert response.status_code in {401, 403, 404}, (path, response.status_code, response.text)
         payload = response.json()
         code = payload.get("code")
-        assert code in {
-            "token_invalid",
-            "token_expired",
-            "agent_bad_credentials",
-            "agent_disabled",
-            "admin_only",
-            "internal_error",
-        }, (path, payload)
-        if response.status_code == 401:
-            assert code in {
-                "token_invalid",
-                "token_expired",
-                "agent_bad_credentials",
-            }, (path, payload)
+        if response.status_code == 404:
+            assert code == "internal_error", (path, payload)
+            continue
+        assert response.status_code == 401, (path, response.status_code, response.text)
+        assert code == "token_invalid", (path, payload)
 
 
 def test_jsonrpc_out_of_allowlist_tools_return_agent_disabled() -> None:
