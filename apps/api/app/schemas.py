@@ -939,7 +939,7 @@ class PondTempAccessCreateRequest(SchemaModel):
     model_config = config_with_example(
         {
             "expires_at": EXAMPLE_LATER,
-            "scopes": ["whoami", "list_ponds", "get_pond", "run_sql"],
+            "scopes": ["whoami", "get_pond", "run_sql"],
         }
     )
 
