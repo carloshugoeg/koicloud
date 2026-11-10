@@ -6,7 +6,7 @@ estado: en-revision
 rama: w1-onboarding-tour
 epica: "demo-P1"
 sprint: S4
-pr:
+pr: "https://github.com/carloshugoeg/koicloud/pull/245"
 depends_on: W1-49
 ---
 
