@@ -431,6 +431,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/onboarding/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Complete Onboarding */
+        post: operations["complete_onboarding"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/plans": {
         parameters: {
             query?: never;
@@ -2017,6 +2034,7 @@ export interface components {
          *         "full_name": "Carlos Hugo Escobar",
          *         "id": "11111111-1111-1111-1111-111111111111",
          *         "nit": "0614-220999-101-3",
+         *         "onboarded": true,
          *         "role": "client",
          *         "status": "active"
          *       }
@@ -2088,6 +2106,7 @@ export interface components {
          *         "full_name": "Carlos Hugo Escobar",
          *         "id": "11111111-1111-1111-1111-111111111111",
          *         "nit": "0614-220999-101-3",
+         *         "onboarded": true,
          *         "role": "client",
          *         "status": "active"
          *       }
@@ -3147,6 +3166,7 @@ export interface components {
          *       "full_name": "Carlos Hugo Escobar",
          *       "id": "11111111-1111-1111-1111-111111111111",
          *       "nit": "0614-220999-101-3",
+         *       "onboarded": true,
          *       "role": "client",
          *       "status": "active"
          *     }
@@ -3170,6 +3190,8 @@ export interface components {
             id: string;
             /** Nit */
             nit?: string | null;
+            /** Onboarded */
+            onboarded: boolean;
             role: components["schemas"]["UserRole"];
             status: components["schemas"]["UserStatus"];
         };
@@ -3183,6 +3205,7 @@ export interface components {
          *         "full_name": "Carlos Hugo Escobar",
          *         "id": "11111111-1111-1111-1111-111111111111",
          *         "nit": "0614-220999-101-3",
+         *         "onboarded": true,
          *         "role": "client",
          *         "status": "active"
          *       }
@@ -4540,6 +4563,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    complete_onboarding: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-KOI-Surface"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

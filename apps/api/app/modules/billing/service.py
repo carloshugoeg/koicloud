@@ -183,7 +183,8 @@ class BillingService:
                 .order_by(Subscription.current_period_start.desc())
             )
         ).all()
-        if existing and card is not None:
+        # W1-54: upgrade the active row (sandbox → Micro/Pro) instead of stacking.
+        if existing:
             subscription = existing[0]
             for extra in existing[1:]:
                 extra.status = SubscriptionStatus.CANCELED

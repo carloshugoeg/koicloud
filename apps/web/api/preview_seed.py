@@ -98,11 +98,11 @@ def _upsert_admin(
                 """
                 INSERT INTO users (
                     id, email, password_hash, full_name, role, status,
-                    email_verified_at
+                    email_verified_at, onboarded_at
                 )
                 VALUES (
                     :id, :email, :password_hash, :full_name, 'admin',
-                    'active', :verified_at
+                    'active', :verified_at, :verified_at
                 )
                 """
             ),
@@ -122,7 +122,8 @@ def _upsert_admin(
                 SET password_hash = :password_hash,
                     role = 'admin',
                     status = 'active',
-                    email_verified_at = COALESCE(email_verified_at, :verified_at)
+                    email_verified_at = COALESCE(email_verified_at, :verified_at),
+                    onboarded_at = COALESCE(onboarded_at, :verified_at)
                 WHERE email = :email
                 """
             ),
@@ -184,11 +185,11 @@ def ensure_preview_admin() -> None:
                         """
                         INSERT INTO users (
                             id, email, password_hash, full_name, role, status,
-                            email_verified_at
+                            email_verified_at, onboarded_at
                         )
                         VALUES (
                             :id, :email, :password_hash, :full_name, 'client',
-                            'active', :verified_at
+                            'active', :verified_at, :verified_at
                         )
                         """
                     ),

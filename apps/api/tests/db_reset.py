@@ -74,10 +74,12 @@ def ensure_demo_user() -> None:
                 text(
                     """
                     INSERT INTO users (
-                        id, email, password_hash, full_name, role, status, email_verified_at
+                        id, email, password_hash, full_name, role, status,
+                        email_verified_at, onboarded_at
                     )
                     VALUES (
-                        :id, :email, :password_hash, :full_name, 'client', 'active', CURRENT_TIMESTAMP
+                        :id, :email, :password_hash, :full_name, 'client', 'active',
+                        CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
                     )
                     """
                 ),

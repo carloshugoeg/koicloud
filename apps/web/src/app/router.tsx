@@ -19,6 +19,7 @@ import {
   DashboardPage,
   ForgotPage,
   LoginPage,
+  OnboardingPage,
   PlansRoute,
   PondDetailPage,
   RegisterPage,
@@ -72,6 +73,11 @@ export const appRoutes: RouteObject[] = [
   {
     element: <RequireAuth />,
     children: [
+      {
+        path: "/app/onboarding",
+        element: <OnboardingPage />,
+        handle: { title: "Elige tu plan" } satisfies RouteHandle,
+      },
       {
         path: "/app",
         element: <AppShell />,

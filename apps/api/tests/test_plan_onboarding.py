@@ -129,12 +129,16 @@ async def test_onboarding_flag_defaults_false_and_complete_is_once() -> None:
 
 async def test_ensure_subscription_does_not_stack_micro_on_sandbox() -> None:
     """Active sandbox (even past period) must not grow a silent Micro row."""
+    from app.core.config import get_settings
+    from app.core.models import User
+    from app.modules.ponds.service import PondService
+
     reset_auth_tables()
     email = "no-silent-micro@koicloud.dev"
 
     async with _make_client() as client:
         user_id = await _register(client, email)
-        access = await _verify_and_login(client, user_id, email)
+        await _verify_and_login(client, user_id, email)
 
         async with SessionLocal() as session:
             sub = (
@@ -147,16 +151,12 @@ async def test_ensure_subscription_does_not_stack_micro_on_sandbox() -> None:
             sub.current_period_end = utc_now()
             await session.commit()
 
-        # Creating a pond should not insert a second (micro) subscription.
-        create = await client.post(
-            "/api/v1/ponds",
-            headers={"Authorization": f"Bearer {access}"},
-            json={"name": "pond-sandbox", "engine_version": "16"},
-        )
-        # Either succeeds on sandbox or plan_required — never two actives.
-        assert create.status_code in {201, 202, 409}, create.text
+            user = await session.get(User, user_id)
+            assert user is not None
+            ensured = await PondService(session, get_settings()).ensure_subscription(user)
+            await session.commit()
+            assert ensured.plan_id == "sandbox"
 
-        async with SessionLocal() as session:
             rows = (
                 await session.execute(
                     select(Subscription).where(Subscription.user_id == user_id)

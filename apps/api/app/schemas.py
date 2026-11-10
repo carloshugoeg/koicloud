@@ -83,6 +83,7 @@ class UserOut(SchemaModel):
     nit: str | None = None
     status: UserStatus
     email_verified: bool
+    onboarded: bool
     created_at: datetime
 
     model_config = config_with_example(
@@ -94,6 +95,7 @@ class UserOut(SchemaModel):
             "nit": "0614-220999-101-3",
             "status": "active",
             "email_verified": True,
+            "onboarded": True,
             "created_at": EXAMPLE_NOW,
         }
     )

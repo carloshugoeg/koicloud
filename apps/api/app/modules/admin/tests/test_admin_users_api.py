@@ -99,7 +99,7 @@ async def test_admin_list_users_returns_registered_accounts_not_fixtures() -> No
     assert emails == {"qa-admin@koicloud.test", "qa+1@koicloud.test"}
     qa_account = next(user for user in body["users"] if user["email"] == "qa+1@koicloud.test")
     assert qa_account["full_name"] == "Admin Fixture"
-    assert qa_account["active_subscription_plan"] is None
+    assert qa_account["active_subscription_plan"] == "sandbox"
     assert qa_account["status"] == "active"
     assert "carlos@koicloud.dev" not in emails
     assert "suspended@koicloud.dev" not in emails

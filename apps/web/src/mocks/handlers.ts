@@ -97,6 +97,7 @@ export const handlers = [
             role: "admin" as const,
             status: adminUser.status,
             email_verified: true,
+            onboarded: true,
             nit: "0614-220999-101-3",
             created_at: adminUser.created_at,
           },
@@ -192,6 +193,10 @@ export const handlers = [
         nit: body.nit === undefined ? fixtures.session.user.nit : body.nit,
       },
     });
+  }),
+
+  http.post(`${API_ROOT}/me/onboarding/complete`, () => {
+    return new HttpResponse(null, { status: 204 });
   }),
 
   http.post(`${API_ROOT}/me/change-password`, async ({ request }) => {

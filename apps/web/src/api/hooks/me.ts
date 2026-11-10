@@ -51,3 +51,25 @@ export function useChangePasswordMutation() {
     },
   });
 }
+
+export function useCompleteOnboardingMutation() {
+  const queryClient = useQueryClient();
+  const session = useAuthStore((state) => state.session);
+  const setSession = useAuthStore((state) => state.setSession);
+
+  return useMutation({
+    mutationFn: async () => {
+      const { error, response } = await apiClient.POST("/api/v1/me/onboarding/complete", {});
+      if (error || !response.ok) throw new ApiError(error);
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["me"] });
+      if (session) {
+        setSession({
+          ...session,
+          user: { ...session.user, onboarded: true },
+        });
+      }
+    },
+  });
+}

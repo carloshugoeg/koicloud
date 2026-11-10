@@ -37,10 +37,11 @@ depends_on:
 1. Tras `POST /auth/register` (usuario nuevo), existe exactamente una suscripción
    `active` con `plan_id=sandbox`.
 2. Re-registro no verificado no inserta una segunda suscripción.
-3. Con `plans_onboarding_completed=false`, un usuario autenticado es redirigido a
-   la pantalla de onboarding (también tras reload / `PublicOnly`).
-4. "Continuar gratis" marca el flag y deja `plan_id=sandbox`; no llama subscribe.
-5. Micro/Pro reutilizan el checkout existente (con card) y marcan el flag.
+3. Con `UserOut.onboarded=false` (`users.onboarded_at` null), un usuario autenticado
+   es redirigido a `/app/onboarding` (también tras reload / `PublicOnly`).
+4. "Continuar gratis" llama `POST /me/onboarding/complete` (204) y deja `plan_id=sandbox`;
+   no llama subscribe.
+5. Micro/Pro reutilizan el checkout existente (con card) y luego marcan el flag.
 6. Tras una elección, el onboarding no se muestra otra vez.
 7. `ensure_subscription` no inserta Micro silencioso encima de un sandbox activo
    (incluido periodo vencido mientras status=active).
