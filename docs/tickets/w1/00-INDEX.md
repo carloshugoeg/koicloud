@@ -56,7 +56,7 @@ no existe todavía. `00-INDEX.md` no es un ticket y el agente lo ignora.
 | [QI-01](QI-01-caddy-app-worker.md) | Caddy sirve la SPA en /app y el worker pasa el healthcheck | `w1-qi-infra-caddy-worker` | hecho · [#187](https://github.com/carloshugoeg/koicloud/pull/187) |
 | [W1-200](W1-200-job-error-sanitize.md) | Sanitizar last_error de los jobs | `w1-200-job-error-sanitize` | hecho · [#201](https://github.com/carloshugoeg/koicloud/pull/201) · #96 r8-7 |
 
-| [W1-49](W1-49-account-page.md) | Pantalla Cuenta (perfil + change-password) | `w1-account-page` | en-revision |
+| [W1-49](W1-49-account-page.md) | Pantalla Cuenta (perfil + change-password) | `w1-account-page` | hecho ([PR #235](https://github.com/carloshugoeg/koicloud/pull/235)) |
 
 W1 es el único workstream que puede tocar cualquier ruta, y el único que escribe migraciones,
 regenera contratos (`make contracts`) y edita el harness de agentes.
