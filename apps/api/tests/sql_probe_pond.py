@@ -43,6 +43,12 @@ def _prepare_probe_database() -> None:
                     sql.Literal(PROBE_PASSWORD)
                 )
             )
+        else:
+            conn.execute(
+                sql.SQL("ALTER ROLE postgres WITH LOGIN PASSWORD {}").format(
+                    sql.Literal(PROBE_PASSWORD)
+                )
+            )
         conn.execute(
             """
             SELECT pg_terminate_backend(pid)

@@ -9,18 +9,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import AuthContext
 from app.core.config import Settings
+from app.core.enums import UserStatus
 from app.core.errors import AppError, ErrorCode
 from app.core.models import Pond, PondToken, User
 from app.core.security import hash_password, verify_password
 from app.core.time import utc_now
 from app.modules.ponds import PondService
 from app.schemas import (
+    TEMP_ACCESS_SCOPES,
     PondTempAccessListResponse,
     PondTempAccessOut,
     PondTempAccessSecretOut,
 )
 
-TEMP_ACCESS_TOOLS: frozenset[str] = frozenset({"whoami", "get_pond", "run_sql"})
+TEMP_ACCESS_TOOLS: frozenset[str] = TEMP_ACCESS_SCOPES
 
 
 def phase_of(row: PondToken, *, now: datetime | None = None) -> str:
@@ -118,7 +120,12 @@ class PondTokenService:
         self, actor: AuthContext, pond_id: UUID, token_id: UUID
     ) -> PondTempAccessOut:
         await self.ponds.get_owned(actor, pond_id)
-        row = await self.session.get(PondToken, token_id)
+        # Same PondToken row-lock ordering as temp SQL claim/admission.
+        row = (
+            await self.session.execute(
+                select(PondToken).where(PondToken.id == token_id).with_for_update()
+            )
+        ).scalar_one_or_none()
         if row is None or row.pond_id != pond_id:
             raise AppError(ErrorCode.POND_NOT_FOUND)
         if row.revoked_at is None:
@@ -126,7 +133,10 @@ class PondTokenService:
             await self.session.flush()
         return self.to_out(row)
 
-    async def authenticate(self, slug: str, password: str) -> tuple[User, Pond, frozenset[str]]:
+    async def authenticate(
+        self, slug: str, password: str
+    ) -> tuple[User, Pond, frozenset[str], UUID]:
+        """Return owner, pond, effective tools, and PondToken.id (logical session)."""
         row = (
             await self.session.execute(
                 select(PondToken).where(PondToken.access_slug == slug)
@@ -144,8 +154,14 @@ class PondTokenService:
         user = await self.session.get(User, pond.user_id)
         if user is None:
             raise AppError(ErrorCode.AGENT_BAD_CREDENTIALS)
+        # CCR: suspended/invalid owner → 401 at authenticate (temp path).
+        if user.status != UserStatus.ACTIVE:
+            raise AppError(ErrorCode.AGENT_BAD_CREDENTIALS)
 
         scopes = frozenset(row.scopes or []) & TEMP_ACCESS_TOOLS
         if not scopes:
             scopes = TEMP_ACCESS_TOOLS
-        return user, pond, scopes
+        # Derive confirm_action only when run_sql is already granted.
+        if "run_sql" in scopes:
+            scopes = frozenset(set(scopes) | {"confirm_action"})
+        return user, pond, scopes, row.id
