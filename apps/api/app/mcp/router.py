@@ -5,7 +5,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends
 
 from app.core.auth import AuthContext
-from app.core.errors import AppError, ErrorCode
+from app.core.errors import ERROR_CATALOG, AppError, ErrorCode
 from app.mcp.context import clear_mcp_actor, set_mcp_actor
 from app.mcp.gate import mcp_gate_dependency
 from app.mcp.prompt import SYSTEM_PROMPT
@@ -22,6 +22,7 @@ READ_ONLY_TOOLS = [
     "list_subscriptions",
     "list_backups",
     "get_usage",
+    "list_tables",
 ]
 MUTABLE_TOOLS = [
     "create_pond",
@@ -117,7 +118,11 @@ async def _dispatch_jsonrpc(
         if cause is None and isinstance(exc, AppError):
             cause = exc
         if cause is not None:
-            return {"code": cause.code.value, "message": cause.message, "status": "error"}
+            return {
+                "code": cause.code.value,
+                "message": ERROR_CATALOG[cause.code].message,
+                "status": "error",
+            }
         raise
     data = getattr(call_result, "data", None)
     if isinstance(data, dict):

@@ -9,6 +9,10 @@ export type PondJob = components["schemas"]["JobOut"];
 export type PondObservedState = components["schemas"]["PondObservedState"];
 export type Backup = components["schemas"]["BackupOut"];
 export type Connection = components["schemas"]["ConnectionOut"];
+export type PondTempAccessOut = components["schemas"]["PondTempAccessOut"];
+export type PondTempAccessSecretOut = components["schemas"]["PondTempAccessSecretOut"];
+export type PondTempAccessCreateRequest =
+  components["schemas"]["PondTempAccessCreateRequest"];
 
 const TRANSIENT_STATES = new Set<PondObservedState>([
   "pending",
@@ -80,6 +84,33 @@ export function useGetConnection(pondId: string | undefined) {
       return data.connection;
     },
   });
+}
+
+export type PondSchema = components["schemas"]["PondSchemaResponse"];
+export type PondTable = components["schemas"]["PondTableOut"];
+export type PondColumn = components["schemas"]["PondColumnOut"];
+
+/** Manual schema snapshot. Never auto-fetches; Recargar calls refetch(). */
+export function usePondSchema(pondId: string | undefined) {
+  const query = useQuery({
+    queryKey: ["ponds", pondId, "schema"],
+    enabled: false,
+    refetchOnWindowFocus: false,
+    refetchInterval: false,
+    retry: false,
+    queryFn: async () => {
+      const { data, error } = await apiClient.GET("/api/v1/ponds/{pond_id}/schema", {
+        params: { path: { pond_id: pondId as string } },
+      });
+      if (error || !data) throw new ApiError(error);
+      return data;
+    },
+  });
+
+  return {
+    ...query,
+    reload: () => query.refetch(),
+  };
 }
 
 export function useListBackups(pondId: string | undefined) {
@@ -251,6 +282,56 @@ export function useRetryFailedJobMutation(pondId: string) {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["ponds", pondId] });
       void queryClient.invalidateQueries({ queryKey: ["ponds"] });
+    },
+  });
+}
+
+export function useListPondTempAccess(pondId: string | undefined) {
+  return useQuery({
+    queryKey: ["ponds", pondId, "temp-access"],
+    enabled: Boolean(pondId),
+    queryFn: async () => {
+      const { data, error } = await apiClient.GET("/api/v1/ponds/{pond_id}/temp-access", {
+        params: { path: { pond_id: pondId as string } },
+      });
+      if (error || !data) throw new ApiError(error);
+      return data.tokens;
+    },
+  });
+}
+
+export function useCreatePondTempAccessMutation(pondId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: PondTempAccessCreateRequest) => {
+      const { data, error } = await apiClient.POST("/api/v1/ponds/{pond_id}/temp-access", {
+        params: { path: { pond_id: pondId } },
+        body,
+      });
+      if (error || !data) throw new ApiError(error);
+      return data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["ponds", pondId, "temp-access"] });
+    },
+  });
+}
+
+export function useRevokePondTempAccessMutation(pondId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (tokenId: string) => {
+      const { data, error } = await apiClient.POST(
+        "/api/v1/ponds/{pond_id}/temp-access/{token_id}/revoke",
+        {
+          params: { path: { pond_id: pondId, token_id: tokenId } },
+        },
+      );
+      if (error || !data) throw new ApiError(error);
+      return data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["ponds", pondId, "temp-access"] });
     },
   });
 }

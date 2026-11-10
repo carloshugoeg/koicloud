@@ -1,0 +1,30 @@
+---
+title: "Console MCP connect"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: working
+    lg1: denied
+  }
+  class lg0 teal
+  class lg1 orange
+  s0: No credentials
+  s1: Link pasted
+  s2: Auth failed
+  s3: Pond-pinned
+  s4: Pond-pinned (read ok)
+  s5: Pond-pinned (forbidden denied)
+  s6: Pond-pinned (off-pond denied)
+  [*] --> s0
+  s0 --> s1: paste link + password
+  s1 --> s2: auth fails [401]
+  s1 --> s3: auth succeeds
+  s2 --> s1: paste correct password
+  s3 --> s4: whoami or get_pond [ok]
+  s3 --> s5: forbidden tool [denied]
+  s3 --> s6: other pond [denied]
+  class s2 orange
+  class s3 teal
+  class s4 teal
+  class s5 orange
+  class s6 orange

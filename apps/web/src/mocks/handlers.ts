@@ -269,6 +269,38 @@ export const handlers = [
     });
   }),
 
+  http.get(`${API_ROOT}/ponds/:pondId/temp-access`, () => {
+    return HttpResponse.json({ tokens: [] });
+  }),
+
+  http.post(`${API_ROOT}/ponds/:pondId/temp-access`, async ({ params }) => {
+    return HttpResponse.json(
+      {
+        id: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+        pond_id: String(params.pondId),
+        slug: "pond-demo-token",
+        url: "https://koicloud.local/mcp",
+        password: "one-time-password",
+        expires_at: "2099-01-01T00:00:00Z",
+        scopes: ["whoami", "get_pond", "run_sql"],
+      },
+      { status: 201 },
+    );
+  }),
+
+  http.post(`${API_ROOT}/ponds/:pondId/temp-access/:tokenId/revoke`, ({ params }) => {
+    return HttpResponse.json({
+      id: String(params.tokenId),
+      pond_id: String(params.pondId),
+      slug: "pond-demo-token",
+      url: "https://koicloud.local/mcp",
+      expires_at: "2099-01-01T00:00:00Z",
+      revoked_at: "2026-09-22T20:30:00Z",
+      scopes: ["whoami", "get_pond", "run_sql"],
+      created_at: "2026-09-22T20:00:00Z",
+    });
+  }),
+
   http.get(`${API_ROOT}/ponds/:pondId/backups`, () => {
     return HttpResponse.json({ backups: fixtures.backups, next_cursor: null });
   }),
