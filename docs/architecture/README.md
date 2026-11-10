@@ -30,10 +30,10 @@ Lee en este orden si nunca has visto el pack; luego usa cualquier documento como
 | 6 | [`repo-scaffolding.md`](./repo-scaffolding.md) | Estructura exacta del monorepo, convenciones de config y entornos, esqueleto de CI |
 | 7 | [`dependencies.md`](./dependencies.md) | Elecciones de stack con *por qué*, dependencias externas, qué **no** agregar |
 | 8 | [`feature-breakdown.md`](./feature-breakdown.md) | Lista completa de funcionalidades → épicas → slices, dependencias y orden sugerido de construcción (camino a MVP para la demo) |
-| 9 | [`agent-docs.md`](./agent-docs.md) | Reglas de trabajo con Cursor y otros agentes: quién posee qué, `AGENTS.md`, límites del harness, DoD por superficie, política de publicación (`gh` + autoría personal de cada integrante, sin GitHub MCP) |
+| 9 | [`../../AGENTS.md`](../../AGENTS.md) | Reglas de trabajo con agentes (fuente viva). El borrador pre-repo quedó en [`../archive/architecture-agent-docs.md`](../archive/architecture-agent-docs.md) |
 | 10 | [`risks-and-demo-plan.md`](./risks-and-demo-plan.md) | Modos de falla, fallback si el LLM se cae en vivo, qué recortar si el semestre se atrasa |
 | — | [`diagrams/`](./diagrams/) | Fuentes Mermaid opcionales de los diagramas embebidos en los otros documentos |
-| — | [`solid-review.md`](./solid-review.md) | Revisión SOLID del código actual (billing, ponds, jobs, sql_console, metering); tickets para refactors >30 min |
+| — | [`solid-review.md`](./solid-review.md) | Revisión SOLID del código actual (auth, billing, ponds, metering, MCP/agent access, admin); tickets para refactors >30 min |
 | — | [`../visual-guidelines.md`](../visual-guidelines.md) | **Piel del producto web**: color, tipografía, espaciado, movimiento, marca. Normativo para apariencia en `apps/web/**` |
 
 **Regla de dos fuentes para la Web:** **piel = [`visual-guidelines.md`](../visual-guidelines.md); IA de pantallas = [`entrega-2/mockups/pantallas-principales.html`](../entrega-2/mockups/pantallas-principales.html)** (qué campos, qué tablas, qué pasos) + [`feature-breakdown.md`](./feature-breakdown.md). El tema oscuro de esos mockups quedó superado como apariencia; su estructura sigue vigente. Bloque listo para pegar en un agente de Cursor: [`../visual-guidelines-agent-prompt.md`](../visual-guidelines-agent-prompt.md).
@@ -45,9 +45,9 @@ Un [`internal/architecture-design-handoff.md`](../../internal/architecture-desig
 ## Cómo usar este pack en la implementación
 
 1. **El repo de implementación ya existe** (`carloshugoeg/koicloud`). Esta copia en el monorepo manda; no re-bootstraps el pack desde plantillas viejas.
-2. **No lo edites al vuelo**: cambios de fondo pasan por CCR (Contract Change Request) como se describe en [`agent-docs.md`](./agent-docs.md). Correcciones tipográficas o de enlaces sí son PR directo.
-3. **Los agentes** deben leer `vision-and-constraints.md` + `agent-docs.md` + su sección de `feature-breakdown.md` **antes** de escribir código. La regla es de `AGENTS.md`, no una sugerencia.
-4. **Un ticket = un PR** dentro del workstream que lo posee. La propiedad de rutas está en [`repo-scaffolding.md`](./repo-scaffolding.md) §Ownership y en [`agent-docs.md`](./agent-docs.md).
+2. **No lo edites al vuelo**: cambios de fondo pasan por CCR (Contract Change Request) como se describe en [`../../AGENTS.md`](../../AGENTS.md). Correcciones tipográficas o de enlaces sí son PR directo.
+3. **Los agentes** deben leer `vision-and-constraints.md` + `AGENTS.md` + su sección de `feature-breakdown.md` **antes** de escribir código.
+4. **Un ticket = un PR** dentro del workstream que lo posee. La propiedad de rutas está en [`repo-scaffolding.md`](./repo-scaffolding.md) §Ownership y en [`../../AGENTS.md`](../../AGENTS.md).
 
 ---
 

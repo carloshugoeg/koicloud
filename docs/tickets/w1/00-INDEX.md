@@ -58,6 +58,8 @@ no existe todavía. `00-INDEX.md` no es un ticket y el agente lo ignora.
 | [W1-50](W1-50-temp-link-scope.md) | P0: link temporal scoped al pond emitido | `w1-temp-link-scope` | en-revision |
 
 | [W1-49](W1-49-account-page.md) | Pantalla Cuenta (perfil + change-password) | `w1-account-page` | en-revision |
+| [W1-52](W1-52-repo-cleanup.md) | Limpieza del repo (docs, media, audit) | `w1-repo-cleanup` | hecho · [#237](https://github.com/carloshugoeg/koicloud/pull/237) |
+| [W1-53](W1-53-solid-review.md) | Revisión SOLID actualizada (módulos principales + refactors mínimos) | `w1-solid-review` | en-revision |
 | [W1-54](W1-54-plan-onboarding.md) | Plan onboarding: sandbox default + chooser + confirm password | `w1-plan-onboarding` | en-revision · [#242](https://github.com/carloshugoeg/koicloud/pull/242) |
 
 W1 es el único workstream que puede tocar cualquier ruta, y el único que escribe migraciones,

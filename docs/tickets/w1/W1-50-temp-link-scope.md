@@ -2,7 +2,7 @@
 id: W1-50
 workstream: W1
 persona: Carlos
-estado: en-revision
+estado: hecho
 rama: w1-temp-link-scope
 epica: E9-02
 sprint: S8

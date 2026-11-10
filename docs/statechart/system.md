@@ -13,7 +13,7 @@ flowchart LR
   AD([Admin]) -- suspend / reactivate, read users, ponds, audit, totals --> K
   P([Pasarela de pago<br/>simulated provider]) -- payment confirmed / failed --> K
   K -- charge request --> P
-  N([Nodo / Oracle VM<br/>node-agent + Docker]) -- job claims, results, samples, heartbeats --> K
+  N([Nodo / Hostinger VPS<br/>node-agent + Docker]) -- job claims, results, samples, heartbeats --> K
   K -- jobs: create/start/stop/backup/restore/delete --> N
   E([Resend email]) 
   K -- verify, reset, notifications --> E

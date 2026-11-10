@@ -105,8 +105,9 @@ cliente falso. `AGENT_MODE=mock` sigue siendo el default de CI.
 
 - Reset password sin mailer (token solo en logs / consola).
 - Billing / SQL console / backups HTTP siguen siendo fixtures de contrato.
-- Un VPS con `AGENT_MODE=docker` y `POND_PORT_RANGE_*` publicado, cuando existan
-  host y credenciales reales. No inventar infra.
+- El VPS de demo (Hostinger KVM 1, `KOICLOUD_DOMAIN=2-25-128-44.sslip.io`) ya
+  publica `AGENT_MODE=docker` y `POND_PORT_RANGE_*`. Este runbook sigue siendo
+  el camino local sin ese host.
 
 ## 5. Cloud VM con bridge Docker roto
 

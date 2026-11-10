@@ -1,4 +1,4 @@
-# Production compose for one Linux host (Oracle Always Free ARM Ampere OK).
+# Production compose for one Linux host (Hostinger KVM 1 amd64; multi-arch bases).
 # Bases are multi-arch (amd64 and arm64): postgres:16-alpine,
 # python:3.12-slim (api/worker/node-agent Dockerfiles), caddy:2.8-alpine.
 # Do not pin an amd64-only platform. No VPS/IP is named here.

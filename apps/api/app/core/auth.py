@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hmac
 from typing import Annotated
 
 import jwt
@@ -16,6 +17,12 @@ from app.core.models import RevokedAccessToken
 from app.core.security import decode_token
 
 bearer_scheme = HTTPBearer(auto_error=False)
+
+
+def node_token_matches(presented: str | None, expected: str) -> bool:
+    if presented is None:
+        return False
+    return hmac.compare_digest(presented, expected)
 
 
 class AuthContext(SchemaModel):
@@ -91,7 +98,7 @@ async def get_node_identity(
     x_node_token: str | None = Header(default=None, alias="X-Node-Token"),
 ) -> NodeContext:
     settings = get_settings()
-    if x_node_token != settings.node_token:
+    if not node_token_matches(x_node_token, settings.node_token):
         raise AppError(ErrorCode.TOKEN_INVALID)
     return NodeContext(node_id=settings.node_id)
 
