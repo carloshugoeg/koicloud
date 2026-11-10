@@ -9,6 +9,7 @@ from app.core.db import SessionLocal
 from app.core.enums import SubscriptionStatus
 from app.core.errors import AppError, ErrorCode
 from app.core.models import Pond, Subscription, User
+from app.core.time import utc_now
 from app.modules.billing.service import latest_invoice_id_by_subscription, subscription_to_out
 from app.schemas import MeResponse, UpdateProfileRequest, UserOut, UserResponse
 
@@ -22,8 +23,21 @@ def _user_out(user: User) -> UserOut:
         nit=user.nit,
         status=user.status,
         email_verified=user.email_verified_at is not None,
+        onboarded=user.onboarded_at is not None,
         created_at=user.created_at,
     )
+
+
+async def complete_onboarding(actor: AuthContext) -> None:
+    """Mark the first-login plan chooser as done. Idempotent."""
+    user_id = UUID(actor.user_id)
+    async with SessionLocal() as session:
+        user = await session.get(User, user_id)
+        if user is None:
+            raise AppError(ErrorCode.TOKEN_INVALID)
+        if user.onboarded_at is None:
+            user.onboarded_at = utc_now()
+            await session.commit()
 
 
 async def get_me(actor: AuthContext) -> MeResponse:

@@ -24,6 +24,7 @@ function sessionUserFromAdmin(user: typeof adminUser) {
     role: user.role,
     status: user.status,
     email_verified: user.email_verified,
+    onboarded: true,
     nit: "0614-220999-101-3",
     created_at: user.created_at,
   };

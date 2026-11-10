@@ -2032,6 +2032,7 @@
             "full_name": "Carlos Hugo Escobar",
             "id": "11111111-1111-1111-1111-111111111111",
             "nit": "0614-220999-101-3",
+            "onboarded": true,
             "role": "client",
             "status": "active"
           }
@@ -2141,6 +2142,7 @@
             "full_name": "Carlos Hugo Escobar",
             "id": "11111111-1111-1111-1111-111111111111",
             "nit": "0614-220999-101-3",
+            "onboarded": true,
             "role": "client",
             "status": "active"
           }
@@ -3916,6 +3918,7 @@
           "full_name": "Carlos Hugo Escobar",
           "id": "11111111-1111-1111-1111-111111111111",
           "nit": "0614-220999-101-3",
+          "onboarded": true,
           "role": "client",
           "status": "active"
         },
@@ -3953,6 +3956,10 @@
             ],
             "title": "Nit"
           },
+          "onboarded": {
+            "title": "Onboarded",
+            "type": "boolean"
+          },
           "role": {
             "$ref": "#/components/schemas/UserRole"
           },
@@ -3967,6 +3974,7 @@
           "role",
           "status",
           "email_verified",
+          "onboarded",
           "created_at"
         ],
         "title": "UserOut",
@@ -3982,6 +3990,7 @@
             "full_name": "Carlos Hugo Escobar",
             "id": "11111111-1111-1111-1111-111111111111",
             "nit": "0614-220999-101-3",
+            "onboarded": true,
             "role": "client",
             "status": "active"
           }
@@ -6044,6 +6053,63 @@
           }
         ],
         "summary": "Change Password",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/v1/me/onboarding/complete": {
+      "post": {
+        "operationId": "complete_onboarding",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-KOI-Surface",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Koi-Surface"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Complete Onboarding",
         "tags": [
           "users"
         ]

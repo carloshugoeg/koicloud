@@ -52,6 +52,7 @@ describe("app router scaffold", () => {
         role: adminUser.role,
         status: adminUser.status,
         email_verified: adminUser.email_verified,
+        onboarded: true,
         nit: "0614-220999-101-3",
         created_at: adminUser.created_at,
       },

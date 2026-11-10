@@ -13,9 +13,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import AuthContext
 from app.core.config import get_settings
 from app.core.db import SessionLocal
-from app.core.enums import EmailTokenKind, UserRole, UserStatus
+from app.core.enums import EmailTokenKind, SubscriptionStatus, UserRole, UserStatus
 from app.core.errors import AppError, ErrorCode
-from app.core.models import EmailToken, RefreshToken, RevokedAccessToken, User
+from app.core.models import EmailToken, Plan, RefreshToken, RevokedAccessToken, Subscription, User
 from app.core.security import (
     decode_token,
     generate_opaque_token,
@@ -65,6 +65,7 @@ def _user_out(user: User) -> UserOut:
         nit=user.nit,
         status=user.status,
         email_verified=user.email_verified_at is not None,
+        onboarded=user.onboarded_at is not None,
         created_at=user.created_at,
     )
 
@@ -220,12 +221,28 @@ async def register_user(payload: RegisterUserRequest) -> RegisterUserResponse:
             nit=payload.nit,
             status=UserStatus.ACTIVE,
             email_verified_at=None,
+            onboarded_at=None,
         )
         session.add(user)
         try:
             await session.flush()
         except IntegrityError as exc:
             raise AppError(ErrorCode.EMAIL_TAKEN) from exc
+
+        plan = await session.get(Plan, "sandbox")
+        if plan is None:
+            raise AppError(ErrorCode.PLAN_REQUIRED)
+        now = utc_now()
+        session.add(
+            Subscription(
+                user_id=user.id,
+                plan_id=plan.id,
+                status=SubscriptionStatus.ACTIVE,
+                current_period_start=now,
+                current_period_end=now + timedelta(minutes=plan.validity_minutes),
+                cancel_at_period_end=False,
+            )
+        )
 
         plaintext = await _issue_email_token_row(session, user.id, EmailTokenKind.VERIFY_EMAIL)
         await session.commit()

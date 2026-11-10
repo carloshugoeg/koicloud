@@ -28,6 +28,7 @@ describe("W2-01 Auth flows (register, verify, login)", () => {
     await user.type(screen.getByLabelText("Nombre completo"), "Ana López");
     await user.type(screen.getByLabelText("Correo"), "ana@ejemplo.gt");
     await user.type(screen.getByLabelText("Contraseña"), "Sup3rSegura!2026");
+    await user.type(screen.getByLabelText("Confirmar contraseña"), "Sup3rSegura!2026");
     await user.type(screen.getByLabelText("NIT (opcional)"), "0614-100199-102-4");
     await user.click(screen.getByRole("button", { name: "Crear cuenta" }));
 
@@ -50,10 +51,33 @@ describe("W2-01 Auth flows (register, verify, login)", () => {
     await user.type(screen.getByLabelText("Nombre completo"), "Ana López");
     await user.type(screen.getByLabelText("Correo"), "ana@ejemplo.gt");
     await user.type(screen.getByLabelText("Contraseña"), "Sup3rSegura!2026");
+    await user.type(screen.getByLabelText("Confirmar contraseña"), "Sup3rSegura!2026");
     await user.click(screen.getByRole("button", { name: "Crear cuenta" }));
 
     expect(await screen.findByText("Ese correo ya está registrado.")).toBeInTheDocument();
     expect(screen.getByText("email_taken")).toBeInTheDocument();
+  });
+
+  it("blocks register submit when confirm password does not match", async () => {
+    let registerCalls = 0;
+    server.use(
+      http.post("*/api/v1/auth/register", () => {
+        registerCalls += 1;
+        return HttpResponse.json({ user_id: "11111111-1111-1111-1111-111111111111", email_verified: false }, { status: 201 });
+      }),
+    );
+    const user = userEvent.setup();
+    renderAuthRoute("/register");
+
+    await user.type(screen.getByLabelText("Nombre completo"), "Ana López");
+    await user.type(screen.getByLabelText("Correo"), "ana@ejemplo.gt");
+    await user.type(screen.getByLabelText("Contraseña"), "Sup3rSegura!2026");
+    await user.type(screen.getByLabelText("Confirmar contraseña"), "OtraClave!2026");
+    await user.click(screen.getByRole("button", { name: "Crear cuenta" }));
+
+    expect(await screen.findByText("Las contraseñas no coinciden.")).toBeInTheDocument();
+    expect(registerCalls).toBe(0);
+    expect(screen.queryByRole("heading", { name: "Revisa tu correo" })).not.toBeInTheDocument();
   });
 
   it("consumes a valid verification token and navigates to login", async () => {

@@ -5,6 +5,7 @@ export { RegisterPage } from "@/features/auth/register-page";
 export { VerifyPage } from "@/features/auth/verify-page";
 export { ForgotPage } from "@/features/auth/forgot-page";
 export { ResetPage } from "@/features/auth/reset-page";
+export { OnboardingPage } from "@/features/onboarding/onboarding-page";
 export { PlansPage } from "@/features/plans/plans-page";
 export { DashboardPage } from "@/features/ponds/dashboard-page";
 export { BackupsPage } from "@/features/ponds/backups-page";

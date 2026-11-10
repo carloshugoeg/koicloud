@@ -140,22 +140,6 @@ def test_subscription_invoice_id_is_latest_or_null() -> None:
     reset_pond_tables()
     headers = auth_headers()
     user_id = client.get("/api/v1/me", headers=headers).json()["user"]["id"]
-    bare_id = str(uuid4())
-    _execute(
-        """
-        INSERT INTO subscriptions (
-            id, user_id, plan_id, status,
-            current_period_start, current_period_end, cancel_at_period_end
-        )
-        VALUES (
-            :id, :user_id, 'micro', 'active',
-            CURRENT_TIMESTAMP - INTERVAL '2 days',
-            CURRENT_TIMESTAMP + INTERVAL '1 day',
-            false
-        )
-        """,
-        {"id": bare_id, "user_id": user_id},
-    )
 
     subscribed = client.post(
         "/api/v1/subscriptions",
@@ -185,6 +169,24 @@ def test_subscription_invoice_id_is_latest_or_null() -> None:
             "user_id": user_id,
             "subscription_id": sub_id,
         },
+    )
+
+    # Historical row with no invoices must still report invoice_id=null.
+    bare_id = str(uuid4())
+    _execute(
+        """
+        INSERT INTO subscriptions (
+            id, user_id, plan_id, status,
+            current_period_start, current_period_end, cancel_at_period_end
+        )
+        VALUES (
+            :id, :user_id, 'micro', 'canceled',
+            CURRENT_TIMESTAMP - INTERVAL '2 days',
+            CURRENT_TIMESTAMP - INTERVAL '1 day',
+            false
+        )
+        """,
+        {"id": bare_id, "user_id": user_id},
     )
 
     listed = client.get("/api/v1/subscriptions", headers=headers)

@@ -9,12 +9,20 @@ export function RegisterPage() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [nit, setNit] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [localError, setLocalError] = useState<Error | null>(null);
   const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    registerMutation.reset();
+    setLocalError(null);
+    if (password !== confirmPassword) {
+      setLocalError(new Error("Las contraseñas no coinciden."));
+      return;
+    }
     const trimmedEmail = email.trim();
     const trimmedNit = nit.trim();
     try {
@@ -63,8 +71,8 @@ export function RegisterPage() {
       title="Crea tu cuenta"
       footer={<p>¿Ya tienes cuenta? <Link className="font-medium text-turquoise-700" to="/login">Inicia sesión</Link></p>}
     >
-      <form className="space-y-4" onSubmit={handleSubmit}>
-        <AuthErrorBanner error={registerMutation.error} />
+      <form className="space-y-4" noValidate onSubmit={handleSubmit}>
+        <AuthErrorBanner error={localError ?? registerMutation.error} />
         <AuthField id="register-full-name" label="Nombre completo" name="full_name" type="text" required autoComplete="name" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Ana López" />
         <AuthField id="register-email" label="Correo" name="email" type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="ana@ejemplo.gt" />
         <AuthField
@@ -84,6 +92,18 @@ export function RegisterPage() {
               {showPassword ? "Ocultar" : "Mostrar"}
             </button>
           }
+        />
+        <AuthField
+          id="register-confirm-password"
+          label="Confirmar contraseña"
+          name="confirm_password"
+          type={showPassword ? "text" : "password"}
+          required
+          minLength={MIN_PASSWORD_LENGTH}
+          autoComplete="new-password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          placeholder="••••••••••"
         />
         <AuthField id="register-nit" label="NIT (opcional)" name="nit" type="text" value={nit} onChange={(e) => setNit(e.target.value)} placeholder="0614-100199-102-4" help="CF o vacío si no requieres NIT en tus facturas." />
         <button type="submit" disabled={registerMutation.isPending} className="h-9 w-full rounded-sm bg-turquoise-700 px-4 text-sm font-medium text-bone-raised transition-colors duration-instant ease-brand-out hover:bg-turquoise-900 disabled:bg-bone-sunk disabled:text-ink-faint">

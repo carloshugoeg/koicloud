@@ -40,7 +40,8 @@ async def test_list_subscriptions_and_invoices_empty() -> None:
         subs = await client.get("/api/v1/subscriptions", headers=headers)
         assert subs.status_code == 200
         body = subs.json()
-        assert body["subscriptions"] == []
+        assert len(body["subscriptions"]) == 1
+        assert body["subscriptions"][0]["plan_id"] == "sandbox"
         assert body["next_cursor"] is None
 
         invoices = await client.get("/api/v1/invoices", headers=headers)

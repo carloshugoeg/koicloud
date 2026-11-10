@@ -27,6 +27,7 @@ export const demoUser: User = {
   role: "client",
   status: "active",
   email_verified: true,
+  onboarded: true,
   nit: "0614-220999-101-3",
   created_at: "2026-09-22T20:00:00Z",
 };

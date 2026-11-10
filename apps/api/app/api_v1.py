@@ -300,6 +300,20 @@ async def change_password(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
+@router.post(
+    "/me/onboarding/complete",
+    status_code=status.HTTP_204_NO_CONTENT,
+    operation_id="complete_onboarding",
+    tags=["users"],
+    responses=_error_responses(401),
+)
+async def complete_onboarding(
+    actor: Annotated[AuthContext, Depends(get_current_user)],
+) -> Response:
+    await user_commands.complete_onboarding(actor)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
 @router.get(
     "/plans",
     response_model=PlanListResponse,
