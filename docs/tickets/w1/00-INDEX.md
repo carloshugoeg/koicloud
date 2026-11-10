@@ -55,7 +55,7 @@ no existe todavía. `00-INDEX.md` no es un ticket y el agente lo ignora.
 | [W1-191](W1-191-sql-console-role.md) | SQL console connects as a non-superuser role | `w1-191-sql-console-role` | hecho · [#198](https://github.com/carloshugoeg/koicloud/pull/198) · #96 r8-2 |
 | [QI-01](QI-01-caddy-app-worker.md) | Caddy sirve la SPA en /app y el worker pasa el healthcheck | `w1-qi-infra-caddy-worker` | hecho · [#187](https://github.com/carloshugoeg/koicloud/pull/187) |
 | [W1-200](W1-200-job-error-sanitize.md) | Sanitizar last_error de los jobs | `w1-200-job-error-sanitize` | hecho · [#201](https://github.com/carloshugoeg/koicloud/pull/201) · #96 r8-7 |
-| [W1-50](W1-50-solid-review.md) | Revisión SOLID actualizada (módulos principales + refactors mínimos) | `w1-solid-review` | en-revision |
+| [W1-53](W1-53-solid-review.md) | Revisión SOLID actualizada (módulos principales + refactors mínimos) | `w1-solid-review` | en-revision |
 
 W1 es el único workstream que puede tocar cualquier ruta, y el único que escribe migraciones,
 regenera contratos (`make contracts`) y edita el harness de agentes.
