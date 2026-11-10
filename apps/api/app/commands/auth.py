@@ -172,7 +172,6 @@ async def _deliver_verify_email(email: str, plaintext: str) -> None:
 
 
 async def _deliver_reset_email(email: str, plaintext: str) -> None:
-    """Unlike verify, console also calls send so the reset link is printed."""
     await asyncio.to_thread(
         send,
         "reset_password",
