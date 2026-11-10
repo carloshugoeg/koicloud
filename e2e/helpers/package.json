@@ -1,0 +1,5 @@
+{
+  "name": "koicloud-e2e-helpers",
+  "private": true,
+  "type": "module"
+}

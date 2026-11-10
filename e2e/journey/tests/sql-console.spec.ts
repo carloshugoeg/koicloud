@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "../fixtures";
 import { pondIdPath } from "../sql-global-setup";
 
 const query = "SELECT n FROM probe";

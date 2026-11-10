@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "../fixtures";
 
 const shotsDir = "/opt/cursor/artifacts";
 const logoutFailKey = "koi-mock-logout-fails";

@@ -6,6 +6,7 @@ import { AppHeader } from "@/app/layout/app-header";
 import { readAppNotice } from "@/app/layout/app-notice";
 import { SidebarRail, SidebarSheet } from "@/app/layout/sidebar";
 import { useSidebarMode } from "@/app/layout/use-sidebar-mode";
+import { IntroTour } from "@/features/onboarding/intro-tour";
 import { useAuthStore } from "@/lib/auth-store";
 
 function readTitle(handle: unknown) {
@@ -87,6 +88,7 @@ export function AppShell() {
           <Outlet />
         </main>
       </div>
+      <IntroTour />
     </div>
   );
 }

@@ -31,9 +31,32 @@ export function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-bone px-4 py-10 text-ink sm:px-6">
-      <div className="mx-auto w-full max-w-3xl space-y-8">
-        <header className="space-y-2 border-b border-line pb-4">
+    <div className="relative min-h-screen overflow-x-hidden text-ink">
+      <div
+        data-testid="onboarding-pond"
+        className="pond-water-auth pointer-events-none absolute inset-0"
+        role="img"
+        aria-label="Estanque de peces koi"
+      >
+        <i
+          className="koi--x2 absolute"
+          style={{ left: "12%", top: "38%" }}
+          aria-hidden="true"
+        />
+        <i
+          className="koi absolute"
+          style={{ left: "58%", top: "14%", animationDelay: "-11s" }}
+          aria-hidden="true"
+        />
+        <i
+          className="koi absolute"
+          style={{ left: "78%", top: "62%", animationDelay: "-19s" }}
+          aria-hidden="true"
+        />
+      </div>
+
+      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-3xl flex-col justify-center gap-8 px-4 py-10 sm:px-6">
+        <header className="space-y-2 rounded-md border border-line bg-bone-raised/95 px-5 py-4 shadow-print">
           <p className="text-xs font-semibold uppercase tracking-[0.08em] text-ink-muted">
             Bienvenida · Elige tu plan
           </p>
@@ -47,20 +70,29 @@ export function OnboardingPage() {
         <AuthErrorBanner error={localError ?? completeMutation.error ?? plansQuery.error} />
 
         {plansQuery.isLoading ? (
-          <p className="text-sm text-ink-muted">Cargando planes…</p>
+          <p className="rounded-md border border-line bg-bone-raised/95 px-4 py-3 text-sm text-ink-muted shadow-print">
+            Cargando planes…
+          </p>
         ) : null}
 
         {!plansQuery.isLoading && paidPlans.length === 0 && !plansQuery.isError ? (
-          <p className="text-sm text-ink-muted">No hay planes disponibles por ahora.</p>
+          <p className="rounded-md border border-line bg-bone-raised/95 px-4 py-3 text-sm text-ink-muted shadow-print">
+            No hay planes disponibles por ahora.
+          </p>
         ) : null}
 
         {plansQuery.isError ? (
-          <p className="text-sm text-danger">No pudimos cargar los planes. Reintentá en un momento.</p>
+          <p className="rounded-md border border-line bg-bone-raised/95 px-4 py-3 text-sm text-danger shadow-print">
+            No pudimos cargar los planes. Reintentá en un momento.
+          </p>
         ) : null}
 
         <ul className="grid gap-4 sm:grid-cols-2">
           {paidPlans.map((plan) => (
-            <li key={plan.id} className="rounded-md border border-line bg-bone-raised p-5">
+            <li
+              key={plan.id}
+              className="rounded-md border border-line bg-bone-raised/95 p-5 shadow-print"
+            >
               <p className="text-xs font-semibold uppercase tracking-[0.08em] text-ink-muted">
                 {plan.id}
               </p>
@@ -81,8 +113,10 @@ export function OnboardingPage() {
           ))}
         </ul>
 
-        <div className="rounded-md border border-line bg-paper p-5">
-          <h2 className="font-display text-xl font-semibold text-ink">Continuar gratis (modo sandbox)</h2>
+        <div className="rounded-md border border-line bg-bone-raised/95 p-5 shadow-print">
+          <h2 className="font-display text-xl font-semibold text-ink">
+            Continuar gratis (modo sandbox)
+          </h2>
           <p className="mt-2 text-sm leading-5 text-ink-muted">
             Sigues en sandbox para probar el producto. Puedes contratar un plan después desde Uso y
             facturación.
@@ -110,7 +144,9 @@ export function OnboardingPage() {
                 navigate("/app", { replace: true });
               } catch (error) {
                 setLocalError(
-                  error instanceof Error ? error : new Error("No se pudo completar el onboarding."),
+                  error instanceof Error
+                    ? error
+                    : new Error("No se pudo completar el onboarding."),
                 );
                 setCheckoutPlan(null);
               }

@@ -27,6 +27,7 @@ function NavItemLink({
       end={item.end}
       title={collapsed ? item.label : undefined}
       aria-label={collapsed ? item.label : undefined}
+      data-tour-target={item.tourTarget}
       className={({ isActive }) => itemClassName(isActive, collapsed)}
       onClick={onNavigate}
     >

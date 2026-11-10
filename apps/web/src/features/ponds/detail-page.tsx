@@ -98,9 +98,10 @@ export function PondDetailPage() {
       await deleteMutation.mutateAsync();
       setDeleteOpen(false);
       setConfirmName("");
+      toast({ tone: "ok", message: "Eliminación del pond encolada" });
       void navigate("/app/ponds");
-    } catch {
-      // surfaced via deleteMutation.error
+    } catch (error) {
+      toast({ tone: "danger", message: problemToMessage(error) });
     }
   }
 

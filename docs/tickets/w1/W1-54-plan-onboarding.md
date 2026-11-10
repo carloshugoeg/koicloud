@@ -2,7 +2,7 @@
 id: W1-54
 workstream: W1
 persona: Carlos
-estado: en-revision
+estado: hecho
 rama: w1-plan-onboarding
 epica: "E2-02"
 sprint: S4
