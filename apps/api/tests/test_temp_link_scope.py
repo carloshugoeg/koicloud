@@ -229,7 +229,6 @@ def test_jsonrpc_out_of_allowlist_tools_return_agent_disabled() -> None:
     basic = audience["basic"]
     for method, params in (
         ("list_tables", {"pond_id": pond_a["id"]}),
-        ("list_ponds", {}),
         ("get_usage", {}),
         ("list_subscriptions", {}),
     ):

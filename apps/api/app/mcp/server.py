@@ -43,7 +43,14 @@ def _actor_for_tool(tool_name: str) -> AuthContext:
 @mcp.tool
 async def whoami() -> dict[str, Any]:
     actor = _actor_for_tool("whoami")
-    return {"user_id": actor.user_id, "email": actor.email, "role": actor.role.value}
+    payload: dict[str, Any] = {
+        "user_id": actor.user_id,
+        "email": actor.email,
+        "role": actor.role.value,
+    }
+    if actor.pond_id is not None and actor.pond_name is not None:
+        payload["pond"] = {"id": actor.pond_id, "name": actor.pond_name}
+    return payload
 
 
 @mcp.tool

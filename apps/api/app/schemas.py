@@ -916,7 +916,7 @@ class ToggleAgentAccessResponse(SchemaModel):
     model_config = config_with_example({"enabled": False})
 
 
-TEMP_ACCESS_SCOPES: frozenset[str] = frozenset({"whoami", "get_pond", "run_sql"})
+TEMP_ACCESS_SCOPES: frozenset[str] = frozenset({"whoami", "list_ponds", "get_pond", "run_sql"})
 
 
 class PondTempAccessCreateRequest(SchemaModel):
@@ -939,7 +939,7 @@ class PondTempAccessCreateRequest(SchemaModel):
     model_config = config_with_example(
         {
             "expires_at": EXAMPLE_LATER,
-            "scopes": ["whoami", "get_pond", "run_sql"],
+            "scopes": ["whoami", "list_ponds", "get_pond", "run_sql"],
         }
     )
 

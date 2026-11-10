@@ -35,6 +35,7 @@ class AuthContext(SchemaModel):
     access_exp: int | None = None
     # Pond-scoped temporary access (issue #203). None = full account actor.
     pond_id: str | None = None
+    pond_name: str | None = None
     allowed_tools: frozenset[str] | None = None
     # Logical temp session id (PondToken.id). Never accepted from client args.
     pond_token_id: str | None = None

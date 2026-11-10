@@ -34,6 +34,7 @@ def _actor_from_user(
     user: User,
     *,
     pond_id: str | None = None,
+    pond_name: str | None = None,
     allowed_tools: frozenset[str] | None = None,
     pond_token_id: str | None = None,
 ) -> AuthContext:
@@ -44,6 +45,7 @@ def _actor_from_user(
         status=UserStatus.ACTIVE,
         surface=AppSurface.MCP,
         pond_id=pond_id,
+        pond_name=pond_name,
         allowed_tools=allowed_tools,
         pond_token_id=pond_token_id,
     )
@@ -87,6 +89,7 @@ async def _authenticate_pond_token(
     return _actor_from_user(
         user,
         pond_id=str(pond.id),
+        pond_name=pond.name,
         allowed_tools=tools,
         pond_token_id=str(token_id),
     )
