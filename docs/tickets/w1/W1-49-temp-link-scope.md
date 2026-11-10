@@ -8,7 +8,6 @@ epica: E9-02
 sprint: S8
 pr: https://github.com/carloshugoeg/koicloud/pull/236
 depends_on:
-  - W1-203
 ---
 
 # [W1-49] P0: el link temporal no sale del pond emitido
