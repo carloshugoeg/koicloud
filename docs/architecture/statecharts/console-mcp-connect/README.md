@@ -20,8 +20,8 @@ This chart is the **client connect** view. Token lifecycle (issue, expire, revok
 - **Link pasted** — slug + password are in the client config; auth not finished.
 - **Auth failed** — Basic auth rejected (401 `agent_bad_credentials`).
 - **Pond-pinned** — auth succeeded; `AuthContext.pond_id` fixed; tools limited to
-  `TEMP_ACCESS_TOOLS` (`whoami`, `get_pond`, `run_sql`).
-- **Pond-pinned (read ok)** — `whoami` or `get_pond` on the pinned pond succeeded.
+  `TEMP_ACCESS_TOOLS` (`whoami`, `list_ponds`, `get_pond`, `run_sql`).
+- **Pond-pinned (read ok)** — `whoami`, `list_ponds`, or `get_pond` on the pinned pond succeeded.
 - **Pond-pinned (forbidden denied)** — lifecycle tool rejected; session stays pinned.
 - **Pond-pinned (off-pond denied)** — other pond rejected; session stays pinned.
 

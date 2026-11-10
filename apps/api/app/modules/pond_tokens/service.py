@@ -161,6 +161,9 @@ class PondTokenService:
         scopes = frozenset(row.scopes or []) & TEMP_ACCESS_TOOLS
         if not scopes:
             scopes = TEMP_ACCESS_TOOLS
+        # Discovery: pond-scoped agents need list_ponds to learn the pinned pond
+        # (including tokens issued before list_ponds joined TEMP_ACCESS_SCOPES).
+        scopes = frozenset(set(scopes) | {"list_ponds"})
         # Derive confirm_action only when run_sql is already granted.
         if "run_sql" in scopes:
             scopes = frozenset(set(scopes) | {"confirm_action"})

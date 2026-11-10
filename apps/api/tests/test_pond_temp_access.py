@@ -56,7 +56,7 @@ def _basic(slug: str, password: str) -> dict[str, str]:
     return {"Authorization": f"Basic {token}"}
 
 
-DEFAULT_TEMP_SCOPES = {"whoami", "get_pond", "run_sql"}
+DEFAULT_TEMP_SCOPES = {"whoami", "list_ponds", "get_pond", "run_sql"}
 
 
 def _create_temp_access(
