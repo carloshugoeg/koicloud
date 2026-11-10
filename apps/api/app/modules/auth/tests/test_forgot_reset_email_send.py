@@ -11,11 +11,15 @@ from uuid import UUID
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import select
 
 from app.core.config import get_settings
+from app.core.db import SessionLocal
 from app.core.enums import EmailTokenKind
+from app.core.models import EmailToken
 from app.main import app
 from app.modules.auth import AuthService
+from app.modules.notifications.errors import NotificationDeliveryError
 from app.modules.notifications.service import (
     NotificationResult,
     bootstrap_email_gate,
@@ -147,3 +151,37 @@ async def test_verify_email_logo_is_absolute_https_png() -> None:
     assert logo_url.startswith("https://")
     assert logo_url.endswith(".png")
     assert "app.koicloud.dev" not in logo_url
+
+
+async def test_forgot_returns_ok_when_reset_email_delivery_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    reset_auth_tables()
+    email = "forgot_delivery_fail@koicloud.dev"
+
+    def failing_send(template: str, to: str, context: dict[str, Any]) -> NotificationResult:
+        raise NotificationDeliveryError(
+            f"Resend delivery failed template={template} to={to}"
+        )
+
+    monkeypatch.setattr("app.modules.notifications.send", failing_send)
+    monkeypatch.setattr("app.commands.auth.send", failing_send, raising=False)
+
+    async with _make_client() as client:
+        user_id = await _register_and_verify(client, email)
+        response = await client.post("/api/v1/auth/forgot", json={"email": email})
+
+    assert response.status_code == 200
+    assert response.json() == {"ok": True}
+
+    async with SessionLocal() as session:
+        reset_tokens = (
+            await session.execute(
+                select(EmailToken).where(
+                    EmailToken.user_id == user_id,
+                    EmailToken.kind == EmailTokenKind.RESET_PASSWORD,
+                    EmailToken.consumed_at.is_(None),
+                )
+            )
+        ).scalars().all()
+        assert len(reset_tokens) >= 1
