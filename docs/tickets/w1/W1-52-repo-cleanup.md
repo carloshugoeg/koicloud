@@ -2,7 +2,7 @@
 id: W1-52
 workstream: W1
 persona: Carlos
-estado: en-revision
+estado: hecho
 rama: w1-repo-cleanup
 epica: E0-00
 sprint: S4
