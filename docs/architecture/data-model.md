@@ -1,6 +1,6 @@
 # Modelo de datos
 
-Refinamiento del ER de la Entrega 2 ([`../entrega-2/diagramas/06-modelo-er.mmd`](../entrega-2/diagramas/06-modelo-er.mmd)) alineado al alcance sellado. Este documento es la fuente única de tablas, columnas, enums y máquinas de estado. Cualquier cambio pasa por CCR (§9 de [`agent-docs.md`](./agent-docs.md)).
+Refinamiento del ER de la Entrega 2 ([`../entrega-2/diagramas/06-modelo-er.mmd`](../entrega-2/diagramas/06-modelo-er.mmd)) alineado al alcance sellado. Este documento es la fuente única de tablas, columnas, enums y máquinas de estado. Cualquier cambio pasa por CCR ([`../../AGENTS.md`](../../AGENTS.md) §2).
 
 Convenciones:
 

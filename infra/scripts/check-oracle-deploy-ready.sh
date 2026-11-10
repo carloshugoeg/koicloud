@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Asserts Oracle Always Free + sslip.io/nip.io deploy readiness (no live host).
-# Fail-fast checks for Caddy hostname env, ARM-friendly bases, secret NAMES, ADR.
+# Asserts Hostinger KVM 1 + sslip.io/nip.io deploy readiness (no live host).
+# Fail-fast checks for Caddy hostname env, multi-arch bases, secret NAMES, ADR.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -24,8 +24,8 @@ compose = Path("infra/docker-compose.prod.yml").read_text(encoding="utf-8")
 for image in ("postgres:16-alpine", "caddy:2.8-alpine"):
     if image not in compose:
         missing.append(f"prod compose missing multi-arch base {image}")
-if "linux/amd64" in compose:
-    missing.append("prod compose must not pin linux/amd64 (Oracle Ampere is arm64)")
+if "linux/amd64" in compose or "linux/arm64" in compose:
+    missing.append("prod compose must not pin a single CPU architecture")
 
 for dockerfile in (
     Path("apps/api/Dockerfile"),
@@ -34,8 +34,8 @@ for dockerfile in (
     text = dockerfile.read_text(encoding="utf-8")
     if "FROM python:3.12-slim" not in text:
         missing.append(f"{dockerfile} must use python:3.12-slim (multi-arch)")
-    if "linux/amd64" in text:
-        missing.append(f"{dockerfile} must not pin linux/amd64")
+    if "linux/amd64" in text or "linux/arm64" in text:
+        missing.append(f"{dockerfile} must not pin a single CPU architecture")
 
 overlay = Path("docker-compose.docker-agent.yml").read_text(encoding="utf-8")
 if "AGENT_MODE: docker" not in overlay:
@@ -58,14 +58,14 @@ if not adr.is_file():
     missing.append("missing ADR docs/adr/014-oracle-always-free-sslip.md")
 else:
     body = adr.read_text(encoding="utf-8")
-    for token in ("Oracle", "Always Free", "sslip.io", "Render", "Neon", "$0"):
+    for token in ("Hostinger", "KVM", "sslip.io", "Render", "Neon", "Oracle"):
         if token not in body:
             missing.append(f"ADR 014 must mention {token}")
 
 deploy_doc = Path("docs/runbooks/deploy.md").read_text(encoding="utf-8")
 for token in (
-    "Oracle",
-    "Always Free",
+    "Hostinger",
+    "KVM",
     "sslip.io",
     "15000-15999",
     "KOICLOUD_DEPLOY_HOST",
@@ -96,5 +96,5 @@ if not site_ok:
 
 if missing:
     raise SystemExit("\n".join(missing))
-print("oracle deploy readiness OK (Caddy domain env, arm64 bases, ADR, runbook)")
+print("hostinger deploy readiness OK (Caddy domain env, multi-arch bases, ADR, runbook)")
 PY
