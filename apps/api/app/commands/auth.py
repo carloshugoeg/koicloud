@@ -26,6 +26,7 @@ from app.core.security import (
 )
 from app.core.time import utc_now
 from app.modules.notifications import send
+from app.modules.notifications.errors import NotificationDeliveryError
 from app.schemas import (
     ForgotPasswordRequest,
     LoginRequest,
@@ -172,12 +173,19 @@ async def _deliver_verify_email(email: str, plaintext: str) -> None:
 
 
 async def _deliver_reset_email(email: str, plaintext: str) -> None:
-    await asyncio.to_thread(
-        send,
-        "reset_password",
-        email,
-        {"url": _reset_password_url(plaintext), "email": email},
-    )
+    try:
+        await asyncio.to_thread(
+            send,
+            "reset_password",
+            email,
+            {"url": _reset_password_url(plaintext), "email": email},
+        )
+    except NotificationDeliveryError:
+        logger.error(
+            "reset_password delivery failed template=%s to=%s",
+            "reset_password",
+            email,
+        )
 
 
 async def register_user(payload: RegisterUserRequest) -> RegisterUserResponse:
