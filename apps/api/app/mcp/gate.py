@@ -11,7 +11,7 @@ from starlette.responses import JSONResponse
 from app.core.auth import AuthContext
 from app.core.config import Settings, get_settings
 from app.core.db import SessionLocal
-from app.core.enums import AppSurface, UserRole, UserStatus
+from app.core.enums import AppSurface, UserStatus
 from app.core.errors import ERROR_CATALOG, AppError, ErrorCode
 from app.core.models import User
 from app.mcp.context import set_mcp_actor
@@ -37,11 +37,10 @@ def _actor_from_user(
     allowed_tools: frozenset[str] | None = None,
     pond_token_id: str | None = None,
 ) -> AuthContext:
-    role = user.role if isinstance(user.role, UserRole) else UserRole(str(user.role))
     return AuthContext(
         user_id=str(user.id),
         email=user.email,
-        role=role,
+        role=user.role,
         status=UserStatus.ACTIVE,
         surface=AppSurface.MCP,
         pond_id=pond_id,
@@ -51,7 +50,6 @@ def _actor_from_user(
 
 
 async def _ensure_demo_agent_access(session, settings: Settings) -> None:
-    """Bootstrap demo slug/password into agent_access when the demo user exists."""
     from sqlalchemy import select
 
     user = (

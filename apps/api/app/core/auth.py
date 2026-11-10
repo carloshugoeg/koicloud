@@ -20,7 +20,6 @@ bearer_scheme = HTTPBearer(auto_error=False)
 
 
 def node_token_matches(presented: str | None, expected: str) -> bool:
-    """Constant-time compare for the shared node agent token."""
     if presented is None:
         return False
     return hmac.compare_digest(presented, expected)
