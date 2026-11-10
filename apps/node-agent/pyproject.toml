@@ -12,7 +12,11 @@ dependencies = [
   "httpx",
   "pydantic",
   "pydantic-settings",
+  "koicloud-job-sanitize",
 ]
+
+[tool.uv.sources]
+koicloud-job-sanitize = { path = "../../packages/job_sanitize" }
 
 [project.scripts]
 koicloud-node-agent = "agent.main:main"

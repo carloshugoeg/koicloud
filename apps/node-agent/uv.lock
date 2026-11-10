@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.12"
 
 [[package]]
@@ -243,12 +243,18 @@ wheels = [
 ]
 
 [[package]]
+name = "koicloud-job-sanitize"
+version = "0.1.2"
+source = { directory = "../../packages/job_sanitize" }
+
+[[package]]
 name = "koicloud-node-agent"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "docker" },
     { name = "httpx" },
+    { name = "koicloud-job-sanitize" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
 ]
@@ -263,6 +269,7 @@ dev = [
 requires-dist = [
     { name = "docker" },
     { name = "httpx" },
+    { name = "koicloud-job-sanitize", directory = "../../packages/job_sanitize" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
 ]
