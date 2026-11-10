@@ -5,3 +5,5 @@ ts	phase	decision	why	evidence	result
 2026-11-10T17:29:03Z	docs	amended ADR014+deploy+manuals; archived agent-docs and branch-naming behind stubs; added docs/README	stale Oracle and scaffold text would mislead the Nov 11 demo	docs/adr/014-oracle-always-free-sslip.md	check-oracle-deploy-ready OK
 2026-11-10T17:29:03Z	dead-code	removed unreferenced media gate screenshot folders	zero repo refs; committed PR artifacts only	media/gate-* media/admin-suspend-gate	deleted
 2026-11-10T17:30:12Z	verify	make check-web green; deploy readiness OK; net lines -139 text	prove cleanup did not break web or deploy checks	/tmp/check-web.out	tests green
+2026-11-10T17:30:56Z	pr	opened draft PR #237 and linked ticket	handoff artifact for Carlos	https://github.com/carloshugoeg/koicloud/pull/237	draft open
+2026-11-10T17:31:56Z	docs	applied docs-inventory follow-ups: REPO-README+.gitkeep gone; host facts in system-architecture/repo-scaffolding/statechart/local-pond/demo-mcp/.env.example; fixed rollback link	docs inventory found remaining stale host claims and scaffold junk	bc-ac896c7b; curl 2-25-128-44.sslip.io/health=200	kept

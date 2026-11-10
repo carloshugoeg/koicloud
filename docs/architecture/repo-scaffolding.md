@@ -7,7 +7,7 @@ Este documento fija la estructura exacta del repositorio de implementación. No 
 ## 1. Nombre y forma
 
 - **Repositorio de documentos (ya existe):** [`carloshugoeg/koicloud-entrega-2`](https://github.com/carloshugoeg/koicloud-entrega-2). Solo lleva la Entrega 2 (diseño). No se mezcla con código.
-- **Repositorio de implementación (a crear):** `carloshugoeg/koicloud` — nombre corto, coincide con la marca del producto. Alternativa aceptable: `carloshugoeg/koicloud-platform` si se quiere subrayar el papel del repo. El equipo decide en Fase 0; el resto del pack asume `koicloud`.
+- **Repositorio de implementación (ya existe):** [`carloshugoeg/koicloud`](https://github.com/carloshugoeg/koicloud) — monorepo de producto. El resto del pack asume ese nombre.
 - **Forma:** **monorepo único** con `apps/*`, `packages/*`, `infra/`, `docs/`, `load/`, `scripts/`. Ver §3 para el árbol exacto.
 
 Justificación de monorepo (frente a repos separados por app):
@@ -290,7 +290,7 @@ apps/web/src/
 
 ### 6.1 Variables (`.env.example`)
 
-Cada variable con placeholder y un comentario que documente su significado. Ejemplos representativos (lista completa en el `.env.example` del repo cuando exista):
+Cada variable con placeholder y un comentario que documente su significado. Ejemplos representativos (lista completa en `.env.example` en la raíz):
 
 | Variable | Ambito | Descripción |
 |----------|--------|-------------|
@@ -300,7 +300,7 @@ Cada variable con placeholder y un comentario que documente su significado. Ejem
 | `POND_PASSWORD_KEY` | api, node-agent | clave Fernet para cifrar `db_password_encrypted` |
 | `AGENT_MODE` | node-agent | `mock` (dev/CI) o `docker` (VPS) |
 | `NODE_ID` / `NODE_TOKEN` | node-agent | id del nodo y secreto compartido con la API |
-| `KOICLOUD_DOMAIN` | api, caddy | `koicloud.example` (placeholder hasta Fase 1) |
+| `KOICLOUD_DOMAIN` | api, caddy | local `koicloud.example`; prod = variable de repo (sslip.io en demo) |
 | `NODE_PUBLIC_HOST` | api | IP/hostname público del VPS para armar URIs |
 | `POND_PORT_RANGE_START` / `_END` | api, node-agent | `15000` / `15999` |
 | `MCP_ENABLED` | api | `true` en dev/prod, `false` si se quiere apagar solo el MCP |
@@ -376,7 +376,7 @@ Reglas que sostienen esa tabla:
 
 ## 9. Bootstrap (documental, no ejecutable ahora)
 
-Cuando el equipo decida crear el repo (Fase 0), estos son los pasos exactos. **No los ejecutes durante la fase de diseño.**
+Pasos históricos de bootstrap (Fase 0). El repo ya existe; no los vuelvas a correr.
 
 La lista operativa completa, con verificaciones y criterios de «hecho», está en
 `internal/dual-agent-infra-handoff.md` del store. Resumen:

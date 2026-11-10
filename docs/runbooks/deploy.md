@@ -6,10 +6,11 @@ ponds en `15000-15999`. Decisión de host: [ADR 014](../adr/014-oracle-always-fr
 (Hostinger KVM 1 + `KOICLOUD_DOMAIN` vía sslip.io). Topología Docker:
 [ADR 003](../adr/003-docker-on-vps-not-k8s.md).
 
-El VPS de demo ya existe (Hostinger KVM 1). Este runbook no inventa la IP: el
-hostname público es la variable de repositorio `KOICLOUD_DOMAIN` (hoy un host
-sslip.io). No ejecutes un deploy contra producción desde el agente salvo el
-workflow `.github/workflows/deploy.yml` con las vars y secretos del repo.
+El VPS de demo ya existe (Hostinger KVM 1). El hostname público es la variable
+de repositorio `KOICLOUD_DOMAIN` (valor observado `2-25-128-44.sslip.io`;
+`https://2-25-128-44.sslip.io/health` → 200). No ejecutes un deploy contra
+producción desde el agente salvo el workflow `.github/workflows/deploy.yml` con
+las vars y secretos del repo.
 
 ## 1. Crear o recuperar la VM (Hostinger KVM 1)
 

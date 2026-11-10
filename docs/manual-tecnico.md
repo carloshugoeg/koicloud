@@ -191,7 +191,7 @@ update, rollback): [`runbooks/deploy.md`](./runbooks/deploy.md). Cumple ENTREGA-
 Host: [`adr/014-oracle-always-free-sslip.md`](./adr/014-oracle-always-free-sslip.md).
 Operación: [`runbooks/free-disk.md`](./runbooks/free-disk.md),
 [`runbooks/restart-agent.md`](./runbooks/restart-agent.md),
-[`runbooks/rollback-migration.md`](./rollback-migration.md).
+[`runbooks/rollback-migration.md`](./runbooks/rollback-migration.md).
 Evidencia de carga: [`reporte-carga.md`](./reporte-carga.md).
 Diagrama: [`architecture/diagrams/14-deploy.mmd`](./architecture/diagrams/14-deploy.mmd).
 
