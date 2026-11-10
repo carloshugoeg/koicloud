@@ -7,7 +7,7 @@ Este documento fija la estructura exacta del repositorio de implementación. No 
 ## 1. Nombre y forma
 
 - **Repositorio de documentos (ya existe):** [`carloshugoeg/koicloud-entrega-2`](https://github.com/carloshugoeg/koicloud-entrega-2). Solo lleva la Entrega 2 (diseño). No se mezcla con código.
-- **Repositorio de implementación (a crear):** `carloshugoeg/koicloud` — nombre corto, coincide con la marca del producto. Alternativa aceptable: `carloshugoeg/koicloud-platform` si se quiere subrayar el papel del repo. El equipo decide en Fase 0; el resto del pack asume `koicloud`.
+- **Repositorio de implementación (ya existe):** [`carloshugoeg/koicloud`](https://github.com/carloshugoeg/koicloud) — monorepo de producto. El resto del pack asume ese nombre.
 - **Forma:** **monorepo único** con `apps/*`, `packages/*`, `infra/`, `docs/`, `load/`, `scripts/`. Ver §3 para el árbol exacto.
 
 Justificación de monorepo (frente a repos separados por app):
@@ -28,7 +28,7 @@ Justificación de **no** usar herramientas de monorepo (Turborepo/Nx/Rush):
 | Regla | Detalle |
 |-------|---------|
 | Rama base | `main` (protegida; nunca push directo) |
-| Rama por ticket | `w<N>-<slug>` en kebab-case — `w2-detalle-pond`. El slug lo declara el propio ticket. Sin prefijo `cursor/`, sin sufijo aleatorio (ver [`../branch-naming.md`](../branch-naming.md)) |
+| Rama por ticket | `w<N>-<slug>` en kebab-case — `w2-detalle-pond`. El slug lo declara el propio ticket. Sin prefijo `cursor/`, sin sufijo aleatorio (ver [`../../AGENTS.md`](../../AGENTS.md) §1) |
 | Rama de docs sueltos | `docs-<slug>` (opcional, W1 lo controla) |
 | Rama de release | ninguna: `main` es la fuente; despliegue con `deploy.yml` |
 | Merge | **squash** obligatorio; rama borrada al fusionar |
@@ -216,7 +216,7 @@ otros tres en Antigravity, y las dos herramientas no leen los mismos archivos: C
 `AGENTS.md` y `.cursor/rules/`; Antigravity lee `.agents/rules/` y `GEMINI.md` (su CLI
 además lee `AGENTS.md`). Por eso `AGENTS.md` es la fuente, los punteros son de unas líneas,
 y las reglas de área existen por duplicado generadas desde un solo original. El razonamiento
-completo y los supuestos a verificar están en [`agent-docs.md`](./agent-docs.md) §4; los
+completo y los supuestos a verificar están en [`../../AGENTS.md`](../../AGENTS.md); los
 archivos terminados, en [`../repo-bootstrap/`](../repo-bootstrap/README.md).
 
 ---
@@ -290,7 +290,7 @@ apps/web/src/
 
 ### 6.1 Variables (`.env.example`)
 
-Cada variable con placeholder y un comentario que documente su significado. Ejemplos representativos (lista completa en el `.env.example` del repo cuando exista):
+Cada variable con placeholder y un comentario que documente su significado. Ejemplos representativos (lista completa en `.env.example` en la raíz):
 
 | Variable | Ambito | Descripción |
 |----------|--------|-------------|
@@ -300,7 +300,7 @@ Cada variable con placeholder y un comentario que documente su significado. Ejem
 | `POND_PASSWORD_KEY` | api, node-agent | clave Fernet para cifrar `db_password_encrypted` |
 | `AGENT_MODE` | node-agent | `mock` (dev/CI) o `docker` (VPS) |
 | `NODE_ID` / `NODE_TOKEN` | node-agent | id del nodo y secreto compartido con la API |
-| `KOICLOUD_DOMAIN` | api, caddy | `koicloud.example` (placeholder hasta Fase 1) |
+| `KOICLOUD_DOMAIN` | api, caddy | local `koicloud.example`; prod = variable de repo (sslip.io en demo) |
 | `NODE_PUBLIC_HOST` | api | IP/hostname público del VPS para armar URIs |
 | `POND_PORT_RANGE_START` / `_END` | api, node-agent | `15000` / `15999` |
 | `MCP_ENABLED` | api | `true` en dev/prod, `false` si se quiere apagar solo el MCP |
@@ -339,7 +339,7 @@ Cada variable con placeholder y un comentario que documente su significado. Ejem
 | `rules` | `python3 scripts/sync-rules.py` y `git diff --exit-code .agents/rules/` | `.agents/rules/` no está al día respecto de `.cursor/rules/`, o alguna regla pasa de 12 000 caracteres (tope de Antigravity) |
 | `authorship` | recorre `git log origin/main..HEAD`: autor de cada commit contra el registro de `docs/WORKSTREAMS.md` §3, y `grep -i 'co-authored-by.*\(cursor\|antigravity\|gemini\|claude\)\|generated with'` | Un commit trae un trailer de herramienta, o un autor que no está en el registro del equipo |
 
-La compuerta de merge (además de CI required) es un comentario de revisión de **ship** (Grok Bot de W1) en el head commit que empiece por `ship review: LGTM`. Si empieza por `ship review: changes needed`, se corrige en la misma rama. Detalle en [`agent-docs.md`](./agent-docs.md) §8. El antiguo workflow Claude de revisión automática ya no existe.
+La compuerta de merge (además de CI required) es un comentario de revisión de **ship** (Grok Bot de W1) en el head commit que empiece por `ship review: LGTM`. Si empieza por `ship review: changes needed`, se corrige en la misma rama. Detalle en [`../../AGENTS.md`](../../AGENTS.md) §12. El antiguo workflow Claude de revisión automática ya no existe.
 
 `.github/workflows/deploy.yml` (W4) se dispara con push a `main` que toque `apps/**`, `packages/contracts/**` o `infra/**`. Hace `ssh <vps> "cd /srv/koicloud && infra/scripts/deploy.sh"`.
 
@@ -376,7 +376,7 @@ Reglas que sostienen esa tabla:
 
 ## 9. Bootstrap (documental, no ejecutable ahora)
 
-Cuando el equipo decida crear el repo (Fase 0), estos son los pasos exactos. **No los ejecutes durante la fase de diseño.**
+Pasos históricos de bootstrap (Fase 0). El repo ya existe; no los vuelvas a correr.
 
 La lista operativa completa, con verificaciones y criterios de «hecho», está en
 `internal/dual-agent-infra-handoff.md` del store. Resumen:

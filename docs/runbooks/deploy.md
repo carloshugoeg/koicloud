@@ -3,27 +3,26 @@
 Manual técnico (sección Despliegue). Cumple ENTREGA-2 §6.3: un dominio, Caddy
 (`/` · `/api/*` · `/mcp`), API/worker/db en Compose, node-agent con socket Docker,
 ponds en `15000-15999`. Decisión de host: [ADR 014](../adr/014-oracle-always-free-sslip.md)
-(Oracle Always Free + sslip.io, costo $0). Topología Docker: [ADR 003](../adr/003-docker-on-vps-not-k8s.md).
+(Hostinger KVM 1 + `KOICLOUD_DOMAIN` vía sslip.io). Topología Docker:
+[ADR 003](../adr/003-docker-on-vps-not-k8s.md).
 
-**No hay VM cableada todavía.** Este runbook no inventa IP. No ejecutes un deploy
-contra producción desde el agente. Cuando exista la VM, reutilizá
-`.github/workflows/deploy.yml` (SSH + Docker + Caddy).
+El VPS de demo ya existe (Hostinger KVM 1). El hostname público es la variable
+de repositorio `KOICLOUD_DOMAIN` (valor observado `2-25-128-44.sslip.io`;
+`https://2-25-128-44.sslip.io/health` → 200). No ejecutes un deploy contra
+producción desde el agente salvo el workflow `.github/workflows/deploy.yml` con
+las vars y secretos del repo.
 
-## 1. Crear la VM (Oracle Cloud Always Free)
+## 1. Crear o recuperar la VM (Hostinger KVM 1)
 
-1. Cuenta Oracle Cloud Always Free.
-2. Compute → Create instance.
-   - **Shape:** VM.Standard.A1.Flex (Ampere ARM), 1–2 OCPU, 6–12 GB RAM (dentro del free tier).
-   - **Image:** Ubuntu 22.04 o 24.04 (aarch64).
-   - **Network:** VCN por defecto con IP pública.
-   - **SSH:** subí una clave; guardá la privada fuera del repo.
-3. Anotá la **IP pública**. Hostname sin dominio de pago:
+1. Panel Hostinger → VPS → plan **KVM 1** (Ubuntu 22.04 o 24.04, x86_64).
+2. Anotá la **IP pública** y el acceso SSH (usuario + clave o llave).
+3. Hostname sin dominio de pago, guardado en la variable de repo:
    - `KOICLOUD_DOMAIN=<ip>.sslip.io` (o `<ip>.nip.io`).
    - `NODE_PUBLIC_HOST` = el mismo valor (o la IP si los clientes SQL conectan por IP).
 
-## 2. Abrir puertos (VCN + iptables)
+## 2. Abrir puertos (firewall del VPS + iptables)
 
-En la **Security List** (o NSG) de la VCN, ingress:
+En el firewall del VPS (hPanel o `ufw`/`iptables`), ingress:
 
 | Puerto | Protocolo | Uso |
 |--------|-----------|-----|
@@ -42,7 +41,7 @@ sudo ufw allow 15000:15999/tcp
 sudo ufw enable
 ```
 
-En Ubuntu de Oracle Cloud (22.04 o 24.04) `ufw` puede no estar activo. Abrí 80, 443 y el rango de ponds con `iptables`:
+Si `ufw` no está activo, abrí 80, 443 y el rango de ponds con `iptables`:
 
 ```bash
 sudo iptables -I INPUT -p tcp --dport 80 -j ACCEPT
@@ -150,21 +149,18 @@ O push a `main` con las vars/secrets de §5: el workflow SSH ejecuta el mismo sc
 3. **Agent:** [`restart-agent.md`](./restart-agent.md).
 4. **Disco:** [`free-disk.md`](./free-disk.md).
 
-## 9. Artefactos en el repo (sin host)
+## 9. Artefactos en el repo
 
-- `infra/docker-compose.prod.yml` — `db`, `api`, `worker`, `caddy` (bases multi-arch ARM)
+- `infra/docker-compose.prod.yml` — `db`, `api`, `worker`, `caddy` (bases multi-arch)
 - `infra/Caddyfile` — TLS; hostname desde `KOICLOUD_DOMAIN` (sslip.io/nip.io OK)
 - `infra/koicloud-agent.service` — node-agent fuera del compose, `AGENT_MODE=docker`
 - `infra/scripts/deploy.sh` — se niega a correr con placeholders
-- `.github/workflows/deploy.yml` — gate hasta que existan vars/secrets
-- `docs/adr/014-oracle-always-free-sslip.md` — host $0 vs Render/Neon
+- `.github/workflows/deploy.yml` — SSH + Docker + Caddy cuando hay vars/secrets
+- `docs/adr/014-oracle-always-free-sslip.md` — Hostinger KVM 1 + sslip.io vs Render/Neon
 
-Comprobar sin VM:
+Comprobar artefactos sin tocar el host:
 
 ```bash
 npm run pregate
 # o: bash infra/scripts/check-oracle-deploy-ready.sh && make check-infra
 ```
-
-Hasta que la VM exista y esté cableada, el ticket W1-13 puede seguir en revisión
-de **preparación**; el deploy real no se finge.

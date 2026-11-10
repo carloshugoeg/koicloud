@@ -1,0 +1,9 @@
+ts	phase	decision	why	evidence	result
+2026-11-10T17:24:35Z	start	begin W1 repo cleanup run	Carlos needs a clean docs+code+branches tree before Nov 11 demo	run w1-repo-cleanup	open
+2026-11-10T17:24:35Z	frame	ticket id W1-52; branch w1-repo-cleanup; avoid #235 #236 auth/email	W1-49 taken twice on open drafts; user said 50/51 likely taken	gh pr 235 236; docs/tickets/w1/	framed
+2026-11-10T17:27:42Z	branches	deleted cursor/pond-temp-access-01e0 and cursor/w1-203-temp-confirm-3fc3	closed PRs with tip already in main	gh api DELETE refs	deleted
+2026-11-10T17:29:03Z	docs	amended ADR014+deploy+manuals; archived agent-docs and branch-naming behind stubs; added docs/README	stale Oracle and scaffold text would mislead the Nov 11 demo	docs/adr/014-oracle-always-free-sslip.md	check-oracle-deploy-ready OK
+2026-11-10T17:29:03Z	dead-code	removed unreferenced media gate screenshot folders	zero repo refs; committed PR artifacts only	media/gate-* media/admin-suspend-gate	deleted
+2026-11-10T17:30:12Z	verify	make check-web green; deploy readiness OK; net lines -139 text	prove cleanup did not break web or deploy checks	/tmp/check-web.out	tests green
+2026-11-10T17:30:56Z	pr	opened draft PR #237 and linked ticket	handoff artifact for Carlos	https://github.com/carloshugoeg/koicloud/pull/237	draft open
+2026-11-10T17:31:56Z	docs	applied docs-inventory follow-ups: REPO-README+.gitkeep gone; host facts in system-architecture/repo-scaffolding/statechart/local-pond/demo-mcp/.env.example; fixed rollback link	docs inventory found remaining stale host claims and scaffold junk	bc-ac896c7b; curl 2-25-128-44.sslip.io/health=200	kept

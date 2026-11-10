@@ -100,7 +100,7 @@ Cualquier dependencia nueva se declara en el PR bajo “Dependencias nuevas” (
 | Área | Elección | Rol |
 |------|----------|-----|
 | Editor | **Cursor** (Ultra por semestre) | Editor + agente principal del equipo |
-| Agentes de IA | Cursor Agent, Cursor Bugbot, opcional Claude Code | Ver [`agent-docs.md`](./agent-docs.md) para reglas y publicación |
+| Agentes de IA | Cursor Agent, Cursor Bugbot, opcional Claude Code | Ver [`../../AGENTS.md`](../../AGENTS.md) para reglas y publicación |
 | Diagramas | **Mermaid** (fuentes `.mmd`) | Se renderiza a SVG con `@mermaid-js/mermaid-cli` |
 | Docs | Markdown | GitHub renderiza; los PDFs de entregas se generan con `pandoc` cuando aplique |
 
@@ -111,7 +111,7 @@ Cualquier dependencia nueva se declara en el PR bajo “Dependencias nuevas” (
 | Área | Elección | Rol |
 |------|----------|-----|
 | CI runner | **GitHub Actions** (runner hosted) | Jobs required: ownership · api · web · node-agent · cli · secrets · rules · authorship |
-| Compuerta de merge | **ship** (Grok Bot) + CI verde | Comentario `ship review: LGTM` en el head; ver [`agent-docs.md`](./agent-docs.md) §8 |
+| Compuerta de merge | **ship** (Grok Bot) + CI verde | Comentario `ship review: LGTM` en el head; ver [`../../AGENTS.md`](../../AGENTS.md) §12 |
 | Revisor auxiliar | **Cursor Bugbot** | Reglas en `.cursor/BUGBOT.md`; no es required check |
 | Secret scanning | **gitleaks** | Job `secrets` |
 | Load testing | **k6** | 3 escenarios: login, list_ponds, create_pond |

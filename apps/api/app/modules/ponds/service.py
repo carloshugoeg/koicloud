@@ -91,7 +91,10 @@ class PondService:
         self.settings = settings
 
     async def list_for_user(self, actor: AuthContext) -> list[PondOut]:
-        rows = (await self.session.execute(self._owned_query(UUID(actor.user_id)))).all()
+        query = self._owned_query(UUID(actor.user_id))
+        if actor.pond_id is not None:
+            query = query.where(Pond.id == UUID(actor.pond_id))
+        rows = (await self.session.execute(query)).all()
         sizes = await latest_sample_size_by_pond(self.session, [pond.id for pond, _ in rows])
         return [
             pond_to_out(pond, status, size_bytes=sizes.get(pond.id))

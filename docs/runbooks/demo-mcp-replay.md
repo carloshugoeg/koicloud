@@ -15,7 +15,7 @@ Por defecto habla con `http://127.0.0.1:8000`, slug `demo-agent` y contraseña `
 Para otro host, exportá las variables y volvé a correr el mismo comando.
 
 ```bash
-export KOICLOUD_API_URL=https://koicloud.example
+export KOICLOUD_API_URL=https://2-25-128-44.sslip.io
 export KOICLOUD_MCP_SLUG=el-slug
 export KOICLOUD_MCP_PASSWORD=la-contraseña
 python3 scripts/demo-mcp-replay.py --simulate-chat
