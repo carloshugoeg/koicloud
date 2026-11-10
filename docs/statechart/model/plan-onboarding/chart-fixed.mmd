@@ -1,0 +1,37 @@
+---
+title: "Plan onboarding (signup to first login to choice to app)"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: Auth
+    lg1: Onboarding
+    lg2: App
+  }
+  class lg0 blue
+  class lg1 orange
+  class lg2 teal
+  s0: Signup form
+  s1: Check your email
+  s2: Login
+  s3: Choose plan [sandbox]
+  s4: App #183; sandbox
+  s5: Checkout (simulated)
+  s6: App #183; micro
+  s7: App #183; pro
+  [*] --> s0
+  s0 --> s1: you submit signup
+  s1 --> s2: you open login
+  s2 --> s3: you log in
+  s3 --> s4: you continue free (sandbox)
+  s3 --> s5: you choose Micro or Pro
+  s5 --> s3: you reload or open /app
+  s5 --> s6: payment succeeds
+  s5 --> s7: payment succeeds
+  class s0 blue
+  class s1 blue
+  class s2 blue
+  class s3 orange
+  class s4 teal
+  class s5 orange
+  class s6 teal
+  class s7 teal
