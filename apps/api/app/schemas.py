@@ -670,6 +670,52 @@ class ConnectionResponse(SchemaModel):
     model_config = config_with_example({"connection": ConnectionOut.example_data()})
 
 
+class PondColumnOut(SchemaModel):
+    name: str
+    type: str
+    nullable: bool
+    default: str | None = None
+
+    model_config = config_with_example(
+        {
+            "name": "id",
+            "type": "integer",
+            "nullable": False,
+            "default": None,
+        }
+    )
+
+
+class PondTableOut(SchemaModel):
+    name: str
+    estimated_rows: int
+    columns: list[PondColumnOut]
+
+    model_config = config_with_example(
+        {
+            "name": "public.orders",
+            "estimated_rows": 2,
+            "columns": [
+                PondColumnOut.example_data(),
+                {
+                    "name": "label",
+                    "type": "text",
+                    "nullable": False,
+                    "default": "'x'::text",
+                },
+            ],
+        }
+    )
+
+
+class PondSchemaResponse(SchemaModel):
+    tables: list[PondTableOut]
+
+    model_config = config_with_example(
+        {"tables": [PondTableOut.example_data()]}
+    )
+
+
 class BackupOut(SchemaModel):
     id: UUID
     pond_id: UUID
@@ -856,9 +902,25 @@ class ToggleAgentAccessResponse(SchemaModel):
     model_config = config_with_example({"enabled": False})
 
 
+TEMP_ACCESS_SCOPES: frozenset[str] = frozenset({"whoami", "get_pond", "run_sql"})
+
+
 class PondTempAccessCreateRequest(SchemaModel):
     expires_at: datetime
     scopes: list[str] | None = None
+
+    @field_validator("scopes")
+    @classmethod
+    def scopes_must_be_allowed(cls, value: list[str] | None) -> list[str] | None:
+        if not value:
+            return value
+        invalid = [scope for scope in value if scope not in TEMP_ACCESS_SCOPES]
+        if invalid:
+            raise ValueError(
+                "scopes must be a nonempty subset of "
+                f"{sorted(TEMP_ACCESS_SCOPES)}; invalid: {invalid}"
+            )
+        return value
 
     model_config = config_with_example(
         {
@@ -1248,6 +1310,7 @@ class MCPInfoResponse(SchemaModel):
                 "list_subscriptions",
                 "list_backups",
                 "get_usage",
+                "list_tables",
             ],
             "mutable_tools": [
                 "create_pond",

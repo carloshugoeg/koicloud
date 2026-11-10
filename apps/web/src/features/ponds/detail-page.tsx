@@ -14,6 +14,7 @@ import { DeletePondDialog } from "@/features/ponds/delete-pond-dialog";
 import { InviteAgentButton } from "@/features/ponds/invite-agent-button";
 import { PondLifecycleActions } from "@/features/ponds/pond-lifecycle-actions";
 import { PondRiskZone } from "@/features/ponds/pond-risk-zone";
+import { PondTableExplorer } from "@/features/ponds/pond-table-explorer";
 import { pondDisplayMeta, pondLifecycleInFlight } from "@/features/ponds/pond-state";
 import { ApiError, problemToMessage } from "@/lib/errors";
 import { toast } from "@/lib/toast";
@@ -197,6 +198,8 @@ export function PondDetailPage() {
         error={connectionQuery.error}
         isError={connectionQuery.isError}
       />
+
+      <PondTableExplorer pond={pond} />
 
       <PondRiskZone
         disabled={actionsDisabled || deleteMutation.isPending}

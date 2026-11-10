@@ -86,6 +86,33 @@ export function useGetConnection(pondId: string | undefined) {
   });
 }
 
+export type PondSchema = components["schemas"]["PondSchemaResponse"];
+export type PondTable = components["schemas"]["PondTableOut"];
+export type PondColumn = components["schemas"]["PondColumnOut"];
+
+/** Manual schema snapshot. Never auto-fetches; Recargar calls refetch(). */
+export function usePondSchema(pondId: string | undefined) {
+  const query = useQuery({
+    queryKey: ["ponds", pondId, "schema"],
+    enabled: false,
+    refetchOnWindowFocus: false,
+    refetchInterval: false,
+    retry: false,
+    queryFn: async () => {
+      const { data, error } = await apiClient.GET("/api/v1/ponds/{pond_id}/schema", {
+        params: { path: { pond_id: pondId as string } },
+      });
+      if (error || !data) throw new ApiError(error);
+      return data;
+    },
+  });
+
+  return {
+    ...query,
+    reload: () => query.refetch(),
+  };
+}
+
 export function useListBackups(pondId: string | undefined) {
   return useQuery({
     queryKey: ["ponds", pondId, "backups"],
