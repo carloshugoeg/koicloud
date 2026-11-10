@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from html import escape
 from typing import Any, NamedTuple
 
 
@@ -43,21 +44,39 @@ def _render_verify_email(context: dict[str, Any]) -> tuple[str, str]:
         f"Si no solicitaste esta cuenta, puedes ignorar este mensaje.\n"
     )
 
-    html = (
-        "<!DOCTYPE html>\n"
-        "<html lang=\"es\">\n"
-        "<head><meta charset=\"utf-8\"><title>Verificá tu correo</title></head>\n"
-        "<body>\n"
-        "  <h2>Verificá tu correo</h2>\n"
-        "  <p>Hola,</p>\n"
-        f"  <p>Gracias por registrarte en KoiCloud con el correo <strong>{email}</strong>.</p>\n"
-        "  <p>Para verificar tu cuenta y comenzar a utilizar la plataforma, haz clic en el siguiente enlace:</p>\n"
-        f"  <p><a href=\"{url}\">{url}</a></p>\n"
-        "  <p>Este enlace vence en 24 horas.</p>\n"
-        "  <p>Si no solicitaste esta cuenta, puedes ignorar este mensaje.</p>\n"
-        "</body>\n"
-        "</html>"
-    )
+    safe_email = escape(email, quote=True)
+    safe_url = escape(url, quote=True)
+    text += "\nKoiCloud · PaaS de datos\n"
+    html = f"""<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Verificá tu correo</title></head>
+<body style="margin:0;padding:0;background-color:#F2ECDC;color:#14211F;font-family:Verdana,sans-serif;line-height:1.6;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#F2ECDC;">
+<tr><td align="center" style="padding:24px 12px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background-color:#FFFCF4;border-top:4px solid #0A6D64;">
+<tr><td style="padding:24px;border-bottom:1px solid #F2ECDC;">
+<img src="https://app.koicloud.dev/koi/koi-mark-32.png" width="32" height="32" alt="Símbolo de KoiCloud" style="vertical-align:middle;border:0;">
+<span style="font-family:Georgia,'Times New Roman',serif;font-size:28px;font-weight:600;vertical-align:middle;">KoiCloud</span>
+</td></tr>
+<tr><td style="padding:24px;">
+<h1 style="margin:0 0 20px;font-family:Georgia,'Times New Roman',serif;font-size:28px;font-weight:600;">Verificá tu correo</h1>
+<p>Hola,</p>
+<p>Gracias por registrarte en KoiCloud con el correo <strong>{safe_email}</strong>.</p>
+<p>Para verificar tu cuenta y comenzar a utilizar la plataforma, hacé clic en el botón:</p>
+<table role="presentation" cellpadding="0" cellspacing="0"><tr><td bgcolor="#0A6D64" style="background-color:#0A6D64;">
+<a href="{safe_url}" style="display:inline-block;padding:12px 24px;border:1px solid #0A6D64;color:#FFFCF4;font-weight:600;text-decoration:none;">Verificá tu correo</a>
+</td></tr></table>
+<p style="margin-top:24px;">Si el botón no funciona, copiá y pegá este enlace en tu navegador:</p>
+<p style="overflow-wrap:anywhere;word-break:break-all;"><a href="{safe_url}" style="color:#0A6D64;text-decoration:underline;">{safe_url}</a></p>
+</td></tr>
+<tr><td style="padding:20px 24px;background-color:#FBF7EC;border-top:1px solid #F2ECDC;font-size:13px;">
+<p style="margin:0 0 8px;">KoiCloud · PaaS de datos</p>
+<p style="margin:0 0 8px;">Este enlace vence en 24 horas.</p>
+<p style="margin:0;">Si no solicitaste esta cuenta, podés ignorar este mensaje.</p>
+</td></tr></table>
+</td></tr></table>
+</body>
+</html>"""
     return text, html
 
 

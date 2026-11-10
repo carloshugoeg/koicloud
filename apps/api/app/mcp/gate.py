@@ -76,11 +76,10 @@ async def authenticate_mcp(
         if slug.startswith("pond-"):
             from app.modules.pond_tokens import PondTokenService
 
-            user, pond, tools = await PondTokenService(session, settings).authenticate(
+            user, pond, tools, token_id = await PondTokenService(session, settings).authenticate(
                 slug, password
             )
-            if user.status != UserStatus.ACTIVE:
-                raise AppError(ErrorCode.AGENT_DISABLED)
+            # authenticate already maps suspended/invalid owner → 401.
             actor = AuthContext(
                 user_id=str(user.id),
                 email=user.email,
@@ -89,6 +88,7 @@ async def authenticate_mcp(
                 surface=AppSurface.MCP,
                 pond_id=str(pond.id),
                 allowed_tools=tools,
+                pond_token_id=str(token_id),
             )
         else:
             await _ensure_demo_agent_access(session, settings)
