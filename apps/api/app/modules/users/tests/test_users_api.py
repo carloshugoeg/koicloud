@@ -81,7 +81,9 @@ async def test_get_me_happy_path() -> None:
         assert user_data["full_name"] == "Get Me User"
         assert user_data["nit"] == "0614-111111-101-1"
         assert user_data["email_verified"] is True
-        assert data["subscription"] is None
+        assert user_data["onboarded"] is False
+        assert data["subscription"] is not None
+        assert data["subscription"]["plan_id"] == "sandbox"
         assert data["ponds_count"] == 0
 
 

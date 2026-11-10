@@ -69,6 +69,7 @@ async function stubSession(page: Page) {
           role: "admin",
           status: "active",
           email_verified: true,
+          onboarded: true,
           nit: null,
           created_at: "2026-09-01T12:00:00Z",
         },

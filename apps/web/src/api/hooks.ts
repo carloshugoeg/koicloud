@@ -52,6 +52,7 @@ export {
 
 export {
   useChangePasswordMutation,
+  useCompleteOnboardingMutation,
   useMeQuery,
   useUpdateProfileMutation,
   type ChangePasswordRequest,

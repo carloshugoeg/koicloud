@@ -10,6 +10,14 @@ export function RequireAuth() {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
+  const onOnboarding = location.pathname === "/app/onboarding";
+  if (!session.user.onboarded && !onOnboarding) {
+    return <Navigate to="/app/onboarding" replace />;
+  }
+  if (session.user.onboarded && onOnboarding) {
+    return <Navigate to="/app" replace />;
+  }
+
   return <Outlet />;
 }
 

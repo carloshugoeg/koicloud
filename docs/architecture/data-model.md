@@ -51,6 +51,7 @@ erDiagram
       text nit
       user_status status
       timestamptz email_verified_at
+      timestamptz onboarded_at
       timestamptz created_at
     }
     email_tokens {
