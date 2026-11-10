@@ -9,6 +9,7 @@ from app.core.auth import AuthContext
 from app.core.db import SessionLocal
 from app.core.enums import ActorKind, PondDesiredState, PondObservedState
 from app.core.models import AuditEvent, Pond, PondStatus, Subscription, User
+from app.modules.jobs import for_client
 from app.modules.metering.samples import latest_sample_size_by_pond
 from app.schemas import (
     AdminPondListResponse,
@@ -74,7 +75,7 @@ class AdminService:
                     host_port=pond.host_port,
                     created_at=pond.created_at,
                     size_bytes=sizes.get(pond.id),
-                    last_error=status.last_error,
+                    last_error=for_client(status.last_error),
                 )
                 for pond, status, owner_email in rows
             ]

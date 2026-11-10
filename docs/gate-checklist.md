@@ -189,6 +189,21 @@ def test_console_setup_succeeds_on_serial_and_identity_pond():
     assert result.returncode == 0, result.stderr
 ```
 
+## job errors never echo raw command output
+
+A failed job returns only a closed code and a fixed Spanish message in `last_error`. Raw psql or command output, dump rows and passwords never reach the jobs API. The server log keeps only `pg_dump:` / `psql:` ERROR lines (no DETAIL/CONTEXT/COPY rows), capped at 500 characters. Sentry gets only the code plus job id (and pond id). Old rows are sanitized on read.
+
+The live tests are in `apps/api/tests/test_job_error_sanitize.py`.
+
+Template test:
+
+```python
+def test_failed_job_hides_command_output(client, headers, pond_id, failed_job_id):
+    body = client.get(f"/api/v1/ponds/{pond_id}/jobs/{failed_job_id}", headers=headers).json()
+    assert "ROWVALUE" not in body["last_error"]
+    assert "postgresql://" not in body["last_error"]
+```
+
 ## temp MCP SQL confirmation stays bound to its credential
 
 A temporary MCP client proposes write SQL with Basic `pond-<slug>:<password>`, confirms with the same credential, and never uses an owner JWT. Another session, pond, or owner route cannot confirm that proposal. Replay and concurrent confirms yield a single consume. Revoke or expiry before admission denies execution. Failed dispatch leaves the token spent.

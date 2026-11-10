@@ -23,7 +23,8 @@ services:
 
   api:
     build:
-      context: ../apps/api
+      context: ..
+      dockerfile: apps/api/Dockerfile
     environment: &api_env
       DATABASE_URL: postgresql+asyncpg://koi:koi@db:5432/koicloud
       JWT_SECRET: e2e-jwt-secret-not-for-production-00000000
@@ -72,7 +73,8 @@ services:
 
   worker:
     build:
-      context: ../apps/api
+      context: ..
+      dockerfile: apps/api/Dockerfile
     environment:
       <<: *api_env
     volumes:
@@ -92,7 +94,8 @@ services:
 
   node-agent:
     build:
-      context: ../apps/node-agent
+      context: ..
+      dockerfile: apps/node-agent/Dockerfile
     environment:
       AGENT_MODE: docker
       NODE_ID: node-e2e

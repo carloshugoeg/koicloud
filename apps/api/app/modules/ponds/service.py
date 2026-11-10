@@ -26,6 +26,7 @@ from app.core.errors import AppError, ErrorCode
 from app.core.models import Job, Node, Plan, Pond, PondStatus, Subscription, User
 from app.core.security import hash_password, hash_token
 from app.core.time import utc_now
+from app.modules.jobs import for_client
 from app.modules.metering.samples import latest_sample_size_by_pond
 from app.schemas import ConnectionOut, JobOut, PondOut
 
@@ -50,7 +51,7 @@ def pond_to_out(
         healthy=status.healthy,
         created_at=pond.created_at,
         last_restore_at=pond.last_restore_at,
-        last_error=status.last_error,
+        last_error=for_client(status.last_error),
         size_bytes=size_bytes,
     )
 
@@ -66,7 +67,7 @@ def job_to_out(job: Job) -> JobOut:
         created_at=job.created_at,
         claimed_at=job.claimed_at,
         completed_at=job.completed_at,
-        last_error=job.last_error,
+        last_error=for_client(job.last_error),
     )
 
 
