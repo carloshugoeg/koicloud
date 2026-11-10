@@ -11,11 +11,14 @@ export type NavIconName =
   | "adminPonds"
   | "audit";
 
+export type TourTarget = "ponds" | "plans" | "account";
+
 export interface NavItem {
   to: string;
   label: string;
   icon: NavIconName;
   end?: boolean;
+  tourTarget?: TourTarget;
 }
 
 export interface NavGroup {
@@ -31,7 +34,7 @@ export const navGroups: NavGroup[] = [
     id: "estanque",
     label: "Estanque",
     items: [
-      { to: "/app/ponds", label: "Ponds", icon: "ponds", end: true },
+      { to: "/app/ponds", label: "Ponds", icon: "ponds", end: true, tourTarget: "ponds" },
       { to: "/app/ponds/new", label: "Crear pond", icon: "create" },
     ],
   },
@@ -39,7 +42,12 @@ export const navGroups: NavGroup[] = [
     id: "consumo",
     label: "Consumo",
     items: [
-      { to: "/app/uso", label: "Uso y facturación", icon: "usage" },
+      {
+        to: "/app/uso",
+        label: "Uso y facturación",
+        icon: "usage",
+        tourTarget: "plans",
+      },
     ],
   },
   {
@@ -50,7 +58,7 @@ export const navGroups: NavGroup[] = [
   {
     id: "cuenta",
     label: "Cuenta",
-    items: [{ to: "/app/account", label: "Perfil", icon: "account" }],
+    items: [{ to: "/app/account", label: "Perfil", icon: "account", tourTarget: "account" }],
   },
   {
     id: "admin",

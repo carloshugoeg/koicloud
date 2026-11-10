@@ -58,6 +58,7 @@ no existe todavía. `00-INDEX.md` no es un ticket y el agente lo ignora.
 | [W1-50](W1-50-temp-link-scope.md) | P0: link temporal scoped al pond emitido | `w1-temp-link-scope` | en-revision |
 
 | [W1-49](W1-49-account-page.md) | Pantalla Cuenta (perfil + change-password) | `w1-account-page` | en-revision |
+| [W1-55](W1-55-onboarding-tour.md) | Recorrido de onboarding + toasts de acciones | `w1-onboarding-tour` | en-revision |
 
 W1 es el único workstream que puede tocar cualquier ruta, y el único que escribe migraciones,
 regenera contratos (`make contracts`) y edita el harness de agentes.

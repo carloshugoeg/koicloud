@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { usePlansQuery, type PlanOut, type SubscribeResponse } from "@/api/hooks";
-import { formatPrice, formatPricePeriod, formatPriceWithPeriod } from "@/lib/format-price";
-import { problemToMessage } from "@/lib/errors";
+import { DataStateEmpty } from "@/components/data-state";
 import { CheckoutModal } from "@/features/plans/checkout-modal";
+import { problemToMessage } from "@/lib/errors";
+import { formatPrice, formatPricePeriod, formatPriceWithPeriod } from "@/lib/format-price";
 
 export function PlansPage() {
   const { data: plans, isPending, isError, error, refetch } = usePlansQuery();
@@ -65,6 +66,21 @@ export function PlansPage() {
             Reintentar
           </button>
         </div>
+      ) : (plans ?? []).length === 0 ? (
+        <DataStateEmpty
+          testId="plans-empty"
+          title="Sin planes publicados"
+          description="Cuando el catálogo tenga planes, aparecen aquí para contratar."
+          action={
+            <button
+              type="button"
+              onClick={() => void refetch()}
+              className="inline-flex h-9 items-center rounded-sm bg-turquoise-700 px-4 text-sm font-medium text-bone-raised"
+            >
+              Reintentar
+            </button>
+          }
+        />
       ) : (
         <>
           <div className="grid gap-6 md:grid-cols-3">

@@ -1,12 +1,13 @@
 import { type FormEvent, useState } from "react";
 import { useChangePasswordMutation } from "@/api/hooks/me";
 import { FieldError } from "@/features/account/field-error";
-import { ApiError } from "@/lib/errors";
+import { ApiError, problemToMessage } from "@/lib/errors";
 import {
   MIN_PASSWORD_LENGTH,
   isPasswordLongEnough,
   passwordMinHelp,
 } from "@/lib/password";
+import { toast } from "@/lib/toast";
 
 export function PasswordForm() {
   const changePassword = useChangePasswordMutation();
@@ -39,13 +40,15 @@ export function PasswordForm() {
         current_password: currentPassword,
         new_password: newPassword,
       });
-    } catch {
+    } catch (error) {
+      toast({ tone: "danger", message: problemToMessage(error) });
       return;
     }
     setCurrentPassword("");
     setNewPassword("");
     setConfirmPassword("");
     setSaved(true);
+    toast({ tone: "ok", message: "Contraseña actualizada." });
   }
 
   return (
