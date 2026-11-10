@@ -43,6 +43,7 @@ from app.schemas import (
     AuditEventListResponse,
     BackupListResponse,
     CancelSubscriptionResponse,
+    ChangePasswordRequest,
     ConfirmationRequiredResponse,
     ConnectionResponse,
     CreatePondRequest,
@@ -277,6 +278,26 @@ async def update_profile(
     actor: Annotated[AuthContext, Depends(get_current_user)],
 ) -> UserResponse:
     return await user_commands.update_profile(actor, payload)
+
+
+@router.post(
+    "/me/change-password",
+    status_code=status.HTTP_204_NO_CONTENT,
+    operation_id="change_password",
+    tags=["users"],
+    responses=_error_responses(401, 422),
+)
+async def change_password(
+    payload: ChangePasswordRequest,
+    request: Request,
+    actor: Annotated[AuthContext, Depends(get_current_user)],
+) -> Response:
+    await auth_commands.change_password(
+        actor,
+        payload,
+        current_refresh=request.cookies.get(REFRESH_COOKIE),
+    )
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get(

@@ -50,7 +50,14 @@ export {
   type PondObservedState,
 } from "@/api/hooks/ponds";
 
-export { useMeQuery, type MeResponse } from "@/api/hooks/me";
+export {
+  useChangePasswordMutation,
+  useMeQuery,
+  useUpdateProfileMutation,
+  type ChangePasswordRequest,
+  type MeResponse,
+  type UpdateProfileRequest,
+} from "@/api/hooks/me";
 
 export {
   useForgotPasswordMutation,

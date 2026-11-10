@@ -1,5 +1,6 @@
 # Contracts changelog
 
+- 2026-11-10 · W1-49 account page (Carlos) · `POST /me/change-password` (`change_password`) with `ChangePasswordRequest {current_password, new_password}` → `204`. Wrong current → `401 invalid_credentials`. Weak new → `422 password_too_weak`. Revokes other refresh tokens; keeps the presented `koi_refresh` cookie. No migration.
 - 2026-11-09 · W1-48 superadmin panel (Carlos) · `AdminUserOut.ponds_count` (int, required) on `GET /admin/users` and suspend/reactivate `{user}`. Derived `COUNT(ponds)` by `user_id`; no migration.
 - 2026-11-06 · Carlos ask + CCR #126 (resend-verification slice) · `POST /auth/resend-verification` (`resend_verification`) with `ResendVerificationRequest {email}` → always `202 {ok:true}`. Unverified re-register resends verify mail; verified stays `email_taken`. No migration.
 - 2026-11-05 · CCR card t303s1220 (Carlos, 2:23 PM GT) · `GET /ponds/{id}/schema` (`get_pond_schema`) → `PondSchemaResponse` with `tables[]` of schema-qualified `name`, `estimated_rows`, and `columns[{name, type, nullable, default}]`. MCP `list_tables(pond_id)` returns the same payload. No migration. No other contract change.

@@ -166,6 +166,18 @@ class ResetPasswordRequest(SchemaModel):
     )
 
 
+class ChangePasswordRequest(SchemaModel):
+    current_password: str
+    new_password: str = Field(min_length=8)
+
+    model_config = config_with_example(
+        {
+            "current_password": "Sup3rSegura!2026",
+            "new_password": "NuevaClave!2026",
+        }
+    )
+
+
 class TokenPairResponse(SchemaModel):
     access_token: str
     refresh_token: str
