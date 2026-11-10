@@ -126,7 +126,10 @@ def _claimable_payload(
     session: AsyncSession, pond: Pond, prior: Job | None
 ) -> dict[str, object]:
     if prior is not None and prior.payload and all(key in prior.payload for key in _PAYLOAD_KEYS):
-        return dict(prior.payload)
+        payload = dict(prior.payload)
+        secret = payload.get("db_password_plain")
+        if secret not in (None, "", "[redacted]"):
+            return payload
     return _agent_payload(session, pond)
 
 

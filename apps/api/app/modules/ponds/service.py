@@ -272,12 +272,19 @@ class PondService:
                 message="No hay un job fallido para reintentar en este pond",
             )
 
+        # Terminal jobs scrub db_password_plain; rebuild secrets from the pond.
+        prior = dict(failed.payload or {})
+        rebuilt = self._agent_payload(pond)
+        for key, value in prior.items():
+            if key == "db_password_plain":
+                continue
+            rebuilt[key] = value
         job = Job(
             type=failed.type,
             pond_id=pond.id,
             node_id=pond.node_id,
             status=JobStatus.QUEUED,
-            payload=dict(failed.payload or self._agent_payload(pond)),
+            payload=rebuilt,
         )
         # CCR #131 UI phases: retry must show starting/stopping, never pending/En cola.
         status.healthy = False
@@ -433,10 +440,12 @@ class PondService:
         return node
 
     async def _assert_name_free(self, user_id: UUID, name: str) -> None:
+        # Container names are global (`koicloud-{name}`). Reject any live pond
+        # with this name, not only the caller's. user_id kept for call-site compat.
+        _ = user_id
         existing = (
             await self.session.execute(
                 select(Pond.id).where(
-                    Pond.user_id == user_id,
                     Pond.name == name,
                     Pond.desired_state != PondDesiredState.DELETED,
                 )

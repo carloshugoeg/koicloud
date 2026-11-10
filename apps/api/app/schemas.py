@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from datetime import datetime
 from typing import Any, Literal
 from uuid import UUID
@@ -565,9 +566,20 @@ class PondListResponse(SchemaModel):
     model_config = config_with_example({"ponds": [PondOut.example_data()], "next_cursor": None})
 
 
+# Matches apps/web/src/features/ponds/pond-name.ts (server-side authority).
+_POND_NAME_RE = re.compile(r"^[a-z0-9-]{3,40}$")
+
+
 class CreatePondRequest(SchemaModel):
     name: str
     engine_version: str = "16"
+
+    @field_validator("name")
+    @classmethod
+    def pond_name_format(cls, value: str) -> str:
+        if not _POND_NAME_RE.fullmatch(value):
+            raise ValueError("Solo minúsculas, números y guiones; 3 a 40 caracteres.")
+        return value
 
     model_config = config_with_example({"name": "inventario-demo", "engine_version": "16"})
 

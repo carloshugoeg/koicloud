@@ -4,6 +4,8 @@ from typing import Any
 from uuid import UUID
 
 from fastmcp import FastMCP
+from fastmcp.exceptions import ValidationError as FastMCPValidationError
+from pydantic import ValidationError as PydanticValidationError
 
 from app.commands import backups as backup_commands
 from app.commands import confirmations as confirmation_commands
@@ -66,8 +68,12 @@ async def get_pond(name: str) -> dict[str, Any]:
 @mcp.tool
 async def create_pond(name: str, engine_version: str = "16") -> dict[str, Any]:
     actor = _actor_for_tool("create_pond")
+    try:
+        request = CreatePondRequest(name=name, engine_version=engine_version)
+    except PydanticValidationError as exc:
+        raise FastMCPValidationError("Invalid params") from exc
     result = await pond_commands.create_pond(
-        CreatePondRequest(name=name, engine_version=engine_version),
+        request,
         actor=actor,
         surface=AppSurface.MCP,
     )

@@ -3,6 +3,9 @@ from __future__ import annotations
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends
+from fastapi.responses import JSONResponse
+from fastmcp.exceptions import ValidationError as FastMCPValidationError
+from fastmcp.exceptions import to_mcp_error
 
 from app.core.auth import AuthContext
 from app.core.errors import ERROR_CATALOG, AppError, ErrorCode
@@ -79,10 +82,26 @@ async def mcp_info(actor: Annotated[AuthContext, Depends(mcp_gate_dependency)]) 
 async def mcp_jsonrpc(
     payload: JsonRpcRequest,
     actor: Annotated[AuthContext, Depends(mcp_gate_dependency)],
-) -> JsonRpcResponse:
+) -> JsonRpcResponse | JSONResponse:
     set_mcp_actor(actor)
     try:
-        result = await _dispatch_jsonrpc(actor, payload.method, payload.params or {})
+        try:
+            result = await _dispatch_jsonrpc(actor, payload.method, payload.params or {})
+        except FastMCPValidationError as exc:
+            mcp_err = to_mcp_error(exc)
+            error = getattr(mcp_err, "error", None)
+            code = getattr(error, "code", -32602)
+            return JSONResponse(
+                status_code=422,
+                content={
+                    "jsonrpc": "2.0",
+                    "id": payload.id,
+                    "error": {
+                        "code": code,
+                        "message": "Invalid params",
+                    },
+                },
+            )
     finally:
         clear_mcp_actor()
     return JsonRpcResponse(jsonrpc="2.0", id=payload.id, result=result, error=None)

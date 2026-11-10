@@ -4,6 +4,7 @@ from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm.attributes import flag_modified
 
 from app.core.config import Settings
 from app.core.enums import (
@@ -27,6 +28,25 @@ from app.schemas import (
     ClaimJobResponse,
     CompleteJobRequest,
 )
+
+_REDACTED_PASSWORD = "[redacted]"
+
+
+def _scrub_job_secrets(job: Job) -> None:
+    """Remove plaintext DB password once the job is terminal (succeeded/failed).
+
+    Retries rebuild the secret from ponds.db_password_encrypted via
+    PondService._agent_payload. Do not scrub while QUEUED/RUNNING.
+    """
+    payload = dict(job.payload or {})
+    if "db_password_plain" not in payload:
+        return
+    if payload.get("db_password_plain") in (None, _REDACTED_PASSWORD):
+        return
+    payload["db_password_plain"] = _REDACTED_PASSWORD
+    job.payload = payload
+    flag_modified(job, "payload")
+
 
 
 class JobService:
@@ -104,6 +124,7 @@ class JobService:
 
         status = await self.session.get(PondStatus, job.pond_id)
         if status is None:
+            _scrub_job_secrets(job)
             return
         status.updated_at = now
         status.last_seen_at = now
@@ -146,6 +167,9 @@ class JobService:
             status.healthy = False
             status.last_error = failure
 
+        # Scrub after backup follow-up may have copied keys into a new delete job.
+        _scrub_job_secrets(job)
+
     async def _complete_backup(
         self, job: Job, payload: CompleteJobRequest, now
     ) -> None:
@@ -178,19 +202,10 @@ class JobService:
             and pond is not None
             and pond.desired_state == PondDesiredState.DELETED
         ):
-            payload_keys = {
-                "name",
-                "host_port",
-                "memory_mb",
-                "cpus",
-                "db_password_plain",
-                "image",
-            }
-            delete_payload = {
-                key: value
-                for key, value in (job.payload or {}).items()
-                if key in payload_keys
-            }
+            from app.modules.ponds.service import PondService
+
+            settings = self.settings
+            delete_payload = PondService(self.session, settings)._agent_payload(pond)
             self.session.add(
                 Job(
                     type=JobType.DELETE_POND,
