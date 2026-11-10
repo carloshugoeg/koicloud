@@ -56,6 +56,7 @@ from app.schemas import (
     PlanListResponse,
     PondListResponse,
     PondResponse,
+    PondSchemaResponse,
     PondTempAccessCreateRequest,
     PondTempAccessListResponse,
     PondTempAccessOut,
@@ -466,6 +467,20 @@ async def get_connection(
     return await pond_commands.get_connection(actor, pond_id)
 
 
+@router.get(
+    "/ponds/{pond_id}/schema",
+    response_model=PondSchemaResponse,
+    operation_id="get_pond_schema",
+    tags=["ponds"],
+    responses=_error_responses(401, 403, 404, 409, 503),
+)
+async def get_pond_schema(
+    pond_id: UUID,
+    actor: Annotated[AuthContext, Depends(get_current_user)],
+) -> PondSchemaResponse:
+    return await sql_commands.get_pond_schema(actor, pond_id)
+
+
 @router.post(
     "/ponds/{pond_id}/retry",
     response_model=RetryFailedJobResponse,
@@ -795,9 +810,9 @@ async def toggle_agent_access(
 )
 async def confirm_action(
     token: str,
-    _: Annotated[AuthContext, Depends(get_current_user)],
+    actor: Annotated[AuthContext, Depends(get_current_user)],
 ) -> dict[str, Any]:
-    return await confirmation_commands.confirm_action(token)
+    return await confirmation_commands.confirm_action(token, actor=actor)
 
 
 @router.delete(
@@ -809,9 +824,9 @@ async def confirm_action(
 )
 async def discard_pending_confirmation(
     token: str,
-    _: Annotated[AuthContext, Depends(get_current_user)],
+    actor: Annotated[AuthContext, Depends(get_current_user)],
 ) -> Response:
-    await confirmation_commands.discard_pending_confirmation(token)
+    await confirmation_commands.discard_pending_confirmation(token, actor=actor)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
