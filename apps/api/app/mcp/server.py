@@ -130,13 +130,22 @@ async def run_sql(pond_name: str, query: str, mode: str = "read") -> dict[str, A
 
 
 @mcp.tool
-async def confirm_action(token: str) -> dict[str, Any]:
-    _actor_for_tool("confirm_action")
-    return await confirmation_commands.confirm_action(token)
+async def confirm_action(
+    token: str,
+    query: str | None = None,
+    mode: str | None = None,
+    pond_id: str | None = None,
+    action: str | None = None,
+    pond_token_id: str | None = None,
+) -> dict[str, Any]:
+    # Spec: client extras never override the stored proposal; accept and drop them.
+    _ = (query, mode, pond_id, action, pond_token_id)
+    actor = _actor_for_tool("confirm_action")
+    return await confirmation_commands.confirm_action(token, actor=actor)
 
 
 @mcp.tool
 async def cancel_confirmation(token: str) -> dict[str, str]:
-    _actor_for_tool("cancel_confirmation")
-    await confirmation_commands.discard_pending_confirmation(token)
+    actor = _actor_for_tool("cancel_confirmation")
+    await confirmation_commands.discard_pending_confirmation(token, actor=actor)
     return {"status": "discarded"}

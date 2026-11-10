@@ -1,0 +1,154 @@
+---
+title: "Temp SQL confirmation (bound session)"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: waiting
+    lg1: working
+    lg2: denied
+    lg3: ended
+    lg4: done_ok
+    lg5: done_spent
+  }
+  class lg0 tan
+  class lg1 yellow
+  class lg2 orange
+  class lg3 pink
+  class lg4 teal
+  class lg5 pink
+  s0: NoProposal
+  s1: NoProposal (credential expired)
+  s2: Pending
+  s3: NoProposal (credential revoked)
+  s4: Consumed (expired before admit)
+  s5: NoProposal (expired before issue)
+  s6: Pending (credential expired)
+  s7: Pending (bad action denied)
+  s8: Pending (tampered SQL denied)
+  s9: Pending (other pond denied)
+  s10: Pending (other session denied)
+  s11: Consumed (no execution)
+  s12: Pending (owner row denied)
+  s13: Pending (proposal expired)
+  s14: Consumed (SQL ok)
+  s15: Pending (credential revoked)
+  s16: Consumed (revoked before admit)
+  s17: NoProposal (revoked before issue)
+  s18: Consumed (replay denied)
+  [*] --> s0
+  s0 --> s1: credential expires
+  s0 --> s2: temp write proposes CREATE TABLE
+  s0 --> s3: presenter revokes
+  s1 --> s5: propose after dead credential [401]
+  s2 --> s4: expire after claim before admit [401]
+  s2 --> s6: credential expires
+  s2 --> s7: confirm denied [bad action]
+  s2 --> s8: confirm denied [tamper]
+  s2 --> s9: confirm denied [other pond]
+  s2 --> s10: confirm denied [other session]
+  s2 --> s11: claim and admit [awaiting SQL]
+  s2 --> s12: confirm denied [owner row]
+  s2 --> s13: proposal TTL elapses [410]
+  s2 --> s14: same session confirms [table visible]
+  s2 --> s15: presenter revokes
+  s2 --> s16: revoke after claim before admit [401]
+  s3 --> s17: propose after dead credential [401]
+  s4 --> s18: second confirm [404]
+  s6 --> s7: confirm denied [bad action]
+  s6 --> s8: confirm denied [tamper]
+  s6 --> s9: confirm denied [other pond]
+  s6 --> s10: confirm denied [other session]
+  s6 --> s12: confirm denied [owner row]
+  s7 --> s4: expire after claim before admit [401]
+  s7 --> s6: credential expires or confirm denied [dead credential]
+  s7 --> s8: confirm denied [tamper]
+  s7 --> s9: confirm denied [other pond]
+  s7 --> s10: confirm denied [other session]
+  s7 --> s11: claim and admit [awaiting SQL]
+  s7 --> s12: confirm denied [owner row]
+  s7 --> s13: proposal TTL elapses [410]
+  s7 --> s14: same session confirms [table visible]
+  s7 --> s15: presenter revokes or confirm denied [dead credential]
+  s7 --> s16: revoke after claim before admit [401]
+  s8 --> s4: expire after claim before admit [401]
+  s8 --> s6: credential expires or confirm denied [dead credential]
+  s8 --> s7: confirm denied [bad action]
+  s8 --> s9: confirm denied [other pond]
+  s8 --> s10: confirm denied [other session]
+  s8 --> s11: claim and admit [awaiting SQL]
+  s8 --> s12: confirm denied [owner row]
+  s8 --> s13: proposal TTL elapses [410]
+  s8 --> s14: same session confirms [table visible]
+  s8 --> s15: presenter revokes or confirm denied [dead credential]
+  s8 --> s16: revoke after claim before admit [401]
+  s9 --> s4: expire after claim before admit [401]
+  s9 --> s6: credential expires or confirm denied [dead credential]
+  s9 --> s7: confirm denied [bad action]
+  s9 --> s8: confirm denied [tamper]
+  s9 --> s10: confirm denied [other session]
+  s9 --> s11: claim and admit [awaiting SQL]
+  s9 --> s12: confirm denied [owner row]
+  s9 --> s13: proposal TTL elapses [410]
+  s9 --> s14: same session confirms [table visible]
+  s9 --> s15: presenter revokes or confirm denied [dead credential]
+  s9 --> s16: revoke after claim before admit [401]
+  s10 --> s4: expire after claim before admit [401]
+  s10 --> s6: credential expires or confirm denied [dead credential]
+  s10 --> s7: confirm denied [bad action]
+  s10 --> s8: confirm denied [tamper]
+  s10 --> s9: confirm denied [other pond]
+  s10 --> s11: claim and admit [awaiting SQL]
+  s10 --> s12: confirm denied [owner row]
+  s10 --> s13: proposal TTL elapses [410]
+  s10 --> s14: same session confirms [table visible]
+  s10 --> s15: presenter revokes or confirm denied [dead credential]
+  s10 --> s16: revoke after claim before admit [401]
+  s11 --> s14: SQL succeeds after admit
+  s11 --> s18: second confirm [404]
+  s12 --> s4: expire after claim before admit [401]
+  s12 --> s6: credential expires or confirm denied [dead credential]
+  s12 --> s7: confirm denied [bad action]
+  s12 --> s8: confirm denied [tamper]
+  s12 --> s9: confirm denied [other pond]
+  s12 --> s10: confirm denied [other session]
+  s12 --> s11: claim and admit [awaiting SQL]
+  s12 --> s13: proposal TTL elapses [410]
+  s12 --> s14: same session confirms [table visible]
+  s12 --> s15: presenter revokes or confirm denied [dead credential]
+  s12 --> s16: revoke after claim before admit [401]
+  s13 --> s4: expire after claim before admit [401]
+  s13 --> s6: credential expires
+  s13 --> s7: confirm denied [bad action]
+  s13 --> s8: confirm denied [tamper]
+  s13 --> s9: confirm denied [other pond]
+  s13 --> s10: confirm denied [other session]
+  s13 --> s11: claim and admit [awaiting SQL]
+  s13 --> s12: confirm denied [owner row]
+  s13 --> s14: same session confirms [table visible]
+  s13 --> s15: presenter revokes
+  s13 --> s16: revoke after claim before admit [401]
+  s15 --> s7: confirm denied [bad action]
+  s15 --> s8: confirm denied [tamper]
+  s15 --> s9: confirm denied [other pond]
+  s15 --> s10: confirm denied [other session]
+  s15 --> s12: confirm denied [owner row]
+  s16 --> s18: second confirm [404]
+  s18 --> s14: SQL succeeds after admit
+  s18 --> s11: credential expires or SQL fails after claim [token spent] or presenter revokes
+  class s0 tan
+  class s1 pink
+  class s2 yellow
+  class s3 pink
+  class s4 pink
+  class s5 orange
+  class s7 orange
+  class s8 orange
+  class s9 orange
+  class s10 orange
+  class s11 pink
+  class s12 orange
+  class s13 orange
+  class s14 teal
+  class s16 pink
+  class s17 orange
+  class s18 pink

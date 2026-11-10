@@ -22,6 +22,7 @@ READ_ONLY = {
     "list_subscriptions",
     "list_backups",
     "get_usage",
+    "list_tables",
 }
 
 
@@ -43,15 +44,15 @@ def auth_headers() -> dict[str, str]:
     return {"Authorization": f"Bearer {response.json()['access_token']}"}
 
 
-def test_mcp_info_lists_seven_read_only_tools() -> None:
+def test_mcp_info_lists_read_only_tools() -> None:
     ensure_demo_user()
     body = client.get("/mcp", headers=mcp_headers()).json()
     assert set(body["read_only_tools"]) == READ_ONLY
-    assert "get_usage" in body["read_only_tools"]
+    assert "list_tables" in body["read_only_tools"]
 
 
 @pytest.mark.asyncio
-async def test_fastmcp_registers_seven_read_tools() -> None:
+async def test_fastmcp_registers_read_tools() -> None:
     names = {tool.name for tool in await mcp.list_tools()}
     assert READ_ONLY.issubset(names)
 

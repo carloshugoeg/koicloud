@@ -1,0 +1,23 @@
+TLC2 Version 2026.11.06.182551 (rev: c058b21)
+Warning: Please run the Java VM, which executes TLC with a throughput optimized garbage collector, by passing the "-XX:+UseParallelGC" property.
+(Use the -nowarning option to disable this warning.)
+Running breadth-first search Model-Checking with fp 0 and seed -7882818306484777524 with 1 worker on 4 cores with 3746MB heap and 64MB offheap memory [pid: 2900] (Linux 6.12.113+ amd64, Ubuntu 21.0.12.1 64bit, MSBDiskFPSet, DiskStateQueue).
+Parsing file /tmp/invitar-agente-scratch/InviteAgent.tla
+Parsing file /tmp/statechart-dzpItb/statechart-mU2w2Z/tmp-verdict-1/tlc-13167363150844599705/Integers.tla (jar:file:/tmp/tla/tla2tools.jar!/tla2sany/StandardModules/Integers.tla)
+Parsing file /tmp/statechart-dzpItb/statechart-mU2w2Z/tmp-verdict-1/tlc-13167363150844599705/Naturals.tla (jar:file:/tmp/tla/tla2tools.jar!/tla2sany/StandardModules/Naturals.tla)
+Semantic processing of module Naturals
+Semantic processing of module Integers
+Semantic processing of module InviteAgent
+Linting of module InviteAgent
+Starting... (2026-11-06 19:35:24)
+Computing initial states...
+Finished computing initial states: 1 distinct state generated at 2026-11-06 19:35:24.
+Model checking completed. No error has been found.
+  Estimates of the probability that TLC did not check all reachable states
+  because two distinct states had the same fingerprint:
+  calculated (optimistic):  val = 1.5E-17
+35 states generated, 12 distinct states found, 0 states left on queue.
+The depth of the complete state graph search is 6.
+The average outdegree of the complete state graph is 1 (minimum is 0, the maximum 3 and the 95th percentile is 3).
+Finished in 00s at (2026-11-06 19:35:24)
+
