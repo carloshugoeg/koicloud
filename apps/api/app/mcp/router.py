@@ -22,6 +22,7 @@ READ_ONLY_TOOLS = [
     "list_subscriptions",
     "list_backups",
     "get_usage",
+    "list_tables",
 ]
 MUTABLE_TOOLS = [
     "create_pond",
