@@ -376,3 +376,69 @@ def test_temp_suspended_owner_denied_401_at_all_admission_points():
     assert denied.json()["code"] == "agent_bad_credentials"
 ```
 
+## list endpoints have a default limit and a working cursor
+
+`GET /api/v1/admin/users` returns 50 rows unless `limit` is set. `limit` above 200 is 422. `next_cursor` is an opaque keyset on `(created_at desc, id desc)` and is null on the last page. Plans for the page come from that same query.
+
+The live test is `test_admin_list_users_returns_three_pages_for_120_users` in `apps/api/app/modules/admin/tests/test_admin_users_api.py`. The screen appends the next page in `appends the next page when Cargar más is used` in `apps/web/src/features/admin/admin-users-live-client.test.tsx`.
+
+Template test:
+
+```python
+def test_admin_users_page_has_a_limit_and_a_cursor(client, headers):
+    first = client.get("/api/v1/admin/users", headers=headers)
+    assert first.status_code == 200
+    assert len(first.json()["users"]) <= 50
+    cursor = first.json()["next_cursor"]
+    if cursor is not None:
+        second = client.get("/api/v1/admin/users", headers=headers, params={"cursor": cursor})
+        assert second.status_code == 200
+        first_ids = {user["id"] for user in first.json()["users"]}
+        assert first_ids.isdisjoint({user["id"] for user in second.json()["users"]})
+    over = client.get("/api/v1/admin/users", headers=headers, params={"limit": 201})
+    assert over.status_code == 422
+```
+
+## focus stays on Cargar más while the next page loads
+
+Pressing **Cargar más** must not move focus to the document body. The button stays enabled and sets `aria-busy` while the next page is in flight. After that page arrives, and another page remains, focus is still on **Cargar más**.
+
+The live test is `keeps focus on Cargar más while the next page loads` in `apps/web/src/features/admin/admin-users-live-client.test.tsx`. The same name in `e2e/journey/tests/admin-users.spec.ts` checks it in Chromium.
+
+Template test:
+
+```ts
+const busy = await screen.findByRole("button", { name: "Cargando…" });
+expect(busy).toHaveFocus();
+expect(busy).toBeEnabled();
+expect(busy).toHaveAttribute("aria-busy", "true");
+```
+
+## a failed next page shows an inline error and retries
+
+A failed `GET /api/v1/admin/users` for a cursor must keep the rows already loaded. The screen shows an inline alert, **No pudimos cargar más usuarios.**, and **Reintentar**. **Reintentar** loads that same page. The full-page error is only for a failure that returns no rows.
+
+The live test is `shows an inline error and retries the next page without dropping loaded rows` in `apps/web/src/features/admin/admin-users-live-client.test.tsx`. The same name in `e2e/journey/tests/admin-users.spec.ts` checks it in Chromium.
+
+Template test:
+
+```ts
+const alert = await within(page).findByRole("alert");
+expect(alert).toHaveTextContent(/No pudimos cargar más usuarios\./);
+expect(screen.getByText("QA Uno")).toBeInTheDocument();
+await user.click(within(alert).getByRole("button", { name: "Reintentar" }));
+expect(await screen.findByText("Cuenta Demo")).toBeInTheDocument();
+expect(screen.getByText("QA Uno")).toBeInTheDocument();
+```
+
+## focus never lands on body when a control unmounts
+
+When **Cargar más** leaves the screen because the last page arrived, or the error alert leaves after **Reintentar** loads rows, focus moves to the first newly loaded row. It does not move to the document body. While a page is still loading, focus stays on **Cargar más**.
+
+The live tests are `moves focus to the first new row when the last page loads` and `moves focus to the first new row after Reintentar loads the page` in `apps/web/src/features/admin/admin-users-live-client.test.tsx`. The same names in `e2e/journey/tests/admin-users-focus.spec.ts` check both at 375, 768, and 1440.
+
+## no flaky alert tests: the error-state test passes 20 of 20 runs
+
+The inline error test uses a QueryClient with `retry: false`, so one click shows the alert after exactly one failed request. A failing next page must not sit through several automatic retries before the alert.
+
+The live test is `shows an inline error and retries the next page without dropping loaded rows` in `apps/web/src/features/admin/admin-users-live-client.test.tsx`. `makes exactly one request before the alert when the next page fails` in the same file counts the requests.
