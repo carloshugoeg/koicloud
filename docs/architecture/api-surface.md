@@ -138,7 +138,7 @@ Todas requieren `role=admin`.
 
 | M | Ruta | Command | Descripción | Response |
 |---|------|---------|-------------|----------|
-| GET | `/admin/users` | `admin_list_users` | Paginado | `[{admin_user}]` |
+| GET | `/admin/users` | `admin_list_users` | Paginado (`limit`/`cursor`) | `{users: [AdminUserOut], next_cursor}` — `AdminUserOut` incluye `ponds_count` |
 | POST | `/admin/users/{id}/suspend` | `suspend_user` (confirm textual `SUSPENDER`; body opcional `reason` trim≤500 → `audit_events.metadata.reason`) | Suspende | `{user}` |
 | POST | `/admin/users/{id}/reactivate` | `reactivate_user` | Reactiva | `{user}` |
 | GET | `/admin/ponds` | `admin_list_ponds` | Todos los ponds; filtros | `[{admin_pond}]` con `size_bytes` y `last_error` |

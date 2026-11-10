@@ -69,6 +69,24 @@ describe("W2-10 Panel admin", () => {
     expect(screen.getByText(adminSuspendedUser.full_name)).toBeInTheDocument();
   });
 
+  it("renders verified and created columns on the users table", async () => {
+    renderAdmin("/app/admin/users");
+    await screen.findByTestId("admin-users-page");
+
+    expect(screen.getByRole("columnheader", { name: "Verificado" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Creado" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Plan" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Ponds" })).toBeInTheDocument();
+
+    const clientRow = screen.getByTestId(`admin-user-row-${adminClientUser.id}`);
+    expect(within(clientRow).getByTestId(`email-verified-${adminClientUser.id}`)).toHaveTextContent(
+      "sí",
+    );
+    expect(within(clientRow).getByTestId(`created-at-${adminClientUser.id}`)).toHaveTextContent(
+      "22 sep 2026",
+    );
+  });
+
   it("closes the suspend dialog on Escape and returns focus to that row Suspender", async () => {
     const user = userEvent.setup();
     renderAdmin("/app/admin/users");

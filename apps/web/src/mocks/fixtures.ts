@@ -40,6 +40,7 @@ export const adminUser: AdminUser = {
   email_verified: true,
   active_subscription_plan: "pro",
   created_at: "2026-09-22T20:00:00Z",
+  ponds_count: 0,
 };
 
 export const adminClientUser: AdminUser = {
@@ -51,6 +52,7 @@ export const adminClientUser: AdminUser = {
   email_verified: true,
   active_subscription_plan: "micro",
   created_at: "2026-09-22T20:00:00Z",
+  ponds_count: 1,
 };
 
 export const adminSuspendedUser: AdminUser = {
@@ -62,6 +64,7 @@ export const adminSuspendedUser: AdminUser = {
   email_verified: true,
   active_subscription_plan: "sandbox",
   created_at: "2026-09-12T14:40:02Z",
+  ponds_count: 1,
 };
 
 export const adminPonds: AdminPond[] = [

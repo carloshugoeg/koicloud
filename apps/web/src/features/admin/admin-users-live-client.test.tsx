@@ -18,6 +18,7 @@ const QA_USER = {
   email_verified: true,
   created_at: "2026-11-01T12:00:00Z",
   active_subscription_plan: "pro",
+  ponds_count: 0,
 };
 
 const THIRD_USER = {
@@ -29,6 +30,7 @@ const THIRD_USER = {
   email_verified: true,
   created_at: "2026-09-01T12:00:00Z",
   active_subscription_plan: "micro",
+  ponds_count: 0,
 };
 
 const DEMO_USER = {
@@ -40,6 +42,7 @@ const DEMO_USER = {
   email_verified: true,
   created_at: "2026-10-01T12:00:00Z",
   active_subscription_plan: "micro",
+  ponds_count: 0,
 };
 
 function jsonResponse(body: unknown, status = 200) {

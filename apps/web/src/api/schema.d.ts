@@ -1027,6 +1027,7 @@ export interface components {
          *           "email_verified": true,
          *           "full_name": "Carlos Hugo Escobar",
          *           "id": "11111111-1111-1111-1111-111111111111",
+         *           "ponds_count": 1,
          *           "role": "client",
          *           "status": "active"
          *         }
@@ -1048,6 +1049,7 @@ export interface components {
          *       "email_verified": true,
          *       "full_name": "Carlos Hugo Escobar",
          *       "id": "11111111-1111-1111-1111-111111111111",
+         *       "ponds_count": 1,
          *       "role": "client",
          *       "status": "active"
          *     }
@@ -1071,6 +1073,8 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Ponds Count */
+            ponds_count: number;
             role: components["schemas"]["UserRole"];
             status: components["schemas"]["UserStatus"];
         };
@@ -1084,6 +1088,7 @@ export interface components {
          *         "email_verified": true,
          *         "full_name": "Carlos Hugo Escobar",
          *         "id": "11111111-1111-1111-1111-111111111111",
+         *         "ponds_count": 1,
          *         "role": "client",
          *         "status": "active"
          *       }

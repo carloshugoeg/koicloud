@@ -5,14 +5,14 @@ from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import and_, or_, select
+from sqlalchemy import and_, func, or_, select
 
 from app.core.auth import AuthContext
 from app.core.db import SessionLocal
 from app.core.deps import ADMIN_USERS_PAGE_LIMIT
 from app.core.enums import ActorKind, SubscriptionStatus, UserStatus
 from app.core.errors import AppError, ErrorCode
-from app.core.models import AuditEvent, Subscription, User
+from app.core.models import AuditEvent, Pond, Subscription, User
 from app.schemas import (
     AdminPondListResponse,
     AdminSubscriptionListResponse,
@@ -62,8 +62,17 @@ async def admin_list_users(
 ) -> AdminUserListResponse:
     mark = _decode_user_cursor(cursor) if cursor is not None else None
     async with SessionLocal() as session:
+        pond_counts = (
+            select(Pond.user_id, func.count().label("ponds_count"))
+            .group_by(Pond.user_id)
+            .subquery()
+        )
         stmt = (
-            select(User, Subscription.plan_id)
+            select(
+                User,
+                Subscription.plan_id,
+                func.coalesce(pond_counts.c.ponds_count, 0),
+            )
             .outerjoin(
                 Subscription,
                 and_(
@@ -71,6 +80,7 @@ async def admin_list_users(
                     Subscription.status == SubscriptionStatus.ACTIVE,
                 ),
             )
+            .outerjoin(pond_counts, pond_counts.c.user_id == User.id)
             .distinct(User.created_at, User.id)
             .order_by(User.created_at.desc(), User.id.desc(), Subscription.plan_id.asc())
         )
@@ -85,9 +95,12 @@ async def admin_list_users(
         page = rows[:limit]
         next_cursor = None
         if len(rows) > limit and page:
-            last_user, _plan_id = page[-1]
+            last_user, _plan_id, _ponds_count = page[-1]
             next_cursor = _encode_user_cursor(last_user.created_at, last_user.id)
-        users = [_admin_user_out(user, plan_id) for user, plan_id in page]
+        users = [
+            _admin_user_out(user, plan_id, int(ponds_count))
+            for user, plan_id, ponds_count in page
+        ]
         return AdminUserListResponse(users=users, next_cursor=next_cursor)
 
 
@@ -102,7 +115,21 @@ async def _active_plan_id(session, user_id: UUID) -> str | None:
     )
 
 
-def _admin_user_out(user: User, plan_id: str | None) -> AdminUserOut:
+async def _ponds_count(session, user_id: UUID) -> int:
+    return int(
+        (
+            await session.execute(
+                select(func.count()).select_from(Pond).where(Pond.user_id == user_id)
+            )
+        ).scalar_one()
+    )
+
+
+def _admin_user_out(
+    user: User,
+    plan_id: str | None,
+    ponds_count: int,
+) -> AdminUserOut:
     return AdminUserOut(
         id=user.id,
         email=user.email,
@@ -111,6 +138,7 @@ def _admin_user_out(user: User, plan_id: str | None) -> AdminUserOut:
         status=user.status,
         email_verified=user.email_verified_at is not None,
         created_at=user.created_at,
+        ponds_count=ponds_count,
         active_subscription_plan=plan_id,
     )
 
@@ -146,7 +174,8 @@ async def suspend_user(
         await session.commit()
         await session.refresh(user)
         plan_id = await _active_plan_id(session, user.id)
-        return AdminUserResponse(user=_admin_user_out(user, plan_id))
+        ponds_count = await _ponds_count(session, user.id)
+        return AdminUserResponse(user=_admin_user_out(user, plan_id, ponds_count))
 
 
 async def reactivate_user(user_id: UUID) -> AdminUserResponse:
@@ -159,7 +188,8 @@ async def reactivate_user(user_id: UUID) -> AdminUserResponse:
         await session.commit()
         await session.refresh(user)
         plan_id = await _active_plan_id(session, user.id)
-        return AdminUserResponse(user=_admin_user_out(user, plan_id))
+        ponds_count = await _ponds_count(session, user.id)
+        return AdminUserResponse(user=_admin_user_out(user, plan_id, ponds_count))
 
 
 async def admin_list_ponds() -> AdminPondListResponse:

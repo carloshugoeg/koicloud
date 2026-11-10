@@ -42,6 +42,7 @@ def build_admin_user(
         status=status,
         email_verified=True,
         created_at=now_iso(),
+        ponds_count=0,
         active_subscription_plan="micro",
     )
 
