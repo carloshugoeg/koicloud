@@ -146,14 +146,32 @@ export function IntroTour() {
     const card = CARDS[phase.index];
     return (
       <div
-        className="fixed inset-0 z-[60] flex items-center justify-center bg-ink/30 px-4"
+        className="fixed inset-0 z-[60] flex items-center justify-center overflow-hidden px-4"
         data-testid="intro-tour"
         role="dialog"
         aria-modal="true"
         aria-labelledby="intro-tour-title"
       >
         <div
-          className="w-full max-w-md rounded-md border border-line bg-bone-raised p-6 shadow-dialog"
+          data-testid="intro-tour-pond"
+          className="pond-water-auth pointer-events-none absolute inset-0"
+          aria-hidden="true"
+        >
+          <i
+            className="koi--x2 absolute"
+            style={{ left: "12%", top: "38%" }}
+          />
+          <i
+            className="koi absolute"
+            style={{ left: "58%", top: "14%", animationDelay: "-11s" }}
+          />
+          <i
+            className="koi absolute"
+            style={{ left: "78%", top: "62%", animationDelay: "-19s" }}
+          />
+        </div>
+        <div
+          className="relative z-10 w-full max-w-md rounded-md border border-line bg-bone-raised/95 p-6 shadow-dialog"
           data-testid="intro-tour-cards"
         >
           <p className="text-xs font-semibold uppercase tracking-[0.08em] text-ink-muted">
