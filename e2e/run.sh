@@ -30,13 +30,5 @@ if ! wait_http "${API_BASE}/health" 180; then
 fi
 ok "api healthy"
 
-set +e
 bash "$SCRIPT_DIR/suite.sh" | tee "$E2E_REPORT_DIR/suite.log"
-suite_status=${PIPESTATUS[0]}
-set -e
-if [[ "$suite_status" -ne 0 ]]; then
-  "${COMPOSE[@]}" ps -a >"$E2E_REPORT_DIR/compose-ps.txt" || true
-  "${COMPOSE[@]}" logs --tail 200 >"$E2E_REPORT_DIR/compose-logs.txt" || true
-  exit "$suite_status"
-fi
 ok "e2e run complete"
