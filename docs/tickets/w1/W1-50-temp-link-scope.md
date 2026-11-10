@@ -1,5 +1,5 @@
 ---
-id: W1-49
+id: W1-50
 workstream: W1
 persona: Carlos
 estado: en-revision
@@ -10,7 +10,7 @@ pr: https://github.com/carloshugoeg/koicloud/pull/236
 depends_on:
 ---
 
-# [W1-49] P0: el link temporal no sale del pond emitido
+# [W1-50] P0: el link temporal no sale del pond emitido
 
 ## Qué se ve
 
