@@ -2,7 +2,7 @@
 id: W1-200
 workstream: W1
 persona: Carlos
-estado: en-revision
+estado: hecho
 rama: w1-200-job-error-sanitize
 epica: E6-02
 sprint: S5
