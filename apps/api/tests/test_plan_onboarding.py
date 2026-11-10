@@ -165,3 +165,48 @@ async def test_ensure_subscription_does_not_stack_micro_on_sandbox() -> None:
         assert len(rows) == 1
         assert rows[0].plan_id == "sandbox"
         assert not any(row.plan_id == "micro" for row in rows)
+
+
+async def test_create_pond_with_two_active_sandbox_rows() -> None:
+    """Duplicate active sandbox rows must not 500 when creating a pond."""
+    from datetime import timedelta
+    from uuid import uuid4
+
+    from app.core.models import Subscription
+
+    reset_auth_tables()
+    email = "two-sandbox@koicloud.dev"
+
+    async with _make_client() as client:
+        user_id = await _register(client, email)
+        access = await _verify_and_login(client, user_id, email)
+
+        async with SessionLocal() as session:
+            first = (
+                await session.execute(
+                    select(Subscription).where(Subscription.user_id == user_id)
+                )
+            ).scalar_one()
+            # Past period so ensure_subscription skips the "current" branch and
+            # hits the sandbox lookup that used scalar_one_or_none + order_by.
+            first.current_period_end = utc_now() - timedelta(minutes=1)
+            session.add(
+                Subscription(
+                    id=uuid4(),
+                    user_id=user_id,
+                    plan_id="sandbox",
+                    status=SubscriptionStatus.ACTIVE,
+                    current_period_start=utc_now() - timedelta(days=2),
+                    current_period_end=utc_now() - timedelta(days=1),
+                )
+            )
+            await session.commit()
+
+        created = await client.post(
+            "/api/v1/ponds",
+            headers={"Authorization": f"Bearer {access}"},
+            json={"name": "two-sandbox-pond"},
+        )
+        assert created.status_code == 202, created.text
+        assert created.json()["pond"]["plan_id"] == "sandbox"
+        assert created.json()["job"]["type"] == "create_pond"
