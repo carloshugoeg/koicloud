@@ -21,7 +21,7 @@ Todo lo que aquí dice “obligatorio” se aplica por CI, por CODEOWNERS o por 
 
 ## 2. Quién es dueño de qué (recordatorio)
 
-Detalle en [`repo-scaffolding.md`](./repo-scaffolding.md) §8 y en [`../workstreams.md`](../workstreams.md). Aquí solo la lectura para agentes:
+Detalle en [`../architecture/repo-scaffolding.md`](../architecture/repo-scaffolding.md) §8 y en [`../WORKSTREAMS.md`](../WORKSTREAMS.md). Aquí solo la lectura para agentes:
 
 | Workstream | Persona | Herramienta | Prefijo de rama | Rutas que puede tocar |
 |------------|---------|-------------|------------------|-----------------------|
