@@ -382,6 +382,9 @@ def check_preview_requirements(root: Path) -> list[Finding]:
     try:
         export = _load_export_preview()
         expected = export.render_preview_requirements(api_dir)
+        expected_pyproject = None
+        if hasattr(export, "render_preview_pyproject"):
+            expected_pyproject = export.render_preview_pyproject(api_dir)
     except (OSError, subprocess.CalledProcessError, RuntimeError) as exc:
         findings.append(
             Finding(
@@ -400,6 +403,27 @@ def check_preview_requirements(root: Path) -> list[Finding]:
                 "Run python apps/web/scripts/export-preview-requirements.py",
             )
         )
+    if expected_pyproject is not None:
+        pyproject_rel = "apps/web/pyproject.toml"
+        pyproject_path = root / "apps" / "web" / "pyproject.toml"
+        if not pyproject_path.is_file():
+            findings.append(
+                Finding(
+                    "preview-requirements",
+                    pyproject_rel,
+                    "Missing apps/web/pyproject.toml for Vercel path deps. "
+                    "Run python apps/web/scripts/export-preview-requirements.py",
+                )
+            )
+        elif pyproject_path.read_text(encoding="utf-8") != expected_pyproject:
+            findings.append(
+                Finding(
+                    "preview-requirements",
+                    pyproject_rel,
+                    "Out of sync with export-preview-requirements.py output. "
+                    "Run python apps/web/scripts/export-preview-requirements.py",
+                )
+            )
     return findings
 
 

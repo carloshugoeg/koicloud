@@ -54,6 +54,7 @@ no existe todavía. `00-INDEX.md` no es un ticket y el agente lo ignora.
 | [W1-190](W1-190-restore-replace.md) | Restaurar reemplaza las filas del pond | `w1-190-restore-replace` | en-revision · [#195](https://github.com/carloshugoeg/koicloud/pull/195) · #96 r8-1 |
 | [W1-191](W1-191-sql-console-role.md) | SQL console connects as a non-superuser role | `w1-191-sql-console-role` | hecho · [#198](https://github.com/carloshugoeg/koicloud/pull/198) · #96 r8-2 |
 | [QI-01](QI-01-caddy-app-worker.md) | Caddy sirve la SPA en /app y el worker pasa el healthcheck | `w1-qi-infra-caddy-worker` | hecho · [#187](https://github.com/carloshugoeg/koicloud/pull/187) |
+| [W1-200](W1-200-job-error-sanitize.md) | Sanitizar last_error de los jobs | `w1-200-job-error-sanitize` | hecho · [#201](https://github.com/carloshugoeg/koicloud/pull/201) · #96 r8-7 |
 
 W1 es el único workstream que puede tocar cualquier ruta, y el único que escribe migraciones,
 regenera contratos (`make contracts`) y edita el harness de agentes.

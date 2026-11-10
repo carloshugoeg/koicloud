@@ -28,7 +28,8 @@ services:
 
   api:
     build:
-      context: ../apps/api
+      context: ..
+      dockerfile: apps/api/Dockerfile
     restart: unless-stopped
     environment:
       # Pinned: Settings production guards (email + default secrets) only run here.
@@ -78,7 +79,8 @@ services:
 
   worker:
     build:
-      context: ../apps/api
+      context: ..
+      dockerfile: apps/api/Dockerfile
     restart: unless-stopped
     environment:
       ENVIRONMENT: production

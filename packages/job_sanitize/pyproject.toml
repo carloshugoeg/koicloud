@@ -1,0 +1,12 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "koicloud-job-sanitize"
+version = "0.1.2"
+description = "Shared redaction for job command output in API and node-agent."
+requires-python = ">=3.12"
+
+[tool.hatch.build.targets.wheel]
+packages = ["koicloud_job_sanitize"]

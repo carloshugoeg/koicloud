@@ -1,4 +1,5 @@
 import type { PondJob } from "@/api/hooks/ponds";
+import { jobErrorSentence } from "@/features/ponds/job-error-text";
 
 const COPY = {
   queued: { lead: "Restauración encolada.", glyph: "◌" },
@@ -65,7 +66,7 @@ export function RestoreJobBanner({
         .
       </p>
       {broken && job?.last_error ? (
-        <p className="mt-1 font-mono text-xs text-ink">{job.last_error}</p>
+        <p className="mt-1 font-mono text-xs text-ink">{jobErrorSentence(job.last_error)}</p>
       ) : null}
     </div>
   );
