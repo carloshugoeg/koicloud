@@ -27,6 +27,7 @@ from app.core.security import (
 )
 from app.core.time import utc_now
 from app.modules.notifications import send
+from app.modules.notifications.errors import NotificationDeliveryError
 from app.schemas import (
     ChangePasswordRequest,
     ForgotPasswordRequest,
@@ -149,6 +150,11 @@ def _verify_email_url(plaintext: str) -> str:
     return f"https://{domain}/verify?token={plaintext}"
 
 
+def _reset_password_url(plaintext: str) -> str:
+    domain = get_settings().koicloud_domain.strip()
+    return f"https://{domain}/reset?token={plaintext}"
+
+
 def _log_verify_token_if_console(email: str, plaintext: str) -> None:
     """Surface plaintext verify token only for EMAIL_PROVIDER=console (pack R-03)."""
     if get_settings().email_provider == "console":
@@ -166,6 +172,22 @@ async def _deliver_verify_email(email: str, plaintext: str) -> None:
         email,
         {"url": _verify_email_url(plaintext), "email": email},
     )
+
+
+async def _deliver_reset_email(email: str, plaintext: str) -> None:
+    try:
+        await asyncio.to_thread(
+            send,
+            "reset_password",
+            email,
+            {"url": _reset_password_url(plaintext), "email": email},
+        )
+    except NotificationDeliveryError:
+        logger.error(
+            "reset_password delivery failed template=%s to=%s",
+            "reset_password",
+            email,
+        )
 
 
 async def register_user(payload: RegisterUserRequest) -> RegisterUserResponse:
@@ -301,9 +323,13 @@ async def send_reset_token(payload: ForgotPasswordRequest) -> OkResponse:
         user = (
             await session.execute(select(User).where(User.email == payload.email))
         ).scalar_one_or_none()
-        if user is not None:
-            await _issue_email_token_row(session, user.id, EmailTokenKind.RESET_PASSWORD)
+        if user is None:
+            return OkResponse(ok=True)
+        plaintext = await _issue_email_token_row(
+            session, user.id, EmailTokenKind.RESET_PASSWORD
+        )
         await session.commit()
+    await _deliver_reset_email(payload.email, plaintext)
     return OkResponse(ok=True)
 
 
