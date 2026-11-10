@@ -6,7 +6,7 @@ estado: en-revision
 rama: w1-repo-cleanup
 epica: E0-00
 sprint: S4
-pr:
+pr: https://github.com/carloshugoeg/koicloud/pull/237
 depends_on:
 ---
 
