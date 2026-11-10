@@ -1,6 +1,8 @@
 import { type FormEvent, useState } from "react";
 import { useUpdateProfileMutation } from "@/api/hooks/me";
 import { FieldError } from "@/features/account/field-error";
+import { problemToMessage } from "@/lib/errors";
+import { toast } from "@/lib/toast";
 
 type ProfileFormProps = {
   email: string;
@@ -29,10 +31,12 @@ export function ProfileForm({
         full_name: fullName.trim(),
         nit: trimmedNit ? trimmedNit : null,
       });
-    } catch {
+    } catch (error) {
+      toast({ tone: "danger", message: problemToMessage(error) });
       return;
     }
     setSaved(true);
+    toast({ tone: "ok", message: "Cambios guardados." });
   }
 
   return (

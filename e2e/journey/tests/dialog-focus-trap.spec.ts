@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { expect, test, type Page, type Route } from "@playwright/test";
+import { expect, test, type Page, type Route } from "../fixtures";
 
 const shotsDir = "/opt/cursor/artifacts";
 const widths = [375, 768, 1440] as const;

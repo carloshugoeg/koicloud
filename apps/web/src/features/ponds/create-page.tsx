@@ -1,9 +1,10 @@
 import { type FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCreatePondMutation, useMeQuery, usePlansQuery } from "@/api/hooks";
-import { ApiError, problemToMessage } from "@/lib/errors";
 import { DashboardPage } from "@/features/ponds/dashboard-page";
 import { isPondNameValid, pondNameIssues } from "@/features/ponds/pond-name";
+import { ApiError, problemToMessage } from "@/lib/errors";
+import { toast } from "@/lib/toast";
 
 export function CreatePondPage() {
   return (
@@ -43,8 +44,10 @@ function CreatePondDialog() {
     if (!valid || createMutation.isPending) return;
     try {
       const { pond } = await createMutation.mutateAsync(name);
+      toast({ tone: "ok", message: "Pond encolado para creación" });
       navigate(`/app/ponds/${pond.id}`, { replace: true });
-    } catch {
+    } catch (error) {
+      toast({ tone: "danger", message: problemToMessage(error) });
       return;
     }
   }

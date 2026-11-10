@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { expect, test, type Page, type Route } from "@playwright/test";
+import { expect, test, type Page, type Route } from "../fixtures";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const shotsDir = path.resolve(root, "../artifacts");

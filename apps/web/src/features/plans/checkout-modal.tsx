@@ -5,6 +5,7 @@ import { useSubscribeMutation, type PlanOut, type SubscribeResponse } from "@/ap
 import { cardDigits, cardNumberError, cvvError, expiryError, nitError } from "@/lib/billing-checks";
 import { ApiError, problemToMessage } from "@/lib/errors";
 import { formatPrice, formatPricePeriod } from "@/lib/format-price";
+import { toast } from "@/lib/toast";
 
 export interface CheckoutModalProps {
   plan: PlanOut;
@@ -88,8 +89,9 @@ export function CheckoutModal({ plan, onClose, onSuccess }: CheckoutModalProps) 
         card: { number, expiry: cardExpiry.trim(), cvc: cardCvc.trim() },
       });
       setIssued(res);
+      toast({ tone: "ok", message: "Plan contratado con éxito." });
     } catch {
-      // The alert reads subscribeMutation.error.
+      // Inline alert already shows problemToMessage; avoid a second role=alert toast.
     }
   }
 
