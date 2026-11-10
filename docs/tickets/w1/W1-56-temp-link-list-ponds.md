@@ -6,7 +6,7 @@ estado: en-revision
 rama: w1-temp-link-list-ponds
 epica: E9-02
 sprint: S8
-pr:
+pr: https://github.com/carloshugoeg/koicloud/pull/249
 depends_on:
 ---
 
