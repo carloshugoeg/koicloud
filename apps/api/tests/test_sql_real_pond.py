@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from uuid import uuid4
+
 import psycopg
 import pytest
 from fastapi.testclient import TestClient
@@ -375,6 +377,24 @@ def test_console_reads_and_writes_app_data_and_can_create_a_table() -> None:
     written = _sql(pond.pond_id, headers, WRITE_INSERT, "write")
     assert written.status_code == 200, written.text
     assert probe_values() == [7, PROBE_VALUE]
+
+
+def test_console_create_table_in_app_schema_then_select() -> None:
+    """koi_console can CREATE TABLE app.<name> and prove it with SELECT."""
+    pond = seed_probe_pond()
+    headers = _headers()
+    table = f"app.t_{uuid4().hex[:10]}"
+
+    created = _sql(pond.pond_id, headers, f"CREATE TABLE {table} (id integer)", "write")
+    assert created.status_code == 200, created.text
+    assert created.json()["columns"] == []
+    assert created.json()["rows"] == []
+
+    selected = _sql(pond.pond_id, headers, f"SELECT id FROM {table}", "read")
+    assert selected.status_code == 200, selected.text
+    assert selected.json()["columns"] == ["id"]
+    assert selected.json()["rows"] == []
+    assert selected.json()["row_count"] == 0
 
 
 def test_sql_endpoint_stopped_pond_returns_node_unavailable() -> None:

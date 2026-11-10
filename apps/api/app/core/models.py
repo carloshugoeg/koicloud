@@ -294,6 +294,14 @@ class PendingConfirmation(Base):
     summary: Mapped[str] = mapped_column(Text, nullable=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     consumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Temp SQL binding (CCR TEMP-CONFIRM). All null = legacy owner row.
+    pond_token_id: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("pond_tokens.id", ondelete="CASCADE"), nullable=True
+    )
+    pond_id: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("ponds.id", ondelete="CASCADE"), nullable=True
+    )
+    request_digest: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
 class AgentAccess(Base):

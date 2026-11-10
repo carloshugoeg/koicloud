@@ -75,6 +75,7 @@ Notación: `M ROUTE → CommandOrService` con response resumido. `[C]` = requier
 | GET | `/ponds/{id}` | `get_pond` | Detalle con estado observado | `{pond}` con `size_bytes` (última muestra o null) |
 | GET | `/ponds/by-name/{name}` | `get_pond_by_name` | Lookup por nombre | `{pond}` |
 | GET | `/ponds/{id}/connection` | `get_connection` | Host/port/user/pass/uri | `{connection}` |
+| GET | `/ponds/{id}/schema` | `get_pond_schema` | Tablas (schema-qualified), columnas y estimación de filas vía rol de consola | `{tables:[{name, estimated_rows, columns:[{name, type, nullable, default}]}]}` |
 | POST | `/ponds/{id}/retry` | `retry_failed_job` [C-CLI/MCP] | Reencola último job failed | `202 {job}` |
 | POST | `/ponds/{id}/stop` | `stop_pond` [C-CLI/MCP] | `desired=stopped` + job `stop_pond` | `202 {pond, job}` |
 | POST | `/ponds/{id}/start` | `start_pond` [C-CLI/MCP] | `desired=running` + job `start_pond` | `202 {pond, job}` |
@@ -120,14 +121,16 @@ temp-access create/list/revoke (+ GET `/ponds/{id}/schema` for S5, not this tabl
 | GET | `/ponds/{id}/temp-access` | `list_pond_temp_access` | Lista metadatos (sin password) | `{tokens:[{id, pond_id, slug, url, expires_at, revoked_at, scopes, created_at}]}` |
 | POST | `/ponds/{id}/temp-access/{token_id}/revoke` | `revoke_pond_temp_access` | Setea `revoked_at` | `{id, pond_id, slug, url, expires_at, revoked_at, scopes, created_at}` |
 
-MCP Basic auth con `slug:password` de un `pond_tokens` vigente autentica como el dueño del pond, con `AuthContext.pond_id` fijado y `allowed_tools` = `whoami` / `get_pond` / `run_sql`. Credencial vencida o revocada → `401 agent_bad_credentials`.
+MCP Basic auth con `slug:password` de un `pond_tokens` vigente autentica como el dueño del pond, con `AuthContext.pond_id` y `AuthContext.pond_token_id` (sesión lógica = `PondToken.id`) fijados. `allowed_tools` = scopes del credential ∩ `{whoami,get_pond,run_sql}`; si `run_sql` está concedido se deriva también `confirm_action`. Credencial vencida/revocada o dueño suspendido/inválido en el path temporal → `401 agent_bad_credentials`. MCP global off o tool/scope faltante → `403 agent_disabled` (el path de cuenta completa legacy no cambia).
+
+Propuesta `run_sql` write desde un actor temporal: fila `pending_confirmations` con `pond_token_id` + `pond_id` + `request_digest` (SHA-256 del envelope canónico v1). `next.confirm_url="/mcp"`, `cli_example=""`. Confirmación solo con el mismo Basic; sin JWT de dueño. Dueño JWT / MCP de cuenta no confirman ni descartan filas temp-bound (`404 confirmation_not_found`). Temp no confirma filas null-bound de dueño.
 
 ### 2.8 Confirmaciones (usadas por CLI/MCP)
 
 | M | Ruta | Command | Descripción | Response |
 |---|------|---------|-------------|----------|
-| POST | `/confirm/{token}` | `confirm_action` | Consume token; ejecuta el comando pendiente | Respuesta del comando efectivo (p. ej. `202 {pond}` si era `create_pond`) |
-| DELETE | `/confirm/{token}` | `discard_pending_confirmation` | El usuario descarta la propuesta | `204` |
+| POST | `/confirm/{token}` | `confirm_action` | Consume token; ejecuta el comando pendiente (JWT dueño; rechaza filas temp-bound) | Respuesta del comando efectivo (p. ej. `200 {pond}` si era `create_pond`) |
+| DELETE | `/confirm/{token}` | `discard_pending_confirmation` | El usuario descarta la propuesta (rechaza filas temp-bound) | `204` |
 
 ### 2.9 Administración
 
@@ -199,6 +202,7 @@ Servidor **FastMCP** montado en el mismo proceso API. Cada tool es de ≤ 25 lí
 | `start_pond(name)` | Encola arranque (`desired=running`) | — | ✓ |
 | `list_subscriptions()` | Suscripciones del usuario | ✓ | — |
 | `list_backups(pond_name)` | Respaldos disponibles | ✓ | — |
+| `list_tables(pond_id)` | Esquema del pond (mismo payload que `GET /ponds/{id}/schema`) | ✓ | — |
 | `restore_backup(pond_name, backup_id)` | Encola restore | — | ✓ |
 | `run_sql(pond_name, query, mode)` | Ejecuta SQL — `mode="read"` directo; `mode="write"` con propose | Depende | Sí para `write` |
 | `get_usage(month?)` | Uso del mes | ✓ | — |
