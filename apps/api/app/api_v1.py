@@ -810,9 +810,9 @@ async def toggle_agent_access(
 )
 async def confirm_action(
     token: str,
-    _: Annotated[AuthContext, Depends(get_current_user)],
+    actor: Annotated[AuthContext, Depends(get_current_user)],
 ) -> dict[str, Any]:
-    return await confirmation_commands.confirm_action(token)
+    return await confirmation_commands.confirm_action(token, actor=actor)
 
 
 @router.delete(
@@ -824,9 +824,9 @@ async def confirm_action(
 )
 async def discard_pending_confirmation(
     token: str,
-    _: Annotated[AuthContext, Depends(get_current_user)],
+    actor: Annotated[AuthContext, Depends(get_current_user)],
 ) -> Response:
-    await confirmation_commands.discard_pending_confirmation(token)
+    await confirmation_commands.discard_pending_confirmation(token, actor=actor)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
