@@ -70,7 +70,7 @@ class TempAudience:
 
 
 def _unique(prefix: str) -> str:
-    return f"{prefix}_{uuid.uuid4().hex[:10]}"
+    return f"{prefix}-{uuid.uuid4().hex[:10]}"
 
 
 def _basic(slug: str, password: str) -> dict[str, str]:
