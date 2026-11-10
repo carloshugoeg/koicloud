@@ -2,7 +2,7 @@
 id: W1-190
 workstream: W1
 persona: Carlos
-estado: en-revision
+estado: hecho
 rama: w1-190-restore-replace
 epica: E6-02
 sprint: S5
