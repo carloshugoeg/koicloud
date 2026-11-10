@@ -4,8 +4,10 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 from app.commands import auth as auth_commands
+from app.core.auth import AuthContext
 from app.core.enums import EmailTokenKind
 from app.schemas import (
+    ChangePasswordRequest,
     ForgotPasswordRequest,
     LoginRequest,
     LoginResponse,
@@ -75,6 +77,17 @@ class AuthService:
     @staticmethod
     async def send_reset_token(payload: ForgotPasswordRequest) -> OkResponse:
         return await auth_commands.send_reset_token(payload)
+
+    @staticmethod
+    async def change_password(
+        actor: AuthContext,
+        payload: ChangePasswordRequest,
+        *,
+        current_refresh: str | None = None,
+    ) -> None:
+        await auth_commands.change_password(
+            actor, payload, current_refresh=current_refresh
+        )
 
     @staticmethod
     async def reset_password(payload: ResetPasswordRequest) -> OkResponse:
