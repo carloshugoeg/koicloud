@@ -6,7 +6,7 @@ estado: en-revision
 rama: w1-audit-fixes
 epica: E6-02
 sprint: S8
-pr:
+pr: https://github.com/carloshugoeg/koicloud/pull/252
 depends_on:
 ---
 
