@@ -10,6 +10,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.auth import AuthContext
 from app.core.config import get_settings
 from app.core.db import SessionLocal
 from app.core.enums import EmailTokenKind, UserRole, UserStatus
@@ -28,6 +29,7 @@ from app.core.time import utc_now
 from app.modules.notifications import send
 from app.modules.notifications.errors import NotificationDeliveryError
 from app.schemas import (
+    ChangePasswordRequest,
     ForgotPasswordRequest,
     LoginRequest,
     LoginResponse,
@@ -345,6 +347,41 @@ async def reset_password(payload: ResetPasswordRequest) -> OkResponse:
         await _revoke_all_refresh(session, user.id)
         await session.commit()
     return OkResponse(ok=True)
+
+
+async def change_password(
+    actor: AuthContext,
+    payload: ChangePasswordRequest,
+    *,
+    current_refresh: str | None = None,
+) -> None:
+    if len(payload.new_password) < 8:
+        raise AppError(ErrorCode.PASSWORD_TOO_WEAK)
+
+    user_id = UUID(actor.user_id)
+    async with SessionLocal() as session:
+        user = await session.get(User, user_id)
+        if user is None:
+            raise AppError(ErrorCode.TOKEN_INVALID)
+        if not verify_password(payload.current_password, user.password_hash):
+            raise AppError(ErrorCode.INVALID_CREDENTIALS)
+
+        user.password_hash = hash_password(payload.new_password)
+        keep_hash = hash_token(current_refresh) if current_refresh else None
+        rows = (
+            await session.execute(
+                select(RefreshToken).where(
+                    RefreshToken.user_id == user_id,
+                    RefreshToken.revoked_at.is_(None),
+                )
+            )
+        ).scalars().all()
+        now = utc_now()
+        for row in rows:
+            if keep_hash is not None and row.token_hash == keep_hash:
+                continue
+            row.revoked_at = now
+        await session.commit()
 
 
 async def revoke_presented_access(*, user_id: UUID, jti: str, expires_at: datetime) -> None:
