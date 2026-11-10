@@ -2,7 +2,7 @@
 id: W1-49
 workstream: W1
 persona: Carlos
-estado: en-curso
+estado: en-revision
 rama: w1-account-page
 epica: "E1-05"
 sprint: S4
