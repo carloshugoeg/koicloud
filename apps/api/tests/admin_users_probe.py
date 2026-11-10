@@ -27,6 +27,8 @@ def seed_admin_user_pages() -> str:
             "password": PASSWORD,
             "oldest": OLDEST_EMAIL,
             "suspend": SUSPEND_EMAIL,
+            # Admin row uses UUID(int=PAGE_COUNT); e2e seeds intro-tour with this id.
+            "user_id": str(UUID(int=PAGE_COUNT)),
         }
     )
 

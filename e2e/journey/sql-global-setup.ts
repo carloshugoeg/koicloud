@@ -9,17 +9,20 @@ const homeUv = path.join(process.env.HOME ?? "", ".local/bin/uv");
 const uv = fs.existsSync(homeUv) ? homeUv : "uv";
 
 export const pondIdPath = "/tmp/koi-sql-probe-pond-id";
+export const demoUserIdPath = "/tmp/koi-sql-probe-user-id";
 
 export default function globalSetup() {
-  const pondId = execFileSync(
+  const raw = execFileSync(
     uv,
     [
       "run",
       "python",
       "-c",
-      "from tests.sql_probe_pond import seed_probe_pond; print(seed_probe_pond().pond_id)",
+      "from tests.sql_probe_pond import seed_probe_pond; p=seed_probe_pond(); print(p.pond_id); print(p.user_id)",
     ],
     { cwd: api, encoding: "utf8" },
   ).trim();
+  const [pondId, userId] = raw.split(/\r?\n/);
   fs.writeFileSync(pondIdPath, `${pondId}\n`);
+  fs.writeFileSync(demoUserIdPath, `${userId}\n`);
 }

@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Page, type Route } from "@playwright/test";
+import { expect, test, type Page, type Route } from "../fixtures";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const shotsDir = "/opt/cursor/artifacts/pond-table-explorer";
