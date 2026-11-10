@@ -76,7 +76,7 @@ Soy Carlos. ¿Qué me toca y ejecútalo?
 ```
 
 Un detalle solo de Cursor: los agentes en la nube crean ramas con prefijo `cursor/`. Nuestra
-convención es `wN-slug` (ver [`branch-naming.md`](./branch-naming.md)). La regla
+convención es `wN-slug` (ver [`../AGENTS.md`](../AGENTS.md) §1). La regla
 `00-harness.mdc` ya se lo dice al agente; si igual te crea una rama `cursor/…`, pedile que
 la renombre antes del PR.
 

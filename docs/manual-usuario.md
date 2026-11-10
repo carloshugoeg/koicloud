@@ -6,7 +6,7 @@ Las figuras salen de `apps/web` en `main`, servida con `pnpm dev` y `VITE_ENABLE
 
 Para la API local, `make seed` crea `demo@koicloud.dev` con la contraseña `Sup3rSegura!2026`.
 
-En el shell, bajo el nombre, se lee "Scaffold base para W2 sobre el contrato congelado." La barra **Estanque** lista **Ponds**, **Planes**, **Uso del mes**, **Facturación**, **Acceso agente** y **Cuenta**.
+La barra lateral agrupa **Estanque** (**Ponds**, **Crear pond**), **Consumo** (**Uso y facturación**), **Agente** (**Acceso agente**) y **Cuenta** (**Perfil**). Si tu cuenta es admin, aparece además **Administración**.
 
 ## Registra una cuenta
 
