@@ -2,7 +2,7 @@
 id: W1-204
 workstream: W1
 persona: Carlos
-estado: en-revision
+estado: hecho
 rama: w1-204-console-mcp-snippets
 epica: "E9-02"
 sprint: S3
