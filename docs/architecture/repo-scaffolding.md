@@ -28,7 +28,7 @@ Justificación de **no** usar herramientas de monorepo (Turborepo/Nx/Rush):
 | Regla | Detalle |
 |-------|---------|
 | Rama base | `main` (protegida; nunca push directo) |
-| Rama por ticket | `w<N>-<slug>` en kebab-case — `w2-detalle-pond`. El slug lo declara el propio ticket. Sin prefijo `cursor/`, sin sufijo aleatorio (ver [`../branch-naming.md`](../branch-naming.md)) |
+| Rama por ticket | `w<N>-<slug>` en kebab-case — `w2-detalle-pond`. El slug lo declara el propio ticket. Sin prefijo `cursor/`, sin sufijo aleatorio (ver [`../../AGENTS.md`](../../AGENTS.md) §1) |
 | Rama de docs sueltos | `docs-<slug>` (opcional, W1 lo controla) |
 | Rama de release | ninguna: `main` es la fuente; despliegue con `deploy.yml` |
 | Merge | **squash** obligatorio; rama borrada al fusionar |
@@ -216,7 +216,7 @@ otros tres en Antigravity, y las dos herramientas no leen los mismos archivos: C
 `AGENTS.md` y `.cursor/rules/`; Antigravity lee `.agents/rules/` y `GEMINI.md` (su CLI
 además lee `AGENTS.md`). Por eso `AGENTS.md` es la fuente, los punteros son de unas líneas,
 y las reglas de área existen por duplicado generadas desde un solo original. El razonamiento
-completo y los supuestos a verificar están en [`agent-docs.md`](./agent-docs.md) §4; los
+completo y los supuestos a verificar están en [`../../AGENTS.md`](../../AGENTS.md); los
 archivos terminados, en [`../repo-bootstrap/`](../repo-bootstrap/README.md).
 
 ---
@@ -339,7 +339,7 @@ Cada variable con placeholder y un comentario que documente su significado. Ejem
 | `rules` | `python3 scripts/sync-rules.py` y `git diff --exit-code .agents/rules/` | `.agents/rules/` no está al día respecto de `.cursor/rules/`, o alguna regla pasa de 12 000 caracteres (tope de Antigravity) |
 | `authorship` | recorre `git log origin/main..HEAD`: autor de cada commit contra el registro de `docs/WORKSTREAMS.md` §3, y `grep -i 'co-authored-by.*\(cursor\|antigravity\|gemini\|claude\)\|generated with'` | Un commit trae un trailer de herramienta, o un autor que no está en el registro del equipo |
 
-La compuerta de merge (además de CI required) es un comentario de revisión de **ship** (Grok Bot de W1) en el head commit que empiece por `ship review: LGTM`. Si empieza por `ship review: changes needed`, se corrige en la misma rama. Detalle en [`agent-docs.md`](./agent-docs.md) §8. El antiguo workflow Claude de revisión automática ya no existe.
+La compuerta de merge (además de CI required) es un comentario de revisión de **ship** (Grok Bot de W1) en el head commit que empiece por `ship review: LGTM`. Si empieza por `ship review: changes needed`, se corrige en la misma rama. Detalle en [`../../AGENTS.md`](../../AGENTS.md) §12. El antiguo workflow Claude de revisión automática ya no existe.
 
 `.github/workflows/deploy.yml` (W4) se dispara con push a `main` que toque `apps/**`, `packages/contracts/**` o `infra/**`. Hace `ssh <vps> "cd /srv/koicloud && infra/scripts/deploy.sh"`.
 

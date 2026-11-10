@@ -114,7 +114,7 @@ No commitees secretos reales.
 | `AGENT_MODE` | `mock` (CI/dev) o `docker` (socket real) | `mock` |
 | `NODE_ID` | Identidad del node-agent | `node-local` |
 | `NODE_TOKEN` | Auth del agent hacia `/internal/v1` | `change-me` |
-| `KOICLOUD_DOMAIN` | Dominio público (placeholder hasta host real) | `koicloud.example` |
+| `KOICLOUD_DOMAIN` | Dominio público (variable de repo; sslip.io en demo) | `koicloud.example` |
 | `NODE_PUBLIC_HOST` | Host que ven los clientes del pond | `127.0.0.1` |
 | `POND_PORT_RANGE_START` / `END` | Rango publicado de ponds | `15000`-`15999` |
 | `MCP_ENABLED` | Monta el servidor MCP | `true` |
@@ -186,38 +186,38 @@ Si falta un paso de install no listado arriba, abrí issue o CCR. No inventes fl
 
 ## 3. Despliegue
 
-Runbook canónico (VM Oracle Always Free, sslip.io, vars, primer deploy, update,
-rollback): [`runbooks/deploy.md`](./runbooks/deploy.md). Cumple ENTREGA-2 §6.3.
-Host $0: [`adr/014-oracle-always-free-sslip.md`](./adr/014-oracle-always-free-sslip.md).
+Runbook canónico (Hostinger KVM 1, `KOICLOUD_DOMAIN`/sslip.io, vars, primer deploy,
+update, rollback): [`runbooks/deploy.md`](./runbooks/deploy.md). Cumple ENTREGA-2 §6.3.
+Host: [`adr/014-oracle-always-free-sslip.md`](./adr/014-oracle-always-free-sslip.md).
 Operación: [`runbooks/free-disk.md`](./runbooks/free-disk.md),
 [`runbooks/restart-agent.md`](./runbooks/restart-agent.md),
 [`runbooks/rollback-migration.md`](./rollback-migration.md).
 Evidencia de carga: [`reporte-carga.md`](./reporte-carga.md).
 Diagrama: [`architecture/diagrams/14-deploy.mmd`](./architecture/diagrams/14-deploy.mmd).
 
-**No hay VM cableada todavía.** No fingir deploy. Sin dominio de pago usá
-`<ip>.sslip.io` / `<ip>.nip.io` como `KOICLOUD_DOMAIN`.
+El VPS de demo es Hostinger KVM 1. El hostname público es la variable de repo
+`KOICLOUD_DOMAIN` (hoy sslip.io / nip.io). No inventes la IP en docs.
 
 ### 3.1 Artefactos en el repo
 
 | Artefacto | Rol |
 |-----------|-----|
-| `infra/docker-compose.prod.yml` | `db`, `api`, `worker`, `caddy` (bases multi-arch ARM) |
+| `infra/docker-compose.prod.yml` | `db`, `api`, `worker`, `caddy` (bases multi-arch) |
 | `infra/Caddyfile` | TLS; hostname desde `KOICLOUD_DOMAIN` (sslip.io OK) |
 | `infra/koicloud-agent.service` | node-agent, `AGENT_MODE=docker` |
 | `infra/scripts/deploy.sh` | Se niega a correr con placeholders |
-| `.github/workflows/deploy.yml` | No hace SSH hasta tener variables y secretos |
+| `.github/workflows/deploy.yml` | SSH cuando hay variables y secretos |
 
 ### 3.2 Lo que hace falta fuera del repo
 
-1. VM Oracle Always Free (Ampere ARM, Ubuntu) con SSH.
-2. Hostname `sslip.io`/`nip.io` (o DNS propio) → IP pública.
+1. VPS Hostinger KVM 1 (Ubuntu) con SSH.
+2. Hostname `sslip.io`/`nip.io` (o DNS propio) → IP pública, en `KOICLOUD_DOMAIN`.
 3. Clave de deploy y `known_hosts`.
 4. Variables y secreto en GitHub (`KOICLOUD_DEPLOY_HOST`, `KOICLOUD_DEPLOY_USER`,
    `KOICLOUD_DOMAIN`, `KOICLOUD_DEPLOY_SSH_KNOWN_HOSTS`, `KOICLOUD_DEPLOY_SSH_KEY`).
 5. `infra/env/prod.env` en el host, sin defaults de desarrollo.
 6. Layout: clone en `/srv/koicloud`, `uv`, Docker Engine, unit systemd del agent.
-7. Firewall / VCN: `22`, `80`, `443`, `15000-15999`.
+7. Firewall del VPS: `22`, `80`, `443`, `15000-15999`.
 
 ### 3.3 Primer deploy y comprobación local
 

@@ -19,4 +19,4 @@ que contradiga un registro se escribe como un ADR nuevo.
 | [011](011-local-disk-backups.md) | Respaldos en disco local |
 | [012](012-monorepo.md) | Un solo repositorio |
 | [013](013-invoice-nit-snapshot.md) | Snapshot de NIT en `InvoiceOut` (CCR #127) |
-| [014](014-oracle-always-free-sslip.md) | Oracle Always Free + sslip.io ($0) |
+| [014](014-oracle-always-free-sslip.md) | Hostinger KVM 1 + sslip.io (`KOICLOUD_DOMAIN`) |

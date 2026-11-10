@@ -3,7 +3,7 @@
 
 Usage (CI):  python .github/scripts/check_ownership.py --branch "$HEAD_REF" --base "origin/$BASE_REF" [--labels "a,b"]
 
-The owned paths mirror docs/WORKSTREAMS.md and docs/architecture/agent-docs.md.
+The owned paths mirror docs/WORKSTREAMS.md and AGENTS.md.
 """
 from __future__ import annotations
 
@@ -49,6 +49,9 @@ OWNED: dict[str, list[str]] = {
         ".cursor/**",
         ".agents/**",
         "docs/architecture/**",
+        "docs/archive/**",
+        "docs/README.md",
+        "docs/ARCHITECTURE.md",
         "docs/branch-naming.md",
         "docs/agent-onboarding.md",
         "docs/WORKSTREAMS.md",
@@ -56,6 +59,11 @@ OWNED: dict[str, list[str]] = {
         "docs/visual-guidelines-agent-prompt.md",
         "docs/tickets/**",
         "docs/runbooks/**",
+        "docs/adr/**",
+        "docs/manual-tecnico.md",
+        "docs/manual-usuario.md",
+        "docs/manual-usuario/**",
+        "media/**",
         "scripts/**",
     ],
     "w2": ["apps/web/**", "docs/tickets/w2/**"],
@@ -145,7 +153,7 @@ def main() -> int:
         print(f"::error::Branch '{args.branch}' ({prefix.upper()}) changes files outside its owned paths:")
         for path in violations:
             print(f"  - {path}")
-        print("Open a ticket for the owning workstream or a CCR (docs/architecture/agent-docs.md). "
+        print("Open a ticket for the owning workstream or a CCR (AGENTS.md §2). "
               "If this is an approved cross-workstream change, add the 'cross-workstream' label.")
         return 1
 

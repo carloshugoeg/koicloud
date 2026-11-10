@@ -186,7 +186,7 @@ Fase 0 la hace W1 en solitario porque toca todo el scaffold; a partir de S2 los 
 
 ## 6. Definition of Done (por feature, resumen)
 
-Aplica a cualquier feature de esta lista; detalle por superficie en [`agent-docs.md`](./agent-docs.md) §DoD.
+Aplica a cualquier feature de esta lista; detalle por superficie en [`../../AGENTS.md`](../../AGENTS.md).
 
 1. PR fusionado en `main` por squash con **CI verde** y **revisor automático `APPROVE`**.
 2. Los criterios de aceptación del ticket están escritos y verificados uno por uno en el PR.
