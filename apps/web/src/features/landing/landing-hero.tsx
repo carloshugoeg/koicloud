@@ -8,7 +8,7 @@ import {
 export function LandingHero() {
   return (
     <section
-      className="flex flex-col gap-10 sm:gap-12 lg:gap-14"
+      className="flex flex-col gap-10 sm:gap-14 lg:gap-16"
       aria-labelledby="landing-hero-title"
     >
       <div className="max-w-measure">
@@ -17,22 +17,22 @@ export function LandingHero() {
         </p>
         <h1
           id="landing-hero-title"
-          className="mt-4 font-display text-[1.75rem] font-semibold leading-tight tracking-tight text-ink sm:mt-5 sm:text-4xl lg:text-[40px] lg:leading-[44px]"
+          className="mt-5 font-display text-[1.75rem] font-semibold leading-tight tracking-tight text-ink sm:mt-6 sm:text-4xl lg:text-[40px] lg:leading-[44px]"
           data-testid="landing-what-is"
         >
           {LANDING_WHAT_IS}
         </h1>
-        <p className="mt-5 max-w-measure text-base leading-7 text-ink-muted sm:mt-6 sm:text-lg sm:leading-8">
+        <p className="mt-6 max-w-measure text-base leading-7 text-ink-muted sm:mt-7 sm:text-lg sm:leading-8">
           {LANDING_HERO_SUPPORT}
         </p>
 
-        <blockquote className="mt-8 border-l-4 border-koi pl-5 sm:mt-10 sm:pl-6">
+        <blockquote className="mt-10 border-l-4 border-koi pl-5 sm:mt-12 sm:pl-6">
           <p className="font-display text-xl font-semibold leading-snug text-ink sm:text-2xl sm:leading-snug">
             {LANDING_THESIS}
           </p>
         </blockquote>
 
-        <div className="mt-8 flex flex-col gap-3 sm:mt-10 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+        <div className="mt-10 flex flex-col gap-3 sm:mt-12 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
           <Link
             to="/register"
             className="inline-flex min-h-11 items-center justify-center rounded-sm bg-turquoise-700 px-5 py-3 text-sm font-medium text-bone-raised transition-colors duration-instant hover:bg-turquoise-900 focus-visible:outline-none focus-visible:shadow-focus"

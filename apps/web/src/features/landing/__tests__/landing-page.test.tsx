@@ -34,7 +34,7 @@ describe("E2-01 Landing pública y catálogo", () => {
     renderLandingRoute();
 
     expect(screen.getAllByText("KoiCloud").length).toBeGreaterThanOrEqual(1);
-    const loginLinks = screen.getAllByRole("link", { name: "Iniciar sesión" });
+    const loginLinks = screen.getAllByRole("link", { name: /Entrar|Iniciar sesión/ });
     expect(loginLinks.length).toBeGreaterThanOrEqual(1);
     expect(loginLinks[0]).toHaveAttribute("href", "/login");
 

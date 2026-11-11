@@ -12,14 +12,14 @@ export function LandingPage() {
     <div className="min-h-screen bg-bone text-ink" data-landing-prerender>
       <header className="sticky top-0 z-30 border-b border-line bg-bone/95 backdrop-blur-sm">
         <div className="mx-auto flex h-14 max-w-content items-center justify-between gap-3 px-5 sm:px-8 lg:px-10">
-          <Link to="/" className="inline-flex min-w-0 items-center gap-2 no-underline">
+          <Link to="/" className="inline-flex items-center gap-2 no-underline">
             <span aria-hidden="true" className="koi-mark-32 shrink-0" />
-            <span className="truncate font-display text-xl font-semibold tracking-tight text-ink sm:text-2xl">
+            <span className="font-display text-lg font-semibold tracking-tight text-ink sm:text-2xl">
               KoiCloud
             </span>
           </Link>
 
-          <nav className="flex shrink-0 items-center gap-2 text-sm sm:gap-4">
+          <nav className="flex shrink-0 items-center gap-1.5 text-sm sm:gap-4">
             <a
               href="#planes"
               className="hidden font-medium text-ink-muted transition-colors duration-instant hover:text-ink md:inline"
@@ -34,13 +34,13 @@ export function LandingPage() {
             </a>
             <Link
               to="/login"
-              className="rounded-sm border border-line-control bg-paper px-3 py-2 text-xs font-medium text-ink transition-colors duration-instant hover:border-turquoise-700 hover:text-turquoise-700 focus-visible:outline-none focus-visible:shadow-focus"
+              className="rounded-sm px-2 py-2 text-xs font-medium text-ink transition-colors duration-instant hover:text-turquoise-700 focus-visible:outline-none focus-visible:shadow-focus sm:border sm:border-line-control sm:bg-paper sm:px-3"
             >
-              Iniciar sesión
+              Entrar
             </Link>
             <Link
               to="/register"
-              className="inline-flex min-h-9 items-center rounded-sm bg-turquoise-700 px-3 py-2 text-xs font-medium text-bone-raised transition-colors duration-instant hover:bg-turquoise-900 focus-visible:outline-none focus-visible:shadow-focus"
+              className="inline-flex min-h-9 items-center rounded-sm bg-turquoise-700 px-2.5 py-2 text-xs font-medium text-bone-raised transition-colors duration-instant hover:bg-turquoise-900 focus-visible:outline-none focus-visible:shadow-focus sm:px-3"
             >
               Crear cuenta
             </Link>
