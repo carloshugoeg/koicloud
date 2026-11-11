@@ -2,11 +2,11 @@
 id: W1-58
 workstream: W1
 persona: Carlos
-estado: en-curso
+estado: en-revision
 rama: w1-landing-mobile
 epica: E2-01
 sprint: S8
-pr:
+pr: https://github.com/carloshugoeg/koicloud/pull/253
 depends_on:
 ---
 
