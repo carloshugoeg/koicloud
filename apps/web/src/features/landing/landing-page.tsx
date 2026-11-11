@@ -11,7 +11,7 @@ export function LandingPage() {
   return (
     <div className="min-h-screen bg-bone text-ink" data-landing-prerender>
       <header className="sticky top-0 z-30 border-b border-line bg-bone/95 backdrop-blur-sm">
-        <div className="mx-auto flex h-14 max-w-content items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex h-14 max-w-content items-center justify-between gap-3 px-5 sm:px-8 lg:px-10">
           <Link to="/" className="inline-flex min-w-0 items-center gap-2 no-underline">
             <span aria-hidden="true" className="koi-mark-32 shrink-0" />
             <span className="truncate font-display text-xl font-semibold tracking-tight text-ink sm:text-2xl">
@@ -48,7 +48,7 @@ export function LandingPage() {
         </div>
       </header>
 
-      <main className="mx-auto flex max-w-content flex-col gap-12 px-4 py-6 pb-28 sm:gap-14 sm:px-6 sm:py-8 lg:px-8 lg:pb-10">
+      <main className="mx-auto flex max-w-content flex-col gap-16 px-5 py-10 pb-28 sm:gap-20 sm:px-8 sm:py-14 lg:gap-24 lg:px-10 lg:pb-16">
         <LandingHero />
         <LandingHow />
         <LandingAgents />
@@ -57,7 +57,7 @@ export function LandingPage() {
         <LandingFaq />
         <LandingFinalCta />
 
-        <footer className="flex flex-col gap-2 border-t border-line py-6 text-xs text-ink-muted sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4">
+        <footer className="flex flex-col gap-3 border-t border-line pt-8 text-xs leading-5 text-ink-muted sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4">
           <p>
             Equipo KoiCloud — Hugo Escobar, Jason Gutiérrez, Jousé Menendez, Diego Joachin.
           </p>

@@ -104,8 +104,11 @@ describe("E2-01 Landing pública y catálogo", () => {
     expect(screen.getByText("4 ponds")).toBeInTheDocument();
     expect(screen.getByText("12 ponds")).toBeInTheDocument();
     expect(screen.queryByText(/GB/)).not.toBeInTheDocument();
-    expect(screen.getAllByText("USD 7.0000").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByTestId("landing-plan-price-micro")).toHaveTextContent("$7/mes");
+    expect(screen.getByTestId("landing-plan-price-sandbox")).toHaveTextContent("Gratis");
+    expect(screen.getByTestId("landing-plan-price-pro")).toHaveTextContent("$0.02/h");
     expect(screen.getByText("Recomendado")).toBeInTheDocument();
+    expect(screen.queryByText(/USD \d/)).not.toBeInTheDocument();
 
     expect(screen.getAllByText(/Pago simulado\./i).length).toBeGreaterThanOrEqual(1);
     expect(
