@@ -62,8 +62,8 @@ no existe todavía. `00-INDEX.md` no es un ticket y el agente lo ignora.
 | [W1-52](W1-52-repo-cleanup.md) | Limpieza del repo (docs, media, audit) | `w1-repo-cleanup` | hecho · [#237](https://github.com/carloshugoeg/koicloud/pull/237) |
 | [W1-53](W1-53-solid-review.md) | Revisión SOLID actualizada (módulos principales + refactors mínimos) | `w1-solid-review` | hecho · [#238](https://github.com/carloshugoeg/koicloud/pull/238) |
 | [W1-54](W1-54-plan-onboarding.md) | Plan onboarding: sandbox default + chooser + confirm password | `w1-plan-onboarding` | hecho · [#242](https://github.com/carloshugoeg/koicloud/pull/242) |
-| [W1-55](W1-55-onboarding-tour.md) | Recorrido de onboarding + toasts de acciones | `w1-onboarding-tour` | en-revision · [#245](https://github.com/carloshugoeg/koicloud/pull/245) |
-| [W1-56](W1-56-temp-link-list-ponds.md) | Temp link: whoami + list_ponds del pond fijado | `w1-temp-link-list-ponds` | en-revision · [#249](https://github.com/carloshugoeg/koicloud/pull/249) |
+| [W1-55](W1-55-onboarding-tour.md) | Recorrido de onboarding + toasts de acciones | `w1-onboarding-tour` | hecho · [#245](https://github.com/carloshugoeg/koicloud/pull/245) |
+| [W1-56](W1-56-temp-link-list-ponds.md) | Temp link: whoami + list_ponds del pond fijado | `w1-temp-link-list-ponds` | hecho · [#249](https://github.com/carloshugoeg/koicloud/pull/249) |
 | [W1-57](W1-57-audit-fixes.md) | Audit fixes: nombre pond, scrub password en jobs, MCP 4xx | `w1-audit-fixes` | en-revision · [#252](https://github.com/carloshugoeg/koicloud/pull/252) |
 
 
