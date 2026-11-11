@@ -73,6 +73,10 @@ def _unique(prefix: str) -> str:
     return f"{prefix}_{uuid.uuid4().hex[:10]}"
 
 
+def _pond_name(prefix: str) -> str:
+    return f"{prefix}-{uuid.uuid4().hex[:10]}"
+
+
 def _basic(slug: str, password: str) -> dict[str, str]:
     token = base64.b64encode(f"{slug}:{password}".encode()).decode("ascii")
     return {"Authorization": f"Basic {token}"}
@@ -468,7 +472,7 @@ def _other_user_audience(pond_id_for_port_base: str) -> TempAudience:
     other_password = "OtherSegura!2026"
     other_user_id = str(uuid.uuid4())
     other_pond_id = str(uuid.uuid4())
-    other_pond_name = _unique("otherpond")
+    other_pond_name = _pond_name("otherpond")
     engine = _engine()
     with engine.begin() as connection:
         base = connection.execute(
@@ -689,7 +693,7 @@ def test_temp_cross_pond_and_user_cannot_confirm(transport: str) -> None:
 @pytest.mark.parametrize("transport", TRANSPORTS)
 def test_temp_other_pond_proposal_denied(transport: str) -> None:
     audience = _seed_audience()
-    other_name = _unique("beta")
+    other_name = _pond_name("beta")
     _insert_second_owned_pond(audience.pond_id, other_name)
 
     status, result = _propose_write(
@@ -1151,7 +1155,7 @@ def test_temp_cannot_confirm_any_owner_proposal(transport: str) -> None:
             "jsonrpc": "2.0",
             "id": 1,
             "method": "create_pond",
-            "params": {"name": _unique("ownerpond")},
+            "params": {"name": _pond_name("ownerpond")},
         },
     )
     assert owner_propose.status_code == 200, owner_propose.text
@@ -1237,7 +1241,7 @@ def test_temp_failed_dispatch_does_not_rearm_token(transport: str) -> None:
 def test_temp_non_sql_tools_still_forbidden(transport: str) -> None:
     audience = _seed_audience()
     for tool, arguments in (
-        ("create_pond", {"name": _unique("nope")}),
+        ("create_pond", {"name": _pond_name("nope")}),
         ("delete_pond", {"name": audience.pond_name}),
         ("stop_pond", {"name": audience.pond_name}),
         ("start_pond", {"name": audience.pond_name}),
@@ -1327,7 +1331,7 @@ def test_owner_confirmation_flows_regression() -> None:
                 "jsonrpc": "2.0",
                 "id": 1,
                 "method": "create_pond",
-                "params": {"name": _unique("regpond")},
+                "params": {"name": _pond_name("regpond")},
             },
         )
         assert proposed.status_code == 200, proposed.text
@@ -1348,7 +1352,7 @@ def test_owner_confirmation_flows_regression() -> None:
                 "jsonrpc": "2.0",
                 "id": 2,
                 "method": "create_pond",
-                "params": {"name": _unique("regpond2")},
+                "params": {"name": _pond_name("regpond2")},
             },
         )
         assert proposed2.status_code == 200, proposed2.text
@@ -1466,7 +1470,7 @@ def test_temp_disabled_tool_scope_and_global_mcp_remain_403(transport: str) -> N
         transport,
         audience.basic,
         "create_pond",
-        {"name": _unique("x")},
+        {"name": _pond_name("x")},
     )
     if status in {401, 403}:
         _assert_gate_failure(status, body, "agent_disabled")
