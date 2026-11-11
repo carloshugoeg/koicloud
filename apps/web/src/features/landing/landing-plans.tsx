@@ -33,10 +33,7 @@ function formatValidity(plan: PlanOut): string {
 }
 
 function planFeatures(plan: PlanOut): string[] {
-  return [
-    `${plan.max_ponds} pond${plan.max_ponds > 1 ? "s" : ""} · ${plan.max_storage_gb} GB`,
-    formatValidity(plan),
-  ];
+  return [`${plan.max_ponds} pond${plan.max_ponds > 1 ? "s" : ""}`, formatValidity(plan)];
 }
 
 export function LandingPlans() {

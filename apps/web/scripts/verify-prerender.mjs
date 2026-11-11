@@ -10,7 +10,7 @@ const indexHtml = readFileSync(indexPath, "utf8");
 const spaHtml = readFileSync(spaShellPath, "utf8");
 
 const required = [
-  "Tu Postgres en línea antes de que se enfríe el café.",
+  "KoiCloud es PostgreSQL 16 gestionado, pensado para agentes.",
   "Cómo funciona",
   "Crear cuenta",
   "data-landing-prerender",
@@ -32,7 +32,10 @@ if (!emptyRoot) {
   process.exit(1);
 }
 
-if (spaHtml.includes("data-landing-prerender") || spaHtml.includes("Tu Postgres en línea")) {
+if (
+  spaHtml.includes("data-landing-prerender") ||
+  spaHtml.includes("KoiCloud es PostgreSQL 16 gestionado")
+) {
   console.error(
     "CA8 SPA shell check failed: dist/app.html must not contain landing prerender markup.",
   );

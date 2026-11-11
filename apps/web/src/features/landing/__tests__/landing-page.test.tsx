@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { HttpResponse, http } from "msw";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { appRoutes } from "@/app/router";
+import { LANDING_WHAT_IS } from "@/features/landing/landing-copy";
 import { fixtures } from "@/mocks/fixtures";
 import { server } from "@/mocks/server";
 
@@ -29,30 +30,30 @@ function renderLandingRoute() {
 }
 
 describe("E2-01 Landing pública y catálogo", () => {
-  it("renders the hero section with heading, facts, and animated pond", async () => {
+  it("renders the hero qué-es copy, signup link, thesis, and pond", () => {
     renderLandingRoute();
 
     expect(screen.getAllByText("KoiCloud").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByRole("link", { name: "Iniciar sesión" })).toHaveAttribute(
-      "href",
-      "/login",
-    );
-    expect(screen.getAllByRole("link", { name: "Crear cuenta" })[0]).toHaveAttribute(
-      "href",
-      "/register",
-    );
+    const loginLinks = screen.getAllByRole("link", { name: "Iniciar sesión" });
+    expect(loginLinks.length).toBeGreaterThanOrEqual(1);
+    expect(loginLinks[0]).toHaveAttribute("href", "/login");
 
+    const heroSignup = screen.getByTestId("landing-hero-signup");
+    expect(heroSignup).toHaveAttribute("href", "/register");
+    expect(heroSignup).toHaveTextContent("Crear cuenta");
+
+    expect(screen.getByTestId("landing-what-is")).toHaveTextContent(LANDING_WHAT_IS);
     expect(
       screen.getByRole("heading", {
-        name: "Tu Postgres en línea antes de que se enfríe el café.",
+        name: LANDING_WHAT_IS,
       }),
     ).toBeInTheDocument();
 
-    expect(screen.getByText("~40 s")).toBeInTheDocument();
-    expect(screen.getByText("de crear a conectar")).toBeInTheDocument();
-    expect(screen.getByText("superficies: web, CLI, MCP")).toBeInTheDocument();
-    // Hero fact + Micro card both use formatPrice from GET /plans
-    expect(await screen.findAllByText("USD 5.0000")).toHaveLength(2);
+    expect(
+      screen.getByText(
+        /Si tu sistema no puede ser operado por agentes hoy en día, nadie lo va a usar\./,
+      ),
+    ).toBeInTheDocument();
 
     expect(screen.getByRole("img", { name: "Estanque de peces koi" })).toBeInTheDocument();
     expect(screen.getByTestId("landing-sticky-cta")).toBeInTheDocument();
@@ -99,16 +100,18 @@ describe("E2-01 Landing pública y catálogo", () => {
     expect(screen.getByText("MSW Sandbox custom")).toBeInTheDocument();
     expect(screen.getByText("MSW Micro custom")).toBeInTheDocument();
     expect(screen.getByText("MSW Pro custom")).toBeInTheDocument();
-    expect(screen.getByText("2 ponds · 3 GB")).toBeInTheDocument();
-    expect(screen.getByText("4 ponds · 8 GB")).toBeInTheDocument();
-    expect(screen.getByText("12 ponds · 30 GB")).toBeInTheDocument();
-    expect(screen.getAllByText("USD 7.0000").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText("2 ponds")).toBeInTheDocument();
+    expect(screen.getByText("4 ponds")).toBeInTheDocument();
+    expect(screen.getByText("12 ponds")).toBeInTheDocument();
+    expect(screen.queryByText(/GB/)).not.toBeInTheDocument();
+    expect(screen.getAllByText("USD 7.0000").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Recomendado")).toBeInTheDocument();
 
-    expect(screen.getByText(/Pago simulado\./i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Pago simulado\./i).length).toBeGreaterThanOrEqual(1);
     expect(
-      screen.getByText(/Este es un proyecto académico: no se realiza ningún cobro real/i),
-    ).toBeInTheDocument();
+      screen.getAllByText(/Este es un proyecto académico: no se realiza ningún cobro real/i)
+        .length,
+    ).toBeGreaterThanOrEqual(1);
   });
 
   it("shows error state when GET /plans fails", async () => {
@@ -127,15 +130,18 @@ describe("E2-01 Landing pública y catálogo", () => {
     expect(screen.getByRole("button", { name: "Reintentar" })).toBeInTheDocument();
   });
 
-  it("renders the 'Cómo funciona' three-step guide", () => {
+  it("renders how-it-works, agents, surfaces, faq, and final CTA", () => {
     renderLandingRoute();
 
-    expect(screen.getByRole("heading", { name: "Contratas un plan" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Creas tu pond" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Te conectas" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Creas tu cuenta" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Levantas un pond" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Operas como quieras" })).toBeInTheDocument();
 
-    expect(screen.getByText("Paso 1")).toBeInTheDocument();
-    expect(screen.getByText("Paso 2")).toBeInTheDocument();
-    expect(screen.getByText("Paso 3")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Hecho para agentes" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Tres formas de operarlo" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Preguntas honestas" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Abre tu primer pond hoy" })).toBeInTheDocument();
   });
 });

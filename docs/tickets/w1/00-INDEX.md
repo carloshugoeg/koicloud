@@ -65,6 +65,7 @@ no existe todavía. `00-INDEX.md` no es un ticket y el agente lo ignora.
 | [W1-55](W1-55-onboarding-tour.md) | Recorrido de onboarding + toasts de acciones | `w1-onboarding-tour` | hecho · [#245](https://github.com/carloshugoeg/koicloud/pull/245) |
 | [W1-56](W1-56-temp-link-list-ponds.md) | Temp link: whoami + list_ponds del pond fijado | `w1-temp-link-list-ponds` | hecho · [#249](https://github.com/carloshugoeg/koicloud/pull/249) |
 | [W1-57](W1-57-audit-fixes.md) | Audit fixes: nombre pond, scrub password en jobs, MCP 4xx | `w1-audit-fixes` | en-revision · [#252](https://github.com/carloshugoeg/koicloud/pull/252) |
+| [W1-58](W1-58-landing-mobile.md) | Landing mobile-first (qué es, tesis, agentes, FAQ) | `w1-landing-mobile` | en-curso |
 
 
 W1 es el único workstream que puede tocar cualquier ruta, y el único que escribe migraciones,
