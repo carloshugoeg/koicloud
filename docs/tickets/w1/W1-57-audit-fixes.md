@@ -2,7 +2,7 @@
 id: W1-57
 workstream: W1
 persona: Carlos
-estado: en-revision
+estado: hecho
 rama: w1-audit-fixes
 epica: E6-02
 sprint: S8

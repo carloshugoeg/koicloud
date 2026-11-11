@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { usePlansQuery, type PlanOut } from "@/api/hooks";
-import { formatPrice, formatPricePeriod } from "@/lib/format-price";
+import { formatLandingPrice } from "@/features/landing/format-landing-price";
 import { problemToMessage } from "@/lib/errors";
 
 const PLAN_PRESENTATION: Record<
@@ -33,25 +33,25 @@ function formatValidity(plan: PlanOut): string {
 }
 
 function planFeatures(plan: PlanOut): string[] {
-  return [
-    `${plan.max_ponds} pond${plan.max_ponds > 1 ? "s" : ""} · ${plan.max_storage_gb} GB`,
-    formatValidity(plan),
-  ];
+  return [`${plan.max_ponds} pond${plan.max_ponds > 1 ? "s" : ""}`, formatValidity(plan)];
 }
 
 export function LandingPlans() {
   const { data: plans, isPending, isError, error, refetch } = usePlansQuery();
 
   return (
-    <section id="planes" className="space-y-6">
-      <div className="border-t-2 border-turquoise-700 pt-3">
+    <section id="planes" className="space-y-8">
+      <div className="border-t-2 border-turquoise-700 pt-6 sm:pt-8">
         <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-muted">
           Planes · precio y vigencia
         </h2>
+        <p className="mt-3 max-w-measure text-base leading-7 text-ink-muted">
+          Sandbox gratis. Micro fijo. Pro por hora de uso. Pago simulado.
+        </p>
       </div>
 
       {isPending ? (
-        <div className="grid gap-6 md:grid-cols-3" data-testid="landing-plans-loading">
+        <div className="grid gap-6 md:grid-cols-3 md:gap-8" data-testid="landing-plans-loading">
           {[1, 2, 3].map((i) => (
             <div
               key={i}
@@ -63,7 +63,7 @@ export function LandingPlans() {
         </div>
       ) : isError ? (
         <div
-          className="rounded-sm border-l-4 border-danger bg-paper p-4"
+          className="rounded-sm border-l-4 border-danger bg-paper p-5"
           role="alert"
           data-testid="landing-plans-error"
         >
@@ -71,7 +71,7 @@ export function LandingPlans() {
           <button
             type="button"
             onClick={() => refetch()}
-            className="mt-3 rounded-sm border border-line-control bg-bone-raised px-3 py-1.5 text-xs font-medium text-ink hover:bg-bone"
+            className="mt-4 rounded-sm border border-line-control bg-bone-raised px-3 py-1.5 text-xs font-medium text-ink hover:bg-bone"
           >
             Reintentar
           </button>
@@ -84,14 +84,12 @@ export function LandingPlans() {
           No hay planes publicados por ahora.
         </div>
       ) : (
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-3 md:gap-8">
           {plans.map((plan) => {
             const presentation = PLAN_PRESENTATION[plan.id] ?? {
               bandColor: "bg-turquoise-700",
               ctaText: "Crear cuenta",
             };
-            const period = formatPricePeriod(plan);
-            const showPeriod = plan.id !== "sandbox";
             return (
               <article
                 key={plan.id}
@@ -104,7 +102,7 @@ export function LandingPlans() {
               >
                 <div>
                   <div className={`h-1.5 w-full ${presentation.bandColor}`} />
-                  <div className="space-y-3 p-5">
+                  <div className="space-y-4 p-6">
                     <div className="flex items-center justify-between gap-2">
                       <h3 className="font-display text-2xl font-semibold text-ink">
                         {plan.name}
@@ -116,19 +114,16 @@ export function LandingPlans() {
                       ) : null}
                     </div>
 
-                    <div className="font-display text-4xl font-semibold tracking-tight tabular-nums text-ink">
-                      {formatPrice(plan)}
-                      {showPeriod ? (
-                        <small className="font-sans text-sm font-normal text-ink-muted">
-                          {" "}
-                          {period}
-                        </small>
-                      ) : null}
+                    <div
+                      className="font-display text-4xl font-semibold tracking-tight tabular-nums text-ink"
+                      data-testid={`landing-plan-price-${plan.id}`}
+                    >
+                      {formatLandingPrice(plan)}
                     </div>
 
-                    <p className="text-xs text-ink-muted">{plan.description}</p>
+                    <p className="text-sm leading-6 text-ink-muted">{plan.description}</p>
 
-                    <ul className="space-y-1.5 border-t border-line pt-3 text-xs text-ink-muted">
+                    <ul className="space-y-2 border-t border-line pt-4 text-sm leading-6 text-ink-muted">
                       {planFeatures(plan).map((feat) => (
                         <li key={feat} className="flex items-center gap-2">
                           <span
@@ -142,10 +137,10 @@ export function LandingPlans() {
                   </div>
                 </div>
 
-                <div className="p-5 pt-0">
+                <div className="p-6 pt-0">
                   <Link
                     to="/register"
-                    className={`block w-full rounded-sm py-2 text-center text-xs font-medium transition-colors duration-instant ${
+                    className={`block w-full rounded-sm py-2.5 text-center text-sm font-medium transition-colors duration-instant ${
                       presentation.isFeatured
                         ? "bg-turquoise-700 text-bone-raised hover:bg-turquoise-900"
                         : "border border-line-control bg-paper text-ink hover:border-turquoise-700 hover:text-turquoise-700"
@@ -160,7 +155,7 @@ export function LandingPlans() {
         </div>
       )}
 
-      <div className="flex items-center gap-3 rounded-sm border border-line bg-bone-raised p-4 text-xs leading-5 text-ink-muted">
+      <div className="flex items-start gap-3 rounded-sm border border-line bg-bone-raised p-5 text-sm leading-6 text-ink-muted">
         <span className="font-mono text-sm font-bold text-turquoise-700" aria-hidden="true">
           ▲
         </span>

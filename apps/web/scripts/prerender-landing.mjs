@@ -23,7 +23,10 @@ try {
   );
   const fragment = renderLandingHtml();
 
-  if (!fragment.includes("Tu Postgres en línea") || !fragment.includes("data-landing-prerender")) {
+  if (
+    !fragment.includes("KoiCloud es PostgreSQL 16 gestionado") ||
+    !fragment.includes("data-landing-prerender")
+  ) {
     throw new Error("renderLandingHtml() did not produce required landing markup.");
   }
 
